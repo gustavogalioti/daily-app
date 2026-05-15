@@ -1,7 +1,7 @@
 const express = require('express');
 const { getDB } = require('../database');
 const { createAvatarUpload, getUploadedUrl } = require('../cloudinary');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware } = require('../authmiddleware');
 
 const router = express.Router();
 
