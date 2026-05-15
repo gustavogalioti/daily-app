@@ -2,9 +2,9 @@ const express = require('express');
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const { getDB } = require('../database');
-const { sendWelcomeEmail } = require('../email');
-const { authMiddleware } = require('../authmiddleware');
+const { getDB } = require('./database');
+const { sendWelcomeEmail } = require('./email');
+const { authMiddleware } = require('./authmiddleware');
 
 const router = express.Router();
 const SECRET = () => process.env.JWT_SECRET || 'daily_secret_key';

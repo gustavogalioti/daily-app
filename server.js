@@ -16,10 +16,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
   await initDB();
   require('./cloudinary');
 
-  app.use('/api/auth',  require('./routes/auth'));
-  app.use('/api/posts', require('./routes/posts'));
-  app.use('/api/users', require('./routes/users'));
-  app.use('/api/qod',   require('./routes/qod'));
+  // Rotas — todos os arquivos estão na raiz
+  app.use('/api/auth',  require('./auth'));
+  app.use('/api/posts', require('./posts'));
+  app.use('/api/users', require('./users'));
+  app.use('/api/qod',   require('./qod'));
 
   app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'DAILY', version: '1.0.0' }));
 

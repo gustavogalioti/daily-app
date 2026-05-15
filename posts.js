@@ -1,8 +1,8 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const { getDB } = require('../database');
-const { createPhotoUpload, getUploadedUrl } = require('../cloudinary');
-const { authMiddleware, optionalAuth } = require('../authmiddleware');
+const { getDB } = require('./database');
+const { createPhotoUpload, getUploadedUrl } = require('./cloudinary');
+const { authMiddleware, optionalAuth } = require('./authmiddleware');
 
 const router = express.Router();
 
