@@ -17,13 +17,13 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Campos obrigatórios: nome, usuário, email, senha' });
     const uname = username.replace(/^@/, '').toLowerCase().trim();
     const mail  = email.toLowerCase().trim();
-    if (db.prepare('SELECT id FROM users WHERE username=?').get(uname))
+    if (await db.prepare('SELECT id FROM users WHERE username=$1').get(uname))
       return res.status(409).json({ error: 'Nome de usuário já está em uso' });
-    if (db.prepare('SELECT id FROM users WHERE email=?').get(mail))
+    if (await db.prepare('SELECT id FROM users WHERE email=$1').get(mail))
       return res.status(409).json({ error: 'E-mail já cadastrado' });
     const hashed = await bcrypt.hash(password, 12);
     const id = uuidv4();
-    db.prepare('INSERT INTO users (id,name,username,email,password,birth_date,country,state,city,occupation) VALUES (?,?,?,?,?,?,?,?,?,?)')
+    await db.prepare('INSERT INTO users (id,name,username,email,password,birth_date,country,state,city,occupation) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)')
       .run(id, name.trim(), uname, mail, hashed, birth_date||null, country||null, state||null, city||null, occupation||null);
     sendWelcomeEmail({ to: mail, name: name.trim(), username: uname }).catch(e => console.error('Email:', e.message));
     const token = jwt.sign({ id, username: uname, name: name.trim() }, SECRET(), { expiresIn: '30d' });
@@ -37,7 +37,7 @@ router.post('/login', async (req, res) => {
     const { login, password } = req.body;
     if (!login || !password) return res.status(400).json({ error: 'Login e senha obrigatórios' });
     const clean = login.replace(/^@/, '').toLowerCase().trim();
-    const user  = db.prepare('SELECT * FROM users WHERE email=? OR username=?').get(clean, clean);
+    const user  = await db.prepare('SELECT * FROM users WHERE email=$1 OR username=$2').get(clean, clean);
     if (!user) return res.status(401).json({ error: 'Usuário não encontrado' });
     if (!await bcrypt.compare(password, user.password)) return res.status(401).json({ error: 'Senha incorreta' });
     const token = jwt.sign({ id: user.id, username: user.username, name: user.name }, SECRET(), { expiresIn: '30d' });
@@ -45,8 +45,8 @@ router.post('/login', async (req, res) => {
   } catch(e) { console.error(e); res.status(500).json({ error: 'Erro interno' }); }
 });
 
-router.get('/me', authMiddleware, (req, res) => {
-  const user = getDB().prepare('SELECT id,name,username,email,bio,avatar_url,occupation,country,state,city,created_at FROM users WHERE id=?').get(req.user.id);
+router.get('/me', authMiddleware, async (req, res) => {
+  const user = await getDB().prepare('SELECT id,name,username,email,bio,avatar_url,occupation,country,state,city,created_at FROM users WHERE id=$1').get(req.user.id);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
   res.json({ user });
 });

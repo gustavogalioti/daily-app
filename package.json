@@ -3,12 +3,8 @@
   "version": "1.0.0",
   "description": "DAILY — sua vida, seu tempo",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18.0.0" },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
@@ -19,6 +15,7 @@
     "multer": "^2.0.0",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^6.9.13",
+    "pg": "^8.11.3",
     "sql.js": "^1.12.0",
     "uuid": "^11.1.0"
   }
