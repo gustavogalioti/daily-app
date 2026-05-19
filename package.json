@@ -1,6 +1,6 @@
 {
   "name": "daily-social",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "DAILY — sua vida, seu tempo",
   "main": "server.js",
   "scripts": { "start": "node server.js" },
@@ -17,6 +17,7 @@
     "nodemailer": "^6.9.13",
     "pg": "^8.11.3",
     "sql.js": "^1.12.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "web-push": "^3.6.7"
   }
 }
