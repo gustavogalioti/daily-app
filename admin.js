@@ -86,3 +86,10 @@ router.post('/push-subscribe', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+
+// GET /api/admin/ranking — público, lista usuários por pontos
+router.get('/ranking', async (req, res) => {
+  const db = getDB();
+  const users = await db.prepare('SELECT id,name,username,avatar_url,points FROM users ORDER BY points DESC, created_at ASC').all();
+  res.json({ users });
+});

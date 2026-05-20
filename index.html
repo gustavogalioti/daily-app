@@ -277,9 +277,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
     <div class="nav-item" id="nav-destaques" onclick="switchTab('destaques')">⭐<span class="tip">Destaques</span></div>
     <div class="nav-item" id="nav-discussoes" onclick="switchTab('discussoes')">💬<span class="tip">Discussões</span></div>
     <div class="nav-item" id="nav-grupos" onclick="switchTab('grupos')">👥<span class="tip">Grupos</span></div>
+    <div class="nav-item" id="nav-ranking" onclick="switchTab('ranking')">🏆<span class="tip">Ranking</span></div>
     <div class="nav-item" id="nav-admin" onclick="switchTab('admin')" style="display:none;">⚙️<span class="tip">Admin</span></div>
     <div class="sidebar-spacer"></div>
     <div class="nav-item" id="nav-perfil" onclick="switchTab('perfil')">👤<span class="tip">Meu Perfil</span></div>
+    <div class="nav-item" onclick="doLogout()" style="color:var(--rust);">🚪<span class="tip">Sair</span></div>
     <div class="avatar-sm" id="sidebar-av" onclick="switchTab('perfil')"></div>
   </nav>
   <main class="main-area">
@@ -289,6 +291,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="sec-header">
         <div class="sec-title">Geral</div>
         <div id="push-status" style="font-size:.75rem;color:var(--mid);"></div>
+        <button class="btn-sm" onclick="switchTab('ranking')">🏆 Ranking</button>
         <button class="btn-sm btn-gold" id="btn-postar-geral" onclick="openGeralPost()" disabled>📷 Postar</button>
       </div>
       <div class="push-banner" id="push-banner" style="display:none;">
@@ -339,6 +342,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="cards-grid" id="discuss-grid"></div>
     </div>
 
+    <!-- RANKING -->
+    <div id="tab-ranking" class="tab-pane">
+      <div class="sec-header"><div class="sec-title">🏆 Ranking</div><div class="sec-sub">Usuários com mais pontos</div></div>
+      <div id="ranking-list" style="padding:1.5rem;max-width:700px;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
     <!-- GRUPOS -->
     <div id="tab-grupos" class="tab-pane">
       <div class="sec-header"><div class="sec-title">Grupos</div></div>
@@ -374,9 +385,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
     <div id="tab-perfil" class="tab-pane">
       <div class="perfil-banner"><button class="perfil-edit-btn" onclick="openEditProfile()">Editar perfil</button></div>
       <div class="perfil-av-wrap">
-        <div class="perfil-av" id="perfil-av" onclick="document.getElementById('av-file-input').click()" title="Clique para alterar foto">
-          <input type="file" id="av-file-input" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
-        </div>
+        <div class="perfil-av" id="perfil-av" onclick="document.getElementById('av-file-input').click()" title="Clique para alterar foto"></div>
+        <input type="file" id="av-file-input" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
         <div style="padding-bottom:.5rem;"><div class="perfil-name" id="perfil-name"></div><div class="perfil-handle" id="perfil-handle"></div></div>
       </div>
       <div class="perfil-info">
@@ -461,7 +471,7 @@ async function checkAuth(){if(!token)return false;try{const data=await api('/api
 async function initApp(){goTo('screen-app');updateSidebarAvatar();if(currentUser?.is_admin)document.getElementById('nav-admin').style.display='flex';try{const vd=await api('/api/vapid-public-key');vapidPublicKey=vd.key;setupPushNotifications();}catch(e){}await Promise.all([loadGeral(),loadTimeline(),loadDestaques('todos'),loadDiscussoes()]);loadPerfil();if(currentUser?.is_admin)loadAdmin();notifInterval=setInterval(checkActiveNotification,10000);checkActiveNotification();}
 
 function updateSidebarAvatar(){const el=document.getElementById('sidebar-av');if(currentUser?.avatar_url)el.innerHTML=`<img src="${currentUser.avatar_url}">`;else el.textContent=initials(currentUser?.name);}
-function switchTab(tab){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('tab-'+tab).classList.add('active');const nav=document.getElementById('nav-'+tab);if(nav)nav.classList.add('active');if(tab==='admin')loadAdmin();}
+function switchTab(tab){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('tab-'+tab).classList.add('active');const nav=document.getElementById('nav-'+tab);if(nav)nav.classList.add('active');if(tab==='admin')loadAdmin();if(tab==='ranking')loadRanking();}
 
 function urlBase64ToUint8Array(b64){const padding='='.repeat((4-b64.length%4)%4);const base64=(b64+padding).replace(/-/g,'+').replace(/_/g,'/');const rawData=window.atob(base64);return Uint8Array.from([...rawData].map(c=>c.charCodeAt(0)));}
 
@@ -499,11 +509,11 @@ async function openComments(postId){const modal=document.getElementById('comment
 
 async function sendComment(postId){const input=document.getElementById(`cmnt-input-${postId}`);const anonCb=document.getElementById(`cmnt-anon-${postId}`);const content=input.value.trim();const isAnon=anonCb?anonCb.checked:false;if(!content)return;try{await api(`/api/posts/${postId}/comments`,'POST',{content,is_anonymous:isAnon?1:0});const list=document.getElementById(`cmnt-list-${postId}`);list.insertAdjacentHTML('beforeend',`<div class="comment-item">${avEl(isAnon?null:{name:currentUser?.name,username:currentUser?.username,avatar_url:currentUser?.avatar_url},'av')}<div class="comment-bubble"><div class="comment-user">${isAnon?'Anônimo':'@'+currentUser?.username}</div><div class="comment-text">${content}</div></div></div>`);input.value='';if(anonCb)anonCb.checked=false;const rb=document.querySelector(`#post-${postId} .reply-btn`);if(rb){const m=rb.textContent.match(/\d+/);if(m)rb.textContent=rb.textContent.replace(m[0],parseInt(m[0])+1);}const cb=document.querySelector(`#post-${postId} .cmt-btn`);if(cb){const m=cb.textContent.match(/\d+/);if(m)cb.textContent=cb.textContent.replace(m[0],parseInt(m[0])+1);}}catch(e){toast(e.message,'error');}}
 
-async function loadAdmin(){try{const[stats,users]=await Promise.all([api('/api/admin/stats'),api('/api/admin/users')]);document.getElementById('admin-stats').innerHTML=`<div class="stat-box"><strong>${stats.total_users}</strong><span>Usuários</span></div><div class="stat-box"><strong>${stats.total_posts}</strong><span>Posts totais</span></div><div class="stat-box"><strong>${stats.today_posts}</strong><span>Posts hoje</span></div>`;document.getElementById('admin-user-list').innerHTML=users.users.map(u=>`<div class="user-row"><div class="av" style="width:30px;height:30px;font-size:.7rem;">${initials(u.name)}</div><div><div class="user-row-name">${u.name} ${u.is_admin?'<span class="admin-badge">admin</span>':''}</div><div class="user-row-handle">@${u.username} · ${u.email}</div></div><div class="user-row-pts">⭐ ${u.points||0}</div></div>`).join('');const notifStatus=await api('/api/admin/notification/active');document.getElementById('notif-status').innerHTML=notifStatus.active?`<span style="color:var(--gold);">● Notificação ativa — expira em ${mmss(notifStatus.ms_remaining)}</span>`:`<span style="color:var(--mid);">Nenhuma notificação ativa.</span>`;}catch(e){console.error(e);}}
+async function loadAdmin(){try{const[stats,users]=await Promise.all([api('/api/admin/stats'),api('/api/admin/ranking')]);document.getElementById('admin-stats').innerHTML=`<div class="stat-box"><strong>${stats.total_users}</strong><span>Usuários</span></div><div class="stat-box"><strong>${stats.total_posts}</strong><span>Posts totais</span></div><div class="stat-box"><strong>${stats.today_posts}</strong><span>Posts hoje</span></div>`;document.getElementById('admin-user-list').innerHTML=users.users.map(u=>`<div class="user-row"><div class="av" style="width:30px;height:30px;font-size:.7rem;">${initials(u.name)}</div><div><div class="user-row-name">${u.name} ${u.is_admin?'<span class="admin-badge">admin</span>':''}</div><div class="user-row-handle">@${u.username} · ${u.email}</div></div><div class="user-row-pts">⭐ ${u.points||0}</div></div>`).join('');const notifStatus=await api('/api/admin/notification/active');document.getElementById('notif-status').innerHTML=notifStatus.active?`<span style="color:var(--gold);">● Notificação ativa — expira em ${mmss(notifStatus.ms_remaining)}</span>`:`<span style="color:var(--mid);">Nenhuma notificação ativa.</span>`;}catch(e){console.error(e);}}
 
 async function sendNotification(){const btn=document.getElementById('btn-send-notif');btn.disabled=true;btn.textContent='Enviando...';try{await api('/api/admin/notify','POST',{});toast('Notificação enviada! 3 minutos iniciados. 📷','success',5000);checkActiveNotification();setTimeout(loadAdmin,2000);}catch(e){toast(e.message,'error');}finally{btn.disabled=false;btn.innerHTML='📷 Enviar notificação de foto agora';}}
 
-async function loadPerfil(){if(!currentUser)return;try{const data=await api(`/api/users/${currentUser.username}`);const u=data.user;const s=u.stats;const avEl2=document.getElementById('perfil-av');if(u.avatar_url)avEl2.innerHTML=`<img src="${u.avatar_url}" alt=""><input type="file" id="av-file-input" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">`;else{avEl2.innerHTML=`${initials(u.name)}<input type="file" id="av-file-input" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">`;}document.getElementById('perfil-name').textContent=u.name;document.getElementById('perfil-handle').textContent='@'+u.username;document.getElementById('perfil-bio').textContent=u.bio||'';document.getElementById('perfil-meta').innerHTML=[u.occupation?`<span class="perfil-meta-item">✏️ ${u.occupation}</span>`:'',u.city?`<span class="perfil-meta-item">📍 ${[u.city,u.state,u.country].filter(Boolean).join(', ')}</span>`:'',`<span class="perfil-meta-item">📅 Membro desde ${fmtDate(u.created_at)}</span>`].join('');document.getElementById('perfil-counters').innerHTML=`<div class="pcounter gold-counter"><strong>${currentUser.points||0} ⭐</strong><span>Pontos</span></div><div class="pcounter"><strong>${s.photos}</strong><span>Fotos</span></div><div class="pcounter"><strong>${s.active_days}</strong><span>Dias ativos</span></div><div class="pcounter"><strong>${s.reactions}</strong><span>Reações recebidas</span></div>`;const photos=await api(`/api/posts?user_id=${currentUser.id}&tab=geral&limit=50`);const pRow=document.getElementById('perfil-photos-row');const photoList=photos.posts.filter(p=>p.type==='photo');pRow.innerHTML=photoList.length?photoList.map(p=>`<div class="tl-photo-item"><img src="${p.image_url}" alt=""><div class="tl-photo-time">${fmtTime(p.created_at)}</div>${p.caption?`<div class="tl-photo-caption">${p.caption}</div>`:''}</div>`).join(''):'<div class="tl-empty">Suas fotos aparecerão aqui.</div>';}catch(e){console.error('Perfil error:',e);}}
+async function loadPerfil(){if(!currentUser)return;try{const data=await api(`/api/users/${currentUser.username}`);const u=data.user;const s=u.stats;const avEl2=document.getElementById('perfil-av');if(u.avatar_url)avEl2.innerHTML=`<img src="${u.avatar_url}" alt="">`;else{avEl2.innerHTML=initials(u.name);}document.getElementById('perfil-name').textContent=u.name;document.getElementById('perfil-handle').textContent='@'+u.username;document.getElementById('perfil-bio').textContent=u.bio||'';document.getElementById('perfil-meta').innerHTML=[u.occupation?`<span class="perfil-meta-item">✏️ ${u.occupation}</span>`:'',u.city?`<span class="perfil-meta-item">📍 ${[u.city,u.state,u.country].filter(Boolean).join(', ')}</span>`:'',`<span class="perfil-meta-item">📅 Membro desde ${fmtDate(u.created_at)}</span>`].join('');document.getElementById('perfil-counters').innerHTML=`<div class="pcounter gold-counter"><strong>${currentUser.points||0} ⭐</strong><span>Pontos</span></div><div class="pcounter"><strong>${s.photos}</strong><span>Fotos</span></div><div class="pcounter"><strong>${s.active_days}</strong><span>Dias ativos</span></div><div class="pcounter"><strong>${s.reactions}</strong><span>Reações recebidas</span></div>`;const photos=await api(`/api/posts?user_id=${currentUser.id}&tab=geral&limit=50`);const pRow=document.getElementById('perfil-photos-row');const photoList=photos.posts.filter(p=>p.type==='photo');pRow.innerHTML=photoList.length?photoList.map(p=>`<div class="tl-photo-item"><img src="${p.image_url}" alt=""><div class="tl-photo-time">${fmtTime(p.created_at)}</div>${p.caption?`<div class="tl-photo-caption">${p.caption}</div>`:''}</div>`).join(''):'<div class="tl-empty">Suas fotos aparecerão aqui.</div>';}catch(e){console.error('Perfil error:',e);}}
 
 async function uploadAvatar(e){const file=e.target.files[0];if(!file)return;const fd=new FormData();fd.append('avatar',file);loading(true);try{const data=await api('/api/users/me/avatar','POST',fd,true);currentUser.avatar_url=data.avatar_url;updateSidebarAvatar();loadPerfil();toast('Foto de perfil atualizada! ✅','success');}catch(e){toast(e.message,'error');}finally{loading(false);}}
 
@@ -511,6 +521,10 @@ function openEditProfile(){if(!currentUser)return;document.getElementById('edit-
 function closeEditModal(){document.getElementById('edit-modal').classList.add('hidden');}
 
 async function saveProfile(){const body={name:document.getElementById('edit-name').value.trim(),bio:document.getElementById('edit-bio').value.trim(),occupation:document.getElementById('edit-occupation').value.trim(),country:document.getElementById('edit-country').value.trim(),state:document.getElementById('edit-state').value.trim(),city:document.getElementById('edit-city').value.trim()};try{const data=await api('/api/users/me','PUT',body);currentUser={...currentUser,...data.user};closeEditModal();loadPerfil();updateSidebarAvatar();toast('Perfil atualizado!','success');}catch(e){toast(e.message,'error');}}
+
+function doLogout(){localStorage.removeItem('daily_token');token=null;currentUser=null;clearInterval(notifInterval);clearInterval(countdownInterval);goTo('screen-landing');}
+
+async function loadRanking(){const el=document.getElementById('ranking-list');if(!el)return;el.innerHTML='<div class="spinner"></div>';try{const data=await api('/api/admin/ranking');const users=data.users.sort((a,b)=>(b.points||0)-(a.points||0));el.innerHTML=users.map((u,i)=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="font-family:'DM Mono',monospace;font-size:.9rem;color:var(--mid);">${i+1}</span>`;return`<div style="display:flex;align-items:center;gap:1rem;padding:.9rem 1rem;background:var(--paper);border-radius:12px;margin-bottom:.6rem;box-shadow:0 1px 5px var(--shadow);"><div style="font-size:1.4rem;width:32px;text-align:center;">${medal}</div><div class="av ${['rust','gold','sage',''][u.username.charCodeAt(0)%4]}">${initials(u.name)}</div><div style="flex:1;"><div style="font-size:.9rem;font-weight:500;">${u.name}</div><div style="font-size:.75rem;color:var(--mid);font-family:'DM Mono',monospace;">@${u.username}</div></div><div style="font-family:'DM Mono',monospace;font-size:1.1rem;color:var(--gold);font-weight:700;">${u.points||0} ⭐</div></div>`;}).join('');}catch(e){el.innerHTML='<div style="padding:2rem;color:var(--mid);">Erro ao carregar.</div>';}}
 
 (async()=>{const ok=await checkAuth();if(ok)initApp();document.getElementById('login-senha').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});document.getElementById('login-id').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});})();
 </script>
