@@ -84,9 +84,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .rspc{flex:1;}
 .cmt-btn{background:none;border:none;cursor:pointer;font-size:.72rem;color:var(--mid);font-family:'DM Sans',sans-serif;padding:.2rem .5rem;border-radius:6px;transition:all .15s;}
 .cmt-btn:hover{background:var(--ghost);color:var(--ink);}
-.cards-grid{padding:1.2rem 1.5rem;display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;align-items:start;}
-@media(max-width:1200px){.cards-grid{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:800px){.cards-grid{grid-template-columns:repeat(2,1fr);}}
+.cards-grid{padding:1.2rem 1.5rem;display:grid;grid-template-columns:repeat(5,1fr);gap:.8rem;align-items:start;}
+@media(max-width:1200px){.cards-grid{grid-template-columns:repeat(4,1fr);}}
+@media(max-width:800px){.cards-grid{grid-template-columns:repeat(3,1fr);}}
 .card{background:var(--paper);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px var(--shadow);display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s;}
 .card:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--shadow);}
 .card-hd{padding:.85rem 1rem .5rem;display:flex;align-items:center;gap:.6rem;}
@@ -209,7 +209,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 <div id="screen-landing" class="screen active"><div class="grain"></div>
   <div class="landing-center">
     <div class="brand-mark">Daily</div>
-    <div class="brand-sub">sua vida · seu tempo</div>
+    <div class="brand-sub">compartilhe seu momento com o mundo</div>
     <div class="login-box">
       <div class="field"><label>E-mail ou @usuário</label><input type="text" id="login-id" placeholder="email@exemplo.com ou @seunome"></div>
       <div class="field"><label>Senha</label><input type="password" id="login-senha" placeholder="••••••••"></div>
@@ -217,6 +217,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
       <div class="login-divider">ou</div>
       <button class="btn-ghost" onclick="goTo('screen-register')">Criar conta — Cadastre-se</button>
+    </div>
+    <div style="position:relative;z-index:1;max-width:420px;width:100%;padding:1.5rem 2rem 2rem;text-align:center;">
+      <div style="border-top:1px solid rgba(245,240,232,.08);padding-top:1.5rem;">
+        <p style="font-size:.82rem;color:rgba(245,240,232,.5);line-height:1.8;font-family:'DM Sans',sans-serif;">
+          O <strong style="color:var(--gold);">Daily</strong> é um ambiente em que todos são amigos. Todo mundo está na brincadeira.<br><br>
+          Ao receber a notificação — que pode chegar a qualquer hora — poste uma foto do seu momento, do que está fazendo. Mas corra! Você tem só <strong style="color:var(--gold);">1 minuto</strong>. Quem posta ganha 1 ponto ⭐<br><br>
+          Temos também um espaço para <strong style="color:var(--gold);">discussões e desabafos</strong>. Todo mundo vai ver — mas tudo bem, aqui todo mundo é amigo.
+        </p>
+      </div>
     </div>
   </div>
 </div>
@@ -255,7 +264,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
   </div>
 </div>
 
-  
 <!-- CONFIRMAÇÃO -->
 <div id="screen-confirm" class="screen"><div class="grain"></div>
   <div class="confirm-box">
@@ -290,7 +298,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
     <!-- GERAL -->
     <div id="tab-geral" class="tab-pane active">
       <div class="sec-header">
-        <div class="sec-title">Geral</div>
+        <div><div class="sec-title">Geral</div><div class="sec-sub">Ao receber a notificação, poste uma foto do seu momento!</div></div>
         <div id="push-status" style="font-size:.75rem;color:var(--mid);"></div>
         <button class="btn-sm" onclick="switchTab('ranking')">🏆 Ranking</button>
         <button class="btn-sm btn-gold" id="btn-postar-geral" onclick="openGeralPost()" disabled>📷 Postar</button>
@@ -371,7 +379,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
         </div>
         <div class="admin-section">
           <div class="admin-section-title">📷 Notificação de Foto</div>
-          <p style="font-size:.85rem;color:var(--mid);margin-bottom:1rem;">Clique para enviar a notificação a todos os usuários. Eles terão <strong>3 minutos</strong> para postar uma foto.</p>
+          <p style="font-size:.85rem;color:var(--mid);margin-bottom:1rem;">Clique para enviar a notificação a todos os usuários. Eles terão <strong>1 minuto</strong> para postar uma foto.</p>
           <div id="notif-status" style="margin-bottom:1rem;font-size:.82rem;color:var(--mid);"></div>
           <button class="notif-send-btn" id="btn-send-notif" onclick="sendNotification()">📷 Enviar notificação de foto agora</button>
         </div>
@@ -486,7 +494,7 @@ async function checkActiveNotification(){try{const data=await api('/api/admin/no
 
 async function loadGeral(){const el=document.getElementById('geral-grid');try{const data=await api('/api/posts?tab=geral&limit=50');if(!data.posts.length){el.innerHTML=`<div style="grid-column:1/-1;padding:4rem;text-align:center;color:var(--mid);"><div style="font-size:3rem;margin-bottom:1rem;">📷</div><div>Nenhuma foto ainda. Aguarde a notificação!</div></div>`;return;}el.innerHTML=data.posts.map(p=>geralCardHTML(p)).join('');}catch(e){el.innerHTML='<div style="padding:2rem;color:var(--mid);">Erro ao carregar.</div>';}}
 
-function geralCardHTML(p){const reactions=EMOJIS.map(e=>{const r=p.reactions?.find(x=>x.emoji===e);return`<button class="rbtn${r?.reacted?' reacted':''}" onclick="doReact('${p.id}','${e}',this)">${e}${r?.count?` <span class="cnt">${r.count}</span>`:''}</button>`;}).join('');return`<div class="card" id="post-${p.id}"><div class="card-hd">${avEl(p.author)}<div class="card-user">@${p.author?.username}</div><div class="card-time">${fmtTime(p.created_at)}</div></div>${p.image_url?`<img class="card-img" src="${p.image_url}" alt="">`:''}${p.caption?`<div class="card-caption">${p.caption}</div>`:''}<div class="reactions">${reactions}<div class="rspc"></div><button class="cmt-btn" onclick="openComments('${p.id}')">${p.comment_count||0} comentário${p.comment_count!==1?'s':''}</button></div></div>`;}
+function geralCardHTML(p){const reactions=EMOJIS.map(e=>{const r=p.reactions?.find(x=>x.emoji===e);return`<button class="rbtn${r?.reacted?' reacted':''}" onclick="doReact('${p.id}','${e}',this)">${e}${r?.count?` <span class="cnt">${r.count}</span>`:''}</button>`;}).join('');return`<div class="card" id="post-${p.id}"><div class="card-hd">${avEl(p.author)}<div class="card-user">@${p.author?.username}</div><div class="card-time">${fmtTime(p.created_at)}</div></div>${p.image_url?`<img class="card-img" src="${p.image_url}" alt="" style="height:160px;aspect-ratio:unset;">`:''}${p.caption?`<div class="card-caption">${p.caption}</div>`:''}<div class="reactions">${reactions}<div class="rspc"></div><button class="cmt-btn" onclick="openComments('${p.id}')">${p.comment_count||0} comentário${p.comment_count!==1?'s':''}</button></div></div>`;}
 
 function openGeralPost(){if(!currentNotifId){toast('Nenhuma notificação ativa.','error');return;}document.getElementById('post-modal').classList.remove('hidden');document.getElementById('photo-preview').style.display='none';document.getElementById('camera-btn-area').style.display='block';document.getElementById('post-caption-input').style.display='none';document.getElementById('btn-publish-photo').style.display='none';document.getElementById('photo-file').value='';const timerEl=document.getElementById('post-timer-display');const update=()=>{if(!currentNotifId){timerEl.textContent='';return;}api('/api/admin/notification/active').then(d=>{if(d.active)timerEl.textContent='⏱ '+mmss(d.ms_remaining);else{timerEl.textContent='⏰ Tempo esgotado!';closePostModal();}}).catch(()=>{});};update();}
 function closePostModal(){document.getElementById('post-modal').classList.add('hidden');}
@@ -494,7 +502,7 @@ function previewPhoto(e){const file=e.target.files[0];if(!file)return;const prev
 
 async function submitGeralPost(){const file=document.getElementById('photo-file').files[0];if(!file){toast('Selecione uma foto','error');return;}const caption=document.getElementById('post-caption-input').value.trim();const fd=new FormData();fd.append('photo',file);fd.append('caption',caption);fd.append('tab','geral');if(currentNotifId)fd.append('notification_id',currentNotifId);loading(true);try{await api('/api/posts/photo','POST',fd,true);closePostModal();toast('Foto publicada! +1 ponto ⭐','success');if(currentUser)currentUser.points=(currentUser.points||0)+1;loadGeral();loadTimeline();loadPerfil();}catch(e){toast(e.message,'error');}finally{loading(false);}}
 
-async function loadTimeline(){if(!currentUser)return;const rowEl=document.getElementById('tl-photos-row');const statsEl=document.getElementById('tl-stats');try{const data=await api(`/api/posts?user_id=${currentUser.id}&tab=geral&limit=100`);const photos=data.posts.filter(p=>p.type==='photo');statsEl.innerHTML=`<div class="tl-stat"><strong>${photos.length}</strong><span>Fotos</span></div><div class="tl-stat"><strong>${currentUser.points||0} ⭐</strong><span>Pontos</span></div>`;if(!photos.length){rowEl.innerHTML='<div class="tl-empty">Suas fotos aparecerão aqui quando você responder às notificações.</div>';return;}rowEl.innerHTML=photos.map(p=>`<div class="tl-photo-item"><img src="${p.image_url}" alt="${p.caption||''}"><div class="tl-photo-time">${fmtTime(p.created_at)}</div>${p.caption?`<div class="tl-photo-caption">${p.caption}</div>`:''}</div>`).join('');}catch(e){rowEl.innerHTML='<div class="tl-empty">Erro ao carregar.</div>';}}
+async function loadTimeline(){if(!currentUser)return;const rowEl=document.getElementById('tl-photos-row');const statsEl=document.getElementById('tl-stats');try{const data=await api(`/api/posts?user_id=${currentUser.id}&tab=geral&limit=100`);const photos=data.posts.filter(p=>p.type==='photo');statsEl.innerHTML=`<div class="tl-stat"><strong>${photos.length}</strong><span>Fotos</span></div><div class="tl-stat"><strong>${currentUser.points||0} ⭐</strong><span>Pontos</span></div>`;if(!photos.length){rowEl.innerHTML='<div class="tl-empty">Suas fotos aparecerão aqui quando você responder às notificações.</div>';return;}rowEl.innerHTML=photos.map(p=>`<div class="tl-photo-item"><img src="${p.image_url}" alt="${p.caption||''}"><div class="tl-photo-time">${fmtDate(p.created_at).replace(' de ','/').substring(0,10)} · ${fmtTime(p.created_at)}</div>${p.caption?`<div class="tl-photo-caption">${p.caption}</div>`:''}</div>`).join('');}catch(e){rowEl.innerHTML='<div class="tl-empty">Erro ao carregar.</div>';}}
 
 async function loadDestaques(filter='todos',btn=null){if(btn){document.querySelectorAll('.tab-filter .filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}const el=document.getElementById('destaques-grid');el.innerHTML='<div class="spinner" style="grid-column:1/-1;"></div>';try{const data=await api(`/api/posts/highlights?filter=${filter}`);el.innerHTML=data.posts.length?data.posts.map((p,i)=>`<div class="card" style="position:relative;" id="post-${p.id}"><div class="dest-rank ${i<3?'top':''}">${i+1}</div>${p.type==='photo'&&p.image_url?`<img class="card-img" src="${p.image_url}" alt="">`:''}<div class="card-hd">${avEl(p.author)}<div class="card-user">${p.is_anonymous?'Anônimo':'@'+p.author?.username}</div><div class="card-time">${fmtTime(p.created_at)}</div></div><div class="card-body">${p.content||p.caption||''}</div><div class="card-ft">${(p.reactions||[]).map(r=>`<span class="dstat">${r.emoji} ${r.count}</span>`).join('')}<span class="dstat" style="margin-left:auto;">💬 ${p.comment_count||0}</span></div></div>`).join(''):'<div style="padding:3rem;text-align:center;color:var(--mid);grid-column:1/-1;">Nenhum post ainda.</div>';}catch(e){el.innerHTML='<div style="padding:2rem;color:var(--mid);">Erro.</div>';}}
 
@@ -512,9 +520,9 @@ async function sendComment(postId){const input=document.getElementById(`cmnt-inp
 
 async function loadAdmin(){try{const[stats,users]=await Promise.all([api('/api/admin/stats'),api('/api/admin/ranking')]);document.getElementById('admin-stats').innerHTML=`<div class="stat-box"><strong>${stats.total_users}</strong><span>Usuários</span></div><div class="stat-box"><strong>${stats.total_posts}</strong><span>Posts totais</span></div><div class="stat-box"><strong>${stats.today_posts}</strong><span>Posts hoje</span></div>`;document.getElementById('admin-user-list').innerHTML=users.users.map(u=>`<div class="user-row"><div class="av" style="width:30px;height:30px;font-size:.7rem;">${initials(u.name)}</div><div><div class="user-row-name">${u.name} ${u.is_admin?'<span class="admin-badge">admin</span>':''}</div><div class="user-row-handle">@${u.username} · ${u.email}</div></div><div class="user-row-pts">⭐ ${u.points||0}</div></div>`).join('');const notifStatus=await api('/api/admin/notification/active');document.getElementById('notif-status').innerHTML=notifStatus.active?`<span style="color:var(--gold);">● Notificação ativa — expira em ${mmss(notifStatus.ms_remaining)}</span>`:`<span style="color:var(--mid);">Nenhuma notificação ativa.</span>`;}catch(e){console.error(e);}}
 
-async function sendNotification(){const btn=document.getElementById('btn-send-notif');btn.disabled=true;btn.textContent='Enviando...';try{await api('/api/admin/notify','POST',{});toast('Notificação enviada! 3 minutos iniciados. 📷','success',5000);checkActiveNotification();setTimeout(loadAdmin,2000);}catch(e){toast(e.message,'error');}finally{btn.disabled=false;btn.innerHTML='📷 Enviar notificação de foto agora';}}
+async function sendNotification(){const btn=document.getElementById('btn-send-notif');btn.disabled=true;btn.textContent='Enviando...';try{await api('/api/admin/notify','POST',{});toast('Notificação enviada! 1 minuto iniciado. 📷','success',4000);checkActiveNotification();setTimeout(loadAdmin,2000);}catch(e){toast(e.message,'error');}finally{btn.disabled=false;btn.innerHTML='📷 Enviar notificação de foto agora';}}
 
-async function loadPerfil(){if(!currentUser)return;try{const data=await api(`/api/users/${currentUser.username}`);const u=data.user;const s=u.stats;const avEl2=document.getElementById('perfil-av');if(u.avatar_url)avEl2.innerHTML=`<img src="${u.avatar_url}" alt="">`;else{avEl2.innerHTML=initials(u.name);}document.getElementById('perfil-name').textContent=u.name;document.getElementById('perfil-handle').textContent='@'+u.username;document.getElementById('perfil-bio').textContent=u.bio||'';document.getElementById('perfil-meta').innerHTML=[u.occupation?`<span class="perfil-meta-item">✏️ ${u.occupation}</span>`:'',u.city?`<span class="perfil-meta-item">📍 ${[u.city,u.state,u.country].filter(Boolean).join(', ')}</span>`:'',`<span class="perfil-meta-item">📅 Membro desde ${fmtDate(u.created_at)}</span>`].join('');document.getElementById('perfil-counters').innerHTML=`<div class="pcounter gold-counter"><strong>${currentUser.points||0} ⭐</strong><span>Pontos</span></div><div class="pcounter"><strong>${s.photos}</strong><span>Fotos</span></div><div class="pcounter"><strong>${s.active_days}</strong><span>Dias ativos</span></div><div class="pcounter"><strong>${s.reactions}</strong><span>Reações recebidas</span></div>`;const photos=await api(`/api/posts?user_id=${currentUser.id}&tab=geral&limit=50`);const pRow=document.getElementById('perfil-photos-row');const photoList=photos.posts.filter(p=>p.type==='photo');pRow.innerHTML=photoList.length?photoList.map(p=>`<div class="tl-photo-item"><img src="${p.image_url}" alt=""><div class="tl-photo-time">${fmtTime(p.created_at)}</div>${p.caption?`<div class="tl-photo-caption">${p.caption}</div>`:''}</div>`).join(''):'<div class="tl-empty">Suas fotos aparecerão aqui.</div>';}catch(e){console.error('Perfil error:',e);}}
+async function loadPerfil(){if(!currentUser)return;try{const data=await api(`/api/users/${currentUser.username}`);const u=data.user;const s=u.stats;const avEl2=document.getElementById('perfil-av');if(u.avatar_url)avEl2.innerHTML=`<img src="${u.avatar_url}" alt="">`;else{avEl2.innerHTML=initials(u.name);}document.getElementById('perfil-name').textContent=u.name;document.getElementById('perfil-handle').textContent='@'+u.username;document.getElementById('perfil-bio').textContent=u.bio||'';document.getElementById('perfil-meta').innerHTML=[u.occupation?`<span class="perfil-meta-item">✏️ ${u.occupation}</span>`:'',u.city?`<span class="perfil-meta-item">📍 ${[u.city,u.state,u.country].filter(Boolean).join(', ')}</span>`:'',`<span class="perfil-meta-item">📅 Membro desde ${fmtDate(u.created_at)}</span>`].join('');document.getElementById('perfil-counters').innerHTML=`<div class="pcounter gold-counter"><strong>${currentUser.points||0} ⭐</strong><span>Pontos</span></div><div class="pcounter"><strong>${s.photos}</strong><span>Fotos</span></div><div class="pcounter"><strong>${s.active_days}</strong><span>Dias ativos</span></div><div class="pcounter"><strong>${s.reactions}</strong><span>Reações recebidas</span></div>`;const photos=await api(`/api/posts?user_id=${currentUser.id}&tab=geral&limit=50`);const pRow=document.getElementById('perfil-photos-row');const photoList=photos.posts.filter(p=>p.type==='photo');pRow.innerHTML=photoList.length?photoList.map(p=>`<div class="tl-photo-item"><img src="${p.image_url}" alt=""><div class="tl-photo-time">${fmtDate(p.created_at).replace(' de ','/').substring(0,10)} · ${fmtTime(p.created_at)}</div>${p.caption?`<div class="tl-photo-caption">${p.caption}</div>`:''}</div>`).join(''):'<div class="tl-empty">Suas fotos aparecerão aqui.</div>';}catch(e){console.error('Perfil error:',e);}}
 
 async function uploadAvatar(e){const file=e.target.files[0];if(!file)return;const fd=new FormData();fd.append('avatar',file);loading(true);try{const data=await api('/api/users/me/avatar','POST',fd,true);currentUser.avatar_url=data.avatar_url;updateSidebarAvatar();loadPerfil();toast('Foto de perfil atualizada! ✅','success');}catch(e){toast(e.message,'error');}finally{loading(false);}}
 

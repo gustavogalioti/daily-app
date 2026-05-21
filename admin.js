@@ -39,7 +39,7 @@ router.post('/notify', authMiddleware, adminOnly, async (req, res) => {
   await db.prepare('UPDATE notifications SET active=0').run();
 
   const id = uuidv4();
-  const expiresAt = new Date(Date.now() + 3 * 60 * 1000); // 3 minutos
+  const expiresAt = new Date(Date.now() + 1 * 60 * 1000); // 3 minutos
   await db.prepare('INSERT INTO notifications (id,sent_by,expires_at,active) VALUES ($1,$2,$3,1)')
     .run(id, req.user.id, expiresAt.toISOString());
 

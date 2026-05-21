@@ -25,8 +25,11 @@ function createPhotoUpload() {
   if (USE_CLOUDINARY) {
     const storage = new CloudinaryStorage({
       cloudinary,
-      params: { folder: 'daily/posts', allowed_formats: ['jpg','jpeg','png','webp','gif'],
-                transformation: [{ width: 1200, quality: 'auto', fetch_format: 'auto' }] }
+      params: async (req, file) => ({
+        folder: 'daily/posts',
+        allowed_formats: ['jpg','jpeg','png','webp','gif'],
+        transformation: [{ width: 1200, quality: 'auto', fetch_format: 'auto' }]
+      })
     });
     return multer({ storage, limits: { fileSize: 10*1024*1024 } });
   }
@@ -44,9 +47,12 @@ function createAvatarUpload(userId) {
   if (USE_CLOUDINARY) {
     const storage = new CloudinaryStorage({
       cloudinary,
-      params: { folder: 'daily/avatars', public_id: `avatar_${userId}`,
-                allowed_formats: ['jpg','jpeg','png','webp'],
-                transformation: [{ width: 400, height: 400, crop: 'fill', quality: 'auto' }] }
+      params: async (req, file) => ({
+        folder: 'daily/avatars',
+        public_id: `avatar_${userId}`,
+        allowed_formats: ['jpg','jpeg','png','webp'],
+        transformation: [{ width: 400, height: 400, crop: 'fill', quality: 'auto' }]
+      })
     });
     return multer({ storage, limits: { fileSize: 5*1024*1024 } });
   }
