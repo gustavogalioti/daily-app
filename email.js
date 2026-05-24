@@ -1,20 +1,29 @@
-const nodemailer = require('nodemailer');
+// email.js — usa Resend API (HTTP, não SMTP)
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FROM = process.env.EMAIL_FROM || 'DAILY <onboarding@resend.dev>';
 
-function createTransporter() {
-  return nodemailer.createTransport({
-    host:   process.env.SMTP_HOST   || 'smtp.gmail.com',
-    port:   parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    connectionTimeout: 5000,
-    greetingTimeout: 5000,
-    socketTimeout: 5000
+async function sendEmail({ to, subject, html }) {
+  if (!RESEND_API_KEY) {
+    console.log('   ⚠️  RESEND_API_KEY não configurada — email não enviado');
+    return;
+  }
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ from: FROM, to, subject, html })
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Resend error ${res.status}`);
+  }
+  return res.json();
 }
 
 async function sendWelcomeEmail({ to, name, username }) {
   const siteUrl = process.env.SITE_URL || 'http://localhost:3000';
-  const t = createTransporter();
   const html = `
   <body style="margin:0;padding:0;background:#f5f0e8;font-family:Georgia,serif;">
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f0e8;padding:40px 0;">
@@ -22,7 +31,7 @@ async function sendWelcomeEmail({ to, name, username }) {
         <table width="560" cellpadding="0" cellspacing="0" style="background:#0f0e0d;border-radius:20px;overflow:hidden;max-width:560px;">
           <tr><td style="padding:40px 48px 32px;text-align:center;">
             <div style="font-size:48px;font-style:italic;font-weight:900;color:#f5f0e8;">Daily</div>
-            <div style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c9a84c;">sua vida · seu tempo</div>
+            <div style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c9a84c;">compartilhe seu momento com o mundo</div>
           </td></tr>
           <tr><td style="padding:36px 48px;">
             <p style="font-size:22px;font-weight:bold;color:#f5f0e8;margin:0 0 16px;">Bem-vindo(a), ${name}! 🎉</p>
@@ -35,19 +44,15 @@ async function sendWelcomeEmail({ to, name, username }) {
               </td></tr>
             </table>
           </td></tr>
-          <tr><td style="padding:20px 48px;border-top:1px solid rgba(245,240,232,0.08);text-align:center;">
-            <p style="font-size:11px;color:#5a5248;margin:0;font-family:sans-serif;">Você recebeu este email porque se cadastrou no DAILY.</p>
-          </td></tr>
         </table>
       </td></tr>
     </table>
   </body>`;
-  await t.sendMail({ from: process.env.EMAIL_FROM || 'DAILY <noreply@daily.app>', to, subject: 'Bem-vindo(a) ao DAILY 🗓️', html });
+  await sendEmail({ to, subject: 'Bem-vindo(a) ao DAILY 🗓️', html });
 }
 
 async function sendNotificationEmail({ to, name, notificationId, siteUrl }) {
-  const t = createTransporter();
-  const url = `${siteUrl}/?notif=${notificationId}`;
+  const url = `${siteUrl || process.env.SITE_URL || 'http://localhost:3000'}/?notif=${notificationId}`;
   const html = `
   <body style="margin:0;padding:0;background:#0f0e0d;font-family:Georgia,serif;">
     <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
@@ -58,20 +63,20 @@ async function sendNotificationEmail({ to, name, notificationId, siteUrl }) {
             <div style="font-size:28px;font-weight:900;color:#c9a84c;margin-bottom:8px;">Hora da foto!</div>
             <p style="font-size:16px;color:#8a8070;line-height:1.6;margin:0 0 30px;">
               Olá, <strong style="color:#f5f0e8;">${name}</strong>!<br>
-              Você tem <strong style="color:#c9a84c;">3 minutos</strong> para postar sua foto agora.
+              Você tem <strong style="color:#c9a84c;">1 minuto</strong> para postar sua foto agora.
             </p>
             <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
               <tr><td style="background:#c9a84c;border-radius:12px;">
                 <a href="${url}" style="display:block;padding:18px 50px;font-family:sans-serif;font-size:18px;font-weight:700;color:#0f0e0d;text-decoration:none;">📷 Postar agora →</a>
               </td></tr>
             </table>
-            <p style="font-size:12px;color:#5a5248;margin-top:24px;font-family:sans-serif;">Este link expira em 3 minutos.</p>
+            <p style="font-size:12px;color:#5a5248;margin-top:24px;font-family:sans-serif;">Este link expira em 1 minuto.</p>
           </td></tr>
         </table>
       </td></tr>
     </table>
   </body>`;
-  await t.sendMail({ from: process.env.EMAIL_FROM || 'DAILY <noreply@daily.app>', to, subject: '📷 Hora da foto! Você tem 3 minutos — DAILY', html });
+  await sendEmail({ to, subject: '📷 Hora da foto! Você tem 1 minuto — DAILY', html });
 }
 
 module.exports = { sendWelcomeEmail, sendNotificationEmail };
