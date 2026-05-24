@@ -1,29 +1,20 @@
-// email.js — usa Resend API (HTTP, não SMTP)
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM = process.env.EMAIL_FROM || 'DAILY <onboarding@resend.dev>';
+const nodemailer = require('nodemailer');
 
-async function sendEmail({ to, subject, html }) {
-  if (!RESEND_API_KEY) {
-    console.log('   ⚠️  RESEND_API_KEY não configurada — email não enviado');
-    return;
-  }
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ from: FROM, to, subject, html })
+function createTransporter() {
+  return nodemailer.createTransport({
+    host:   process.env.SMTP_HOST   || 'smtp-relay.brevo.com',
+    port:   parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Resend error ${res.status}`);
-  }
-  return res.json();
 }
 
 async function sendWelcomeEmail({ to, name, username }) {
   const siteUrl = process.env.SITE_URL || 'http://localhost:3000';
+  const t = createTransporter();
   const html = `
   <body style="margin:0;padding:0;background:#f5f0e8;font-family:Georgia,serif;">
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f0e8;padding:40px 0;">
@@ -48,10 +39,11 @@ async function sendWelcomeEmail({ to, name, username }) {
       </td></tr>
     </table>
   </body>`;
-  await sendEmail({ to, subject: 'Bem-vindo(a) ao DAILY 🗓️', html });
+  await t.sendMail({ from: process.env.EMAIL_FROM || 'DAILY <noreply@daily.app>', to, subject: 'Bem-vindo(a) ao DAILY 🗓️', html });
 }
 
 async function sendNotificationEmail({ to, name, notificationId, siteUrl }) {
+  const t = createTransporter();
   const url = `${siteUrl || process.env.SITE_URL || 'http://localhost:3000'}/?notif=${notificationId}`;
   const html = `
   <body style="margin:0;padding:0;background:#0f0e0d;font-family:Georgia,serif;">
@@ -76,7 +68,7 @@ async function sendNotificationEmail({ to, name, notificationId, siteUrl }) {
       </td></tr>
     </table>
   </body>`;
-  await sendEmail({ to, subject: '📷 Hora da foto! Você tem 1 minuto — DAILY', html });
+  await t.sendMail({ from: process.env.EMAIL_FROM || 'DAILY <noreply@daily.app>', to, subject: '📷 Hora da foto! Você tem 1 minuto — DAILY', html });
 }
 
 module.exports = { sendWelcomeEmail, sendNotificationEmail };
