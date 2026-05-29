@@ -1,4 +1,3 @@
-// admin.js — rotas do painel administrativo
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
@@ -7,7 +6,6 @@ const { sendPushToAll } = require('./notifications');
 
 const router = express.Router();
 
-// Middleware: só admins
 async function adminOnly(req, res, next) {
   const db = getDB();
   const user = await db.prepare('SELECT is_admin FROM users WHERE id=$1').get(req.user.id);
@@ -18,45 +16,57 @@ async function adminOnly(req, res, next) {
 // GET /api/admin/stats
 router.get('/stats', authMiddleware, adminOnly, async (req, res) => {
   const db = getDB();
-  const total = parseInt((await db.prepare('SELECT COUNT(*) as c FROM users').get())?.c || 0);
-  const posts  = parseInt((await db.prepare('SELECT COUNT(*) as c FROM posts').get())?.c || 0);
-  const today  = new Date().toISOString().slice(0,10);
+  const total    = parseInt((await db.prepare('SELECT COUNT(*) as c FROM users WHERE id != $1').get('system-daily'))?.c || 0);
+  const posts    = parseInt((await db.prepare('SELECT COUNT(*) as c FROM posts').get())?.c || 0);
+  const today    = new Date().toISOString().slice(0,10);
   const todayPosts = parseInt((await db.prepare('SELECT COUNT(*) as c FROM posts WHERE DATE(created_at)=$1').get(today))?.c || 0);
-  res.json({ total_users: total, total_posts: posts, today_posts: todayPosts });
+  const friends  = parseInt((await db.prepare("SELECT COUNT(*) as c FROM friendships WHERE status='accepted'").get())?.c || 0);
+  const communities = parseInt((await db.prepare("SELECT COUNT(*) as c FROM communities WHERE type != 'regional'").get())?.c || 0);
+  res.json({ total_users: total, total_posts: posts, today_posts: todayPosts, total_friends: friends, total_communities: communities });
 });
 
 // GET /api/admin/users
 router.get('/users', authMiddleware, adminOnly, async (req, res) => {
   const db = getDB();
-  const users = await db.prepare('SELECT id,name,username,email,is_admin,points,created_at FROM users ORDER BY created_at DESC').all();
+  const users = await db.prepare("SELECT id,name,username,email,is_admin,points,city,state,created_at FROM users WHERE id != $1 ORDER BY created_at DESC").all('system-daily');
   res.json({ users });
 });
 
-// POST /api/admin/notify — dispara notificação de foto
+// PUT /api/admin/users/:id
+router.put('/users/:id', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const { name, email, is_admin } = req.body;
+  await db.prepare('UPDATE users SET name=COALESCE($1,name), email=COALESCE($2,email), is_admin=COALESCE($3,is_admin), updated_at=NOW() WHERE id=$4')
+    .run(name||null, email||null, is_admin!=null?parseInt(is_admin):null, req.params.id);
+  res.json({ ok: true });
+});
+
+// DELETE /api/admin/users/:id
+router.delete('/users/:id', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  await db.prepare('DELETE FROM users WHERE id=$1').run(req.params.id);
+  res.json({ ok: true });
+});
+
+// POST /api/admin/notify
 router.post('/notify', authMiddleware, adminOnly, async (req, res) => {
   const db = getDB();
-  // Desativa notificações anteriores
   await db.prepare('UPDATE notifications SET active=0').run();
-
   const id = uuidv4();
-  const expiresAt = new Date(Date.now() + 1 * 60 * 1000); // 3 minutos
+  const expiresAt = new Date(Date.now() + 1 * 60 * 1000);
   await db.prepare('INSERT INTO notifications (id,sent_by,expires_at,active) VALUES ($1,$2,$3,1)')
     .run(id, req.user.id, expiresAt.toISOString());
-
-  // Envia push + email em background
   sendPushToAll(db, id).catch(e => console.error('Push error:', e.message));
-
   res.json({ notification_id: id, expires_at: expiresAt.toISOString(), message: 'Notificação enviada!' });
 });
 
-// GET /api/admin/notification/active — checa se há notificação ativa
+// GET /api/admin/notification/active
 router.get('/notification/active', async (req, res) => {
   const db = getDB();
   const notif = await db.prepare("SELECT * FROM notifications WHERE active=1 AND expires_at > NOW() ORDER BY sent_at DESC LIMIT 1").get();
   if (!notif) return res.json({ active: false });
-  const now = Date.now();
-  const expires = new Date(notif.expires_at).getTime();
-  res.json({ active: true, notification_id: notif.id, expires_at: notif.expires_at, ms_remaining: Math.max(0, expires - now) });
+  const ms_remaining = Math.max(0, new Date(notif.expires_at).getTime() - Date.now());
+  res.json({ active: true, notification_id: notif.id, expires_at: notif.expires_at, ms_remaining });
 });
 
 // PUT /api/admin/users/:id/toggle-admin
@@ -69,14 +79,13 @@ router.put('/users/:id/toggle-admin', authMiddleware, adminOnly, async (req, res
   res.json({ is_admin: newVal });
 });
 
-// POST /api/admin/push-subscribe — salva subscription do usuário
+// POST /api/admin/push-subscribe
 router.post('/push-subscribe', authMiddleware, async (req, res) => {
   const db = getDB();
   const { subscription } = req.body;
   if (!subscription) return res.status(400).json({ error: 'Subscription obrigatória' });
   const id = uuidv4();
   const subStr = JSON.stringify(subscription);
-  // Upsert
   try {
     await db.prepare('INSERT INTO push_subscriptions (id,user_id,subscription) VALUES ($1,$2,$3)').run(id, req.user.id, subStr);
   } catch(e) {
@@ -85,11 +94,36 @@ router.post('/push-subscribe', authMiddleware, async (req, res) => {
   res.json({ ok: true });
 });
 
-module.exports = router;
-
-// GET /api/admin/ranking — público, lista usuários por pontos
+// GET /api/admin/ranking
 router.get('/ranking', async (req, res) => {
   const db = getDB();
-  const users = await db.prepare('SELECT id,name,username,avatar_url,points FROM users ORDER BY points DESC, created_at ASC').all();
+  const users = await db.prepare("SELECT id,name,username,avatar_url,points FROM users WHERE id != $1 ORDER BY points DESC, created_at ASC").all('system-daily');
   res.json({ users });
 });
+
+// DELETE /api/admin/posts/all — limpar todos os posts
+router.delete('/posts/all', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  await db.prepare('DELETE FROM reactions').run();
+  await db.prepare('DELETE FROM comments').run();
+  await db.prepare('DELETE FROM pedro_comments').run();
+  await db.prepare('DELETE FROM posts').run();
+  await db.prepare('UPDATE users SET points=0 WHERE id != $1').run('system-daily');
+  res.json({ ok: true, message: 'Todos os posts foram apagados.' });
+});
+
+// GET /api/admin/daily-questions — listar e editar perguntas
+router.get('/daily-questions', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const questions = await db.prepare('SELECT * FROM daily_questions ORDER BY period ASC').all();
+  res.json({ questions });
+});
+
+router.put('/daily-questions/:id', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const { question } = req.body;
+  await db.prepare('UPDATE daily_questions SET question=$1 WHERE id=$2').run(question, req.params.id);
+  res.json({ ok: true });
+});
+
+module.exports = router;

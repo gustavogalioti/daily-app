@@ -9,318 +9,304 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0a0a0f;
-  --surface: #111118;
-  --surface2: #1a1a24;
-  --border: rgba(255,255,255,0.07);
-  --text: #f0eff8;
-  --muted: #6b6a7a;
+  --bg: #f0f0f0;
+  --surface: #ffffff;
+  --surface2: #f5f5f5;
+  --surface3: #ebebeb;
+  --border: #e0e0e0;
+  --border2: #d0d0d0;
+  --text: #1a1a1a;
+  --text2: #444;
+  --muted: #888;
   --accent: #ff6b35;
+  --accent-dark: #d95520;
+  --accent-light: rgba(255,107,53,.1);
   --accent2: #7c3aed;
-  --gold: #f59e0b;
-  --green: #10b981;
-  --pedro: #ff6b35;
-  --nav-h: 60px;
+  --gold: #d97706;
+  --green: #059669;
+  --red: #dc2626;
+  --nav-h: 64px;
+  --shadow: 0 1px 4px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.1);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html{scroll-behavior:smooth;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
-
-/* ─── SCROLLBAR ─── */
-::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 
 /* ─── UTILS ─── */
 .hidden{display:none!important;}
-.flex{display:flex;} .fc{flex-direction:column;} .gap4{gap:4px;} .gap8{gap:8px;} .gap12{gap:12px;} .gap16{gap:16px;}
-.ai-center{align-items:center;} .jc-sb{justify-content:space-between;} .jc-center{justify-content:center;}
-.fw{width:100%;} .text-muted{color:var(--muted);font-size:13px;}
-.btn{border:none;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:10px;font-weight:500;transition:all .2s;}
-.btn-primary{background:var(--accent);color:#fff;padding:12px 24px;font-size:15px;}
-.btn-primary:hover{background:#e55a26;transform:translateY(-1px);}
-.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border);padding:10px 20px;font-size:14px;}
+.btn{border:none;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:10px;font-weight:500;transition:all .18s;font-size:14px;}
+.btn-primary{background:var(--accent);color:#fff;padding:10px 22px;}
+.btn-primary:hover{background:var(--accent-dark);}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border2);padding:9px 18px;}
 .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
-.btn-sm{padding:7px 14px;font-size:13px;}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.btn-danger{background:#fee2e2;color:var(--red);border:1px solid #fecaca;padding:8px 16px;}
+.btn-danger:hover{background:#fecaca;}
+.btn-sm{padding:6px 14px;font-size:13px;}
+.btn-xs{padding:4px 10px;font-size:12px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);}
 .avatar{border-radius:50%;object-fit:cover;background:var(--surface2);}
-.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500;}
-.badge-pill{background:var(--accent);color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;}
-input,textarea,select{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:14px;width:100%;outline:none;transition:border .2s;}
+input,textarea,select{background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:10px;padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:14px;width:100%;outline:none;transition:border .18s;}
 input:focus,textarea:focus,select:focus{border-color:var(--accent);}
 textarea{resize:vertical;min-height:80px;}
-label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block;}
+label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
+.text-muted{color:var(--muted);font-size:13px;}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;}
+.badge-pill{background:var(--accent);color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.section-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px;}
+.loader{display:inline-block;width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.page-loader{display:flex;align-items:center;justify-content:center;min-height:160px;}
 
 /* ─── SCREENS ─── */
 .screen{display:none;min-height:100vh;}
 .screen.active{display:block;}
 
-/* ══════════════════════════════
+/* ══════════════════
    LANDING
-══════════════════════════════ */
-#screen-landing{
-  display:none;background:var(--bg);
-  min-height:100vh;align-items:center;justify-content:center;
-  position:relative;overflow:hidden;
-}
-#screen-landing.active{display:flex;flex-direction:column;}
-.landing-bg{
-  position:absolute;inset:0;
-  background:radial-gradient(ellipse 70% 50% at 20% 80%,rgba(124,58,237,.15) 0,transparent 60%),
-             radial-gradient(ellipse 50% 40% at 80% 20%,rgba(255,107,53,.12) 0,transparent 60%);
-  pointer-events:none;
-}
-.landing-grain{position:absolute;inset:0;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:200px;}
-.landing-inner{position:relative;z-index:1;padding:40px 24px;max-width:480px;width:100%;margin:0 auto;}
-.landing-logo{font-family:'Syne',sans-serif;font-size:64px;font-weight:800;letter-spacing:-3px;color:var(--text);line-height:1;}
+══════════════════ */
+#screen-landing{display:none;background:var(--bg);min-height:100vh;}
+#screen-landing.active{display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.landing-inner{width:100%;max-width:460px;padding:32px 24px;}
+.landing-logo{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-2px;color:var(--text);line-height:1;}
 .landing-logo span{color:var(--accent);}
-.landing-tagline{font-size:14px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:8px 0 32px;}
-.auth-tabs{display:flex;gap:0;background:var(--surface);border-radius:12px;padding:4px;margin-bottom:24px;}
-.auth-tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;color:var(--muted);transition:all .2s;}
-.auth-tab.active{background:var(--accent);color:#fff;}
+.landing-tag{font-size:13px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin:8px 0 28px;}
+.auth-tabs{display:flex;background:var(--surface3);border-radius:12px;padding:4px;margin-bottom:22px;gap:4px;}
+.auth-tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);transition:all .18s;}
+.auth-tab.active{background:var(--surface);color:var(--accent);box-shadow:var(--shadow);}
 .auth-form{display:none;flex-direction:column;gap:12px;}
 .auth-form.active{display:flex;}
-.auth-divider{text-align:center;color:var(--muted);font-size:12px;margin:4px 0;position:relative;}
-.auth-divider::before,.auth-divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:var(--border);}
-.auth-divider::before{left:0;} .auth-divider::after{right:0;}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.landing-desc{font-size:12px;color:var(--muted);text-align:center;line-height:1.6;padding:10px 0 0;}
 
-/* ══════════════════════════════
+/* ══════════════════
    APP SHELL
-══════════════════════════════ */
+══════════════════ */
 #screen-app{display:none;}
 #screen-app.active{display:block;}
 
-/* TOP BAR */
+/* TOPBAR */
 .topbar{
   position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:100;
-  background:rgba(10,10,15,.92);backdrop-filter:blur(20px);
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 20px;gap:16px;
+  background:var(--surface);border-bottom:1.5px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:12px;
+  box-shadow:var(--shadow);
 }
-.topbar-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:-1px;color:var(--text);}
+.topbar-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-1px;color:var(--text);flex-shrink:0;}
 .topbar-logo span{color:var(--accent);}
-.topbar-nav{display:flex;gap:2px;flex:1;justify-content:center;}
+.topbar-nav{display:flex;gap:2px;flex:1;justify-content:center;overflow-x:auto;}
 .nav-btn{
   display:flex;flex-direction:column;align-items:center;gap:2px;
-  padding:8px 14px;border-radius:10px;cursor:pointer;
-  font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
-  color:var(--muted);transition:all .2s;border:none;background:transparent;
-  position:relative;
+  padding:8px 12px;border-radius:10px;cursor:pointer;
+  font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  color:var(--muted);transition:all .18s;border:none;background:transparent;
+  white-space:nowrap;flex-shrink:0;position:relative;
 }
-.nav-btn:hover{color:var(--text);background:var(--surface);}
-.nav-btn.active{color:var(--accent);}
+.nav-btn:hover{color:var(--text);background:var(--surface2);}
+.nav-btn.active{color:var(--accent);background:var(--accent-light);}
 .nav-btn svg{width:20px;height:20px;}
-.nav-notif{position:absolute;top:4px;right:8px;width:7px;height:7px;background:var(--accent);border-radius:50%;border:2px solid var(--bg);}
-.topbar-actions{display:flex;align-items:center;gap:10px;}
-.user-chip{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);}
-.user-chip img{width:28px;height:28px;}
-.user-chip span{font-size:13px;font-weight:500;}
+.nav-notif{position:absolute;top:5px;right:8px;width:8px;height:8px;background:var(--accent);border-radius:50%;border:2px solid var(--surface);}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.user-chip{display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 12px 5px 5px;border-radius:24px;background:var(--surface2);border:1.5px solid var(--border);transition:all .18s;}
+.user-chip:hover{border-color:var(--accent);}
+.user-chip span{font-size:13px;font-weight:600;}
 
 /* CONTENT */
-.app-content{padding-top:var(--nav-h);min-height:100vh;}
+.app-content{padding-top:var(--nav-h);}
 .tab-content{display:none;max-width:1100px;margin:0 auto;padding:24px 20px;}
 .tab-content.active{display:block;}
 
 /* ── NOTIFICATION BANNER ── */
 .notif-banner{
-  background:linear-gradient(135deg,var(--accent),#c2411e);
-  border-radius:16px;padding:20px 24px;margin-bottom:24px;
+  background:linear-gradient(135deg,var(--accent) 0%,#ff8c5a 100%);
+  border-radius:16px;padding:18px 24px;margin-bottom:22px;
   display:flex;align-items:center;justify-content:space-between;gap:16px;
-  animation:pulse 2s infinite;
+  color:#fff;box-shadow:0 4px 20px rgba(255,107,53,.35);
+  animation:pulseNotif 2s infinite;
 }
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,53,.4);}50%{box-shadow:0 0 0 12px rgba(255,107,53,0);}}
-.notif-banner-left h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;}
-.notif-banner-left p{font-size:13px;opacity:.85;margin-top:2px;}
-.notif-timer{font-family:'DM Mono',monospace;font-size:36px;font-weight:500;color:#fff;}
+@keyframes pulseNotif{0%,100%{box-shadow:0 4px 20px rgba(255,107,53,.35);}50%{box-shadow:0 4px 32px rgba(255,107,53,.6);}}
+.notif-timer{font-family:'DM Mono',monospace;font-size:32px;font-weight:500;}
 
-/* ─── GLOBAL FEED ─── */
-.feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-.feed-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;}
-.feed-filters{display:flex;gap:8px;flex-wrap:wrap;}
-.filter-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;transition:all .2s;}
-.filter-btn.active,.filter-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* PAGE HEADER */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap;}
+.page-header-left{display:flex;align-items:center;gap:10px;}
+.page-icon{font-size:24px;}
 
-/* PHOTO GRID */
-.photo-grid{columns:3;gap:12px;column-fill:initial;}
-@media(max-width:700px){.photo-grid{columns:2;}}
-.photo-card{break-inside:avoid;margin-bottom:12px;border-radius:14px;overflow:hidden;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:transform .2s;}
-.photo-card:hover{transform:scale(1.02);}
-.photo-card img{width:100%;display:block;}
-.photo-card-footer{padding:10px 12px;}
+/* FILTER PILLS */
+.filter-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
+.pill{background:var(--surface);border:1.5px solid var(--border);color:var(--muted);padding:6px 16px;border-radius:24px;font-size:13px;font-weight:500;cursor:pointer;transition:all .18s;}
+.pill.active,.pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+
+/* ── PHOTO GRID ── */
+.photo-grid{columns:3 200px;gap:12px;}
+.photo-card{break-inside:avoid;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .18s;box-shadow:var(--shadow);}
+.photo-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.photo-card img{width:100%;display:block;background:var(--surface2);}
+.photo-card-body{padding:10px 12px;}
 .photo-card-author{display:flex;align-items:center;gap:8px;}
-.photo-card-reactions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
-.reaction-chip{display:flex;align-items:center;gap:4px;background:var(--surface2);border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;border:1px solid var(--border);transition:all .15s;}
-.reaction-chip:hover,.reaction-chip.active{border-color:var(--accent);background:rgba(255,107,53,.1);}
-.pedro-comment{background:rgba(255,107,53,.08);border:1px solid rgba(255,107,53,.2);border-radius:10px;padding:8px 12px;margin-top:8px;font-size:12px;color:var(--pedro);}
-.pedro-comment strong{font-weight:700;}
+.reactions-row{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.reaction-chip{display:flex;align-items:center;gap:4px;background:var(--surface2);border:1.5px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;transition:all .15s;font-weight:500;}
+.reaction-chip:hover,.reaction-chip.mine{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+.pedro-comment{background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:8px 12px;margin-top:8px;font-size:12px;color:#92400e;line-height:1.5;}
+.pedro-comment strong{color:var(--accent);}
 
-/* DISCUSSION CARDS */
-.discuss-grid{columns:3;gap:12px;}
-@media(max-width:900px){.discuss-grid{columns:2;}}
-@media(max-width:600px){.discuss-grid{columns:1;}}
-.discuss-card{break-inside:avoid;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;transition:border-color .2s;}
+/* ── DISCUSS CARDS ── */
+.discuss-grid{columns:3 260px;gap:12px;}
+.discuss-card{break-inside:avoid;margin-bottom:12px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;transition:all .18s;box-shadow:var(--shadow);}
 .discuss-card:hover{border-color:var(--accent);}
-.discuss-card-author{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.discuss-card-content{font-size:14px;line-height:1.6;color:var(--text);}
-.discuss-card-footer{display:flex;gap:12px;margin-top:12px;font-size:12px;color:var(--muted);}
+.discuss-author{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.discuss-footer{display:flex;gap:12px;margin-top:10px;font-size:12px;color:var(--muted);align-items:center;}
 
-/* TIMELINE */
-.timeline-wrap{overflow-x:auto;padding-bottom:12px;}
-.timeline-track{position:relative;min-width:max-content;padding:40px 32px 20px;display:flex;align-items:center;gap:0;}
-.timeline-line{position:absolute;left:32px;right:32px;top:50%;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));transform:translateY(-50%);z-index:0;}
-.timeline-item{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;margin:0 20px;}
-.timeline-dot{width:12px;height:12px;border-radius:50%;background:var(--accent);border:3px solid var(--bg);flex-shrink:0;}
-.timeline-img{width:100px;height:100px;object-fit:cover;border-radius:12px;border:2px solid var(--border);cursor:pointer;transition:transform .2s;}
-.timeline-img.featured{width:140px;height:140px;border-color:var(--accent);}
-.timeline-img:hover{transform:scale(1.05);}
-.timeline-time{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:6px;}
-.timeline-label{font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+/* ── TIMELINE ── */
+.timeline-all{display:flex;flex-direction:column;gap:16px;}
+.timeline-day{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
+.timeline-day-header{background:var(--surface2);padding:10px 16px;font-size:13px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);}
+.timeline-scroll{overflow-x:auto;padding:16px;}
+.timeline-track{display:flex;align-items:center;gap:0;position:relative;min-width:max-content;}
+.timeline-line{position:absolute;left:0;right:0;top:50%;height:2px;background:linear-gradient(90deg,var(--accent),#ffb399);z-index:0;}
+.timeline-item{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;margin:0 14px;cursor:pointer;}
+.timeline-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);flex-shrink:0;}
+.timeline-img{width:80px;height:80px;object-fit:cover;border-radius:10px;border:2px solid var(--border);transition:all .18s;}
+.timeline-img:hover{transform:scale(1.08);border-color:var(--accent);}
+.timeline-time{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
 
-/* PROFILE */
-.profile-header{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;margin-bottom:20px;}
-.profile-top{display:flex;gap:24px;align-items:flex-start;}
+/* ── PROFILE ── */
+.profile-card{background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);}
+.profile-top{display:flex;gap:20px;align-items:flex-start;}
 .profile-avatar-wrap{position:relative;flex-shrink:0;}
-.profile-avatar{width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);}
-.profile-avatar-edit{position:absolute;bottom:0;right:0;background:var(--accent);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;}
-.profile-name{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;}
-.profile-username{color:var(--muted);font-size:14px;margin-bottom:8px;}
-.profile-bio{font-size:14px;color:var(--text);line-height:1.6;}
-.profile-stats{display:flex;gap:0;margin-top:20px;border-top:1px solid var(--border);padding-top:20px;}
-.stat-item{flex:1;text-align:center;}
-.stat-item:not(:last-child){border-right:1px solid var(--border);}
+.profile-avatar{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);}
+.avatar-edit-btn{position:absolute;bottom:0;right:0;background:var(--accent);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;border:2px solid var(--surface);}
+.profile-name{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;line-height:1.1;}
+.profile-username{color:var(--muted);font-size:14px;margin:2px 0 8px;}
+.profile-bio{font-size:14px;color:var(--text2);line-height:1.6;}
+.profile-meta{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;}
+.profile-meta span{font-size:13px;color:var(--muted);}
+.profile-badges-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.profile-badge-chip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:5px;}
+.profile-stats{display:flex;border-top:1.5px solid var(--border);margin-top:18px;padding-top:18px;}
+.stat-box{flex:1;text-align:center;}
+.stat-box:not(:last-child){border-right:1px solid var(--border);}
 .stat-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent);}
-.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
-.profile-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
-.profile-badge{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:13px;display:flex;align-items:center;gap:6px;}
-.profile-tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:20px;}
-.profile-tab{flex:1;text-align:center;padding:9px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .2s;}
+.stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.profile-tabs-row{display:flex;gap:4px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:4px;margin-bottom:18px;box-shadow:var(--shadow);}
+.profile-tab{flex:1;text-align:center;padding:9px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);transition:all .18s;}
 .profile-tab.active{background:var(--accent);color:#fff;}
 
-/* TESTIMONIALS */
-.testimonial-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
-.testimonial-card blockquote{font-size:14px;line-height:1.7;font-style:italic;color:var(--text);margin:10px 0;}
-.testimonial-card blockquote::before{content:'"';font-size:32px;line-height:0;vertical-align:-.4em;color:var(--accent);margin-right:4px;}
-.testimonial-input-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px;}
-.testimonial-input-wrap p{font-size:13px;color:var(--muted);margin-bottom:10px;font-style:italic;}
+/* ── TESTIMONIALS ── */
+.testimonial-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
+.testimonial-card blockquote{font-size:14px;line-height:1.7;color:var(--text2);font-style:italic;margin:10px 0 0;border-left:3px solid var(--accent);padding-left:12px;}
 
-/* COMMUNITIES */
-.community-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
-.community-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .2s;}
-.community-card:hover{border-color:var(--accent);transform:translateY(-2px);}
-.community-card-img{height:100px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:40px;}
-.community-card-body{padding:14px;}
-.community-card-name{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-bottom:4px;}
-.community-card-desc{font-size:12px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.community-card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
+/* ── COMMUNITIES ── */
+.comm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.comm-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .18s;box-shadow:var(--shadow);}
+.comm-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.comm-card-img{height:80px;display:flex;align-items:center;justify-content:center;font-size:36px;background:var(--surface2);border-bottom:1px solid var(--border);}
+.comm-card-body{padding:12px;}
+.comm-card-name{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px;}
+.comm-card-desc{font-size:12px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.comm-card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
 
-/* ACHIEVEMENTS */
-.achievement-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
-.achievement-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;transition:all .2s;}
-.achievement-card.earned{border-color:var(--gold);}
-.achievement-card.earned .ach-icon{filter:none;}
-.achievement-card.locked .ach-icon{filter:grayscale(1);opacity:.4;}
-.achievement-card.locked{opacity:.6;}
-.ach-icon{font-size:32px;margin-bottom:10px;}
-.ach-name{font-weight:700;font-size:14px;margin-bottom:4px;}
+/* ── ACHIEVEMENTS ── */
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
+.ach-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;transition:all .18s;box-shadow:var(--shadow);}
+.ach-card.earned{border-color:var(--gold);}
+.ach-card.locked{opacity:.55;}
+.ach-icon{font-size:30px;margin-bottom:8px;}
+.ach-name{font-weight:700;font-size:14px;margin-bottom:3px;}
 .ach-desc{font-size:12px;color:var(--muted);line-height:1.4;}
-.ach-points{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);margin-top:8px;}
+.ach-pts{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);margin-top:7px;font-weight:600;}
 
-/* DAILY MANDOU */
-.daily-mandou-section{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px;}
-
-/* PEDRO */
-.pedro-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff9a6c);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-
-/* DAILY QUESTIONS */
-.dq-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;}
-.dq-period-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:4px 12px;font-size:12px;color:#a78bfa;margin-bottom:12px;}
-.dq-question{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:20px;line-height:1.3;}
+/* ── DAILY PERGUNTA ── */
+.dq-card{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:var(--shadow);}
+.dq-period-pill{display:inline-flex;align-items:center;gap:6px;background:var(--accent-light);border:1.5px solid rgba(255,107,53,.3);border-radius:20px;padding:5px 14px;font-size:12px;color:var(--accent);font-weight:600;margin-bottom:12px;}
+.dq-question{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;line-height:1.3;margin-bottom:18px;}
 .word-cloud{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-.word-item{padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--text);cursor:default;transition:all .2s;}
+.word-pill{padding:5px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);}
 
-/* RANKING */
-.ranking-list{display:flex;flex-direction:column;gap:10px;}
-.ranking-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;transition:border-color .2s;}
+/* ── RANKING ── */
+.ranking-list{display:flex;flex-direction:column;gap:8px;}
+.ranking-item{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);transition:all .18s;}
 .ranking-item:hover{border-color:var(--accent);}
-.ranking-pos{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;width:40px;text-align:center;}
-.ranking-pos.top1{color:var(--gold);}
-.ranking-pos.top2{color:#94a3b8;}
-.ranking-pos.top3{color:#cd7c2f;}
+.rank-pos{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;width:36px;text-align:center;}
+.rank-pos.p1{color:var(--gold);}
+.rank-pos.p2{color:#94a3b8;}
+.rank-pos.p3{color:#cd7c2f;}
 
-/* FRIENDS */
-.friends-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
-.friend-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;transition:all .2s;}
+/* ── FRIENDS ── */
+.friends-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;}
+.friend-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;text-align:center;box-shadow:var(--shadow);transition:all .18s;}
 .friend-card:hover{border-color:var(--accent);}
-.request-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start;}
-.request-card .msg{font-size:13px;color:var(--muted);font-style:italic;margin:4px 0 10px;}
-.request-actions{display:flex;gap:8px;}
+.req-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:12px;box-shadow:var(--shadow);}
+.req-msg{font-size:13px;color:var(--muted);font-style:italic;margin:4px 0 10px;line-height:1.5;}
 
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+/* ── JOGOS ── */
+.jogos-soon{text-align:center;padding:60px 20px;}
+.jogos-badge{display:inline-block;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;border-radius:20px;padding:5px 18px;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;}
+.game-cards{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px;}
+.game-card-soon{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:20px;text-align:center;width:130px;opacity:.6;}
+
+/* ── ADMIN ── */
+.admin-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:22px;}
+.admin-stat-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+.admin-stat-num{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--accent);}
+.admin-stat-lbl{font-size:12px;color:var(--muted);margin-top:3px;}
+.users-table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);}
+.users-table th{text-align:left;padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:var(--surface2);border-bottom:1.5px solid var(--border);}
+.users-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+.users-table tr:last-child td{border-bottom:none;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px);}
 .modal-overlay.open{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;}
-.modal-header{padding:20px 20px 0;display:flex;justify-content:space-between;align-items:center;}
-.modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;}
-.modal-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px 8px;}
-.modal-body{padding:20px;}
+.modal{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md);}
+.modal-hdr{padding:20px 20px 0;display:flex;justify-content:space-between;align-items:center;}
+.modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px;}
+.modal-close:hover{background:var(--surface2);}
+.modal-body{padding:20px;display:flex;flex-direction:column;gap:12px;}
+.post-type-sw{display:flex;gap:6px;}
+.pt-btn{flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:13px;font-weight:600;transition:all .18s;}
+.pt-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.photo-preview-img{width:100%;border-radius:12px;object-fit:cover;max-height:260px;display:none;}
+.photo-preview-img.show{display:block;}
+.drop-zone{border:2px dashed var(--border2);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .18s;}
+.drop-zone:hover{border-color:var(--accent);background:var(--accent-light);}
 
-/* POST MODAL */
-.post-type-switch{display:flex;gap:8px;margin-bottom:16px;}
-.post-type-btn{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;}
-.post-type-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.photo-preview{width:100%;height:200px;border-radius:12px;object-fit:cover;margin-bottom:12px;display:none;}
-.photo-preview.show{display:block;}
-
-/* TOAST */
-.toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;font-size:14px;font-weight:500;transform:translateY(100px);opacity:0;transition:all .3s;max-width:300px;}
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:13px 18px;font-size:14px;font-weight:500;transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px;box-shadow:var(--shadow-md);}
 .toast.show{transform:translateY(0);opacity:1;}
 .toast.success{border-color:var(--green);color:var(--green);}
-.toast.error{border-color:#ef4444;color:#ef4444;}
-.toast.info{border-color:var(--accent2);color:#a78bfa;}
+.toast.error{border-color:var(--red);color:var(--red);}
+.toast.info{border-color:var(--accent2);color:var(--accent2);}
 
-/* LOADER */
-.loader{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.page-loader{display:flex;align-items:center;justify-content:center;min-height:200px;}
-
-/* JOGOS */
-.jogos-soon{text-align:center;padding:80px 20px;}
-.jogos-soon h2{font-family:'Syne',sans-serif;font-size:48px;font-weight:800;margin-bottom:8px;}
-.jogos-badge{display:inline-block;background:linear-gradient(135deg,var(--accent2),var(--accent));border-radius:20px;padding:6px 20px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:24px;}
-
-/* ADMIN */
-.admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
-.admin-stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;}
-.admin-stat .num{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--accent);}
-.admin-stat .label{font-size:13px;color:var(--muted);margin-top:4px;}
-.users-table{width:100%;border-collapse:collapse;}
-.users-table th{text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);}
-.users-table td{padding:12px;border-bottom:1px solid var(--border);font-size:14px;}
-
-/* RESPONSIVE */
+/* ── RESPONSIVE ── */
 @media(max-width:768px){
-  .topbar-nav .nav-btn span{display:none;}
-  .form-row{grid-template-columns:1fr;}
-  .tab-content{padding:16px 14px;}
+  .nav-btn span{display:none;}
+  .nav-btn{padding:8px 10px;}
+  .tab-content{padding:14px 12px;}
   .photo-grid{columns:2;}
   .discuss-grid{columns:1;}
-  .community-grid{grid-template-columns:1fr;}
+  .comm-grid{grid-template-columns:1fr 1fr;}
   .profile-top{flex-direction:column;align-items:center;text-align:center;}
-  .profile-stats{gap:0;}
-  .achievement-grid{grid-template-columns:repeat(2,1fr);}
+  .ach-grid{grid-template-columns:repeat(2,1fr);}
+  .form-row{grid-template-columns:1fr;}
+  .admin-stats{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:480px){
+  .comm-grid{grid-template-columns:1fr;}
+  .friends-grid{grid-template-columns:1fr 1fr;}
 }
 </style>
 </head>
 <body>
 
-<!-- ══ LANDING ══ -->
+<!-- ═══ LANDING ═══ -->
 <div id="screen-landing" class="screen active">
-  <div class="landing-bg"></div>
-  <div class="landing-grain"></div>
   <div class="landing-inner">
     <div class="landing-logo">D<span>.</span>AILY</div>
-    <div class="landing-tagline">compartilhe seu momento com o mundo</div>
+    <div class="landing-tag">compartilhe seu momento com o mundo</div>
 
     <div class="auth-tabs">
       <div class="auth-tab active" onclick="switchAuthTab('login')">Entrar</div>
@@ -329,16 +315,10 @@ label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block;}
 
     <!-- LOGIN -->
     <form class="auth-form active" id="form-login" onsubmit="doLogin(event)">
-      <div>
-        <label>E-mail ou @usuário</label>
-        <input type="text" id="login-login" placeholder="seu@email.com" required>
-      </div>
-      <div>
-        <label>Senha</label>
-        <input type="password" id="login-password" placeholder="••••••••" required>
-      </div>
-      <button type="submit" class="btn btn-primary fw" id="btn-login">Entrar →</button>
-      <p style="text-align:center;font-size:12px;color:var(--muted);">O Daily é um ambiente em que todos são amigos. Ao receber a notificação, poste uma foto do seu momento. Mas corra — você tem 1 minuto!</p>
+      <div><label>E-mail ou @usuário</label><input type="text" id="login-id" placeholder="seu@email.com" required></div>
+      <div><label>Senha</label><input type="password" id="login-pw" placeholder="••••••••" required></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;font-size:15px;padding:13px;" id="btn-login">Entrar →</button>
+      <p class="landing-desc">O Daily é um ambiente em que todos são amigos. Ao receber uma notificação, poste uma foto do seu momento. Mas corra — você tem 1 minuto!</p>
     </form>
 
     <!-- CADASTRO -->
@@ -348,42 +328,48 @@ label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block;}
         <div><label>@usuário</label><input type="text" id="reg-username" placeholder="seunome" required></div>
       </div>
       <div><label>E-mail</label><input type="email" id="reg-email" placeholder="seu@email.com" required></div>
-      <div><label>Senha</label><input type="password" id="reg-password" placeholder="••••••••" required></div>
+      <div><label>Senha</label><input type="password" id="reg-pw" placeholder="••••••••" required></div>
       <div class="form-row">
         <div><label>Data de nascimento</label><input type="date" id="reg-birth"></div>
-        <div><label>O que você faz?</label><input type="text" id="reg-occupation" placeholder="Designer, dev..."></div>
+        <div><label>O que você faz?</label><input type="text" id="reg-occ" placeholder="Designer, dev..."></div>
       </div>
-      <div class="form-row">
-        <div><label>País</label>
-          <select id="reg-country" onchange="loadStates()"><option value="">Selecione</option></select>
-        </div>
-        <div><label>Estado</label>
-          <select id="reg-state" onchange="loadCities()"><option value="">Selecione</option></select>
-        </div>
+      <div><label>País</label>
+        <select id="reg-country" onchange="onCountryChange()">
+          <option value="">Selecione o país</option>
+          <option value="BR">🇧🇷 Brasil</option>
+          <option value="US">🇺🇸 Estados Unidos</option>
+          <option value="PT">🇵🇹 Portugal</option>
+          <option value="AR">🇦🇷 Argentina</option>
+          <option value="MX">🇲🇽 México</option>
+          <option value="CO">🇨🇴 Colômbia</option>
+          <option value="CL">🇨🇱 Chile</option>
+        </select>
       </div>
-      <div class="form-row">
-        <div><label>Cidade</label>
-          <select id="reg-city" onchange="loadNeighborhoods()"><option value="">Selecione</option></select>
+      <div id="br-fields" class="hidden">
+        <div class="form-row" style="margin-bottom:10px;">
+          <div><label>Estado</label><select id="reg-state" onchange="onStateChange()"><option value="">Selecione</option></select></div>
+          <div><label>Cidade</label><select id="reg-city"><option value="">Selecione</option></select></div>
         </div>
-        <div><label>Bairro</label>
-          <select id="reg-neighborhood"><option value="">Selecione</option></select>
-        </div>
+        <div><label>Bairro <span style="font-size:11px;">(opcional)</span></label><input type="text" id="reg-neighborhood" placeholder="Seu bairro"></div>
       </div>
-      <button type="submit" class="btn btn-primary fw" id="btn-register">Criar minha conta →</button>
+      <button type="submit" class="btn btn-primary" style="width:100%;font-size:15px;padding:13px;" id="btn-register">Criar minha conta →</button>
     </form>
   </div>
 </div>
 
-<!-- ══ APP ══ -->
+<!-- ═══ APP ═══ -->
 <div id="screen-app" class="screen">
 
-  <!-- TOP BAR -->
   <nav class="topbar">
     <div class="topbar-logo">D<span>.</span>AILY</div>
-    <div class="topbar-nav">
+    <div class="topbar-nav" id="topbar-nav">
       <button class="nav-btn active" data-tab="global" onclick="switchTab('global',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         <span>Global</span>
+      </button>
+      <button class="nav-btn" data-tab="daily-mandou" onclick="switchTab('daily-mandou',this)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <span>Daily!</span>
       </button>
       <button class="nav-btn" data-tab="agora" onclick="switchTab('agora',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -399,7 +385,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block;}
         <span class="nav-notif hidden" id="friends-notif"></span>
       </button>
       <button class="nav-btn" data-tab="communities" onclick="switchTab('communities',this)">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="4" height="18"/><rect x="10" y="3" width="4" height="18"/><rect x="18" y="3" width="4" height="18"/></svg>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
         <span>Grupos</span>
       </button>
       <button class="nav-btn" data-tab="achievements" onclick="switchTab('achievements',this)">
@@ -414,13 +400,17 @@ label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block;}
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span>Perfil</span>
       </button>
+      <button class="nav-btn hidden" data-tab="admin" onclick="switchTab('admin',this)" id="nav-admin">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>ADM</span>
+      </button>
     </div>
-    <div class="topbar-actions">
+    <div class="topbar-right">
       <div class="user-chip" onclick="switchTab('profile',document.querySelector('[data-tab=profile]'))">
-        <img class="avatar" id="topbar-avatar" src="" width="28" height="28">
+        <img class="avatar" id="topbar-avatar" src="" width="30" height="30">
         <span id="topbar-name"></span>
       </div>
-      <button class="btn btn-sm btn-ghost" onclick="doLogout()">Sair</button>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">Sair</button>
     </div>
   </nav>
 
@@ -429,234 +419,212 @@ label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block;}
     <!-- ─── GLOBAL ─── -->
     <div id="tab-global" class="tab-content active">
       <div id="notif-banner" class="notif-banner hidden">
-        <div class="notif-banner-left">
-          <h3>📷 Daily Mandou!</h3>
-          <p>Poste uma foto do seu momento agora!</p>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📷 Daily Mandou!</div>
+          <div style="font-size:13px;opacity:.9;margin-top:2px;">Poste uma foto do seu momento agora. Corra!</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
           <div class="notif-timer" id="notif-countdown">01:00</div>
-          <button class="btn btn-primary btn-sm" onclick="openPostModal('photo','daily_mandou')">Postar agora →</button>
+          <button class="btn btn-sm" style="background:#fff;color:var(--accent);font-weight:700;" onclick="openPostModal('photo','daily_mandou')">Postar agora →</button>
         </div>
       </div>
-
-      <div class="feed-header">
-        <div>
-          <div class="feed-title">🌍 Global</div>
-          <div class="text-muted">O que o mundo está fazendo agora</div>
-        </div>
+      <div class="page-header">
+        <div class="page-header-left"><span class="page-icon">🌍</span><div><div class="section-title">Global</div><div class="text-muted">O que o mundo está fazendo agora</div></div></div>
         <button class="btn btn-primary btn-sm" onclick="openPostModal('photo','global')">+ Foto</button>
       </div>
+      <div class="filter-pills" id="global-filters">
+        <span class="pill active" onclick="setGlobalFilter('todos',this)">Todos</span>
+        <span class="pill" onclick="setGlobalFilter('fotos',this)">Fotos</span>
+        <span class="pill" onclick="setGlobalFilter('destaques',this)">⚡ Destaques</span>
+      </div>
+      <div class="photo-grid" id="global-grid"><div class="page-loader"><div class="loader"></div></div></div>
+    </div>
 
-      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
-        <div class="feed-filters" id="global-filters">
-          <button class="filter-btn active" onclick="setGlobalFilter('todos',this)">Todos</button>
-          <button class="filter-btn" onclick="setGlobalFilter('fotos',this)">Fotos</button>
-          <button class="filter-btn" onclick="setGlobalFilter('destaques',this)">⚡ Destaques</button>
+    <!-- ─── DAILY MANDOU ─── -->
+    <div id="tab-daily-mandou" class="tab-content">
+      <div id="dm-notif-banner" class="notif-banner hidden" style="margin-bottom:22px;">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📷 Daily Mandou!</div>
+          <div style="font-size:13px;opacity:.9;">Você tem <span id="dm-countdown">01:00</span> para postar!</div>
+        </div>
+        <button class="btn btn-sm" style="background:#fff;color:var(--accent);font-weight:700;" onclick="openPostModal('photo','daily_mandou')">Postar agora →</button>
+      </div>
+      <div class="page-header">
+        <div class="page-header-left"><span class="page-icon">⚡</span>
+          <div><div class="section-title">Daily Mandou!</div><div class="text-muted">Fotos postadas quando o Daily mandou. +100 pontos por post.</div></div>
         </div>
       </div>
-
-      <div class="photo-grid" id="global-grid">
-        <div class="page-loader"><div class="loader"></div></div>
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:18px;box-shadow:var(--shadow);">
+        <div style="font-size:13px;color:var(--muted);line-height:1.7;">
+          ⚡ Quando o ADM disparar a notificação, você tem <strong>1 minuto</strong> para postar uma foto do momento. Quem conseguir ganha <strong>100 pontos</strong>!<br>
+          🏆 Conquistas: 1× · 5× · 10× · 20× vezes no Daily Mandou.
+        </div>
       </div>
+      <div class="photo-grid" id="dm-grid"><div class="page-loader"><div class="loader"></div></div></div>
     </div>
 
     <!-- ─── ÁGORA ─── -->
     <div id="tab-agora" class="tab-content">
-      <div class="feed-header">
-        <div>
-          <div class="feed-title">💬 Ágora</div>
-          <div class="text-muted">Discussões, ideias, opiniões e desabafos</div>
-        </div>
+      <div class="page-header">
+        <div class="page-header-left"><span class="page-icon">💬</span><div><div class="section-title">Ágora</div><div class="text-muted">Discussões, ideias, opiniões e desabafos</div></div></div>
         <button class="btn btn-primary btn-sm" onclick="openPostModal('text','agora')">+ Publicar</button>
       </div>
-      <div class="discuss-grid" id="agora-grid">
-        <div class="page-loader"><div class="loader"></div></div>
-      </div>
+      <div class="discuss-grid" id="agora-grid"><div class="page-loader"><div class="loader"></div></div></div>
     </div>
 
     <!-- ─── DAILY PERGUNTA ─── -->
     <div id="tab-daily-question" class="tab-content">
-      <div class="feed-title" style="margin-bottom:24px;">❓ Daily Pergunta</div>
-      <div id="dq-container">
-        <div class="page-loader"><div class="loader"></div></div>
-      </div>
+      <div class="page-header"><div class="page-header-left"><span class="page-icon">❓</span><div class="section-title">Daily Pergunta</div></div></div>
+      <div id="dq-container"><div class="page-loader"><div class="loader"></div></div></div>
     </div>
 
     <!-- ─── AMIGOS ─── -->
     <div id="tab-friends" class="tab-content">
-      <div class="feed-header">
-        <div class="feed-title">👥 Amigos</div>
-        <button class="btn btn-sm btn-ghost" onclick="openSearchUserModal()">🔍 Buscar pessoas</button>
+      <div class="page-header">
+        <div class="page-header-left"><span class="page-icon">👥</span><div class="section-title">Amigos</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('modal-search-user');document.getElementById('search-input').value='';document.getElementById('search-results').innerHTML='';">🔍 Buscar pessoas</button>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
-        <button class="filter-btn active" onclick="showFriendsSection('list',this)">Amigos</button>
-        <button class="filter-btn" onclick="showFriendsSection('requests',this)">Solicitações <span id="req-badge" class="badge-pill hidden">0</span></button>
-        <button class="filter-btn" onclick="showFriendsSection('sent',this)">Enviadas</button>
+      <div class="filter-pills" id="friends-filters">
+        <span class="pill active" onclick="showFriendsSection('list',this)">Amigos</span>
+        <span class="pill" onclick="showFriendsSection('requests',this)">Solicitações <span id="req-badge" class="badge-pill hidden" style="margin-left:4px;">0</span></span>
+        <span class="pill" onclick="showFriendsSection('sent',this)">Enviadas</span>
       </div>
-      <div id="friends-list-section">
-        <div class="friends-grid" id="friends-grid">
-          <div class="page-loader"><div class="loader"></div></div>
-        </div>
-      </div>
-      <div id="friends-requests-section" class="hidden">
-        <div id="requests-list"><div class="page-loader"><div class="loader"></div></div></div>
-      </div>
-      <div id="friends-sent-section" class="hidden">
-        <div id="sent-list"><div class="page-loader"><div class="loader"></div></div></div>
-      </div>
+      <div id="fs-list"><div class="friends-grid" id="friends-grid"><div class="page-loader"><div class="loader"></div></div></div></div>
+      <div id="fs-requests" class="hidden"><div id="requests-list"><div class="page-loader"><div class="loader"></div></div></div></div>
+      <div id="fs-sent" class="hidden"><div id="sent-list"></div></div>
     </div>
 
     <!-- ─── COMUNIDADES ─── -->
     <div id="tab-communities" class="tab-content">
-      <div class="feed-header">
-        <div class="feed-title">🏘️ Comunidades</div>
-        <button class="btn btn-sm btn-primary" onclick="openCreateCommunityModal()">+ Criar</button>
+      <div class="page-header">
+        <div class="page-header-left"><span class="page-icon">🏘️</span><div class="section-title">Comunidades</div></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-comm')">+ Criar</button>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
-        <button class="filter-btn active" onclick="showCommSection('explore',this)">Explorar</button>
-        <button class="filter-btn" onclick="showCommSection('mine',this)">Minhas</button>
+      <div class="filter-pills">
+        <span class="pill active" onclick="showCommSection('explore',this)">Explorar</span>
+        <span class="pill" onclick="showCommSection('regional',this)">📍 Regional</span>
+        <span class="pill" onclick="showCommSection('mine',this)">Minhas</span>
       </div>
-      <div id="comm-explore">
+      <div id="cs-explore">
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-          <input type="text" id="comm-search" placeholder="Buscar comunidades..." style="max-width:300px;" oninput="loadCommunities()">
-          <select id="comm-filter-type" onchange="loadCommunities()" style="max-width:180px;">
+          <input type="text" id="comm-search" placeholder="Buscar comunidades..." style="max-width:280px;" oninput="loadCommunities()">
+          <select id="comm-type-filter" onchange="loadCommunities()" style="max-width:180px;">
             <option value="">Todos os tipos</option>
             <option value="interest">Interesses</option>
-            <option value="local">Local</option>
           </select>
         </div>
-        <div class="community-grid" id="communities-grid">
-          <div class="page-loader"><div class="loader"></div></div>
-        </div>
+        <div class="comm-grid" id="comm-grid"><div class="page-loader"><div class="loader"></div></div></div>
       </div>
-      <div id="comm-mine" class="hidden">
-        <div class="community-grid" id="my-communities-grid">
-          <div class="page-loader"><div class="loader"></div></div>
+      <div id="cs-regional" class="hidden">
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <select id="reg-state-filter" onchange="loadRegionalCommunities()" style="max-width:200px;">
+            <option value="">Todos os estados</option>
+          </select>
+          <select id="reg-city-filter" onchange="loadRegionalCommunities()" style="max-width:200px;">
+            <option value="">Todas as cidades</option>
+          </select>
         </div>
+        <div class="comm-grid" id="regional-grid"><div class="page-loader"><div class="loader"></div></div></div>
+      </div>
+      <div id="cs-mine" class="hidden">
+        <div class="comm-grid" id="mine-comm-grid"><div class="page-loader"><div class="loader"></div></div></div>
       </div>
     </div>
 
     <!-- ─── CONQUISTAS ─── -->
     <div id="tab-achievements" class="tab-content">
-      <div class="feed-title" style="margin-bottom:8px;">🏆 Conquistas & Ranking</div>
-      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
-        <button class="filter-btn active" onclick="showAchSection('earned',this)">Minhas conquistas</button>
-        <button class="filter-btn" onclick="showAchSection('all',this)">Todas</button>
-        <button class="filter-btn" onclick="showAchSection('ranking',this)">🏅 Ranking</button>
+      <div class="page-header"><div class="page-header-left"><span class="page-icon">🏆</span><div class="section-title">Conquistas & Ranking</div></div></div>
+      <div class="filter-pills">
+        <span class="pill active" onclick="showAchSection('earned',this)">Minhas</span>
+        <span class="pill" onclick="showAchSection('all',this)">Todas</span>
+        <span class="pill" onclick="showAchSection('ranking',this)">🏅 Ranking</span>
       </div>
-      <div id="ach-earned">
-        <div class="achievement-grid" id="earned-grid"><div class="page-loader"><div class="loader"></div></div></div>
-      </div>
-      <div id="ach-all" class="hidden">
-        <div class="achievement-grid" id="all-ach-grid"><div class="page-loader"><div class="loader"></div></div></div>
-      </div>
-      <div id="ach-ranking" class="hidden">
-        <div class="ranking-list" id="ranking-grid"><div class="page-loader"><div class="loader"></div></div></div>
-      </div>
+      <div id="as-earned"><div class="ach-grid" id="ach-earned-grid"><div class="page-loader"><div class="loader"></div></div></div></div>
+      <div id="as-all" class="hidden"><div class="ach-grid" id="ach-all-grid"></div></div>
+      <div id="as-ranking" class="hidden"><div class="ranking-list" id="ranking-list"></div></div>
     </div>
 
     <!-- ─── JOGOS ─── -->
     <div id="tab-jogos" class="tab-content">
       <div class="jogos-soon">
         <div class="jogos-badge">Em breve</div>
-        <h2>🎮 Jogos</h2>
-        <p style="color:var(--muted);font-size:16px;max-width:400px;margin:0 auto;">BuddyPoke, Fazendinha, Cidade e muito mais. A diversão ainda está chegando!</p>
-        <div style="margin-top:32px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;width:140px;opacity:.5;">
-            <div style="font-size:48px;">🐱</div><div style="font-size:13px;margin-top:8px;font-weight:600;">BuddyPoke</div>
-          </div>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;width:140px;opacity:.5;">
-            <div style="font-size:48px;">🌾</div><div style="font-size:13px;margin-top:8px;font-weight:600;">Fazendinha</div>
-          </div>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;width:140px;opacity:.5;">
-            <div style="font-size:48px;">🏙️</div><div style="font-size:13px;margin-top:8px;font-weight:600;">Minha Cidade</div>
-          </div>
+        <h2 style="font-family:'Syne',sans-serif;font-size:42px;font-weight:800;margin-bottom:8px;">🎮 Jogos</h2>
+        <p style="color:var(--muted);font-size:15px;max-width:380px;margin:0 auto;">BuddyPoke, Fazendinha, Minha Cidade e muito mais. A diversão está chegando!</p>
+        <div class="game-cards">
+          <div class="game-card-soon"><div style="font-size:44px;">🐱</div><div style="font-size:12px;font-weight:600;margin-top:8px;">BuddyPoke</div></div>
+          <div class="game-card-soon"><div style="font-size:44px;">🌾</div><div style="font-size:12px;font-weight:600;margin-top:8px;">Fazendinha</div></div>
+          <div class="game-card-soon"><div style="font-size:44px;">🏙️</div><div style="font-size:12px;font-weight:600;margin-top:8px;">Minha Cidade</div></div>
         </div>
       </div>
     </div>
 
     <!-- ─── PERFIL ─── -->
     <div id="tab-profile" class="tab-content">
-      <div class="profile-header" id="profile-header">
-        <div class="page-loader"><div class="loader"></div></div>
+      <div id="profile-card-wrap"><div class="page-loader"><div class="loader"></div></div></div>
+      <div id="profile-tabs-row" class="profile-tabs-row hidden">
+        <div class="profile-tab active" onclick="showProfileSec('timeline',this)">📅 Linha do Tempo</div>
+        <div class="profile-tab" onclick="showProfileSec('depoimentos',this)">💬 Depoimentos</div>
+        <div class="profile-tab" onclick="showProfileSec('conquistas',this)">🏆 Conquistas</div>
+        <div class="profile-tab" onclick="showProfileSec('profissional',this)">💼 Profissional</div>
       </div>
-      <div class="profile-tabs" id="profile-tabs" style="display:none;">
-        <div class="profile-tab active" onclick="showProfileSection('timeline',this)">📅 Linha do Tempo</div>
-        <div class="profile-tab" onclick="showProfileSection('depoimentos',this)">💬 Depoimentos</div>
-        <div class="profile-tab" onclick="showProfileSection('conquistas',this)">🏆 Conquistas</div>
-        <div class="profile-tab" onclick="showProfileSection('profissional',this)">💼 Profissional</div>
+      <div id="ps-timeline"><div id="timeline-container"><div class="page-loader"><div class="loader"></div></div></div></div>
+      <div id="ps-depoimentos" class="hidden"><div id="testimonials-wrap"><div class="page-loader"><div class="loader"></div></div></div></div>
+      <div id="ps-conquistas" class="hidden"><div class="ach-grid" id="profile-ach-grid"><div class="page-loader"><div class="loader"></div></div></div></div>
+      <div id="ps-profissional" class="hidden"><div class="card" style="padding:24px;" id="prof-section"><div class="page-loader"><div class="loader"></div></div></div></div>
+    </div>
+
+    <!-- ─── ADMIN ─── -->
+    <div id="tab-admin" class="tab-content">
+      <div class="page-header"><div class="page-header-left"><span class="page-icon">🛡️</span><div class="section-title">Painel ADM</div></div></div>
+      <div class="admin-stats" id="admin-stats"><div class="page-loader"><div class="loader"></div></div></div>
+
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="sendNotification()" id="btn-notify">📷 Disparar Daily Mandou</button>
+        <button class="btn btn-danger" onclick="if(confirm('Apagar TODOS os posts? Isso não pode ser desfeito.')) clearAllPosts()">🗑️ Limpar todos os posts</button>
       </div>
-      <div id="profile-timeline">
-        <div class="card" style="padding:20px;margin-bottom:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <span style="font-weight:700;">📅 Linha do Tempo</span>
-            <input type="date" id="timeline-date" onchange="loadTimeline()" style="width:auto;padding:6px 10px;font-size:13px;">
-          </div>
-          <div class="timeline-wrap" id="timeline-wrap">
-            <div class="text-muted" style="text-align:center;padding:20px;">Selecione uma data para ver as fotos</div>
-          </div>
-        </div>
-      </div>
-      <div id="profile-depoimentos" class="hidden">
-        <div id="testimonials-section"><div class="page-loader"><div class="loader"></div></div></div>
-      </div>
-      <div id="profile-conquistas" class="hidden">
-        <div class="achievement-grid" id="profile-ach-grid"><div class="page-loader"><div class="loader"></div></div></div>
-      </div>
-      <div id="profile-profissional" class="hidden">
-        <div class="card" style="padding:24px;" id="professional-section"><div class="page-loader"><div class="loader"></div></div></div>
+
+      <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;">Perguntas do Dia</div>
+      <div id="admin-questions" style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;"></div>
+
+      <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:12px;">Usuários cadastrados</div>
+      <div style="overflow-x:auto;">
+        <table class="users-table" id="users-table">
+          <thead><tr><th>Nome</th><th>@usuário</th><th>E-mail</th><th>Cidade</th><th>Pts</th><th>ADM</th><th>Ações</th></tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
       </div>
     </div>
 
-  </div><!-- /app-content -->
-</div><!-- /screen-app -->
-
-<!-- ══ MODALS ══ -->
-<!-- Post -->
-<div class="modal-overlay" id="modal-post">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-post-title">Nova publicação</span>
-      <button class="modal-close" onclick="closeModal('modal-post')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="post-type-switch" id="post-type-switch">
-        <button class="post-type-btn active" onclick="setPostType('photo')">📷 Foto</button>
-        <button class="post-type-btn" onclick="setPostType('text')">✍️ Texto</button>
-      </div>
-      <div id="post-photo-section">
-        <img class="photo-preview" id="photo-preview">
-        <label style="display:block;width:100%;padding:40px;border:2px dashed var(--border);border-radius:12px;text-align:center;cursor:pointer;margin-bottom:12px;" for="photo-input" id="photo-drop-label">
-          <div style="font-size:32px;">📷</div>
-          <div style="font-size:14px;color:var(--muted);margin-top:8px;">Tire uma foto ou escolha da galeria</div>
-        </label>
-        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;" onchange="onPhotoSelected(event)">
-        <input type="text" id="photo-caption" placeholder="Descrição da foto (opcional)">
-      </div>
-      <div id="post-text-section" class="hidden">
-        <textarea id="post-text-content" placeholder="O que você está pensando?" style="min-height:120px;"></textarea>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-          <input type="checkbox" id="post-anon" style="width:auto;">
-          <label for="post-anon" style="margin:0;color:var(--muted);">Postar como anônimo</label>
-        </div>
-      </div>
-      <button class="btn btn-primary fw" style="margin-top:16px;" onclick="submitPost()" id="btn-submit-post">Publicar</button>
-    </div>
   </div>
 </div>
 
-<!-- Friend Request -->
-<div class="modal-overlay" id="modal-friend-request">
+<!-- ═══ MODALS ═══ -->
+<!-- Post -->
+<div class="modal-overlay" id="modal-post">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Adicionar amigo</span>
-      <button class="modal-close" onclick="closeModal('modal-friend-request')">✕</button>
-    </div>
+    <div class="modal-hdr"><span class="modal-title" id="post-modal-title">Nova publicação</span><button class="modal-close" onclick="closeModal('modal-post')">✕</button></div>
     <div class="modal-body">
-      <div id="friend-request-user" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"></div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">"que mal conheço e já considero pakas..." — escreva algo para <span id="friend-request-name"></span></p>
-      <textarea id="friend-request-msg" placeholder="Escreva uma mensagem para enviar junto com a solicitação..." style="min-height:100px;"></textarea>
-      <button class="btn btn-primary fw" style="margin-top:12px;" onclick="sendFriendRequest()">Enviar solicitação</button>
+      <div class="post-type-sw" id="post-type-sw">
+        <button class="pt-btn active" onclick="setPostType('photo')">📷 Foto</button>
+        <button class="pt-btn" onclick="setPostType('text')">✍️ Texto</button>
+      </div>
+      <div id="photo-section">
+        <img class="photo-preview-img" id="photo-preview">
+        <label class="drop-zone" for="photo-file" id="drop-label">
+          <div style="font-size:28px;margin-bottom:8px;">📷</div>
+          <div style="font-size:14px;color:var(--muted);">Abrir câmera ou escolher foto</div>
+        </label>
+        <input type="file" id="photo-file" accept="image/*" capture="environment" style="display:none;" onchange="onPhotoSelected(event)">
+        <input type="text" id="photo-caption" placeholder="Descrição da foto (opcional)">
+      </div>
+      <div id="text-section" class="hidden">
+        <textarea id="post-text" placeholder="O que você está pensando?" style="min-height:110px;"></textarea>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
+          <input type="checkbox" id="post-anon" style="width:auto;">
+          <span style="color:var(--muted);">Postar como anônimo</span>
+        </label>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="submitPost()" id="btn-submit">Publicar</button>
     </div>
   </div>
 </div>
@@ -664,42 +632,39 @@ label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block;}
 <!-- Search User -->
 <div class="modal-overlay" id="modal-search-user">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Buscar pessoas</span>
-      <button class="modal-close" onclick="closeModal('modal-search-user')">✕</button>
-    </div>
+    <div class="modal-hdr"><span class="modal-title">Buscar pessoas</span><button class="modal-close" onclick="closeModal('modal-search-user')">✕</button></div>
     <div class="modal-body">
-      <input type="text" id="search-user-input" placeholder="Nome ou @usuário..." oninput="searchUsers()">
-      <div id="search-results" style="margin-top:16px;display:flex;flex-direction:column;gap:10px;"></div>
+      <input type="text" id="search-input" placeholder="Nome ou @usuário..." oninput="searchUsers()">
+      <div id="search-results" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Friend Request -->
+<div class="modal-overlay" id="modal-friend-req">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Adicionar amigo</span><button class="modal-close" onclick="closeModal('modal-friend-req')">✕</button></div>
+    <div class="modal-body">
+      <div id="friend-req-user" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:12px;"></div>
+      <p style="font-size:13px;color:var(--muted);font-style:italic;">"o que dizer de <span id="friend-req-name"></span> que mal conheço e já considero pakas..."</p>
+      <textarea id="friend-req-msg" placeholder="Escreva uma mensagem para enviar junto..." style="min-height:90px;"></textarea>
+      <button class="btn btn-primary" style="width:100%;" onclick="sendFriendRequest()">Enviar solicitação 🤝</button>
     </div>
   </div>
 </div>
 
 <!-- Create Community -->
-<div class="modal-overlay" id="modal-create-community">
+<div class="modal-overlay" id="modal-create-comm">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Criar comunidade</span>
-      <button class="modal-close" onclick="closeModal('modal-create-community')">✕</button>
-    </div>
-    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;">
-      <div><label>Nome da comunidade</label><input type="text" id="comm-name" placeholder="Ex: Amantes de café"></div>
-      <div><label>Descrição</label><textarea id="comm-desc" placeholder="Do que se trata essa comunidade?"></textarea></div>
+    <div class="modal-hdr"><span class="modal-title">Criar comunidade</span><button class="modal-close" onclick="closeModal('modal-create-comm')">✕</button></div>
+    <div class="modal-body">
+      <div><label>Nome</label><input type="text" id="cn-name" placeholder="Ex: Amantes de café"></div>
+      <div><label>Descrição</label><textarea id="cn-desc" placeholder="Do que se trata essa comunidade?"></textarea></div>
       <div class="form-row">
-        <div><label>Tipo</label>
-          <select id="comm-type">
-            <option value="interest">Interesse / Hobby</option>
-            <option value="local">Local / Regional</option>
-          </select>
-        </div>
-        <div><label>Privacidade</label>
-          <select id="comm-open">
-            <option value="1">Aberta — qualquer um entra</option>
-            <option value="0">Fechada — precisa de aprovação</option>
-          </select>
-        </div>
+        <div><label>Tipo</label><select id="cn-type"><option value="interest">Interesse / Hobby</option><option value="local">Local / Regional</option></select></div>
+        <div><label>Privacidade</label><select id="cn-open"><option value="1">Aberta — qualquer um entra</option><option value="0">Fechada — precisa de aprovação</option></select></div>
       </div>
-      <button class="btn btn-primary" onclick="createCommunity()">Criar comunidade</button>
+      <button class="btn btn-primary" style="width:100%;" onclick="createCommunity()">Criar comunidade 🏗️</button>
     </div>
   </div>
 </div>
@@ -707,119 +672,159 @@ label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block;}
 <!-- Edit Profile -->
 <div class="modal-overlay" id="modal-edit-profile">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Editar perfil</span>
-      <button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button>
-    </div>
-    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;">
-      <div><label>Nome</label><input type="text" id="edit-name"></div>
-      <div><label>Bio</label><textarea id="edit-bio" style="min-height:70px;"></textarea></div>
-      <div><label>O que você faz</label><input type="text" id="edit-occupation"></div>
-      <hr style="border-color:var(--border);margin:4px 0;">
-      <div style="font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Profissional</div>
-      <div><label>Título profissional</label><input type="text" id="edit-prof-title" placeholder="Ex: Designer UX Sênior"></div>
-      <div><label>Link (portfólio, site...)</label><input type="url" id="edit-prof-url" placeholder="https://"></div>
-      <div><label>Sobre o trabalho</label><textarea id="edit-prof-desc" style="min-height:70px;" placeholder="Descreva o que você faz, o que vende, o que oferece..."></textarea></div>
-      <button class="btn btn-primary" onclick="saveProfile()">Salvar</button>
+    <div class="modal-hdr"><span class="modal-title">Editar perfil</span><button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button></div>
+    <div class="modal-body">
+      <div><label>Nome</label><input type="text" id="ep-name"></div>
+      <div><label>Bio</label><textarea id="ep-bio" style="min-height:70px;"></textarea></div>
+      <div><label>O que você faz</label><input type="text" id="ep-occ"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:4px 0;">Profissional</div>
+      <div><label>Título profissional</label><input type="text" id="ep-ptitle" placeholder="Ex: Designer UX Sênior"></div>
+      <div><label>Link (portfólio, site)</label><input type="url" id="ep-purl" placeholder="https://"></div>
+      <div><label>Sobre o trabalho</label><textarea id="ep-pdesc" style="min-height:70px;" placeholder="O que você faz, vende, oferece..."></textarea></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="saveProfile()">Salvar ✅</button>
     </div>
   </div>
 </div>
 
 <!-- Post Detail -->
 <div class="modal-overlay" id="modal-post-detail">
-  <div class="modal" style="max-width:640px;">
-    <div class="modal-header">
-      <span class="modal-title">Post</span>
-      <button class="modal-close" onclick="closeModal('modal-post-detail')">✕</button>
-    </div>
-    <div class="modal-body" id="modal-post-detail-body"></div>
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-hdr"><span class="modal-title">Post</span><button class="modal-close" onclick="closeModal('modal-post-detail')">✕</button></div>
+    <div class="modal-body" id="post-detail-body"></div>
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════
-const API = '';
+// ═══════════════════════════════════
 let currentUser = null;
-let currentPostTab = 'photo';
-let currentPostTargetTab = 'global';
-let notifInterval = null;
-let pendingFriendUserId = null;
+let postType = 'photo';
+let postTargetTab = 'global';
+let pendingFriendId = null;
+let pendingFriendName = '';
 let globalFilter = 'todos';
+let notifIntervalId = null;
 
-// ─── AUTH ───
-function getToken(){ return localStorage.getItem('daily_token'); }
-function setToken(t){ localStorage.setItem('daily_token', t); }
-function clearToken(){ localStorage.removeItem('daily_token'); }
+const BRASIL_STATES = {
+  'AC':'Acre','AL':'Alagoas','AP':'Amapá','AM':'Amazonas','BA':'Bahia','CE':'Ceará','DF':'Distrito Federal',
+  'ES':'Espírito Santo','GO':'Goiás','MA':'Maranhão','MT':'Mato Grosso','MS':'Mato Grosso do Sul',
+  'MG':'Minas Gerais','PA':'Pará','PB':'Paraíba','PR':'Paraná','PE':'Pernambuco','PI':'Piauí',
+  'RJ':'Rio de Janeiro','RN':'Rio Grande do Norte','RS':'Rio Grande do Sul','RO':'Rondônia',
+  'RR':'Roraima','SC':'Santa Catarina','SP':'São Paulo','SE':'Sergipe','TO':'Tocantins'
+};
+const BR_CITIES = {
+  'SP':['São Paulo','Campinas','Santos','São Bernardo do Campo','Santo André','Guarulhos','Jundiaí','Sorocaba','Ribeirão Preto','São José dos Campos','Osasco','Bauru','Piracicaba','Franca','Limeira'],
+  'RJ':['Rio de Janeiro','Niterói','Duque de Caxias','Nova Iguaçu','São Gonçalo','Belford Roxo','Petrópolis','Volta Redonda'],
+  'MG':['Belo Horizonte','Uberlândia','Contagem','Juiz de Fora','Betim','Montes Claros','Uberaba'],
+  'RS':['Porto Alegre','Caxias do Sul','Pelotas','Canoas','Santa Maria','Novo Hamburgo'],
+  'PR':['Curitiba','Londrina','Maringá','Ponta Grossa','Cascavel','Foz do Iguaçu'],
+  'BA':['Salvador','Feira de Santana','Vitória da Conquista','Camaçari','Itabuna'],
+  'SC':['Florianópolis','Joinville','Blumenau','Chapecó','Itajaí','Criciúma'],
+  'PE':['Recife','Caruaru','Olinda','Petrolina','Paulista'],
+  'CE':['Fortaleza','Caucaia','Juazeiro do Norte','Sobral'],
+  'GO':['Goiânia','Aparecida de Goiânia','Anápolis','Rio Verde'],
+  'PA':['Belém','Ananindeua','Santarém','Marabá'],
+  'DF':['Brasília','Ceilândia','Taguatinga','Samambaia','Planaltina'],
+  'AM':['Manaus','Parintins','Itacoatiara'],
+  'MT':['Cuiabá','Várzea Grande','Rondonópolis','Sinop'],
+  'MS':['Campo Grande','Dourados','Três Lagoas'],
+  'ES':['Vitória','Serra','Vila Velha','Cariacica'],
+  'RN':['Natal','Mossoró','Parnamirim'],
+  'AL':['Maceió','Arapiraca','Rio Largo'],
+  'PB':['João Pessoa','Campina Grande','Santa Rita'],
+  'MA':['São Luís','Imperatriz','Timon'],
+};
+
+// ═══════════════════════════════════
+// API
+// ═══════════════════════════════════
+function tok(){ return localStorage.getItem('daily_token'); }
+function setTok(t){ localStorage.setItem('daily_token',t); }
+function clearTok(){ localStorage.removeItem('daily_token'); }
 
 async function api(path, opts={}){
-  const token = getToken();
-  const headers = { 'Content-Type':'application/json', ...(token?{Authorization:`Bearer ${token}`}:{}), ...(opts.headers||{}) };
-  const res = await fetch(API+path, { ...opts, headers: opts.form?opts.headers||{}:headers });
+  const t = tok();
+  const headers = {'Content-Type':'application/json', ...(t?{Authorization:`Bearer ${t}`}:{}), ...(opts.headers||{})};
+  const res = await fetch(path, {...opts, headers: opts.isForm?{}:headers});
   const data = await res.json().catch(()=>({}));
-  if (!res.ok) throw new Error(data.error||'Erro');
+  if(!res.ok) throw new Error(data.error||'Erro');
+  return data;
+}
+async function apiForm(path, fd){
+  const t=tok();
+  const res=await fetch(path,{method:'POST',headers:t?{Authorization:`Bearer ${t}`}:{},body:fd});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error||'Erro');
   return data;
 }
 
-async function apiForm(path, formData){
-  const token = getToken();
-  const res = await fetch(API+path, { method:'POST', headers: token?{Authorization:`Bearer ${token}`}:{}, body: formData });
-  const data = await res.json().catch(()=>({}));
-  if (!res.ok) throw new Error(data.error||'Erro');
-  return data;
+// ═══════════════════════════════════
+// TOAST
+// ═══════════════════════════════════
+function toast(msg,type='info'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`toast show ${type}`;
+  setTimeout(()=>el.classList.remove('show'),3500);
 }
 
-// ─── TOAST ───
-function toast(msg, type='info'){
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.className = `toast show ${type}`;
-  setTimeout(()=>el.classList.remove('show'), 3500);
-}
-
-// ─── MODALS ───
-function openModal(id){ document.getElementById(id).classList.add('open'); }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-
-// ═══════════════════════════════════════════
-// BOOT
-// ═══════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', async ()=>{
-  const token = getToken();
-  if(!token){ showScreen('landing'); return; }
-  try {
-    const { user } = await api('/api/auth/me');
-    currentUser = user;
-    bootApp();
-  } catch(e){ clearToken(); showScreen('landing'); }
+// ═══════════════════════════════════
+// MODALS
+// ═══════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
 });
 
-function showScreen(name){
+// ═══════════════════════════════════
+// BOOT
+// ═══════════════════════════════════
+window.addEventListener('DOMContentLoaded',async()=>{
+  // Populate state select
+  const stSel=document.getElementById('reg-state');
+  Object.entries(BRASIL_STATES).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([uf,nome])=>{
+    stSel.insertAdjacentHTML('beforeend',`<option value="${uf}">${nome}</option>`);
+  });
+  // Regional filter states
+  const rsSel=document.getElementById('reg-state-filter');
+  Object.entries(BRASIL_STATES).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([uf,nome])=>{
+    rsSel.insertAdjacentHTML('beforeend',`<option value="${uf}">${nome}</option>`);
+  });
+
+  const t=tok();
+  if(!t){showScreen('landing');return;}
+  try {
+    const {user}=await api('/api/auth/me');
+    currentUser=user; bootApp();
+  } catch(e){clearTok();showScreen('landing');}
+});
+
+function showScreen(n){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-'+name).classList.add('active');
+  document.getElementById('screen-'+n).classList.add('active');
 }
 
 function bootApp(){
   showScreen('app');
-  document.getElementById('topbar-name').textContent = currentUser.name.split(' ')[0];
-  const av = document.getElementById('topbar-avatar');
-  av.src = currentUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=ff6b35&color=fff`;
-  // Set today date on timeline
-  document.getElementById('timeline-date').value = new Date().toISOString().slice(0,10);
+  const av=document.getElementById('topbar-avatar');
+  av.src=currentUser.avatar_url||avatarUrl(currentUser.name);
+  document.getElementById('topbar-name').textContent=currentUser.name.split(' ')[0];
+  if(currentUser.is_admin) document.getElementById('nav-admin').classList.remove('hidden');
   loadGlobal();
+  loadDailyMandou();
   checkNotif();
-  setInterval(checkNotif, 10000);
+  setInterval(checkNotif,10000);
   loadFriendRequests();
-  // Service worker
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  setTimeout(registerPush,4000);
 }
 
-// ═══════════════════════════════════════════
-// AUTH FORMS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+// AUTH
+// ═══════════════════════════════════
 function switchAuthTab(tab){
   document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',['login','register'][i]===tab));
   document.querySelectorAll('.auth-form').forEach(f=>f.classList.remove('active'));
@@ -828,802 +833,813 @@ function switchAuthTab(tab){
 
 async function doLogin(e){
   e.preventDefault();
-  const btn = document.getElementById('btn-login');
-  btn.disabled=true; btn.textContent='Entrando...';
-  try {
-    const { token, user } = await api('/api/auth/login',{method:'POST',body:JSON.stringify({
-      login: document.getElementById('login-login').value,
-      password: document.getElementById('login-password').value
+  const btn=document.getElementById('btn-login');
+  btn.disabled=true;btn.textContent='Entrando...';
+  try{
+    const{token,user}=await api('/api/auth/login',{method:'POST',body:JSON.stringify({
+      login:document.getElementById('login-id').value,
+      password:document.getElementById('login-pw').value
     })});
-    setToken(token); currentUser=user; bootApp();
-  } catch(e){ toast(e.message,'error'); btn.disabled=false; btn.textContent='Entrar →'; }
+    setTok(token);currentUser=user;bootApp();
+  }catch(e){toast(e.message,'error');btn.disabled=false;btn.textContent='Entrar →';}
 }
 
 async function doRegister(e){
   e.preventDefault();
-  const btn = document.getElementById('btn-register');
-  btn.disabled=true; btn.textContent='Criando conta...';
-  try {
-    const { token, user } = await api('/api/auth/register',{method:'POST',body:JSON.stringify({
-      name: document.getElementById('reg-name').value,
-      username: document.getElementById('reg-username').value,
-      email: document.getElementById('reg-email').value,
-      password: document.getElementById('reg-password').value,
-      birth_date: document.getElementById('reg-birth').value,
-      occupation: document.getElementById('reg-occupation').value,
-      country: document.getElementById('reg-country').value,
-      state: document.getElementById('reg-state').value,
-      city: document.getElementById('reg-city').value,
-      neighborhood: document.getElementById('reg-neighborhood').value,
+  const btn=document.getElementById('btn-register');
+  btn.disabled=true;btn.textContent='Criando conta...';
+  try{
+    const{token,user}=await api('/api/auth/register',{method:'POST',body:JSON.stringify({
+      name:document.getElementById('reg-name').value,
+      username:document.getElementById('reg-username').value,
+      email:document.getElementById('reg-email').value,
+      password:document.getElementById('reg-pw').value,
+      birth_date:document.getElementById('reg-birth').value,
+      occupation:document.getElementById('reg-occ').value,
+      country:document.getElementById('reg-country').value,
+      state:document.getElementById('reg-state').value,
+      city:document.getElementById('reg-city').value,
+      neighborhood:document.getElementById('reg-neighborhood').value,
     })});
-    setToken(token); currentUser=user; bootApp();
+    setTok(token);currentUser=user;bootApp();
     toast('Bem-vindo(a) ao DAILY! 🎉','success');
-  } catch(e){ toast(e.message,'error'); btn.disabled=false; btn.textContent='Criar minha conta →'; }
+  }catch(e){toast(e.message,'error');btn.disabled=false;btn.textContent='Criar minha conta →';}
 }
 
-function doLogout(){ clearToken(); currentUser=null; showScreen('landing'); }
+function doLogout(){clearTok();currentUser=null;showScreen('landing');}
 
-// ─── Location selects ───
-function loadStates(){
-  const c = document.getElementById('reg-country').value;
-  // Brazil only for now (expandable)
-  const st = document.getElementById('reg-state');
-  st.innerHTML='<option value="">Selecione</option>';
-  if(c==='BR'){
-    const states=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
-    states.forEach(s=>st.insertAdjacentHTML('beforeend',`<option value="${s}">${s}</option>`));
-  }
-  document.getElementById('reg-city').innerHTML='<option value="">Selecione</option>';
-  document.getElementById('reg-neighborhood').innerHTML='<option value="">Selecione</option>';
+function onCountryChange(){
+  const c=document.getElementById('reg-country').value;
+  document.getElementById('br-fields').classList.toggle('hidden',c!=='BR');
 }
-function loadCities(){ /* Extensível com IBGE API */ }
-function loadNeighborhoods(){ /* Extensível */ }
+function onStateChange(){
+  const uf=document.getElementById('reg-state').value;
+  const citySel=document.getElementById('reg-city');
+  citySel.innerHTML='<option value="">Selecione a cidade</option>';
+  (BR_CITIES[uf]||[]).sort().forEach(c=>citySel.insertAdjacentHTML('beforeend',`<option value="${c}">${c}</option>`));
+}
 
-// Seed country options
-window.addEventListener('DOMContentLoaded',()=>{
-  const sel = document.getElementById('reg-country');
-  if(!sel) return;
-  const countries = [['BR','Brasil'],['US','Estados Unidos'],['PT','Portugal'],['AR','Argentina'],['MX','México'],['CO','Colômbia'],['CL','Chile']];
-  countries.forEach(([v,l])=>sel.insertAdjacentHTML('beforeend',`<option value="${v}">${l}</option>`));
-});
-
-// ═══════════════════════════════════════════
-// NAVIGATION
-// ═══════════════════════════════════════════
-function switchTab(tab, btn){
+// ═══════════════════════════════════
+// NAV
+// ═══════════════════════════════════
+function switchTab(tab,btn){
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  btn.classList.add('active');
-  // Lazy load
-  if(tab==='agora') loadAgora();
-  if(tab==='daily-question') loadDailyQuestion();
-  if(tab==='friends'){ loadFriends(); loadFriendRequests(); }
-  if(tab==='communities') loadCommunities();
-  if(tab==='achievements') loadAchievements();
-  if(tab==='profile') loadProfile();
+  if(btn) btn.classList.add('active');
+  const loaders={
+    'agora':loadAgora,'daily-question':loadDailyQuestion,
+    'friends':()=>{loadFriends();loadFriendRequests();},
+    'communities':loadCommunities,'achievements':loadAchievements,
+    'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou
+  };
+  loaders[tab]?.();
 }
 
-// ═══════════════════════════════════════════
-// NOTIFICATION / DAILY MANDOU
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+// NOTIFICATION
+// ═══════════════════════════════════
 async function checkNotif(){
-  try {
-    const { active, ms_remaining } = await api('/api/admin/notification/active');
-    const banner = document.getElementById('notif-banner');
-    if(active && ms_remaining > 0){
-      banner.classList.remove('hidden');
+  try{
+    const{active,ms_remaining}=await api('/api/admin/notification/active');
+    const b1=document.getElementById('notif-banner');
+    const b2=document.getElementById('dm-notif-banner');
+    if(active&&ms_remaining>0){
+      b1.classList.remove('hidden');b2.classList.remove('hidden');
       startCountdown(ms_remaining);
-    } else {
-      banner.classList.add('hidden');
-      clearInterval(notifInterval);
+    }else{
+      b1.classList.add('hidden');b2.classList.add('hidden');
+      clearInterval(notifIntervalId);
     }
-  } catch(e){}
+  }catch(e){}
 }
 
 function startCountdown(ms){
-  clearInterval(notifInterval);
-  const el = document.getElementById('notif-countdown');
-  let remaining = Math.floor(ms/1000);
-  function tick(){
-    const m=Math.floor(remaining/60).toString().padStart(2,'0');
-    const s=(remaining%60).toString().padStart(2,'0');
-    el.textContent=`${m}:${s}`;
-    if(remaining<=0){ clearInterval(notifInterval); document.getElementById('notif-banner').classList.add('hidden'); }
-    remaining--;
-  }
-  tick();
-  notifInterval=setInterval(tick,1000);
+  clearInterval(notifIntervalId);
+  let rem=Math.floor(ms/1000);
+  const tick=()=>{
+    const s=`${Math.floor(rem/60).toString().padStart(2,'0')}:${(rem%60).toString().padStart(2,'0')}`;
+    document.getElementById('notif-countdown').textContent=s;
+    const dc=document.getElementById('dm-countdown');
+    if(dc) dc.textContent=s;
+    if(rem<=0){clearInterval(notifIntervalId);document.getElementById('notif-banner').classList.add('hidden');document.getElementById('dm-notif-banner').classList.add('hidden');}
+    rem--;
+  };
+  tick();notifIntervalId=setInterval(tick,1000);
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // POST MODAL
-// ═══════════════════════════════════════════
-function openPostModal(type='photo', targetTab='global'){
-  currentPostTab=type; currentPostTargetTab=targetTab;
-  document.getElementById('modal-post-title').textContent = targetTab==='daily_mandou'?'📷 Daily Mandou!':'Nova publicação';
+// ═══════════════════════════════════
+function openPostModal(type='photo',target='global'){
+  postType=type;postTargetTab=target;
+  const isDM=target==='daily_mandou';
+  document.getElementById('post-modal-title').textContent=isDM?'⚡ Daily Mandou!':'Nova publicação';
+  document.getElementById('post-type-sw').style.display=isDM?'none':'';
   document.getElementById('photo-preview').classList.remove('show');
-  document.getElementById('photo-input').value='';
+  document.getElementById('photo-file').value='';
   document.getElementById('photo-caption').value='';
-  document.getElementById('post-text-content').value='';
-  const typeSwitch = document.getElementById('post-type-switch');
-  typeSwitch.style.display = targetTab==='daily_mandou' ? 'none' : '';
+  document.getElementById('post-text').value='';
   setPostType(type);
   openModal('modal-post');
 }
 
-function setPostType(type){
-  currentPostTab=type;
-  document.querySelectorAll('.post-type-btn').forEach((b,i)=>b.classList.toggle('active',['photo','text'][i]===type));
-  document.getElementById('post-photo-section').classList.toggle('hidden', type!=='photo');
-  document.getElementById('post-text-section').classList.toggle('hidden', type!=='text');
+function setPostType(t){
+  postType=t;
+  document.querySelectorAll('.pt-btn').forEach((b,i)=>b.classList.toggle('active',['photo','text'][i]===t));
+  document.getElementById('photo-section').classList.toggle('hidden',t!=='photo');
+  document.getElementById('text-section').classList.toggle('hidden',t!=='text');
 }
 
 function onPhotoSelected(e){
-  const file=e.target.files[0]; if(!file) return;
+  const f=e.target.files[0];if(!f)return;
   const pr=document.getElementById('photo-preview');
-  pr.src=URL.createObjectURL(file); pr.classList.add('show');
-  document.getElementById('photo-drop-label').style.display='none';
+  pr.src=URL.createObjectURL(f);pr.classList.add('show');
+  document.getElementById('drop-label').style.display='none';
 }
 
 async function submitPost(){
-  const btn=document.getElementById('btn-submit-post');
-  btn.disabled=true; btn.innerHTML='<span class="loader"></span>';
-  try {
-    if(currentPostTab==='photo'){
-      const file=document.getElementById('photo-input').files[0];
-      if(!file){ toast('Selecione uma foto','error'); return; }
+  const btn=document.getElementById('btn-submit');
+  btn.disabled=true;btn.innerHTML='<span class="loader"></span>';
+  try{
+    if(postType==='photo'){
+      const f=document.getElementById('photo-file').files[0];
+      if(!f){toast('Selecione uma foto','error');return;}
       const fd=new FormData();
-      fd.append('photo',file);
+      fd.append('photo',f);
       fd.append('caption',document.getElementById('photo-caption').value);
-      fd.append('tab', currentPostTargetTab==='daily_mandou'?'daily_mandou':'global');
+      fd.append('tab',postTargetTab==='daily_mandou'?'daily_mandou':'global');
       await apiForm('/api/posts/photo',fd);
       toast('Foto postada! 📸','success');
-    } else {
-      const content=document.getElementById('post-text-content').value.trim();
-      if(!content){ toast('Escreva algo','error'); return; }
+    }else{
+      const content=document.getElementById('post-text').value.trim();
+      if(!content){toast('Escreva algo','error');return;}
       await api('/api/posts',{method:'POST',body:JSON.stringify({
-        content, tab: currentPostTargetTab,
-        is_anonymous: document.getElementById('post-anon').checked?1:0
+        content,tab:postTargetTab,
+        is_anonymous:document.getElementById('post-anon').checked?1:0
       })});
       toast('Publicado! ✅','success');
     }
     closeModal('modal-post');
-    if(currentPostTargetTab==='global'||currentPostTargetTab==='daily_mandou') loadGlobal();
-    if(currentPostTargetTab==='agora') loadAgora();
-  } catch(e){ toast(e.message,'error'); }
-  finally { btn.disabled=false; btn.textContent='Publicar'; }
+    if(postTargetTab==='global'||postTargetTab==='daily_mandou'){loadGlobal();loadDailyMandou();}
+    if(postTargetTab==='agora') loadAgora();
+  }catch(e){toast(e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='Publicar';}
 }
 
-// ═══════════════════════════════════════════
-// GLOBAL FEED
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+// GLOBAL
+// ═══════════════════════════════════
 async function loadGlobal(){
-  const grid = document.getElementById('global-grid');
-  grid.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  try {
+  const g=document.getElementById('global-grid');
+  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
     let posts;
     if(globalFilter==='destaques'){
-      const r = await api('/api/posts/highlights?filter=todos');
-      posts = r.posts;
-    } else {
-      const tab = globalFilter==='fotos'?'&tab=global':'';
-      const r = await api('/api/posts?limit=60'+tab);
-      posts = r.posts.filter(p=>globalFilter==='fotos'?p.type==='photo':true);
+      posts=(await api('/api/posts/highlights?filter=todos')).posts;
+    }else{
+      posts=(await api('/api/posts?limit=80')).posts.filter(p=>globalFilter==='fotos'?p.type==='photo':true);
     }
-    grid.innerHTML = posts.length ? posts.map(renderPhotoCard).join('') : '<p class="text-muted" style="padding:40px;text-align:center;">Nenhuma publicação ainda. Seja o primeiro! 📸</p>';
-  } catch(e){ grid.innerHTML='<p class="text-muted" style="padding:20px;">Erro ao carregar feed.</p>'; }
+    g.innerHTML=posts.length?posts.map(renderCard).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Nenhuma publicação ainda. Seja o primeiro! 📸</p>`;
+  }catch(e){g.innerHTML='<p class="text-muted" style="padding:20px;">Erro ao carregar.</p>';}
 }
 
-function setGlobalFilter(f, btn){
+function setGlobalFilter(f,btn){
   globalFilter=f;
-  document.querySelectorAll('#global-filters .filter-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#global-filters .pill').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   loadGlobal();
 }
 
-function renderPhotoCard(p){
-  const av = p.author?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.author?.name||'?')}&background=ff6b35&color=fff`;
-  const reactions = (p.reactions||[]).map(r=>`<span class="reaction-chip" onclick="react('${p.id}','${r.emoji}',this)">${r.emoji} <span>${r.count}</span></span>`).join('');
-  const allEmojis = ['👍','❤️','😂','😮','🌊'].filter(e=>!(p.reactions||[]).find(r=>r.emoji===e));
-  const addReact = allEmojis.slice(0,3).map(e=>`<span class="reaction-chip" onclick="react('${p.id}','${e}',this)">${e}</span>`).join('');
-  const pedro = p.pedro_comment ? `<div class="pedro-comment"><strong>🐱 Pedro:</strong> ${p.pedro_comment}</div>` : '';
-  if(p.type==='photo' && p.image_url){
-    return `<div class="photo-card" onclick="openPostDetail('${p.id}')">
-      <img src="${p.image_url}" alt="${p.caption||''}" loading="lazy">
-      <div class="photo-card-footer">
-        <div class="photo-card-author" onclick="event.stopPropagation()">
+async function loadDailyMandou(){
+  const g=document.getElementById('dm-grid');
+  if(!g) return;
+  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const posts=(await api('/api/posts?tab=daily_mandou&limit=60')).posts;
+    g.innerHTML=posts.length?posts.map(renderCard).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Nenhuma foto do Daily Mandou ainda. Aguarde a próxima notificação! ⚡</p>`;
+  }catch(e){}
+}
+
+function renderCard(p){
+  const av=p.author?.avatar_url||avatarUrl(p.author?.name||'?');
+  const reactions=(p.reactions||[]).map(r=>`<span class="reaction-chip ${r.reacted?'mine':''}" onclick="react('${p.id}','${r.emoji}',this)">${r.emoji}<span>${r.count}</span></span>`).join('');
+  const addEmojis=['👍','❤️','😂','😮','🌊'].filter(e=>!(p.reactions||[]).find(r=>r.emoji===e)).slice(0,3).map(e=>`<span class="reaction-chip" onclick="react('${p.id}','${e}',this)">${e}</span>`).join('');
+  const pedro=p.pedro_comment?`<div class="pedro-comment"><strong>🐱 Pedro:</strong> ${p.pedro_comment}</div>`:'';
+  const dmBadge=p.tab==='daily_mandou'?'<span class="badge-pill" style="font-size:10px;">⚡ Daily</span>':'';;
+  if(p.type==='photo'&&p.image_url){
+    return`<div class="photo-card">
+      <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')">
+      <div class="photo-card-body">
+        <div class="photo-card-author">
           <img class="avatar" src="${av}" width="24" height="24">
-          <span style="font-size:13px;font-weight:500;">${p.author?.name||'Anônimo'}</span>
-          ${p.tab==='daily_mandou'?'<span class="badge-pill">⚡</span>':''}
+          <span style="font-size:13px;font-weight:600;flex:1;">${p.author?.name||'Anônimo'}</span>${dmBadge}
         </div>
-        ${p.caption?`<p style="font-size:12px;color:var(--muted);margin-top:6px;">${p.caption}</p>`:''}
-        <div class="photo-card-reactions" onclick="event.stopPropagation()">${reactions}${addReact}</div>
+        ${p.caption?`<p style="font-size:12px;color:var(--muted);margin-top:5px;">${p.caption}</p>`:''}
+        <div class="reactions-row">${reactions}${addEmojis}</div>
         ${pedro}
       </div>
     </div>`;
   }
-  return `<div class="discuss-card" onclick="openPostDetail('${p.id}')">
-    <div class="discuss-card-author">
-      <img class="avatar" src="${av}" width="32" height="32">
-      <div><div style="font-size:13px;font-weight:600;">${p.author?.name||'Anônimo'}</div>
-      <div class="text-muted">${timeAgo(p.created_at)}</div></div>
+  return`<div class="discuss-card">
+    <div class="discuss-author"><img class="avatar" src="${av}" width="32" height="32">
+      <div><div style="font-size:13px;font-weight:600;">${p.author?.name||'Anônimo'}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div>
     </div>
-    <div class="discuss-card-content">${p.content||''}</div>
-    <div class="photo-card-reactions" onclick="event.stopPropagation()">${reactions}${addReact}</div>
-    ${pedro}
+    <div style="font-size:14px;line-height:1.6;color:var(--text2);">${p.content||''}</div>
+    <div class="reactions-row">${reactions}${addEmojis}</div>${pedro}
+    <div class="discuss-footer"><span>💬 ${p.comment_count}</span><span style="cursor:pointer;color:var(--accent);" onclick="openPostDetail('${p.id}')">Responder →</span></div>
   </div>`;
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // ÁGORA
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 async function loadAgora(){
-  const grid = document.getElementById('agora-grid');
-  grid.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  try {
-    const { posts } = await api('/api/posts?tab=agora&limit=60');
-    grid.innerHTML = posts.length ? posts.map(p=>{
-      const av = p.author?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.author?.name||'?')}&background=7c3aed&color=fff`;
-      const reactions = (p.reactions||[]).map(r=>`<span class="reaction-chip" onclick="react('${p.id}','${r.emoji}',this)">${r.emoji} <span>${r.count}</span></span>`).join('');
-      const pedro = p.pedro_comment ? `<div class="pedro-comment"><strong>🐱 Pedro:</strong> ${p.pedro_comment}</div>` : '';
-      return `<div class="discuss-card">
-        <div class="discuss-card-author">
-          <img class="avatar" src="${av}" width="32" height="32">
-          <div><div style="font-size:13px;font-weight:600;">${p.author?.name||'Anônimo'}</div>
-          <div class="text-muted">${timeAgo(p.created_at)}</div></div>
-        </div>
-        <div class="discuss-card-content">${p.content||''}</div>
-        <div class="photo-card-reactions">${reactions}</div>
-        ${pedro}
-        <div class="discuss-card-footer">
-          <span>💬 ${p.comment_count} respostas</span>
-          <span onclick="openPostDetail('${p.id}')" style="cursor:pointer;color:var(--accent);">Responder →</span>
-        </div>
-      </div>`;
-    }).join('') : '<p class="text-muted" style="padding:40px;text-align:center;">Nenhuma discussão ainda. Comece a conversa!</p>';
-  } catch(e){}
+  const g=document.getElementById('agora-grid');
+  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const{posts}=await api('/api/posts?tab=agora&limit=60');
+    g.innerHTML=posts.length?posts.map(renderCard).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Nenhuma discussão ainda. Comece!</p>`;
+  }catch(e){}
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // DAILY PERGUNTA
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 async function loadDailyQuestion(){
-  const container = document.getElementById('dq-container');
-  container.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  try {
-    const { question, period, my_response, word_cloud, total_responses } = await api('/api/daily-questions/current');
-    const periodLabels = { manha:'☀️ Manhã', almoco:'🍽️ Almoço', tarde:'🌤️ Tarde', noite:'🌙 Noite' };
-    if(!question){ container.innerHTML=`<div class="dq-card"><p class="text-muted">Nenhuma pergunta ativa agora. Volte mais tarde!</p></div>`; return; }
-    const alreadyAnswered = !!my_response;
-    const wordCloudHtml = word_cloud?.length ? `
-      <div style="margin-top:20px;">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">☁️ Nuvem de palavras — ${total_responses} respostas</div>
-        <div class="word-cloud">${word_cloud.map(w=>`<span class="word-item" style="font-size:${Math.max(11,Math.min(22,11+w.count*3))}px;opacity:${Math.max(.5,Math.min(1,.5+w.count/10))};">${w.word}</span>`).join('')}</div>
-      </div>` : '';
-    container.innerHTML=`<div class="dq-card">
-      <div class="dq-period-badge">${periodLabels[period]||period}</div>
+  const c=document.getElementById('dq-container');
+  c.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const{question,period,my_response,word_cloud,total_responses}=await api('/api/daily-questions/current');
+    const pl={manha:'☀️ Manhã',almoco:'🍽️ Almoço',tarde:'🌤️ Tarde',noite:'🌙 Noite'};
+    if(!question){c.innerHTML=`<div class="dq-card"><p class="text-muted">Nenhuma pergunta ativa agora. Volte mais tarde!</p></div>`;return;}
+    const wc=word_cloud?.length?`<div style="margin-top:18px;"><div class="text-muted" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;font-size:11px;">☁️ Nuvem de palavras — ${total_responses} respostas</div><div class="word-cloud">${word_cloud.map(w=>`<span class="word-pill" style="font-size:${Math.max(11,Math.min(20,11+w.count*2))}px;">${w.word}</span>`).join('')}</div></div>`:'';
+    c.innerHTML=`<div class="dq-card">
+      <div class="dq-period-pill">${pl[period]||period}</div>
       <div class="dq-question">${question.question}</div>
-      ${alreadyAnswered ? `<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:10px;padding:12px 16px;font-size:14px;color:var(--green);">✅ Você já respondeu hoje: <em>"${my_response.content}"</em></div>` :
-      `<textarea id="dq-answer" placeholder="Sua resposta..." style="margin-bottom:10px;min-height:80px;"></textarea>
-      <button class="btn btn-primary" onclick="submitDailyAnswer('${question.id}')">Responder</button>`}
-      ${wordCloudHtml}
-      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;font-size:13px;color:var(--muted);">🐱 <em>Pedro vai comentar a nuvem de palavras de hoje à meia-noite!</em></div>
+      ${my_response?`<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 16px;font-size:14px;color:var(--green);">✅ Você já respondeu: <em>"${my_response.content}"</em></div>`:
+      `<textarea id="dq-ans" placeholder="Sua resposta..." style="min-height:80px;"></textarea>
+      <button class="btn btn-primary" onclick="submitDQ('${question.id}')">Responder</button>`}
+      ${wc}
+      <p class="text-muted" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;font-size:12px;">🐱 Pedro vai comentar a nuvem de palavras hoje à meia-noite!</p>
     </div>`;
-  } catch(e){ container.innerHTML=`<p class="text-muted">${e.message}</p>`; }
+  }catch(e){c.innerHTML=`<p class="text-muted">${e.message}</p>`;}
 }
 
-async function submitDailyAnswer(qid){
-  const content = document.getElementById('dq-answer').value.trim();
-  if(!content){ toast('Escreva sua resposta','error'); return; }
-  try {
+async function submitDQ(){
+  const content=document.getElementById('dq-ans')?.value.trim();
+  if(!content){toast('Escreva sua resposta','error');return;}
+  try{
     await api('/api/daily-questions/respond',{method:'POST',body:JSON.stringify({content})});
     toast('Resposta enviada! 🐱','success');
     loadDailyQuestion();
-  } catch(e){ toast(e.message,'error'); }
+  }catch(e){toast(e.message,'error');}
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // FRIENDS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 async function loadFriends(){
-  const grid=document.getElementById('friends-grid');
-  grid.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  try {
-    const { friends } = await api('/api/friends');
-    grid.innerHTML = friends.length ? friends.map(f=>{
-      const av=f.avatar_url||`https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=7c3aed&color=fff`;
-      return `<div class="friend-card">
-        <img class="avatar" src="${av}" width="60" height="60" style="margin:0 auto 10px;">
-        <div style="font-weight:600;font-size:14px;">${f.name}</div>
-        <div class="text-muted">@${f.username}</div>
-        ${f.bio?`<div style="font-size:12px;color:var(--muted);margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${f.bio}</div>`:''}
-        <div style="display:flex;gap:6px;justify-content:center;margin-top:10px;">
-          <button class="btn btn-ghost btn-sm" onclick="viewProfile('${f.username}')">Ver perfil</button>
-        </div>
-      </div>`;
-    }).join('') : '<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Ainda sem amigos. Busque pessoas para adicionar! 👥</p>';
-  } catch(e){}
+  const g=document.getElementById('friends-grid');
+  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const{friends}=await api('/api/friends');
+    g.innerHTML=friends.length?friends.map(f=>`<div class="friend-card">
+      <img class="avatar" src="${f.avatar_url||avatarUrl(f.name)}" width="60" height="60" style="margin:0 auto 10px;">
+      <div style="font-weight:700;font-size:14px;">${f.name}</div>
+      <div class="text-muted">@${f.username}</div>
+      ${f.bio?`<div style="font-size:12px;color:var(--muted);margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${f.bio}</div>`:''}
+    </div>`).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Ainda sem amigos. Busque pessoas!</p>`;
+  }catch(e){}
 }
 
 async function loadFriendRequests(){
-  try {
-    const { requests } = await api('/api/friends/requests');
-    const badge = document.getElementById('req-badge');
-    const notif = document.getElementById('friends-notif');
-    if(requests.length){ badge.classList.remove('hidden'); badge.textContent=requests.length; notif.classList.remove('hidden'); }
-    else { badge.classList.add('hidden'); notif.classList.add('hidden'); }
-    const list=document.getElementById('requests-list');
-    list.innerHTML = requests.length ? requests.map(r=>{
-      const av=r.avatar_url||`https://ui-avatars.com/api/?name=${encodeURIComponent(r.name)}&background=ff6b35&color=fff`;
-      return `<div class="request-card">
-        <img class="avatar" src="${av}" width="48" height="48">
-        <div style="flex:1;">
-          <div style="font-weight:600;">${r.name} <span class="text-muted">@${r.username}</span></div>
-          <div class="msg">"${r.message||'Quer ser seu amigo!'}"</div>
-          <div class="request-actions">
-            <button class="btn btn-primary btn-sm" onclick="respondRequest('${r.id}','accept')">Aceitar</button>
-            <button class="btn btn-ghost btn-sm" onclick="respondRequest('${r.id}','reject')">Recusar</button>
-          </div>
+  try{
+    const{requests}=await api('/api/friends/requests');
+    const badge=document.getElementById('req-badge');
+    const notif=document.getElementById('friends-notif');
+    if(requests.length){badge.classList.remove('hidden');badge.textContent=requests.length;notif.classList.remove('hidden');}
+    else{badge.classList.add('hidden');notif.classList.add('hidden');}
+    document.getElementById('requests-list').innerHTML=requests.length?requests.map(r=>`<div class="req-card">
+      <img class="avatar" src="${r.avatar_url||avatarUrl(r.name)}" width="44" height="44">
+      <div style="flex:1;">
+        <div style="font-weight:700;">${r.name} <span class="text-muted">@${r.username}</span></div>
+        <div class="req-msg">"${r.message||'Quer ser seu amigo!'}"</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="respondReq('${r.id}','accept')">Aceitar</button>
+          <button class="btn btn-ghost btn-sm" onclick="respondReq('${r.id}','reject')">Recusar</button>
         </div>
-      </div>`;
-    }).join('') : '<p class="text-muted" style="padding:20px;">Nenhuma solicitação pendente.</p>';
-  } catch(e){}
+      </div>
+    </div>`).join(''):`<p class="text-muted" style="padding:20px;">Nenhuma solicitação pendente.</p>`;
+  }catch(e){}
 }
 
-async function loadSentRequests(){
-  const list=document.getElementById('sent-list');
-  try {
-    const { sent } = await api('/api/friends/sent');
-    list.innerHTML = sent.length ? sent.map(r=>{
-      const av=r.avatar_url||`https://ui-avatars.com/api/?name=${encodeURIComponent(r.name)}&background=ff6b35&color=fff`;
-      return `<div class="request-card"><img class="avatar" src="${av}" width="40" height="40">
-        <div><div style="font-weight:600;">${r.name}</div><div class="text-muted">Aguardando resposta...</div></div>
-      </div>`;
-    }).join('') : '<p class="text-muted" style="padding:20px;">Nenhuma solicitação enviada.</p>';
-  } catch(e){}
-}
-
-async function respondRequest(id, action){
-  try {
+async function respondReq(id,action){
+  try{
     await api(`/api/friends/request/${id}/${action}`,{method:'PUT'});
-    toast(action==='accept'?'Amizade aceita! 🎉':'Solicitação recusada','success');
-    loadFriendRequests(); loadFriends();
-  } catch(e){ toast(e.message,'error'); }
+    toast(action==='accept'?'Amizade aceita! 🎉':'Recusado','success');
+    loadFriendRequests();loadFriends();
+  }catch(e){toast(e.message,'error');}
 }
 
-function showFriendsSection(sec, btn){
-  ['list','requests','sent'].forEach(s=>{
-    document.getElementById('friends-'+s+'-section').classList.toggle('hidden', s!==sec);
-  });
-  document.querySelectorAll('#tab-friends .filter-btn').forEach(b=>b.classList.remove('active'));
+function showFriendsSection(sec,btn){
+  ['list','requests','sent'].forEach(s=>document.getElementById('fs-'+s).classList.toggle('hidden',s!==sec));
+  document.querySelectorAll('#friends-filters .pill').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
-  if(sec==='sent') loadSentRequests();
+  if(sec==='sent') loadSentReqs();
 }
 
-function openSearchUserModal(){ openModal('modal-search-user'); document.getElementById('search-results').innerHTML=''; }
+async function loadSentReqs(){
+  try{
+    const{sent}=await api('/api/friends/sent');
+    document.getElementById('sent-list').innerHTML=sent.length?sent.map(r=>`<div class="req-card">
+      <img class="avatar" src="${r.avatar_url||avatarUrl(r.name)}" width="44" height="44">
+      <div><div style="font-weight:700;">${r.name}</div><div class="text-muted">Aguardando resposta...</div></div>
+    </div>`).join(''):`<p class="text-muted" style="padding:20px;">Nenhuma solicitação enviada.</p>`;
+  }catch(e){}
+}
 
 async function searchUsers(){
-  const q=document.getElementById('search-user-input').value.trim();
-  if(q.length<2) return;
-  try {
-    const { users } = await api(`/api/users/search?q=${encodeURIComponent(q)}`);
-    document.getElementById('search-results').innerHTML = users.map(u=>{
-      const av=u.avatar_url||`https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=7c3aed&color=fff`;
-      return `<div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:var(--surface2);">
-        <img class="avatar" src="${av}" width="40" height="40">
-        <div style="flex:1;"><div style="font-weight:600;">${u.name}</div><div class="text-muted">@${u.username}</div></div>
-        <button class="btn btn-ghost btn-sm" onclick="openFriendRequestModal('${u.id}','${u.name.replace(/'/g,"\\'")}','${u.username}','${av}')">+ Adicionar</button>
-      </div>`;
-    }).join('') || '<p class="text-muted">Nenhum usuário encontrado.</p>';
-  } catch(e){}
+  const q=document.getElementById('search-input').value.trim();
+  if(q.length<2){document.getElementById('search-results').innerHTML='';return;}
+  try{
+    const{users}=await api(`/api/users/search?q=${encodeURIComponent(q)}`);
+    document.getElementById('search-results').innerHTML=users.length?users.map(u=>`<div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:var(--surface2);">
+      <img class="avatar" src="${u.avatar_url||avatarUrl(u.name)}" width="40" height="40">
+      <div style="flex:1;"><div style="font-weight:700;">${u.name}</div><div class="text-muted">@${u.username}</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="openFriendReqModal('${u.id}','${u.name.replace(/'/g,"\\'")}','${u.username}','${u.avatar_url||avatarUrl(u.name)}')">+ Adicionar</button>
+    </div>`).join(''):`<p class="text-muted">Nenhum resultado.</p>`;
+  }catch(e){}
 }
 
-function openFriendRequestModal(userId, name, username, avatar){
-  pendingFriendUserId=userId;
-  document.getElementById('friend-request-name').textContent=name;
-  document.getElementById('friend-request-user').innerHTML=`
-    <img class="avatar" src="${avatar}" width="48" height="48">
-    <div><div style="font-weight:700;">${name}</div><div class="text-muted">@${username}</div></div>`;
-  document.getElementById('friend-request-msg').value='';
-  closeModal('modal-search-user');
-  openModal('modal-friend-request');
+function openFriendReqModal(id,name,username,av){
+  pendingFriendId=id;pendingFriendName=name;
+  document.getElementById('friend-req-name').textContent=name;
+  document.getElementById('friend-req-user').innerHTML=`<img class="avatar" src="${av}" width="44" height="44"><div><div style="font-weight:700;">${name}</div><div class="text-muted">@${username}</div></div>`;
+  document.getElementById('friend-req-msg').value='';
+  closeModal('modal-search-user');openModal('modal-friend-req');
 }
 
 async function sendFriendRequest(){
-  const msg = document.getElementById('friend-request-msg').value.trim();
-  if(!msg){ toast('Escreva uma mensagem','error'); return; }
-  try {
-    await api('/api/friends/request',{method:'POST',body:JSON.stringify({user_id:pendingFriendUserId,message:msg})});
-    toast('Solicitação enviada! 🤝','success');
-    closeModal('modal-friend-request');
-  } catch(e){ toast(e.message,'error'); }
+  const msg=document.getElementById('friend-req-msg').value.trim();
+  if(!msg){toast('Escreva uma mensagem','error');return;}
+  try{
+    await api('/api/friends/request',{method:'POST',body:JSON.stringify({user_id:pendingFriendId,message:msg})});
+    toast('Solicitação enviada! 🤝','success');closeModal('modal-friend-req');
+  }catch(e){toast(e.message,'error');}
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // COMMUNITIES
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 async function loadCommunities(){
-  const grid=document.getElementById('communities-grid');
-  grid.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  try {
-    const search=document.getElementById('comm-search')?.value||'';
-    const type=document.getElementById('comm-filter-type')?.value||'';
-    let url='/api/communities?limit=30';
-    if(search) url+=`&search=${encodeURIComponent(search)}`;
-    if(type) url+=`&type=${type}`;
-    const { communities } = await api(url);
-    grid.innerHTML = communities.length ? communities.map(c=>renderCommunityCard(c)).join('') : '<p class="text-muted" style="grid-column:1/-1;padding:40px;text-align:center;">Nenhuma comunidade encontrada.</p>';
-  } catch(e){}
+  const g=document.getElementById('comm-grid');
+  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const s=document.getElementById('comm-search')?.value||'';
+    const t=document.getElementById('comm-type-filter')?.value||'';
+    let url='/api/communities?type=interest&limit=40';
+    if(s) url+=`&search=${encodeURIComponent(s)}`;
+    const{communities}=await api(url);
+    g.innerHTML=communities.length?communities.map(renderCommCard).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Nenhuma comunidade encontrada.</p>`;
+  }catch(e){}
+}
+
+async function loadRegionalCommunities(){
+  const g=document.getElementById('regional-grid');
+  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  const state=document.getElementById('reg-state-filter')?.value;
+  const city=document.getElementById('reg-city-filter')?.value;
+  // Update city options
+  if(state){
+    const cSel=document.getElementById('reg-city-filter');
+    cSel.innerHTML='<option value="">Todas as cidades</option>';
+    (BR_CITIES[state]||[]).sort().forEach(c=>cSel.insertAdjacentHTML('beforeend',`<option value="${c}">${c}</option>`));
+  }
+  try{
+    let url='/api/communities?type=regional&limit=60&country=BR';
+    if(state) url+=`&state=${encodeURIComponent(state)}`;
+    if(city) url+=`&city=${encodeURIComponent(city)}`;
+    const{communities}=await api(url);
+    g.innerHTML=communities.length?communities.map(renderCommCard).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Nenhuma comunidade regional encontrada.</p>`;
+  }catch(e){}
 }
 
 async function loadMyCommunities(){
-  const grid=document.getElementById('my-communities-grid');
-  grid.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  try {
-    const { communities } = await api('/api/communities/mine');
-    grid.innerHTML = communities.length ? communities.map(c=>renderCommunityCard(c,true)).join('') : '<p class="text-muted" style="grid-column:1/-1;padding:40px;text-align:center;">Você não participa de nenhuma comunidade ainda.</p>';
-  } catch(e){}
+  const g=document.getElementById('mine-comm-grid');
+  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const{communities}=await api('/api/communities/mine');
+    g.innerHTML=communities.length?communities.map(c=>renderCommCard(c,true)).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Você não participa de nenhuma comunidade.</p>`;
+  }catch(e){}
 }
 
-function renderCommunityCard(c, isMine=false){
-  const emoji = c.type==='local'?'📍':'🌐';
-  return `<div class="community-card" onclick="openCommunity('${c.id}')">
-    <div class="community-card-img">${emoji}</div>
-    <div class="community-card-body">
-      <div class="community-card-name">${c.name}</div>
-      <div class="community-card-desc">${c.description||'Sem descrição.'}</div>
-      <div class="community-card-footer">
-        <span class="text-muted">👥 ${c.member_count} membros</span>
-        ${isMine?`<span class="tag" style="background:rgba(255,107,53,.1);color:var(--accent);">${c.role==='owner'?'👑 Dono':'Membro'}</span>`:''}
-        <span class="tag" style="background:var(--surface2);color:var(--muted);">${c.is_open?'Aberta':'Fechada'}</span>
+function renderCommCard(c,mine=false){
+  const emoji=c.type==='regional'?'📍':c.type==='local'?'🏙️':'🌐';
+  return`<div class="comm-card" onclick="joinCommunity('${c.id}','${c.name.replace(/'/g,"\\'")}')">
+    <div class="comm-card-img">${emoji}</div>
+    <div class="comm-card-body">
+      <div class="comm-card-name">${c.name}</div>
+      <div class="comm-card-desc">${c.description||'Sem descrição.'}</div>
+      <div class="comm-card-foot">
+        <span class="text-muted">👥 ${c.member_count||0}</span>
+        <span class="tag" style="background:var(--surface3);color:var(--muted);font-size:11px;">${c.is_open?'Aberta':'Fechada'}</span>
       </div>
     </div>
   </div>`;
 }
 
-function openCommunity(id){ toast('Em breve: página da comunidade!','info'); }
+async function joinCommunity(id,name){
+  try{
+    await api(`/api/communities/${id}/join`,{method:'POST'});
+    toast(`Entrou em "${name}"! 🎉`,'success');
+  }catch(e){
+    if(e.message.includes('já é membro')) toast('Você já é membro dessa comunidade!','info');
+    else toast(e.message,'error');
+  }
+}
 
 function showCommSection(sec,btn){
-  document.getElementById('comm-explore').classList.toggle('hidden',sec!=='explore');
-  document.getElementById('comm-mine').classList.toggle('hidden',sec!=='mine');
-  document.querySelectorAll('#tab-communities .filter-btn').forEach(b=>b.classList.remove('active'));
+  ['explore','regional','mine'].forEach(s=>document.getElementById('cs-'+s).classList.toggle('hidden',s!==sec));
+  document.querySelectorAll('#tab-communities .filter-pills .pill').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
+  if(sec==='regional') loadRegionalCommunities();
   if(sec==='mine') loadMyCommunities();
 }
 
-function openCreateCommunityModal(){ document.getElementById('comm-name').value=''; document.getElementById('comm-desc').value=''; openModal('modal-create-community'); }
-
 async function createCommunity(){
-  const name=document.getElementById('comm-name').value.trim();
-  const desc=document.getElementById('comm-desc').value.trim();
-  const type=document.getElementById('comm-type').value;
-  const is_open=document.getElementById('comm-open').value;
-  if(!name){ toast('Nome obrigatório','error'); return; }
-  try {
-    await api('/api/communities',{method:'POST',body:JSON.stringify({name,description:desc,type,is_open:parseInt(is_open)})});
-    toast('Comunidade criada! 🎉','success');
-    closeModal('modal-create-community');
-    loadCommunities();
-  } catch(e){ toast(e.message,'error'); }
+  const name=document.getElementById('cn-name').value.trim();
+  if(!name){toast('Nome obrigatório','error');return;}
+  try{
+    await api('/api/communities',{method:'POST',body:JSON.stringify({
+      name,description:document.getElementById('cn-desc').value,
+      type:document.getElementById('cn-type').value,
+      is_open:parseInt(document.getElementById('cn-open').value)
+    })});
+    toast('Comunidade criada! 🎉','success');closeModal('modal-create-comm');loadCommunities();
+  }catch(e){toast(e.message,'error');}
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // ACHIEVEMENTS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 async function loadAchievements(){
-  const grid=document.getElementById('earned-grid');
-  grid.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  try {
-    const { earned, locked } = await api('/api/achievements/me');
-    document.getElementById('earned-grid').innerHTML = earned.length ? earned.map(a=>`
-      <div class="achievement-card earned">
-        <div class="ach-icon">${a.icon}</div>
-        <div class="ach-name">${a.name}</div>
-        <div class="ach-desc">${a.description}</div>
-        <div class="ach-points">+${a.points} pts · ${timeAgo(a.earned_at)}</div>
-      </div>`).join('') : '<p class="text-muted" style="grid-column:1/-1;padding:40px;text-align:center;">Nenhuma conquista ainda. Comece a usar o Daily! 🏆</p>';
-    document.getElementById('all-ach-grid').innerHTML = [...earned.map(a=>({...a,_earned:true})), ...locked.map(a=>({...a,_earned:false}))].map(a=>`
-      <div class="achievement-card ${a._earned?'earned':'locked'}">
-        <div class="ach-icon">${a.icon}</div>
-        <div class="ach-name">${a.name}</div>
-        <div class="ach-desc">${a.description}</div>
-        <div class="ach-points">${a._earned?`✅ Conquistado · +${a.points} pts`:`🔒 ${a.points} pts`}</div>
-      </div>`).join('');
-  } catch(e){}
+  const g=document.getElementById('ach-earned-grid');
+  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const{earned,locked}=await api('/api/achievements/me');
+    document.getElementById('ach-earned-grid').innerHTML=earned.length?earned.map(a=>`<div class="ach-card earned">
+      <div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div>
+      <div class="ach-desc">${a.description}</div>
+      <div class="ach-pts">✅ +${a.points} pts · ${timeAgo(a.earned_at)}</div>
+    </div>`).join(''):`<p class="text-muted" style="grid-column:1/-1;padding:40px;text-align:center;">Nenhuma conquista ainda. Comece a usar o Daily!</p>`;
+    document.getElementById('ach-all-grid').innerHTML=[...earned.map(a=>({...a,_e:true})),...locked.map(a=>({...a,_e:false}))].map(a=>`<div class="ach-card ${a._e?'earned':'locked'}">
+      <div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div>
+      <div class="ach-desc">${a.description}</div>
+      <div class="ach-pts">${a._e?`✅ +${a.points} pts`:`🔒 ${a.points} pts`}</div>
+    </div>`).join('');
+  }catch(e){}
 }
 
 async function loadRanking(){
-  const grid=document.getElementById('ranking-grid');
-  grid.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  try {
-    const { users } = await api('/api/achievements/ranking');
-    grid.innerHTML = users.map((u,i)=>{
-      const av=u.avatar_url||`https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=ff6b35&color=fff`;
-      const posClass=i===0?'top1':i===1?'top2':i===2?'top3':'';
-      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
-      return `<div class="ranking-item">
-        <div class="ranking-pos ${posClass}">${medal||i+1}</div>
-        <img class="avatar" src="${av}" width="44" height="44">
-        <div style="flex:1;"><div style="font-weight:700;">${u.name}</div><div class="text-muted">@${u.username}</div></div>
-        <div style="text-align:right;">
-          <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:600;color:var(--gold);">${u.points} pts</div>
-          <div class="text-muted">${u.achievements_count} conquistas</div>
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e){}
+  const g=document.getElementById('ranking-list');
+  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const{users}=await api('/api/achievements/ranking');
+    g.innerHTML=users.map((u,i)=>`<div class="ranking-item">
+      <div class="rank-pos ${i===0?'p1':i===1?'p2':i===2?'p3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <img class="avatar" src="${u.avatar_url||avatarUrl(u.name)}" width="44" height="44">
+      <div style="flex:1;"><div style="font-weight:700;">${u.name}</div><div class="text-muted">@${u.username}</div></div>
+      <div style="text-align:right;"><div style="font-family:'DM Mono';font-size:17px;font-weight:700;color:var(--gold);">${u.points} pts</div><div class="text-muted">${u.achievements_count} conquistas</div></div>
+    </div>`).join('');
+  }catch(e){}
 }
 
 function showAchSection(sec,btn){
-  ['earned','all','ranking'].forEach(s=>{
-    document.getElementById('ach-'+s).classList.toggle('hidden',s!==sec);
-  });
-  document.querySelectorAll('#tab-achievements .filter-btn').forEach(b=>b.classList.remove('active'));
+  ['earned','all','ranking'].forEach(s=>document.getElementById('as-'+s).classList.toggle('hidden',s!==sec));
+  document.querySelectorAll('#tab-achievements .filter-pills .pill').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   if(sec==='ranking') loadRanking();
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // PROFILE
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 async function loadProfile(){
-  const header=document.getElementById('profile-header');
-  try {
-    const { user } = await api(`/api/users/${currentUser.username}`);
-    const av=user.avatar_url||`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=ff6b35&color=fff`;
-    const badges=user.featured_badges?.map(b=>`<div class="profile-badge">${b.icon} ${b.name}</div>`).join('')||'';
-    header.innerHTML=`
+  const w=document.getElementById('profile-card-wrap');
+  w.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const{user}=await api(`/api/users/${currentUser.username}`);
+    const av=user.avatar_url||avatarUrl(user.name);
+    const badges=user.featured_badges?.map(b=>`<div class="profile-badge-chip">${b.icon} ${b.name}</div>`).join('')||'';
+    w.innerHTML=`<div class="profile-card">
       <div class="profile-top">
         <div class="profile-avatar-wrap">
-          <img class="profile-avatar avatar" src="${av}" width="100" height="100">
-          <label class="profile-avatar-edit" for="avatar-input" title="Trocar foto">📷</label>
+          <img class="profile-avatar" src="${av}">
+          <label class="avatar-edit-btn" for="avatar-input" title="Trocar foto">📷</label>
           <input type="file" id="avatar-input" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
         </div>
         <div style="flex:1;">
           <div class="profile-name">${user.name}</div>
           <div class="profile-username">@${user.username}</div>
           <div class="profile-bio">${user.bio||'<span style="color:var(--muted)">Sem bio ainda.</span>'}</div>
-          ${user.occupation?`<div style="margin-top:8px;font-size:13px;color:var(--muted);">💼 ${user.occupation}</div>`:''}
-          ${user.city?`<div style="font-size:13px;color:var(--muted);">📍 ${user.city}${user.state?', '+user.state:''}</div>`:''}
-          <div class="profile-badges" style="margin-top:12px;">${badges}</div>
+          <div class="profile-meta">
+            ${user.occupation?`<span>💼 ${user.occupation}</span>`:''}
+            ${user.city?`<span>📍 ${user.city}${user.state?', '+user.state:''}</span>`:''}
+          </div>
+          <div class="profile-badges-row">${badges}</div>
           <button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="openEditProfile()">✏️ Editar perfil</button>
         </div>
       </div>
       <div class="profile-stats">
-        <div class="stat-item"><div class="stat-num">${user.stats?.posts||0}</div><div class="stat-label">Posts</div></div>
-        <div class="stat-item"><div class="stat-num">${user.stats?.friends_count||0}</div><div class="stat-label">Amigos</div></div>
-        <div class="stat-item"><div class="stat-num">${user.stats?.daily_mandou||0}</div><div class="stat-label">⚡ Daily</div></div>
-        <div class="stat-item"><div class="stat-num">${user.points||0}</div><div class="stat-label">Pontos</div></div>
-        <div class="stat-item"><div class="stat-num">${user.stats?.active_days||0}</div><div class="stat-label">Dias ativos</div></div>
-      </div>`;
-    document.getElementById('profile-tabs').style.display='flex';
+        <div class="stat-box"><div class="stat-num">${user.stats?.posts||0}</div><div class="stat-lbl">Posts</div></div>
+        <div class="stat-box"><div class="stat-num">${user.stats?.friends_count||0}</div><div class="stat-lbl">Amigos</div></div>
+        <div class="stat-box"><div class="stat-num">${user.stats?.daily_mandou||0}</div><div class="stat-lbl">⚡ Daily</div></div>
+        <div class="stat-box"><div class="stat-num">${user.points||0}</div><div class="stat-lbl">Pontos</div></div>
+        <div class="stat-box"><div class="stat-num">${user.stats?.active_days||0}</div><div class="stat-lbl">Dias ativos</div></div>
+      </div>
+    </div>`;
+    document.getElementById('profile-tabs-row').classList.remove('hidden');
     loadTimeline();
-  } catch(e){ header.innerHTML='<p class="text-muted">Erro ao carregar perfil.</p>'; }
+  }catch(e){w.innerHTML='<p class="text-muted">Erro ao carregar perfil.</p>';}
 }
 
-function showProfileSection(sec,btn){
-  ['timeline','depoimentos','conquistas','profissional'].forEach(s=>{
-    document.getElementById('profile-'+s).classList.toggle('hidden',s!==sec);
-  });
-  document.querySelectorAll('.profile-tab').forEach(b=>b.classList.remove('active'));
+function showProfileSec(sec,btn){
+  ['timeline','depoimentos','conquistas','profissional'].forEach(s=>document.getElementById('ps-'+s).classList.toggle('hidden',s!==sec));
+  document.querySelectorAll('.profile-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
   if(sec==='depoimentos') loadTestimonials();
-  if(sec==='conquistas') loadProfileAchievements();
+  if(sec==='conquistas') loadProfileAch();
   if(sec==='profissional') loadProfessional();
 }
 
+// ── TIMELINE — TODOS OS POSTS ──
 async function loadTimeline(){
-  const date=document.getElementById('timeline-date').value;
-  const wrap=document.getElementById('timeline-wrap');
-  if(!date){ wrap.innerHTML='<div class="text-muted" style="text-align:center;padding:20px;">Selecione uma data</div>'; return; }
-  try {
-    const { posts } = await api(`/api/users/${currentUser.username}/posts?date=${date}&limit=100`);
-    const photos=posts.filter(p=>p.type==='photo');
-    if(!photos.length){ wrap.innerHTML=`<div class="text-muted" style="padding:20px;text-align:center;">Nenhuma foto em ${date}</div>`; return; }
-    wrap.innerHTML=`<div class="timeline-track">
-      <div class="timeline-line"></div>
-      ${photos.map((p,i)=>{
-        const t=new Date(p.created_at);
-        const time=t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-        return `<div class="timeline-item">
-          <img class="timeline-img ${i===0||i===Math.floor(photos.length/2)||i===photos.length-1?'featured':''}"
-            src="${p.image_url}" alt="" onclick="openPostDetail('${p.id}')">
-          <div class="timeline-dot"></div>
-          <div class="timeline-time">${time}</div>
-          ${i===0?'<div class="timeline-label">Início</div>':i===photos.length-1?'<div class="timeline-label">Fim</div>':''}
-        </div>`;
-      }).join('')}
-    </div>`;
-  } catch(e){ wrap.innerHTML='<p class="text-muted">Erro ao carregar.</p>'; }
+  const c=document.getElementById('timeline-container');
+  c.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const{posts}=await api(`/api/users/${currentUser.username}/posts?limit=500`);
+    const photos=posts.filter(p=>p.type==='photo'&&p.image_url);
+    if(!photos.length){c.innerHTML=`<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma foto postada ainda. Poste sua primeira foto! 📸</p></div>`;return;}
+    // Agrupar por dia
+    const byDay={};
+    photos.forEach(p=>{
+      const d=new Date(p.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+      if(!byDay[d]) byDay[d]=[];
+      byDay[d].push(p);
+    });
+    c.innerHTML=`<div class="timeline-all">${Object.entries(byDay).reverse().map(([day,ps])=>`<div class="timeline-day">
+      <div class="timeline-day-header">📅 ${day} · ${ps.length} foto${ps.length>1?'s':''}</div>
+      <div class="timeline-scroll">
+        <div class="timeline-track">
+          <div class="timeline-line"></div>
+          ${ps.map((p,i)=>{
+            const t=new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+            return`<div class="timeline-item" onclick="openPostDetail('${p.id}')">
+              <img class="timeline-img" src="${p.image_url}" alt="">
+              <div class="timeline-dot"></div>
+              <div class="timeline-time">${t}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`).join('')}</div>`;
+  }catch(e){c.innerHTML='<p class="text-muted">Erro ao carregar linha do tempo.</p>';}
 }
 
 async function loadTestimonials(){
-  const sec=document.getElementById('testimonials-section');
-  try {
-    const { testimonials } = await api(`/api/testimonials/${currentUser.username}`);
-    sec.innerHTML=`
-      <div class="testimonial-input-wrap">
-        <p>"o que dizer do ${currentUser.name} que mal conheço e já considero pakas..."</p>
-        <textarea id="my-testimonial" placeholder="Escreva algo sobre alguém — vá ao perfil deles para deixar um depoimento!" style="min-height:80px;" disabled></textarea>
-        <p class="text-muted" style="margin-top:8px;font-size:12px;">Para deixar um depoimento, visite o perfil da pessoa.</p>
+  const w=document.getElementById('testimonials-wrap');
+  try{
+    const{testimonials}=await api(`/api/testimonials/${currentUser.username}`);
+    w.innerHTML=`<div class="card" style="padding:16px;margin-bottom:16px;background:#fffbf5;border-color:#fed7aa;">
+      <p style="font-size:13px;color:var(--muted);font-style:italic;margin-bottom:8px;">"o que dizer de ${currentUser.name} que mal conheço e já considero pakas..."</p>
+      <p class="text-muted" style="font-size:12px;">Para deixar um depoimento, visite o perfil da pessoa.</p>
+    </div>
+    ${testimonials.length?testimonials.map(t=>`<div class="testimonial-card">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img class="avatar" src="${t.author_avatar||avatarUrl(t.author_name)}" width="36" height="36">
+        <div><div style="font-weight:700;font-size:14px;">${t.author_name}</div><div class="text-muted">@${t.author_username} · ${timeAgo(t.created_at)}</div></div>
       </div>
-      ${testimonials.map(t=>`<div class="testimonial-card">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <img class="avatar" src="${t.author_avatar||`https://ui-avatars.com/api/?name=${encodeURIComponent(t.author_name)}&background=7c3aed&color=fff`}" width="36" height="36">
-          <div><div style="font-weight:600;font-size:14px;">${t.author_name}</div><div class="text-muted">@${t.author_username} · ${timeAgo(t.created_at)}</div></div>
-        </div>
-        <blockquote>${t.content}</blockquote>
-      </div>`).join('')||'<p class="text-muted" style="padding:20px;">Ainda sem depoimentos. Faça amigos e peça pra deixarem!</p>'}`;
-  } catch(e){}
+      <blockquote>${t.content}</blockquote>
+    </div>`).join(''):'<p class="text-muted" style="padding:16px;">Nenhum depoimento ainda.</p>'}`;
+  }catch(e){}
 }
 
-async function loadProfileAchievements(){
-  const grid=document.getElementById('profile-ach-grid');
-  try {
-    const { earned } = await api(`/api/achievements/user/${currentUser.username}`);
-    grid.innerHTML = earned.length ? earned.map(a=>`
-      <div class="achievement-card earned">
-        <div class="ach-icon">${a.icon}</div>
-        <div class="ach-name">${a.name}</div>
-        <div class="ach-desc">${a.description}</div>
-        <div class="ach-points">✅ +${a.points} pts</div>
-      </div>`).join('') : '<p class="text-muted" style="grid-column:1/-1;padding:20px;">Nenhuma conquista ainda!</p>';
-  } catch(e){}
+async function loadProfileAch(){
+  const g=document.getElementById('profile-ach-grid');
+  try{
+    const{earned}=await api(`/api/achievements/user/${currentUser.username}`);
+    g.innerHTML=earned.length?earned.map(a=>`<div class="ach-card earned">
+      <div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div>
+      <div class="ach-desc">${a.description}</div>
+      <div class="ach-pts">✅ +${a.points} pts</div>
+    </div>`).join(''):`<p class="text-muted" style="grid-column:1/-1;padding:20px;">Nenhuma conquista ainda!</p>`;
+  }catch(e){}
 }
 
 async function loadProfessional(){
-  const sec=document.getElementById('professional-section');
-  try {
-    const { user } = await api(`/api/users/${currentUser.username}`);
-    sec.innerHTML=`
-      <div style="margin-bottom:16px;">
-        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:4px;">${user.professional_title||'<span style="color:var(--muted)">Sem título profissional</span>'}</div>
-        ${user.professional_url?`<a href="${user.professional_url}" target="_blank" style="color:var(--accent);font-size:14px;">${user.professional_url}</a>`:''}
-      </div>
-      <p style="font-size:14px;line-height:1.7;color:${user.professional_desc?'var(--text)':'var(--muted)'};">${user.professional_desc||'Nenhuma descrição profissional ainda. Edite seu perfil para adicionar!'}</p>
-      <button class="btn btn-ghost btn-sm" style="margin-top:16px;" onclick="openEditProfile()">✏️ Editar</button>`;
-  } catch(e){}
+  const s=document.getElementById('prof-section');
+  try{
+    const{user}=await api(`/api/users/${currentUser.username}`);
+    s.innerHTML=`<div style="margin-bottom:14px;">
+      <div style="font-family:'Syne';font-size:20px;font-weight:800;">${user.professional_title||'<span style="color:var(--muted)">Sem título profissional</span>'}</div>
+      ${user.professional_url?`<a href="${user.professional_url}" target="_blank" style="color:var(--accent);font-size:14px;">${user.professional_url}</a>`:''}
+    </div>
+    <p style="font-size:14px;line-height:1.7;color:var(--text2);">${user.professional_desc||'<span style="color:var(--muted)">Nenhuma descrição ainda.</span>'}</p>
+    <button class="btn btn-ghost btn-sm" style="margin-top:14px;" onclick="openEditProfile()">✏️ Editar</button>`;
+  }catch(e){}
 }
 
 function openEditProfile(){
   api(`/api/users/${currentUser.username}`).then(({user})=>{
-    document.getElementById('edit-name').value=user.name;
-    document.getElementById('edit-bio').value=user.bio||'';
-    document.getElementById('edit-occupation').value=user.occupation||'';
-    document.getElementById('edit-prof-title').value=user.professional_title||'';
-    document.getElementById('edit-prof-url').value=user.professional_url||'';
-    document.getElementById('edit-prof-desc').value=user.professional_desc||'';
+    document.getElementById('ep-name').value=user.name;
+    document.getElementById('ep-bio').value=user.bio||'';
+    document.getElementById('ep-occ').value=user.occupation||'';
+    document.getElementById('ep-ptitle').value=user.professional_title||'';
+    document.getElementById('ep-purl').value=user.professional_url||'';
+    document.getElementById('ep-pdesc').value=user.professional_desc||'';
     openModal('modal-edit-profile');
   });
 }
 
 async function saveProfile(){
-  try {
-    const { user } = await api('/api/users/me',{method:'PUT',body:JSON.stringify({
-      name: document.getElementById('edit-name').value,
-      bio: document.getElementById('edit-bio').value,
-      occupation: document.getElementById('edit-occupation').value,
-      professional_title: document.getElementById('edit-prof-title').value,
-      professional_url: document.getElementById('edit-prof-url').value,
-      professional_desc: document.getElementById('edit-prof-desc').value,
+  try{
+    const{user}=await api('/api/users/me',{method:'PUT',body:JSON.stringify({
+      name:document.getElementById('ep-name').value,
+      bio:document.getElementById('ep-bio').value,
+      occupation:document.getElementById('ep-occ').value,
+      professional_title:document.getElementById('ep-ptitle').value,
+      professional_url:document.getElementById('ep-purl').value,
+      professional_desc:document.getElementById('ep-pdesc').value,
     })});
     currentUser={...currentUser,...user};
     document.getElementById('topbar-name').textContent=user.name.split(' ')[0];
-    toast('Perfil atualizado! ✅','success');
-    closeModal('modal-edit-profile');
-    loadProfile();
-  } catch(e){ toast(e.message,'error'); }
+    toast('Perfil salvo! ✅','success');closeModal('modal-edit-profile');loadProfile();
+  }catch(e){toast(e.message,'error');}
 }
 
 async function uploadAvatar(e){
-  const file=e.target.files[0]; if(!file) return;
-  const fd=new FormData(); fd.append('avatar',file);
-  try {
-    const { avatar_url } = await apiForm('/api/users/me/avatar',fd);
+  const f=e.target.files[0];if(!f)return;
+  const fd=new FormData();fd.append('avatar',f);
+  try{
+    const{avatar_url}=await apiForm('/api/users/me/avatar',fd);
     currentUser.avatar_url=avatar_url;
     document.getElementById('topbar-avatar').src=avatar_url;
-    toast('Foto de perfil atualizada! 📸','success');
-    loadProfile();
-  } catch(e){ toast(e.message,'error'); }
+    toast('Foto atualizada! 📸','success');loadProfile();
+  }catch(e){toast(e.message,'error');}
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 // POST DETAIL
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 async function openPostDetail(postId){
   openModal('modal-post-detail');
-  const body=document.getElementById('modal-post-detail-body');
-  body.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  try {
-    const { posts } = await api(`/api/posts?limit=1`);
-    // find post or fetch comments
-    const { comments } = await api(`/api/posts/${postId}/comments`);
-    body.innerHTML=`
-      <div id="detail-reactions" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
-        ${['👍','❤️','😂','😮','😤','🌊'].map(e=>`<span class="reaction-chip" onclick="react('${postId}','${e}',this)">${e}</span>`).join('')}
-      </div>
-      <div style="font-weight:700;margin-bottom:12px;">💬 ${comments.length} comentários</div>
-      <div id="comments-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
-        ${comments.map(c=>{
-          const av=c.avatar_url||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=7c3aed&color=fff`;
-          return `<div style="display:flex;gap:10px;">
-            <img class="avatar" src="${av}" width="32" height="32" style="flex-shrink:0;">
-            <div style="background:var(--surface2);border-radius:10px;padding:10px 12px;flex:1;">
-              <div style="font-size:12px;font-weight:600;margin-bottom:4px;">${c.name} <span class="text-muted">· ${timeAgo(c.created_at)}</span></div>
-              <div style="font-size:14px;">${c.content}</div>
-            </div>
-          </div>`;
-        }).join('')||'<p class="text-muted">Seja o primeiro a comentar!</p>'}
-      </div>
-      <div style="display:flex;gap:8px;">
-        <textarea id="new-comment" placeholder="Escreva um comentário..." style="min-height:60px;flex:1;"></textarea>
-        <button class="btn btn-primary" style="align-self:flex-end;" onclick="submitComment('${postId}')">Enviar</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:8px;">
-        <input type="checkbox" id="comment-anon" style="width:auto;">
-        <label for="comment-anon" class="text-muted" style="margin:0;">Comentar como anônimo</label>
-      </div>`;
-  } catch(e){ body.innerHTML=`<p class="text-muted">${e.message}</p>`; }
+  const b=document.getElementById('post-detail-body');
+  b.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const{comments}=await api(`/api/posts/${postId}/comments`);
+    b.innerHTML=`<div style="margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Reações:</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">${['👍','❤️','😂','😮','😤','🌊'].map(e=>`<span class="reaction-chip" onclick="react('${postId}','${e}',this)">${e}</span>`).join('')}</div>
+    </div>
+    <div style="font-weight:700;margin-bottom:10px;">💬 ${comments.length} comentário${comments.length!==1?'s':''}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+      ${comments.map(c=>`<div style="display:flex;gap:10px;">
+        <img class="avatar" src="${c.avatar_url||avatarUrl(c.name)}" width="32" height="32" style="flex-shrink:0;">
+        <div style="background:var(--surface2);border-radius:10px;padding:10px 12px;flex:1;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:3px;">${c.name} <span class="text-muted">· ${timeAgo(c.created_at)}</span></div>
+          <div style="font-size:14px;">${c.content}</div>
+        </div>
+      </div>`).join('')||'<p class="text-muted">Seja o primeiro a comentar!</p>'}
+    </div>
+    <div style="display:flex;gap:8px;">
+      <textarea id="new-comment" placeholder="Escreva um comentário..." style="min-height:60px;flex:1;"></textarea>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="submitComment('${postId}')">Enviar</button>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;">
+      <input type="checkbox" id="c-anon" style="width:auto;">
+      <span class="text-muted">Comentar como anônimo</span>
+    </label>`;
+  }catch(e){b.innerHTML=`<p class="text-muted">${e.message}</p>`;}
 }
 
 async function submitComment(postId){
   const content=document.getElementById('new-comment').value.trim();
-  if(!content) return;
-  const anon=document.getElementById('comment-anon').checked;
-  try {
-    await api(`/api/posts/${postId}/comments`,{method:'POST',body:JSON.stringify({content,is_anonymous:anon?1:0})});
-    toast('Comentário enviado!','success');
-    openPostDetail(postId);
-  } catch(e){ toast(e.message,'error'); }
+  if(!content)return;
+  try{
+    await api(`/api/posts/${postId}/comments`,{method:'POST',body:JSON.stringify({content,is_anonymous:document.getElementById('c-anon').checked?1:0})});
+    toast('Comentário enviado!','success');openPostDetail(postId);
+  }catch(e){toast(e.message,'error');}
 }
 
-async function react(postId, emoji, el){
-  if(!currentUser){ toast('Faça login para reagir','error'); return; }
-  try {
+async function react(postId,emoji,el){
+  if(!currentUser){toast('Faça login para reagir','error');return;}
+  try{
     await api(`/api/posts/${postId}/react`,{method:'POST',body:JSON.stringify({emoji})});
-    el.classList.toggle('active');
-  } catch(e){}
+    el.classList.toggle('mine');
+  }catch(e){}
 }
 
-function viewProfile(username){
-  toast(`Perfil de @${username} — em breve!`,'info');
+// ═══════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════
+async function loadAdmin(){
+  try{
+    const{total_users,total_posts,today_posts,total_friends,total_communities}=await api('/api/admin/stats');
+    document.getElementById('admin-stats').innerHTML=`
+      <div class="admin-stat-card"><div class="admin-stat-num">${total_users}</div><div class="admin-stat-lbl">Usuários</div></div>
+      <div class="admin-stat-card"><div class="admin-stat-num">${total_posts}</div><div class="admin-stat-lbl">Posts totais</div></div>
+      <div class="admin-stat-card"><div class="admin-stat-num">${today_posts}</div><div class="admin-stat-lbl">Posts hoje</div></div>
+      <div class="admin-stat-card"><div class="admin-stat-num">${total_friends}</div><div class="admin-stat-lbl">Amizades</div></div>
+      <div class="admin-stat-card"><div class="admin-stat-num">${total_communities}</div><div class="admin-stat-lbl">Comunidades</div></div>`;
+  }catch(e){}
+  // Users
+  try{
+    const{users}=await api('/api/admin/users');
+    document.getElementById('users-tbody').innerHTML=users.map(u=>`<tr>
+      <td>${u.name}</td><td>@${u.username}</td><td style="font-size:12px;">${u.email}</td>
+      <td style="font-size:12px;">${u.city||'-'}</td>
+      <td><span style="font-family:'DM Mono';color:var(--gold);">${u.points}</span></td>
+      <td><span style="color:${u.is_admin?'var(--green)':'var(--muted)'};">${u.is_admin?'✅':'—'}</span></td>
+      <td>
+        <button class="btn btn-xs btn-ghost" onclick="toggleAdmin('${u.id}','${u.name}',${u.is_admin})">${u.is_admin?'Remover ADM':'Tornar ADM'}</button>
+      </td>
+    </tr>`).join('');
+  }catch(e){}
+  // Questions
+  try{
+    const{questions}=await api('/api/admin/daily-questions');
+    const pl={manha:'☀️ Manhã',almoco:'🍽️ Almoço',tarde:'🌤️ Tarde',noite:'🌙 Noite'};
+    document.getElementById('admin-questions').innerHTML=questions.map(q=>`<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
+      <span style="font-size:12px;font-weight:700;color:var(--muted);min-width:70px;">${pl[q.period]||q.period}</span>
+      <input type="text" id="q-${q.id}" value="${q.question}" style="flex:1;font-size:13px;">
+      <button class="btn btn-xs btn-primary" onclick="saveQuestion('${q.id}')">Salvar</button>
+    </div>`).join('');
+  }catch(e){}
 }
 
-// ═══════════════════════════════════════════
+async function saveQuestion(id){
+  const q=document.getElementById('q-'+id).value.trim();
+  try{
+    await api(`/api/admin/daily-questions/${id}`,{method:'PUT',body:JSON.stringify({question:q})});
+    toast('Pergunta salva!','success');
+  }catch(e){toast(e.message,'error');}
+}
+
+async function sendNotification(){
+  const btn=document.getElementById('btn-notify');
+  btn.disabled=true;btn.textContent='Enviando...';
+  try{
+    await api('/api/admin/notify',{method:'POST'});
+    toast('Daily Mandou disparado! ⚡','success');
+    checkNotif();
+  }catch(e){toast(e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='📷 Disparar Daily Mandou';}
+}
+
+async function clearAllPosts(){
+  try{
+    await api('/api/admin/posts/all',{method:'DELETE'});
+    toast('Posts apagados!','success');loadGlobal();loadDailyMandou();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function toggleAdmin(id,name,isAdmin){
+  if(!confirm(`${isAdmin?'Remover':'Tornar'} ${name} como administrador?`)) return;
+  try{
+    await api(`/api/admin/users/${id}/toggle-admin`,{method:'PUT'});
+    toast('Atualizado!','success');loadAdmin();
+  }catch(e){toast(e.message,'error');}
+}
+
+// ═══════════════════════════════════
 // UTILS
-// ═══════════════════════════════════════════
-function timeAgo(dateStr){
-  const d=new Date(dateStr), now=new Date();
-  const diff=Math.floor((now-d)/1000);
-  if(diff<60) return 'agora';
-  if(diff<3600) return `${Math.floor(diff/60)}min`;
-  if(diff<86400) return `${Math.floor(diff/3600)}h`;
-  return `${Math.floor(diff/86400)}d`;
+// ═══════════════════════════════════
+function timeAgo(d){
+  const diff=Math.floor((Date.now()-new Date(d))/1000);
+  if(diff<60)return'agora';if(diff<3600)return`${Math.floor(diff/60)}min`;
+  if(diff<86400)return`${Math.floor(diff/3600)}h`;return`${Math.floor(diff/86400)}d`;
+}
+function avatarUrl(name){
+  return`https://ui-avatars.com/api/?name=${encodeURIComponent(name||'?')}&background=ff6b35&color=fff&bold=true`;
 }
 
-// Close modal on overlay click
-document.querySelectorAll('.modal-overlay').forEach(o=>{
-  o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); });
-});
-
-// Register SW push
+// ─── Push ───
 async function registerPush(){
-  if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
-  try {
+  if(!('serviceWorker' in navigator)||!('PushManager' in window))return;
+  try{
     const reg=await navigator.serviceWorker.ready;
-    const { key } = await api('/api/vapid-public-key');
-    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(key)});
+    const{key}=await api('/api/vapid-public-key');
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(key)});
     await api('/api/admin/push-subscribe',{method:'POST',body:JSON.stringify({subscription:sub})});
-  } catch(e){}
+  }catch(e){}
 }
-function urlBase64ToUint8Array(base64String){
-  const padding='='.repeat((4-base64String.length%4)%4);
-  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
-  const rawData=window.atob(base64);
-  return new Uint8Array([...rawData].map(c=>c.charCodeAt(0)));
+function b64(s){
+  const p='='.repeat((4-s.length%4)%4);
+  const b=(s+p).replace(/-/g,'+').replace(/_/g,'/');
+  const r=window.atob(b);
+  return new Uint8Array([...r].map(c=>c.charCodeAt(0)));
 }
-setTimeout(()=>{ if(currentUser) registerPush(); }, 3000);
 </script>
 </body>
 </html>
