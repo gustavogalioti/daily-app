@@ -3,6 +3,8 @@ const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
 const { createPhotoUpload, getUploadedUrl } = require('./cloudinary');
 const { authMiddleware, optionalAuth } = require('./authmiddleware');
+const { checkAndGrant } = require('./achievements');
+const { getPedroComment } = require('./pedro');
 
 const router = express.Router();
 
@@ -11,14 +13,28 @@ async function enrich(p, userId) {
   const reactions = await db.prepare('SELECT emoji, COUNT(*) as count, MAX(CASE WHEN user_id=$1 THEN 1 ELSE 0 END) as reacted FROM reactions WHERE post_id=$2 GROUP BY emoji').all(userId||'', p.id);
   const cRow = await db.prepare('SELECT COUNT(*) as c FROM comments WHERE post_id=$1').get(p.id);
   const comment_count = parseInt(cRow?.c || 0);
+  const pedro = await db.prepare('SELECT content FROM pedro_comments WHERE post_id=$1').get(p.id);
   let author = null;
   if (!p.is_anonymous) {
     author = await db.prepare('SELECT id,name,username,avatar_url FROM users WHERE id=$1').get(p.user_id);
   }
-  return { ...p, author: author || { name:'Usuário anônimo', username:'anonimo', avatar_url:'' }, reactions, comment_count };
+  return { ...p, author: author || { name:'Usuário anônimo', username:'anonimo', avatar_url:'' }, reactions, comment_count, pedro_comment: pedro?.content || null };
 }
 
-// GET /api/posts — feed geral ou por tab
+// Pedro comenta automaticamente (async, não bloqueia)
+async function pedroAutoComment(postId, type) {
+  try {
+    const db = getDB();
+    const existing = await db.prepare('SELECT id FROM pedro_comments WHERE post_id=$1').get(postId);
+    if (existing) return;
+    // Delay aleatório (1-5s) para parecer natural
+    await new Promise(r => setTimeout(r, 1000 + Math.random() * 4000));
+    const content = getPedroComment(type);
+    await db.prepare('INSERT INTO pedro_comments (id,post_id,content) VALUES ($1,$2,$3)').run(uuidv4(), postId, content);
+  } catch(e) {}
+}
+
+// GET /api/posts — feed global ou por tab
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const db = getDB();
@@ -55,47 +71,62 @@ router.get('/highlights', optionalAuth, async (req, res) => {
   } catch(e) { console.error(e); res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/posts — texto (discussões)
+// POST /api/posts — post de texto (ágora/discussão)
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    const { content, tab='discuss', caption, is_anonymous=0 } = req.body;
+    const { content, tab='agora', caption, is_anonymous=0 } = req.body;
     if (!content && !caption) return res.status(400).json({ error: 'Conteúdo obrigatório' });
     const id = uuidv4();
-    const t  = ['geral','discuss','timeline'].includes(tab) ? tab : 'discuss';
+    const validTabs = ['global','agora','timeline','daily_mandou'];
+    const t = validTabs.includes(tab) ? tab : 'agora';
     await db.prepare('INSERT INTO posts (id,user_id,type,content,tab,caption,is_anonymous) VALUES ($1,$2,$3,$4,$5,$6,$7)')
       .run(id, req.user.id, 'text', content||caption, t, caption||null, is_anonymous?1:0);
+    await checkAndGrant(db, req.user.id, 'posts');
+    pedroAutoComment(id, 'text');
     const post = await db.prepare('SELECT * FROM posts WHERE id=$1').get(id);
     res.status(201).json({ post: await enrich(post, req.user.id) });
   } catch(e) { console.error(e); res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/posts/photo — só aceita durante notificação ativa
+// POST /api/posts/photo
 router.post('/photo', authMiddleware, (req, res, next) => {
   createPhotoUpload().single('photo')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.file) return res.status(400).json({ error: 'Foto obrigatória' });
     try {
       const db = getDB();
-      const { caption='', tab='geral', notification_id, bypass_check } = req.body;
+      const { caption='', tab='global', notification_id } = req.body;
 
-      // Verifica notificação ativa (a menos que seja timeline pessoal sem restrição)
-      if (tab === 'geral') {
+      // Daily Mandou: verifica notificação ativa
+      if (tab === 'daily_mandou' || tab === 'geral') {
         const notif = await db.prepare("SELECT * FROM notifications WHERE active=1 AND expires_at > NOW() ORDER BY sent_at DESC LIMIT 1").get();
-        if (!notif) return res.status(403).json({ error: 'Nenhuma notificação ativa no momento. Aguarde o administrador enviar a notificação de foto.' });
+        if (!notif) return res.status(403).json({ error: 'Nenhuma notificação ativa. Aguarde o Daily Mandou!' });
       }
 
       const image_url = getUploadedUrl(req, req.file);
       const id = uuidv4();
+      const finalTab = tab === 'geral' ? 'daily_mandou' : (tab || 'global');
       const activeNotif = await db.prepare("SELECT id FROM notifications WHERE active=1 ORDER BY sent_at DESC LIMIT 1").get();
 
       await db.prepare('INSERT INTO posts (id,user_id,type,image_url,caption,tab,notification_id) VALUES ($1,$2,$3,$4,$5,$6,$7)')
-        .run(id, req.user.id, 'photo', image_url, caption, tab, activeNotif?.id || null);
+        .run(id, req.user.id, 'photo', image_url, caption, finalTab, activeNotif?.id || null);
 
-      // Pontua usuário (+1 ponto se for geral/notificação)
-      if (tab === 'geral') {
+      // Pontos e conquistas
+      if (finalTab === 'daily_mandou') {
+        await db.prepare('UPDATE users SET points=points+100 WHERE id=$1').run(req.user.id);
+        await checkAndGrant(db, req.user.id, 'daily_mandou');
+      } else {
         await db.prepare('UPDATE users SET points=points+1 WHERE id=$1').run(req.user.id);
       }
+      await checkAndGrant(db, req.user.id, 'photos');
+      await checkAndGrant(db, req.user.id, 'posts');
+
+      // Lobo solitário
+      const h = new Date().getHours();
+      if (h >= 2 && h < 4) await checkAndGrant(db, req.user.id, 'night_owl');
+
+      pedroAutoComment(id, finalTab === 'daily_mandou' ? 'daily_mandou' : 'photo');
 
       const post = await db.prepare('SELECT * FROM posts WHERE id=$1').get(id);
       res.status(201).json({ post: await enrich(post, req.user.id) });
@@ -116,6 +147,9 @@ router.post('/:id/react', authMiddleware, async (req, res) => {
     }
     await db.prepare('INSERT INTO reactions (id,post_id,user_id,emoji) VALUES ($1,$2,$3,$4)').run(uuidv4(), req.params.id, req.user.id, emoji);
     const reactions = await db.prepare('SELECT emoji, COUNT(*) as count FROM reactions WHERE post_id=$1 GROUP BY emoji').all(req.params.id);
+    // Verifica conquista de reações recebidas (para o dono do post)
+    const post = await db.prepare('SELECT user_id FROM posts WHERE id=$1').get(req.params.id);
+    if (post) await checkAndGrant(db, post.user_id, 'reactions_received');
     res.json({ action:'added', emoji, reactions });
   } catch(e) { console.error(e); res.status(500).json({ error: e.message }); }
 });

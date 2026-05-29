@@ -12,20 +12,24 @@ app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Expõe VAPID public key para o frontend
 app.get('/api/vapid-public-key', (req, res) => res.json({ key: VAPID_PUBLIC }));
 
 (async () => {
   await initDB();
   require('./cloudinary');
 
-  app.use('/api/auth',   require('./auth'));
-  app.use('/api/posts',  require('./posts'));
-  app.use('/api/users',  require('./users'));
-  app.use('/api/admin',  require('./admin'));
-  app.use('/api/qod',    require('./qod'));
+  app.use('/api/auth',            require('./auth'));
+  app.use('/api/posts',           require('./posts'));
+  app.use('/api/users',           require('./users'));
+  app.use('/api/admin',           require('./admin'));
+  app.use('/api/friends',         require('./friends'));
+  app.use('/api/testimonials',    require('./testimonials'));
+  app.use('/api/communities',     require('./communities'));
+  app.use('/api/achievements',    require('./achievements'));
+  app.use('/api/pedro',           require('./pedro'));
+  app.use('/api/daily-questions', require('./daily_questions'));
 
-  app.get('/api/health', (req, res) => res.json({ status:'ok', app:'DAILY', version:'2.0.0' }));
+  app.get('/api/health', (req, res) => res.json({ status:'ok', app:'DAILY', version:'3.0.0' }));
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) return res.status(404).json({ error:'Not found' });
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -37,5 +41,5 @@ app.get('/api/vapid-public-key', (req, res) => res.json({ key: VAPID_PUBLIC }));
   });
 
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, '0.0.0.0', () => console.log(`\n🗓️  DAILY v2 rodando em http://localhost:${PORT}\n`));
+  app.listen(PORT, '0.0.0.0', () => console.log(`\n🗓️  DAILY v3 rodando em http://localhost:${PORT}\n`));
 })();
