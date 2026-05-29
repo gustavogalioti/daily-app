@@ -103,6 +103,26 @@ async function initPG() {
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL UNIQUE,
       content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS community_post_reactions (
+      id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      emoji TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(post_id, user_id, emoji)
+    );
+    CREATE TABLE IF NOT EXISTS community_post_comments (
+      id TEXT PRIMARY KEY, post_id TEXT NOT NULL, community_id TEXT NOT NULL,
+      user_id TEXT NOT NULL, content TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS user_locations (
+      user_id TEXT PRIMARY KEY, lat DOUBLE PRECISION NOT NULL,
+      lng DOUBLE PRECISION NOT NULL, is_active INTEGER DEFAULT 1,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS geo_chat (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, area_key TEXT NOT NULL,
+      content TEXT NOT NULL, lat DOUBLE PRECISION, lng DOUBLE PRECISION,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
 
   // Migrations
@@ -115,7 +135,10 @@ async function initPG() {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0`,
     `ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_anonymous INTEGER DEFAULT 0`,
     `ALTER TABLE posts ADD COLUMN IF NOT EXISTS notification_id TEXT`,
-    `ALTER TABLE communities ADD COLUMN IF NOT EXISTS neighborhood TEXT`,
+`ALTER TABLE communities ADD COLUMN IF NOT EXISTS neighborhood TEXT`,
+    `ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS post_type TEXT DEFAULT 'text'`,
+    `ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS image_url TEXT`,
+    `ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS poll_data JSONB`,
   ];
   for (const m of migrations) { try { await pool.query(m); } catch(e) {} }
 

@@ -28,6 +28,7 @@ app.get('/api/vapid-public-key', (req, res) => res.json({ key: VAPID_PUBLIC }));
   app.use('/api/achievements',    require('./achievements'));
   app.use('/api/pedro',           require('./pedro'));
   app.use('/api/daily-questions', require('./daily_questions'));
+  app.use('/api/geo',            require('./geo'));
 
   app.get('/api/health', (req, res) => res.json({ status:'ok', app:'DAILY', version:'3.0.0' }));
   app.get('*', (req, res) => {

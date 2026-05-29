@@ -281,6 +281,45 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .toast.error{border-color:var(--red);color:var(--red);}
 .toast.info{border-color:var(--accent2);color:var(--accent2);}
 
+
+/* ── COMMUNITY FORUM ── */
+.comm-forum-layout{display:grid;grid-template-columns:1fr 300px;gap:20px;}
+@media(max-width:900px){.comm-forum-layout{grid-template-columns:1fr;}}
+.comm-forum-feed{display:flex;flex-direction:column;gap:14px;}
+.forum-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);}
+.forum-card-author{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.forum-card-text{font-size:14px;line-height:1.65;color:var(--text2);}
+.forum-card-img{width:100%;border-radius:10px;margin:10px 0;object-fit:cover;max-height:320px;}
+.poll-container{margin:10px 0;}
+.poll-option{display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;}
+.poll-bar-wrap{flex:1;background:var(--surface3);border-radius:20px;height:32px;overflow:hidden;position:relative;}
+.poll-bar{height:100%;background:var(--accent-light);border-radius:20px;transition:width .4s;}
+.poll-bar-text{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;font-weight:600;color:var(--text);}
+.poll-pct{font-size:12px;color:var(--muted);min-width:36px;text-align:right;}
+.comm-sidebar{display:flex;flex-direction:column;gap:14px;}
+.comm-sidebar-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);}
+.comm-members-list{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.comm-member-row{display:flex;align-items:center;gap:8px;}
+.post-type-tabs{display:flex;gap:6px;margin-bottom:12px;}
+.ptype-btn{flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:all .18s;}
+.ptype-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+/* ── MAP ── */
+#map-container{width:100%;height:calc(100vh - var(--nav-h) - 48px);border-radius:16px;overflow:hidden;position:relative;background:var(--surface2);border:1.5px solid var(--border);}
+#map-el{width:100%;height:100%;}
+.map-controls{position:absolute;top:12px;right:12px;z-index:10;display:flex;flex-direction:column;gap:8px;}
+.map-ctrl-btn{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);transition:all .18s;}
+.map-ctrl-btn:hover,.map-ctrl-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.map-user-card{position:absolute;bottom:16px;left:16px;right:16px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow-md);max-height:200px;overflow-y:auto;}
+.geo-chat-panel{position:absolute;bottom:16px;right:16px;width:300px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);display:none;flex-direction:column;max-height:380px;}
+.geo-chat-panel.open{display:flex;}
+.geo-chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.geo-chat-msg{background:var(--surface2);border-radius:10px;padding:8px 12px;font-size:13px;}
+.geo-chat-input{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border);}
+.geo-status{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);}
+.geo-dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+.geo-dot.active{background:var(--green);animation:geoPulse 2s infinite;}
+@keyframes geoPulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
   .nav-btn span{display:none;}
@@ -399,6 +438,10 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <button class="nav-btn" data-tab="profile" onclick="switchTab('profile',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span>Perfil</span>
+      </button>
+      <button class="nav-btn" data-tab="mapa" onclick="switchTab('mapa',this)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        <span>Mapa</span>
       </button>
       <button class="nav-btn hidden" data-tab="admin" onclick="switchTab('admin',this)" id="nav-admin">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -573,6 +616,40 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div id="ps-profissional" class="hidden"><div class="card" style="padding:24px;" id="prof-section"><div class="page-loader"><div class="loader"></div></div></div></div>
     </div>
 
+
+    <!-- ─── MAPA ─── -->
+    <div id="tab-mapa" class="tab-content">
+      <div class="page-header"><div class="page-header-left"><span class="page-icon">🗺️</span><div class="section-title">Mapa & Geolocalização</div></div></div>
+      <div class="geo-status" id="geo-status">
+        <div class="geo-dot" id="geo-dot"></div>
+        <div style="flex:1;">
+          <div id="geo-status-text" style="font-weight:600;font-size:14px;">Geolocalização desativada</div>
+          <div class="text-muted" id="geo-status-sub">Ative para aparecer no mapa e encontrar pessoas próximas</div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="geo-toggle-btn" onclick="toggleGeo()">Ativar</button>
+      </div>
+      <div id="map-container">
+        <div id="map-el"></div>
+        <div class="map-controls">
+          <button class="map-ctrl-btn" onclick="centerMyLocation()">📍 Minha loc.</button>
+          <button class="map-ctrl-btn" onclick="loadNearby()">👥 Próximos</button>
+          <button class="map-ctrl-btn" id="chat-toggle" onclick="toggleGeoChat()">💬 Chat local</button>
+        </div>
+        <div class="geo-chat-panel" id="geo-chat-panel">
+          <div style="padding:12px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;">💬 Chat da área</div>
+          <div class="geo-chat-msgs" id="geo-chat-msgs"></div>
+          <div class="geo-chat-input">
+            <input type="text" id="geo-chat-input" placeholder="Mensagem..." style="flex:1;padding:8px 12px;font-size:13px;" onkeydown="if(event.key==='Enter')sendGeoMsg()">
+            <button class="btn btn-primary btn-xs" onclick="sendGeoMsg()">→</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="font-family:'Syne';font-size:16px;font-weight:700;margin-bottom:10px;">👥 Usuários próximos</div>
+        <div id="nearby-list" class="friends-grid"></div>
+      </div>
+    </div>
+
     <!-- ─── ADMIN ─── -->
     <div id="tab-admin" class="tab-content">
       <div class="page-header"><div class="page-header-left"><span class="page-icon">🛡️</span><div class="section-title">Painel ADM</div></div></div>
@@ -691,6 +768,22 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   <div class="modal" style="max-width:600px;">
     <div class="modal-hdr"><span class="modal-title">Post</span><button class="modal-close" onclick="closeModal('modal-post-detail')">✕</button></div>
     <div class="modal-body" id="post-detail-body"></div>
+  </div>
+</div>
+
+
+<!-- Community Forum -->
+<div class="modal-overlay" id="modal-community" style="align-items:stretch;padding:0;">
+  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
+    <div class="modal-hdr" style="flex-shrink:0;">
+      <span class="modal-title" id="comm-forum-title">Comunidade</span>
+      <button class="modal-close" onclick="closeModal('modal-community')">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px;">
+      <div class="comm-forum-layout" id="comm-forum-layout">
+        <div class="page-loader"><div class="loader"></div></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -891,7 +984,7 @@ function switchTab(tab,btn){
     'agora':loadAgora,'daily-question':loadDailyQuestion,
     'friends':()=>{loadFriends();loadFriendRequests();},
     'communities':loadCommunities,'achievements':loadAchievements,
-    'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou
+    'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou,'mapa':loadMapa
   };
   loaders[tab]?.();
 }
@@ -1640,6 +1733,396 @@ function b64(s){
   const r=window.atob(b);
   return new Uint8Array([...r].map(c=>c.charCodeAt(0)));
 }
+
+// ═══════════════════════════════════
+// COMMUNITY FORUM
+// ═══════════════════════════════════
+let currentCommunityId = null;
+
+async function openCommunity(id, name) {
+  currentCommunityId = id;
+  document.getElementById('comm-forum-title').textContent = name;
+  openModal('modal-community');
+  document.getElementById('comm-forum-layout').innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { community, members, is_member, my_role } = await api(`/api/communities/${id}`);
+    const { posts } = await api(`/api/communities/${id}/posts`);
+    const isMember = is_member;
+    const totalVotes = (p) => {
+      if (!p.poll_data) return 0;
+      const pd = typeof p.poll_data === 'string' ? JSON.parse(p.poll_data) : p.poll_data;
+      return pd.options.reduce((s, o) => s + (o.votes || 0), 0);
+    };
+
+    const renderPoll = (p) => {
+      const pd = typeof p.poll_data === 'string' ? JSON.parse(p.poll_data) : p.poll_data;
+      const total = pd.options.reduce((s, o) => s + (o.votes || 0), 0);
+      const alreadyVoted = pd.options.some(o => o.voter_ids?.includes(currentUser?.id));
+      return `<div class="poll-container">
+        <div style="font-weight:700;font-size:15px;margin-bottom:10px;">📊 ${pd.question}</div>
+        ${pd.options.map((o, i) => {
+          const pct = total ? Math.round((o.votes||0)/total*100) : 0;
+          return `<div class="poll-option" onclick="${alreadyVoted || !isMember ? '' : `voteComm('${id}','${p.id}',${i})`}">
+            <div class="poll-bar-wrap">
+              <div class="poll-bar" style="width:${pct}%"></div>
+              <span class="poll-bar-text">${o.text}</span>
+            </div>
+            <span class="poll-pct">${pct}%</span>
+          </div>`;
+        }).join('')}
+        <div class="text-muted" style="margin-top:6px;font-size:12px;">${total} voto${total!==1?'s':''} · ${alreadyVoted?'Você já votou':'Clique para votar'}</div>
+      </div>`;
+    };
+
+    const renderPost = (p) => {
+      const av = p.author_avatar || avatarUrl(p.author_name);
+      const reactions = (p.reactions||[]).map(r => `<span class="reaction-chip" onclick="reactComm('${id}','${p.id}','${r.emoji}',this)">${r.emoji}<span>${r.count}</span></span>`).join('');
+      const addR = ['👍','❤️','😂','🌊'].filter(e=>!(p.reactions||[]).find(r=>r.emoji===e)).slice(0,3).map(e=>`<span class="reaction-chip" onclick="reactComm('${id}','${p.id}','${e}',this)">${e}</span>`).join('');
+      return `<div class="forum-card" id="fcard-${p.id}">
+        <div class="forum-card-author">
+          <img class="avatar" src="${av}" width="36" height="36">
+          <div><div style="font-weight:700;font-size:14px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div>
+        </div>
+        ${p.post_type==='poll' ? renderPoll(p) :
+          p.post_type==='photo' && p.image_url ? `<img class="forum-card-img" src="${p.image_url}" alt=""><div class="forum-card-text">${p.content||''}</div>` :
+          `<div class="forum-card-text">${p.content||''}</div>`}
+        <div class="reactions-row" style="margin-top:10px;">${reactions}${addR}</div>
+        <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">💬 ${p.comment_count||0} comentários</div>
+          <div id="comments-${p.id}" class="hidden" style="display:none;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
+          ${isMember ? `<div style="display:flex;gap:6px;">
+            <input type="text" placeholder="Comentar..." style="flex:1;padding:8px 10px;font-size:13px;" id="ci-${p.id}" onkeydown="if(event.key==='Enter')postCommComment('${id}','${p.id}')">
+            <button class="btn btn-primary btn-xs" onclick="toggleCommComments('${id}','${p.id}')">Ver / Resp.</button>
+          </div>` : `<button class="btn btn-ghost btn-xs" onclick="toggleCommComments('${id}','${p.id}')">Ver comentários</button>`}
+        </div>
+      </div>`;
+    };
+
+    const postBox = isMember ? `
+      <div class="forum-card">
+        <div style="font-weight:700;margin-bottom:10px;">✏️ Nova publicação</div>
+        <div class="post-type-tabs">
+          <button class="ptype-btn active" onclick="setCommPostType('text',this)">📝 Texto</button>
+          <button class="ptype-btn" onclick="setCommPostType('photo',this)">📷 Foto</button>
+          <button class="ptype-btn" onclick="setCommPostType('poll',this)">📊 Enquete</button>
+        </div>
+        <div id="cpt-text">
+          <textarea id="comm-post-text" placeholder="O que você quer compartilhar com o grupo?" style="min-height:80px;"></textarea>
+        </div>
+        <div id="cpt-photo" class="hidden">
+          <img id="comm-photo-preview" style="width:100%;border-radius:10px;margin-bottom:8px;display:none;">
+          <label class="drop-zone" for="comm-photo-file" style="padding:20px;">
+            <div>📷 Escolher foto</div>
+          </label>
+          <input type="file" id="comm-photo-file" accept="image/*" style="display:none;" onchange="onCommPhotoSelected(event)">
+          <input type="text" id="comm-photo-caption" placeholder="Legenda (opcional)" style="margin-top:8px;">
+        </div>
+        <div id="cpt-poll" class="hidden" style="display:flex;flex-direction:column;gap:8px;">
+          <input type="text" id="poll-q" placeholder="Pergunta da enquete...">
+          <input type="text" id="poll-o1" placeholder="Opção 1">
+          <input type="text" id="poll-o2" placeholder="Opção 2">
+          <input type="text" id="poll-o3" placeholder="Opção 3 (opcional)">
+          <input type="text" id="poll-o4" placeholder="Opção 4 (opcional)">
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="submitCommPost('${id}')">Publicar no grupo</button>
+      </div>` : `<div class="card" style="padding:16px;text-align:center;">
+        <p class="text-muted">Entre na comunidade para poder postar.</p>
+        <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="joinFromForum('${id}','${community.name}')">Participar do grupo</button>
+      </div>`;
+
+    document.getElementById('comm-forum-layout').innerHTML = `
+      <div class="comm-forum-feed">
+        ${postBox}
+        ${posts.length ? posts.map(renderPost).join('') : '<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma publicação ainda. Seja o primeiro!</p></div>'}
+      </div>
+      <div class="comm-sidebar">
+        <div class="comm-sidebar-card">
+          <div style="font-size:18px;font-weight:800;font-family:Syne,sans-serif;">${community.name}</div>
+          <p style="font-size:13px;color:var(--muted);margin:6px 0 12px;line-height:1.5;">${community.description||''}</p>
+          <div class="text-muted">👥 ${community.member_count} membros · ${community.is_open?'Aberta':'Fechada'}</div>
+          ${isMember && my_role !== 'owner' ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="leaveComm('${id}')">Sair do grupo</button>` : ''}
+          ${!isMember ? `<button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%;" onclick="joinFromForum('${id}','${community.name}')">Participar</button>` : ''}
+        </div>
+        <div class="comm-sidebar-card">
+          <div style="font-weight:700;margin-bottom:4px;">👥 Membros (${community.member_count})</div>
+          <div class="comm-members-list">
+            ${members.slice(0,12).map(m => `<div class="comm-member-row">
+              <img class="avatar" src="${m.avatar_url||avatarUrl(m.name)}" width="32" height="32">
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;">${m.name}</div></div>
+              ${m.role==='owner'?'<span style="font-size:10px;color:var(--accent);font-weight:700;">DONO</span>':m.role==='moderator'?'<span style="font-size:10px;color:var(--accent2);font-weight:700;">MOD</span>':''}
+            </div>`).join('')}
+            ${community.member_count > 12 ? `<div class="text-muted" style="font-size:12px;">+ ${community.member_count - 12} outros membros</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+  } catch(e) {
+    document.getElementById('comm-forum-layout').innerHTML = `<p class="text-muted">${e.message}</p>`;
+  }
+}
+
+let commPostType = 'text';
+function setCommPostType(type, btn) {
+  commPostType = type;
+  document.querySelectorAll('.ptype-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['text','photo','poll'].forEach(t => {
+    const el = document.getElementById('cpt-'+t);
+    if (el) el.style.display = t === type ? (t==='poll'?'flex':'block') : 'none';
+  });
+}
+
+function onCommPhotoSelected(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const pr = document.getElementById('comm-photo-preview');
+  pr.src = URL.createObjectURL(f); pr.style.display = 'block';
+}
+
+async function submitCommPost(communityId) {
+  try {
+    if (commPostType === 'text') {
+      const content = document.getElementById('comm-post-text').value.trim();
+      if (!content) { toast('Escreva algo', 'error'); return; }
+      await api(`/api/communities/${communityId}/posts`, { method:'POST', body: JSON.stringify({ content, post_type: 'text' }) });
+    } else if (commPostType === 'photo') {
+      const f = document.getElementById('comm-photo-file').files[0];
+      if (!f) { toast('Selecione uma foto', 'error'); return; }
+      const fd = new FormData();
+      fd.append('photo', f);
+      fd.append('caption', document.getElementById('comm-photo-caption').value);
+      await apiForm(`/api/communities/${communityId}/posts/photo`, fd);
+    } else if (commPostType === 'poll') {
+      const question = document.getElementById('poll-q').value.trim();
+      const opts = ['poll-o1','poll-o2','poll-o3','poll-o4'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
+      if (!question || opts.length < 2) { toast('Pergunta e pelo menos 2 opções são obrigatórias', 'error'); return; }
+      await api(`/api/communities/${communityId}/posts/poll`, { method:'POST', body: JSON.stringify({ question, options: opts }) });
+    }
+    toast('Publicado! ✅', 'success');
+    openCommunity(communityId, document.getElementById('comm-forum-title').textContent);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function reactComm(communityId, postId, emoji, el) {
+  try {
+    await api(`/api/communities/${communityId}/posts/${postId}/react`, { method:'POST', body: JSON.stringify({ emoji }) });
+    el.classList.toggle('mine');
+  } catch(e) {}
+}
+
+async function voteComm(communityId, postId, optionIndex) {
+  try {
+    await api(`/api/communities/${communityId}/posts/${postId}/vote`, { method:'POST', body: JSON.stringify({ option_index: optionIndex }) });
+    toast('Voto registrado!', 'success');
+    openCommunity(communityId, document.getElementById('comm-forum-title').textContent);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function toggleCommComments(communityId, postId) {
+  const el = document.getElementById('comments-'+postId);
+  if (el.style.display === 'flex') { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  try {
+    const { comments } = await api(`/api/communities/${communityId}/posts/${postId}/comments`);
+    el.innerHTML = comments.length ? comments.map(c => `<div style="display:flex;gap:8px;">
+      <img class="avatar" src="${c.avatar_url||avatarUrl(c.name)}" width="28" height="28" style="flex-shrink:0;">
+      <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;flex:1;">
+        <div style="font-size:11px;font-weight:700;">${c.name}</div>
+        <div style="font-size:13px;">${c.content}</div>
+      </div>
+    </div>`).join('') : '<p class="text-muted" style="font-size:12px;">Nenhum comentário ainda.</p>';
+  } catch(e) {}
+}
+
+async function postCommComment(communityId, postId) {
+  const input = document.getElementById('ci-'+postId);
+  const content = input?.value.trim();
+  if (!content) return;
+  try {
+    await api(`/api/communities/${communityId}/posts/${postId}/comments`, { method:'POST', body: JSON.stringify({ content }) });
+    input.value = '';
+    toggleCommComments(communityId, postId);
+    toggleCommComments(communityId, postId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function joinFromForum(id, name) {
+  try {
+    await api(`/api/communities/${id}/join`, { method: 'POST' });
+    toast(`Entrou em "${name}"! 🎉`, 'success');
+    openCommunity(id, name);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function leaveComm(id) {
+  if (!confirm('Sair desta comunidade?')) return;
+  try {
+    await api(`/api/communities/${id}/leave`, { method: 'DELETE' });
+    toast('Você saiu da comunidade.', 'info');
+    closeModal('modal-community');
+    loadCommunities();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ═══════════════════════════════════
+// MAPA & GEO
+// ═══════════════════════════════════
+let map = null;
+let myMarker = null;
+let userMarkers = {};
+let geoWatchId = null;
+let myLat = null, myLng = null;
+let geoActive = false;
+
+function loadMapa() {
+  if (!map) initMap();
+  loadNearby();
+}
+
+function initMap() {
+  const mapEl = document.getElementById('map-el');
+  if (!mapEl) return;
+  // Use Leaflet via CDN (loaded dynamically)
+  if (typeof L === 'undefined') {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = () => createMap();
+    document.head.appendChild(script);
+  } else {
+    createMap();
+  }
+}
+
+function createMap() {
+  const mapEl = document.getElementById('map-el');
+  if (!mapEl || map) return;
+  map = L.map('map-el').setView([-23.18, -46.88], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors', maxZoom: 19
+  }).addTo(map);
+}
+
+async function toggleGeo() {
+  if (geoActive) {
+    geoActive = false;
+    if (geoWatchId) navigator.geolocation.clearWatch(geoWatchId);
+    await api('/api/geo/location', { method: 'DELETE' }).catch(() => {});
+    document.getElementById('geo-dot').classList.remove('active');
+    document.getElementById('geo-status-text').textContent = 'Geolocalização desativada';
+    document.getElementById('geo-toggle-btn').textContent = 'Ativar';
+    if (myMarker && map) { map.removeLayer(myMarker); myMarker = null; }
+  } else {
+    if (!navigator.geolocation) { toast('Seu navegador não suporta geolocalização', 'error'); return; }
+    navigator.geolocation.getCurrentPosition(async pos => {
+      geoActive = true;
+      myLat = pos.coords.latitude;
+      myLng = pos.coords.longitude;
+      await updateMyLocation(myLat, myLng);
+      document.getElementById('geo-dot').classList.add('active');
+      document.getElementById('geo-status-text').textContent = 'Geolocalização ativa';
+      document.getElementById('geo-status-sub').textContent = `📍 ${myLat.toFixed(4)}, ${myLng.toFixed(4)}`;
+      document.getElementById('geo-toggle-btn').textContent = 'Desativar';
+      if (map) map.setView([myLat, myLng], 14);
+      addMyMarker(myLat, myLng);
+      geoWatchId = navigator.geolocation.watchPosition(pos => {
+        myLat = pos.coords.latitude; myLng = pos.coords.longitude;
+        updateMyLocation(myLat, myLng);
+        if (myMarker) myMarker.setLatLng([myLat, myLng]);
+      }, null, { enableHighAccuracy: true });
+      loadNearby();
+    }, err => { toast('Não foi possível obter sua localização: ' + err.message, 'error'); });
+  }
+}
+
+function addMyMarker(lat, lng) {
+  if (!map) return;
+  if (myMarker) map.removeLayer(myMarker);
+  const icon = L.divIcon({
+    html: `<div style="background:var(--accent);width:36px;height:36px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <img src="${currentUser?.avatar_url||avatarUrl(currentUser?.name||'?')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+    </div>`,
+    className: '',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
+  });
+  myMarker = L.marker([lat, lng], { icon }).addTo(map).bindPopup(`<strong>Você</strong>`);
+}
+
+async function updateMyLocation(lat, lng) {
+  try { await api('/api/geo/location', { method: 'PUT', body: JSON.stringify({ lat, lng }) }); } catch(e) {}
+}
+
+function centerMyLocation() {
+  if (myLat && myLng && map) { map.setView([myLat, myLng], 15); }
+  else { toast('Ative a geolocalização primeiro', 'info'); }
+}
+
+async function loadNearby() {
+  if (!myLat || !myLng) {
+    document.getElementById('nearby-list').innerHTML = '<p class="text-muted" style="grid-column:1/-1;padding:20px;">Ative a geolocalização para ver usuários próximos.</p>';
+    return;
+  }
+  try {
+    const { users } = await api(`/api/geo/nearby?lat=${myLat}&lng=${myLng}&radius=10`);
+    const g = document.getElementById('nearby-list');
+    g.innerHTML = users.length ? users.map(u => `<div class="friend-card">
+      <img class="avatar" src="${u.avatar_url||avatarUrl(u.name)}" width="52" height="52" style="margin:0 auto 8px;">
+      <div style="font-weight:700;font-size:13px;">${u.name}</div>
+      <div class="text-muted">@${u.username}</div>
+      <div class="text-muted" style="margin-top:4px;">📍 ${u.distance_km} km</div>
+    </div>`).join('') : '<p class="text-muted" style="grid-column:1/-1;padding:20px;">Nenhum usuário próximo com geo ativa.</p>';
+    // Add markers on map
+    if (map) {
+      Object.values(userMarkers).forEach(m => map.removeLayer(m));
+      userMarkers = {};
+      users.forEach(u => {
+        const icon = L.divIcon({
+          html: `<div style="background:#7c3aed;width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25);overflow:hidden;display:flex;align-items:center;justify-content:center;">
+            <img src="${u.avatar_url||avatarUrl(u.name)}" style="width:100%;height:100%;object-fit:cover;">
+          </div>`,
+          className: '', iconSize: [30, 30], iconAnchor: [15, 15]
+        });
+        userMarkers[u.id] = L.marker([u.lat, u.lng], { icon })
+          .addTo(map)
+          .bindPopup(`<strong>${u.name}</strong><br>@${u.username}<br>📍 ${u.distance_km} km`);
+      });
+    }
+  } catch(e) {}
+}
+
+function toggleGeoChat() {
+  const panel = document.getElementById('geo-chat-panel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) loadGeoChat();
+}
+
+async function loadGeoChat() {
+  if (!myLat || !myLng) return;
+  try {
+    const { messages } = await api(`/api/geo/chat?lat=${myLat}&lng=${myLng}`);
+    const c = document.getElementById('geo-chat-msgs');
+    c.innerHTML = messages.length ? messages.map(m => `<div class="geo-chat-msg">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px;">${m.name}</div>
+      <div>${m.content}</div>
+    </div>`).join('') : '<p class="text-muted" style="font-size:12px;text-align:center;">Nenhuma mensagem na área.</p>';
+    c.scrollTop = c.scrollHeight;
+  } catch(e) {}
+}
+
+async function sendGeoMsg() {
+  if (!myLat || !myLng) { toast('Ative a geolocalização primeiro', 'info'); return; }
+  const input = document.getElementById('geo-chat-input');
+  const content = input.value.trim();
+  if (!content) return;
+  try {
+    await api('/api/geo/chat', { method:'POST', body: JSON.stringify({ lat: myLat, lng: myLng, content }) });
+    input.value = '';
+    loadGeoChat();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
 </script>
 </body>
 </html>
