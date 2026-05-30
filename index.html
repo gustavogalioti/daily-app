@@ -1197,12 +1197,25 @@ async function doLogin(e){
   const btn=document.getElementById('btn-login');
   btn.disabled=true;btn.textContent='Entrando...';
   try{
-    const{token,user}=await api('/api/auth/login',{method:'POST',body:JSON.stringify({
-      login:document.getElementById('login-id').value,
-      password:document.getElementById('login-pw').value
-    })});
-    setTok(token);currentUser=user;bootApp();
-  }catch(e){toast(e.message,'error');btn.disabled=false;btn.textContent='Entrar →';}
+    const loginVal = document.getElementById('login-id').value.trim();
+    const passVal = document.getElementById('login-pw').value;
+    if(!loginVal || !passVal){ toast('Preencha email e senha','error'); btn.disabled=false;btn.textContent='Entrar →'; return; }
+    const res = await fetch('/api/auth/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({login:loginVal, password:passVal})
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      toast(data.error||'Erro ao fazer login ('+res.status+')', 'error');
+      btn.disabled=false;btn.textContent='Entrar →';
+      return;
+    }
+    setTok(data.token);currentUser=data.user;bootApp();
+  }catch(err){
+    toast('Erro de conexão: '+err.message,'error');
+    btn.disabled=false;btn.textContent='Entrar →';
+  }
 }
 
 async function doRegister(e){
