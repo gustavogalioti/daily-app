@@ -336,6 +336,19 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .map-sub-tab{flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:700;text-align:center;transition:all .18s;}
 .map-sub-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 
+
+/* ── EVENTS ── */
+.event-card{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:18px;margin-bottom:12px;box-shadow:var(--shadow);cursor:pointer;transition:all .18s;}
+.event-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+.event-date-badge{background:var(--accent-light);border:1.5px solid rgba(255,107,53,.3);border-radius:10px;padding:8px 12px;text-align:center;flex-shrink:0;min-width:56px;}
+.event-date-day{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--accent);line-height:1;}
+.event-date-month{font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.5px;}
+.event-status-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.status-accepted{background:#f0fdf4;color:#166534;border:1px solid #86efac;}
+.status-pending{background:#fefce8;color:#854d0e;border:1px solid #fde68a;}
+.status-declined{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;}
+.invite-card{background:var(--surface);border:1.5px solid var(--gold);border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:var(--shadow);}
+
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
   .nav-btn span{display:none;}
@@ -446,6 +459,11 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <button class="nav-btn" data-tab="achievements" onclick="switchTab('achievements',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
         <span>Conquistas</span>
+      </button>
+      <button class="nav-btn" data-tab="events" onclick="switchTab('events',this)" id="nav-events">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Eventos</span>
+        <span class="nav-notif hidden" id="events-notif"></span>
       </button>
       <button class="nav-btn" data-tab="jogos" onclick="switchTab('jogos',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01M7 12h.01M17 12h.01M12 8v8"/></svg>
@@ -600,6 +618,26 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div id="as-earned"><div class="ach-grid" id="ach-earned-grid"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="as-all" class="hidden"><div class="ach-grid" id="ach-all-grid"></div></div>
       <div id="as-ranking" class="hidden"><div class="ranking-list" id="ranking-list"></div></div>
+    </div>
+
+
+    <!-- ─── EVENTOS ─── -->
+    <div id="tab-events" class="tab-content">
+      <div class="page-header">
+        <div class="page-header-left"><span class="page-icon">📅</span><div class="section-title">Eventos</div></div>
+        <button class="btn btn-primary btn-sm" onclick="openCreateEventModal()">+ Criar evento</button>
+      </div>
+      <!-- Convites pendentes -->
+      <div id="event-invites-section" class="hidden" style="margin-bottom:20px;">
+        <div style="font-weight:700;font-size:15px;margin-bottom:10px;">📬 Convites pendentes</div>
+        <div id="event-invites-list"></div>
+      </div>
+      <!-- Sub tabs -->
+      <div class="filter-pills" style="margin-bottom:18px;">
+        <span class="pill active" onclick="showEventSection('upcoming',this)">Próximos</span>
+        <span class="pill" onclick="showEventSection('past',this)">Passados</span>
+      </div>
+      <div id="events-list"><div class="page-loader"><div class="loader"></div></div></div>
     </div>
 
     <!-- ─── JOGOS ─── -->
@@ -962,6 +1000,59 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     </div>
   </div>
 </div>
+
+<!-- Modal: Criar Evento -->
+<div class="modal-overlay" id="modal-create-event">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">📅 Criar evento</span><button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
+    <div class="modal-body">
+      <div><label>Título do evento</label><input type="text" id="ev-title" placeholder="Ex: Churrasco de aniversário"></div>
+      <div><label>Descrição</label><textarea id="ev-desc" placeholder="Conte mais sobre o evento..." style="min-height:80px;"></textarea></div>
+      <div><label>Local</label><input type="text" id="ev-location" placeholder="Ex: Minha casa, Parque da Cidade..."></div>
+      <div class="form-row">
+        <div><label>Data e hora de início</label><input type="datetime-local" id="ev-start"></div>
+        <div><label>Data e hora de fim</label><input type="datetime-local" id="ev-end"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="createEvent()">Criar evento 🎉</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Evento (página interna) -->
+<div class="modal-overlay" id="modal-event" style="align-items:stretch;padding:0;">
+  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
+    <div class="modal-hdr" style="flex-shrink:0;">
+      <span class="modal-title" id="event-modal-title">Evento</span>
+      <button class="modal-close" onclick="closeModal('modal-event')">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;">
+      <div id="event-modal-body" style="padding:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Recusar convite -->
+<div class="modal-overlay" id="modal-decline-event">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">😔 Não vai poder ir?</span><button class="modal-close" onclick="closeModal('modal-decline-event')">✕</button></div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom:12px;">Conta o motivo para quem te convidou. Vai fazer diferença!</p>
+      <textarea id="decline-reason" placeholder="Ex: Tenho outro compromisso nesse dia..." style="min-height:80px;"></textarea>
+      <button class="btn btn-primary" style="width:100%;" onclick="confirmDecline()">Enviar resposta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Convidar para evento -->
+<div class="modal-overlay" id="modal-invite-event">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">👥 Convidar pessoas</span><button class="modal-close" onclick="closeModal('modal-invite-event')">✕</button></div>
+    <div class="modal-body">
+      <input type="text" id="invite-search-input" placeholder="Buscar por nome ou @usuário..." oninput="searchUsersForInvite()">
+      <div id="invite-search-results" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1086,6 +1177,7 @@ function bootApp(){
   checkNotif();
   setInterval(checkNotif,10000);
   loadFriendRequests();
+  checkEventInvitesBoot();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
   setTimeout(registerPush,4000);
   checkMapPermission();
@@ -1160,7 +1252,7 @@ function switchTab(tab,btn){
     'agora':loadAgora,'daily-question':loadDailyQuestion,
     'friends':()=>{loadFriends();loadFriendRequests();},
     'communities':loadCommunities,'achievements':loadAchievements,
-    'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou,'mapa':loadMapa
+    'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou,'mapa':loadMapa,'events':loadEvents
   };
   loaders[tab]?.();
 }
@@ -1407,7 +1499,8 @@ async function respondReq(id,action){
   try{
     await api(`/api/friends/request/${id}/${action}`,{method:'PUT'});
     toast(action==='accept'?'Amizade aceita! 🎉':'Recusado','success');
-    loadFriendRequests();loadFriends();
+    loadFriendRequests();
+  checkEventInvitesBoot();loadFriends();
   }catch(e){toast(e.message,'error');}
 }
 
@@ -2676,6 +2769,371 @@ async function toggleMod(id, name, isMod) {
     toast('Atualizado!', 'success');
     loadAdmin();
   } catch(e) { toast(e.message, 'error'); }
+}
+
+
+// ═══════════════════════════════════
+// EVENTOS
+// ═══════════════════════════════════
+let currentEventId = null;
+let pendingDeclineEventId = null;
+let inviteTargetEventId = null;
+let allEvents = [];
+
+async function loadEvents() {
+  const el = document.getElementById('events-list');
+  el.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { events } = await api('/api/events');
+    allEvents = events;
+    checkEventInvites(events);
+    renderEventsList(events, 'upcoming');
+  } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
+}
+
+function checkEventInvites(events) {
+  const pending = events.filter(e => e.my_status === 'pending');
+  const sec = document.getElementById('event-invites-section');
+  const notif = document.getElementById('events-notif');
+  if (pending.length) {
+    sec.classList.remove('hidden');
+    notif.classList.remove('hidden');
+    document.getElementById('event-invites-list').innerHTML = pending.map(e => renderInviteCard(e)).join('');
+  } else {
+    sec.classList.add('hidden');
+    notif.classList.add('hidden');
+  }
+}
+
+function renderInviteCard(e) {
+  const d = new Date(e.event_date);
+  return `<div class="invite-card">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <img class="avatar" src="${e.creator_avatar||avatarUrl(e.creator_name)}" width="40" height="40">
+      <div><div style="font-weight:700;">${e.creator_name} te convidou para:</div>
+      <div style="font-size:15px;font-weight:800;font-family:Syne;">${e.title}</div></div>
+    </div>
+    <div class="text-muted" style="font-size:13px;margin-bottom:4px;">📅 ${d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+    ${e.location?`<div class="text-muted" style="font-size:13px;margin-bottom:10px;">📍 ${e.location}</div>`:''}
+    ${e.description?`<div style="font-size:13px;color:var(--text2);margin-bottom:12px;">${e.description}</div>`:''}
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="respondEvent('${e.id}','accepted')">✅ Vou comparecer!</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="openDeclineModal('${e.id}')">❌ Não posso ir</button>
+    </div>
+  </div>`;
+}
+
+function renderEventsList(events, section) {
+  const now = new Date();
+  const filtered = events.filter(e => {
+    const d = new Date(e.event_date);
+    return section === 'upcoming' ? d >= now : d < now;
+  }).filter(e => e.my_status !== 'pending');
+  const el = document.getElementById('events-list');
+  el.innerHTML = filtered.length ? filtered.map(e => {
+    const d = new Date(e.event_date);
+    const statusLabel = { accepted:'✅ Confirmado', declined:'❌ Recusado', pending:'⏳ Pendente' };
+    const isOwner = e.owner_id === currentUser?.id;
+    return `<div class="event-card" onclick="openEventModal('${e.id}')">
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div class="event-date-badge">
+          <div class="event-date-day">${d.getDate()}</div>
+          <div class="event-date-month">${d.toLocaleString('pt-BR',{month:'short'})}</div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-family:Syne;font-size:16px;font-weight:800;">${e.title}</div>
+          ${e.location?`<div class="text-muted" style="font-size:13px;">📍 ${e.location}</div>`:''}
+          <div class="text-muted" style="font-size:12px;margin-top:4px;">⏰ ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · 👥 ${e.confirmed_count} confirmados</div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="event-status-pill ${e.my_status==='accepted'?'status-accepted':e.my_status==='declined'?'status-declined':'status-pending'}">${statusLabel[e.my_status]||'—'}</span>
+            ${isOwner?'<span class="event-status-pill" style="background:var(--accent-light);color:var(--accent);border:1px solid rgba(255,107,53,.3);">👑 Organizador</span>':''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : `<div class="card" style="padding:40px;text-align:center;"><p class="text-muted">${section==='upcoming'?'Nenhum evento próximo. Crie um ou aguarde convites!':'Nenhum evento passado.'}</p></div>`;
+}
+
+function showEventSection(sec, btn) {
+  document.querySelectorAll('#tab-events .filter-pills .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderEventsList(allEvents, sec);
+}
+
+function openCreateEventModal() {
+  document.getElementById('ev-title').value = '';
+  document.getElementById('ev-desc').value = '';
+  document.getElementById('ev-location').value = '';
+  const now = new Date(); now.setMinutes(0,0,0);
+  document.getElementById('ev-start').value = now.toISOString().slice(0,16);
+  const end = new Date(now.getTime() + 3*3600000);
+  document.getElementById('ev-end').value = end.toISOString().slice(0,16);
+  openModal('modal-create-event');
+}
+
+async function createEvent() {
+  const title = document.getElementById('ev-title').value.trim();
+  const event_date = document.getElementById('ev-start').value;
+  if (!title || !event_date) { toast('Título e data obrigatórios', 'error'); return; }
+  try {
+    const { event } = await api('/api/events', { method:'POST', body: JSON.stringify({
+      title,
+      description: document.getElementById('ev-desc').value,
+      location: document.getElementById('ev-location').value,
+      event_date: new Date(event_date).toISOString(),
+      event_end_date: document.getElementById('ev-end').value ? new Date(document.getElementById('ev-end').value).toISOString() : null,
+    })});
+    toast('Evento criado! 🎉', 'success');
+    closeModal('modal-create-event');
+    loadEvents();
+    openEventModal(event.id);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function openEventModal(eventId) {
+  currentEventId = eventId;
+  openModal('modal-event');
+  const body = document.getElementById('event-modal-body');
+  body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { event, members, posts, is_owner } = await api(`/api/events/${eventId}`);
+    document.getElementById('event-modal-title').textContent = event.title;
+    const d = new Date(event.event_date);
+    const dEnd = event.event_end_date ? new Date(event.event_end_date) : null;
+    const confirmed = members.filter(m => m.status === 'accepted');
+    const pending = members.filter(m => m.status === 'pending');
+    const declined = members.filter(m => m.status === 'declined');
+
+    // Pedro no evento
+    const pedroFake = await api('/api/pedro/message?context=event_created').catch(() => ({ message: '' }));
+
+    const renderEventPost = (p) => {
+      const av = p.author_avatar || avatarUrl(p.author_name);
+      const reactions = (p.reactions||[]).map(r => `<span class="reaction-chip" onclick="reactEventPost('${eventId}','${p.id}','${r.emoji}',this)">${r.emoji}<span>${r.count}</span></span>`).join('');
+      const addR = ['👍','❤️','😂','🌊'].filter(e => !(p.reactions||[]).find(r => r.emoji===e)).slice(0,3).map(e => `<span class="reaction-chip" onclick="reactEventPost('${eventId}','${p.id}','${e}',this)">${e}</span>`).join('');
+      const pedro = p.pedro_comment ? `<div class="pedro-comment"><strong>🐱 Pedro:</strong> ${p.pedro_comment}</div>` : '';
+      if (p.post_type === 'poll' && p.poll_data) {
+        const pd = typeof p.poll_data === 'string' ? JSON.parse(p.poll_data) : p.poll_data;
+        const total = pd.options.reduce((s,o) => s+(o.votes||0), 0);
+        const alreadyVoted = pd.options.some(o => o.voter_ids?.includes(currentUser?.id));
+        return `<div class="forum-card">
+          <div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32"><div><div style="font-weight:700;font-size:14px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
+          <div class="poll-container"><div style="font-weight:700;margin-bottom:10px;">📊 ${pd.question}</div>
+          ${pd.options.map((o,i) => { const pct=total?Math.round((o.votes||0)/total*100):0; return `<div class="poll-option" onclick="${alreadyVoted?'':'`voteEventPoll('${eventId}','${p.id}',${i})`'}">
+            <div class="poll-bar-wrap"><div class="poll-bar" style="width:${pct}%"></div><span class="poll-bar-text">${o.text}</span></div>
+            <span class="poll-pct">${pct}%</span></div>`; }).join('')}
+          <div class="text-muted" style="font-size:12px;margin-top:6px;">${total} votos</div></div>
+          ${pedro}
+        </div>`;
+      }
+      if (p.post_type === 'photo' && p.image_url) {
+        return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32"><div><div style="font-weight:700;font-size:14px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
+          <img class="forum-card-img" src="${p.image_url}"><div class="forum-card-text">${p.content||''}</div>
+          <div class="reactions-row">${reactions}${addR}</div>${pedro}
+          <div style="margin-top:8px;font-size:12px;color:var(--muted);">💬 ${p.comment_count} comentários</div>
+        </div>`;
+      }
+      return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32"><div><div style="font-weight:700;font-size:14px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
+        <div class="forum-card-text">${p.content}</div>
+        <div class="reactions-row" style="margin-top:8px;">${reactions}${addR}</div>${pedro}
+      </div>`;
+    };
+
+    const isConfirmed = confirmed.find(m => m.user_id === currentUser?.id) || event.owner_id === currentUser?.id;
+
+    body.innerHTML = `
+      <!-- Header do evento -->
+      <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:16px;padding:20px;color:#fff;margin-bottom:18px;">
+        <div style="font-family:Syne;font-size:22px;font-weight:800;">${event.title}</div>
+        <div style="margin-top:8px;opacity:.9;font-size:14px;">📅 ${d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+        ${dEnd?`<div style="opacity:.9;font-size:13px;">até ${dEnd.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
+        ${event.location?`<div style="margin-top:4px;opacity:.9;font-size:13px;">📍 ${event.location}</div>`:''}
+        ${event.description?`<div style="margin-top:10px;font-size:14px;opacity:.95;">${event.description}</div>`:''}
+      </div>
+
+      <!-- Pedro no evento -->
+      ${pedroFake.message ? `<div class="pedro-comment" style="margin-bottom:16px;"><strong>🐱 Pedro:</strong> ${pedroFake.message}</div>` : ''}
+
+      <!-- Participantes -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;">
+        <div class="card" style="padding:12px;text-align:center;">
+          <div style="font-family:Syne;font-size:22px;font-weight:800;color:var(--green);">${confirmed.length}</div>
+          <div class="text-muted">Confirmados</div>
+        </div>
+        <div class="card" style="padding:12px;text-align:center;">
+          <div style="font-family:Syne;font-size:22px;font-weight:800;color:var(--gold);">${pending.length}</div>
+          <div class="text-muted">Pendentes</div>
+        </div>
+        <div class="card" style="padding:12px;text-align:center;">
+          <div style="font-family:Syne;font-size:22px;font-weight:800;color:var(--muted);">${declined.length}</div>
+          <div class="text-muted">Recusaram</div>
+        </div>
+      </div>
+
+      <!-- Lista de confirmados -->
+      <div class="card" style="padding:14px;margin-bottom:18px;">
+        <div style="font-weight:700;margin-bottom:10px;">👥 Quem vai</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${confirmed.map(m => `<div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border-radius:20px;padding:4px 10px 4px 4px;">
+            <img class="avatar" src="${m.avatar_url||avatarUrl(m.name)}" width="24" height="24">
+            <span style="font-size:12px;font-weight:600;">${m.name.split(' ')[0]}</span>
+          </div>`).join('')}
+          ${!confirmed.length ? '<p class="text-muted" style="font-size:13px;">Nenhuma confirmação ainda.</p>' : ''}
+        </div>
+        ${is_owner ? `<button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;" onclick="openInviteModal('${eventId}')">+ Convidar pessoas</button>` : ''}
+      </div>
+
+      <!-- Feed do evento -->
+      <div style="font-weight:700;margin-bottom:12px;">📸 Timeline do evento</div>
+
+      ${isConfirmed ? `
+      <div class="forum-card" style="margin-bottom:14px;">
+        <div style="font-weight:700;margin-bottom:10px;">✏️ Publicar no evento</div>
+        <div class="post-type-tabs"><button class="ptype-btn active" onclick="setEventPostType('text',this)">📝 Texto</button><button class="ptype-btn" onclick="setEventPostType('photo',this)">📷 Foto</button><button class="ptype-btn" onclick="setEventPostType('poll',this)">📊 Enquete</button></div>
+        <div id="ept-text"><textarea id="event-post-text" placeholder="Compartilhe algo com o grupo!" style="min-height:80px;"></textarea></div>
+        <div id="ept-photo" style="display:none;">
+          <img id="event-photo-prev" style="width:100%;border-radius:10px;margin-bottom:8px;display:none;">
+          <label class="drop-zone" for="event-photo-file" style="padding:16px;">📷 Escolher foto</label>
+          <input type="file" id="event-photo-file" accept="image/*" style="display:none;" onchange="onEventPhotoSel(event)">
+          <input type="text" id="event-photo-cap" placeholder="Legenda (opcional)" style="margin-top:8px;">
+        </div>
+        <div id="ept-poll" style="display:none;flex-direction:column;gap:8px;">
+          <input type="text" id="epoll-q" placeholder="Pergunta da enquete...">
+          <input type="text" id="epoll-o1" placeholder="Opção 1">
+          <input type="text" id="epoll-o2" placeholder="Opção 2">
+          <input type="text" id="epoll-o3" placeholder="Opção 3 (opcional)">
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="submitEventPost('${eventId}')">Publicar no evento</button>
+      </div>` : ''}
+
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        ${posts.length ? posts.map(renderEventPost).join('') : '<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma publicação ainda. Seja o primeiro!</p></div>'}
+      </div>`;
+  } catch(e) {
+    document.getElementById('event-modal-body').innerHTML = `<p class="text-muted">${e.message}</p>`;
+  }
+}
+
+async function respondEvent(eventId, status) {
+  if (status === 'declined') { openDeclineModal(eventId); return; }
+  try {
+    await api(`/api/events/${eventId}/respond`, { method:'PUT', body: JSON.stringify({ status }) });
+    toast('Presença confirmada! 🎉', 'success');
+    loadEvents();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openDeclineModal(eventId) {
+  pendingDeclineEventId = eventId;
+  document.getElementById('decline-reason').value = '';
+  closeModal('modal-create-event');
+  openModal('modal-decline-event');
+}
+
+async function confirmDecline() {
+  const reason = document.getElementById('decline-reason').value.trim();
+  if (!reason) { toast('Conta o motivo 😊', 'info'); return; }
+  try {
+    await api(`/api/events/${pendingDeclineEventId}/respond`, { method:'PUT', body: JSON.stringify({ status:'declined', reason }) });
+    toast('Resposta enviada.', 'info');
+    closeModal('modal-decline-event');
+    loadEvents();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openInviteModal(eventId) {
+  inviteTargetEventId = eventId;
+  document.getElementById('invite-search-input').value = '';
+  document.getElementById('invite-search-results').innerHTML = '';
+  openModal('modal-invite-event');
+}
+
+async function searchUsersForInvite() {
+  const q = document.getElementById('invite-search-input').value.trim();
+  if (q.length < 2) return;
+  try {
+    const { users } = await api(`/api/users/search?q=${encodeURIComponent(q)}`);
+    document.getElementById('invite-search-results').innerHTML = users.map(u => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px;">
+        <img class="avatar" src="${u.avatar_url||avatarUrl(u.name)}" width="36" height="36">
+        <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${u.name}</div><div class="text-muted">@${u.username}</div></div>
+        <button class="btn btn-primary btn-sm" onclick="inviteToEvent('${u.id}','${u.name.replace(/'/g,"\'")}')">Convidar</button>
+      </div>`).join('') || '<p class="text-muted">Nenhum resultado.</p>';
+  } catch(e) {}
+}
+
+async function inviteToEvent(userId, name) {
+  try {
+    await api(`/api/events/${inviteTargetEventId}/invite`, { method:'POST', body: JSON.stringify({ user_id: userId }) });
+    toast(`${name} foi convidado(a)! 📬`, 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── POSTS DO EVENTO ──
+let eventPostType = 'text';
+function setEventPostType(type, btn) {
+  eventPostType = type;
+  document.querySelectorAll('#event-modal-body .ptype-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['text','photo','poll'].forEach(t => {
+    const el = document.getElementById('ept-'+t);
+    if (el) el.style.display = t === type ? (t==='poll'?'flex':'block') : 'none';
+  });
+}
+
+function onEventPhotoSel(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const pr = document.getElementById('event-photo-prev');
+  pr.src = URL.createObjectURL(f); pr.style.display = 'block';
+}
+
+async function submitEventPost(eventId) {
+  try {
+    if (eventPostType === 'text') {
+      const content = document.getElementById('event-post-text').value.trim();
+      if (!content) { toast('Escreva algo', 'error'); return; }
+      await api(`/api/events/${eventId}/posts`, { method:'POST', body: JSON.stringify({ content, post_type:'text' }) });
+    } else if (eventPostType === 'photo') {
+      const f = document.getElementById('event-photo-file').files[0];
+      if (!f) { toast('Selecione uma foto', 'error'); return; }
+      const fd = new FormData();
+      fd.append('photo', f);
+      fd.append('caption', document.getElementById('event-photo-cap').value);
+      await apiForm(`/api/events/${eventId}/posts/photo`, fd);
+    } else if (eventPostType === 'poll') {
+      const question = document.getElementById('epoll-q').value.trim();
+      const opts = ['epoll-o1','epoll-o2','epoll-o3'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
+      if (!question || opts.length < 2) { toast('Pergunta e 2+ opções obrigatórias', 'error'); return; }
+      await api(`/api/events/${eventId}/posts/poll`, { method:'POST', body: JSON.stringify({ question, options: opts }) });
+    }
+    toast('Publicado! ✅', 'success');
+    openEventModal(eventId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function reactEventPost(eventId, postId, emoji, el) {
+  try {
+    await api(`/api/events/${eventId}/posts/${postId}/react`, { method:'POST', body: JSON.stringify({ emoji }) });
+    el.classList.toggle('mine');
+  } catch(e) {}
+}
+
+async function voteEventPoll(eventId, postId, optionIndex) {
+  try {
+    await api(`/api/events/${eventId}/posts/${postId}/vote`, { method:'POST', body: JSON.stringify({ option_index: optionIndex }) });
+    toast('Voto registrado!', 'success');
+    openEventModal(eventId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+
+async function checkEventInvitesBoot() {
+  try {
+    const { invites } = await api('/api/events/invites/pending');
+    if (invites.length) {
+      document.getElementById('events-notif').classList.remove('hidden');
+    }
+  } catch(e) {}
 }
 
 </script>

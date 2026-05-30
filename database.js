@@ -122,6 +122,36 @@ async function initPG() {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(user_id, point_id)
     );
+
+    CREATE TABLE IF NOT EXISTS events (
+      id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT,
+      location TEXT, event_date TIMESTAMPTZ NOT NULL,
+      event_end_date TIMESTAMPTZ, owner_id TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS event_members (
+      id TEXT PRIMARY KEY, event_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      decline_reason TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(event_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS event_posts (
+      id TEXT PRIMARY KEY, event_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      content TEXT NOT NULL, image_url TEXT,
+      post_type TEXT DEFAULT 'text', poll_data JSONB,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS event_post_reactions (
+      id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      emoji TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(post_id, user_id, emoji)
+    );
+    CREATE TABLE IF NOT EXISTS event_post_comments (
+      id TEXT PRIMARY KEY, post_id TEXT NOT NULL, event_id TEXT NOT NULL,
+      user_id TEXT NOT NULL, content TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS pedro_comments (
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL UNIQUE,
       content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
@@ -158,10 +188,11 @@ async function initPG() {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0`,
     `ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_anonymous INTEGER DEFAULT 0`,
     `ALTER TABLE posts ADD COLUMN IF NOT EXISTS notification_id TEXT`,
-`ALTER TABLE communities ADD COLUMN IF NOT EXISTS neighborhood TEXT`,
+    `ALTER TABLE communities ADD COLUMN IF NOT EXISTS neighborhood TEXT`,
     `ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS post_type TEXT DEFAULT 'text'`,
     `ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS image_url TEXT`,
     `ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS poll_data JSONB`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_moderator INTEGER DEFAULT 0`,
   ];
   for (const m of migrations) { try { await pool.query(m); } catch(e) {} }
 

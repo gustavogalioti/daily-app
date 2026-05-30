@@ -45,12 +45,12 @@ router.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Usuário não encontrado' });
     if (!await bcrypt.compare(password, user.password)) return res.status(401).json({ error: 'Senha incorreta' });
     const token = jwt.sign({ id: user.id, username: user.username, name: user.name }, SECRET(), { expiresIn: '30d' });
-    res.json({ token, user: { id:user.id, name:user.name, username:user.username, email:user.email, bio:user.bio, avatar_url:user.avatar_url, occupation:user.occupation, country:user.country, state:user.state, city:user.city, created_at:user.created_at, is_admin:user.is_admin, points:user.points } });
+    res.json({ token, user: { id:user.id, name:user.name, username:user.username, email:user.email, bio:user.bio, avatar_url:user.avatar_url, occupation:user.occupation, country:user.country, state:user.state, city:user.city, created_at:user.created_at, is_admin:user.is_admin, is_moderator:user.is_moderator||0, points:user.points } });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Erro interno' }); }
 });
 
 router.get('/me', authMiddleware, async (req, res) => {
-  const user = await getDB().prepare('SELECT id,name,username,email,bio,avatar_url,occupation,country,state,city,created_at,is_admin,points FROM users WHERE id=$1').get(req.user.id);
+  const user = await getDB().prepare('SELECT id,name,username,email,bio,avatar_url,occupation,country,state,city,created_at,is_admin,is_moderator,points FROM users WHERE id=$1').get(req.user.id);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
   res.json({ user });
 });
