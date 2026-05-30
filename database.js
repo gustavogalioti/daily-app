@@ -193,6 +193,10 @@ async function initPG() {
     `ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS image_url TEXT`,
     `ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS poll_data JSONB`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_moderator INTEGER DEFAULT 0`,
+    `ALTER TABLE events ADD COLUMN IF NOT EXISTS event_end_date TIMESTAMPTZ`,
+    `ALTER TABLE events ADD COLUMN IF NOT EXISTS description TEXT`,
+    `ALTER TABLE events ADD COLUMN IF NOT EXISTS location TEXT`,
+    `ALTER TABLE event_members ADD COLUMN IF NOT EXISTS decline_reason TEXT`,
   ];
   for (const m of migrations) { try { await pool.query(m); } catch(e) {} }
 

@@ -14,8 +14,15 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/api/vapid-public-key', (req, res) => res.json({ key: VAPID_PUBLIC }));
 
+process.on('uncaughtException', (err) => {
+  console.error('CRASH:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+
 (async () => {
-  await initDB();
+  try {
+    await initDB();
   require('./cloudinary');
 
   app.use('/api/auth',            require('./auth'));
@@ -45,4 +52,9 @@ app.get('/api/vapid-public-key', (req, res) => res.json({ key: VAPID_PUBLIC }));
 
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, '0.0.0.0', () => console.log(`\n🗓️  DAILY v3 rodando em http://localhost:${PORT}\n`));
+  } catch(err) {
+    console.error('FATAL ao iniciar:', err.message);
+    console.error(err.stack);
+    process.exit(1);
+  }
 })();
