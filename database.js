@@ -99,6 +99,29 @@ async function initPG() {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(question_id, user_id, response_date)
     );
+
+    CREATE TABLE IF NOT EXISTS map_points (
+      id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT,
+      lat DOUBLE PRECISION NOT NULL, lng DOUBLE PRECISION NOT NULL,
+      points INTEGER NOT NULL DEFAULT 100,
+      checkin_radius INTEGER NOT NULL DEFAULT 100,
+      route_id TEXT, icon TEXT DEFAULT '🏆', category TEXT DEFAULT 'geral',
+      created_by TEXT NOT NULL, active INTEGER DEFAULT 1,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS map_routes (
+      id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT,
+      city TEXT, state TEXT, country TEXT DEFAULT 'BR',
+      icon TEXT DEFAULT '🗺️', category TEXT DEFAULT 'cultura',
+      created_by TEXT NOT NULL, active INTEGER DEFAULT 1,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS user_checkins (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, point_id TEXT NOT NULL,
+      image_url TEXT, distance_m INTEGER,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, point_id)
+    );
     CREATE TABLE IF NOT EXISTS pedro_comments (
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL UNIQUE,
       content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()

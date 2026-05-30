@@ -8,8 +8,15 @@ const router = express.Router();
 
 async function adminOnly(req, res, next) {
   const db = getDB();
-  const user = await db.prepare('SELECT is_admin FROM users WHERE id=$1').get(req.user.id);
+  const user = await db.prepare('SELECT is_admin, is_moderator FROM users WHERE id=$1').get(req.user.id);
   if (!user?.is_admin) return res.status(403).json({ error: 'Acesso restrito a administradores' });
+  next();
+}
+
+async function modOrAdmin(req, res, next) {
+  const db = getDB();
+  const user = await db.prepare('SELECT is_admin, is_moderator FROM users WHERE id=$1').get(req.user.id);
+  if (!user?.is_admin && !user?.is_moderator) return res.status(403).json({ error: 'Acesso restrito a administradores e moderadores' });
   next();
 }
 
@@ -28,7 +35,7 @@ router.get('/stats', authMiddleware, adminOnly, async (req, res) => {
 // GET /api/admin/users
 router.get('/users', authMiddleware, adminOnly, async (req, res) => {
   const db = getDB();
-  const users = await db.prepare("SELECT id,name,username,email,is_admin,points,city,state,created_at FROM users WHERE id != $1 ORDER BY created_at DESC").all('system-daily');
+  const users = await db.prepare("SELECT id,name,username,email,is_admin,is_moderator,points,city,state,created_at FROM users WHERE id != $1 ORDER BY created_at DESC").all('system-daily');
   res.json({ users });
 });
 
@@ -92,6 +99,17 @@ router.post('/push-subscribe', authMiddleware, async (req, res) => {
     await db.prepare('UPDATE push_subscriptions SET subscription=$1 WHERE user_id=$2').run(subStr, req.user.id);
   }
   res.json({ ok: true });
+});
+
+// PUT /api/admin/users/:id/toggle-moderator
+router.put('/users/:id/toggle-moderator', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const user = await db.prepare('SELECT is_moderator, is_admin FROM users WHERE id=$1').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+  if (user.is_admin) return res.status(400).json({ error: 'Usuários ADM não podem ser rebaixados a MOD por aqui' });
+  const newVal = user.is_moderator ? 0 : 1;
+  await db.prepare('UPDATE users SET is_moderator=$1 WHERE id=$2').run(newVal, req.params.id);
+  res.json({ is_moderator: newVal });
 });
 
 // GET /api/admin/ranking
