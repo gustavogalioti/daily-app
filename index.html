@@ -304,9 +304,9 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .ptype-btn{flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:all .18s;}
 .ptype-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 /* ── MAP ── */
-#map-container{width:100%;height:calc(100vh - var(--nav-h) - 48px);border-radius:16px;overflow:hidden;position:relative;background:var(--surface2);border:1.5px solid var(--border);}
+#map-container{width:100%;height:calc(100vh - var(--nav-h) - 140px);border-radius:16px;overflow:hidden;position:relative;background:var(--surface2);border:1.5px solid var(--border);min-height:400px;}
 #map-el{width:100%;height:100%;}
-.map-controls{position:absolute;top:12px;right:12px;z-index:10;display:flex;flex-direction:column;gap:8px;}
+.map-controls{position:absolute;top:12px;right:12px;z-index:1000;display:flex;flex-direction:column;gap:8px;pointer-events:all;}
 .map-ctrl-btn{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);transition:all .18s;}
 .map-ctrl-btn:hover,.map-ctrl-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .map-user-card{position:absolute;bottom:16px;left:16px;right:16px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow-md);max-height:200px;overflow-y:auto;}
@@ -1329,7 +1329,8 @@ async function loadMyCommunities(){
 
 function renderCommCard(c,mine=false){
   const emoji=c.type==='regional'?'📍':c.type==='local'?'🏙️':'🌐';
-  return`<div class="comm-card" onclick="joinCommunity('${c.id}','${c.name.replace(/'/g,"\\'")}')">
+  const _n=(c.name||'').replace(/'/g,"&#39;");
+  return`<div class="comm-card" onclick="openCommunity('${c.id}','${_n}')">
     <div class="comm-card-img">${emoji}</div>
     <div class="comm-card-body">
       <div class="comm-card-name">${c.name}</div>
