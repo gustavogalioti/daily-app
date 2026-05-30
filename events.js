@@ -27,6 +27,23 @@ router.get('/', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/events/invites/pending — convites pendentes
+router.get('/invites/pending', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const invites = await db.prepare(`
+      SELECT em.*, e.title, e.description, e.event_date, e.location,
+             u.name as creator_name, u.avatar_url as creator_avatar
+      FROM event_members em
+      JOIN events e ON e.id=em.event_id
+      JOIN users u ON u.id=e.owner_id
+      WHERE em.user_id=$1 AND em.status='pending'
+      ORDER BY em.created_at DESC
+    `).all(req.user.id);
+    res.json({ invites });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/events/:id — detalhes do evento
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
@@ -128,22 +145,7 @@ router.put('/:id/respond', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/events/invites/pending — convites pendentes
-router.get('/invites/pending', authMiddleware, async (req, res) => {
-  try {
-    const db = getDB();
-    const invites = await db.prepare(`
-      SELECT em.*, e.title, e.description, e.event_date, e.location,
-             u.name as creator_name, u.avatar_url as creator_avatar
-      FROM event_members em
-      JOIN events e ON e.id=em.event_id
-      JOIN users u ON u.id=e.owner_id
-      WHERE em.user_id=$1 AND em.status='pending'
-      ORDER BY em.created_at DESC
-    `).all(req.user.id);
-    res.json({ invites });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
+
 
 // ── POSTS DO EVENTO ──
 // POST /api/events/:id/posts — texto

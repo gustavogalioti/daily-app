@@ -61,6 +61,46 @@ router.post('/', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/map-points/routes
+router.get('/routes/all', optionalAuth, async (req, res) => {
+  try {
+    const db = getDB();
+    const routes = await db.prepare(`
+      SELECT mr.*, u.name as creator_name,
+        (SELECT COUNT(*) FROM map_points WHERE route_id=mr.id AND active=1) as points_count
+      FROM map_routes mr JOIN users u ON u.id=mr.created_by
+      WHERE mr.active=1 ORDER BY mr.created_at DESC
+    `).all();
+    if (req.user) {
+      for (const r of routes) {
+        const total = parseInt(r.points_count);
+        const done = parseInt((await db.prepare(`
+          SELECT COUNT(*) as c FROM user_checkins uc
+          JOIN map_points mp ON mp.id=uc.point_id
+          WHERE mp.route_id=$1 AND uc.user_id=$2
+        `).get(r.id, req.user.id))?.c || 0);
+        r.user_progress = { done, total };
+      }
+    }
+    res.json({ routes });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/map-points/routes — criar roteiro (ADM/MOD)
+router.post('/routes', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    if (!await canManageMap(db, req.user.id)) return res.status(403).json({ error: 'Sem permissão' });
+    const { title, description, city, state, country='BR', icon='🗺️', category='cultura' } = req.body;
+    if (!title) return res.status(400).json({ error: 'Título obrigatório' });
+    const id = uuidv4();
+    await db.prepare(`INSERT INTO map_routes (id,title,description,city,state,country,icon,category,created_by,active)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,1)`)
+      .run(id, title.trim(), description||'', city||'', state||'', country, icon, category, req.user.id);
+    res.status(201).json({ route: await db.prepare('SELECT * FROM map_routes WHERE id=$1').get(id) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // PUT /api/map-points/:id — editar ponto (ADM/MOD)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
@@ -172,44 +212,6 @@ router.get('/:id/checkins', async (req, res) => {
 
 // ─── ROUTES (Roteiros) ───
 
-// GET /api/map-points/routes
-router.get('/routes/all', optionalAuth, async (req, res) => {
-  try {
-    const db = getDB();
-    const routes = await db.prepare(`
-      SELECT mr.*, u.name as creator_name,
-        (SELECT COUNT(*) FROM map_points WHERE route_id=mr.id AND active=1) as points_count
-      FROM map_routes mr JOIN users u ON u.id=mr.created_by
-      WHERE mr.active=1 ORDER BY mr.created_at DESC
-    `).all();
-    if (req.user) {
-      for (const r of routes) {
-        const total = parseInt(r.points_count);
-        const done = parseInt((await db.prepare(`
-          SELECT COUNT(*) as c FROM user_checkins uc
-          JOIN map_points mp ON mp.id=uc.point_id
-          WHERE mp.route_id=$1 AND uc.user_id=$2
-        `).get(r.id, req.user.id))?.c || 0);
-        r.user_progress = { done, total };
-      }
-    }
-    res.json({ routes });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
 
-// POST /api/map-points/routes — criar roteiro (ADM/MOD)
-router.post('/routes', authMiddleware, async (req, res) => {
-  try {
-    const db = getDB();
-    if (!await canManageMap(db, req.user.id)) return res.status(403).json({ error: 'Sem permissão' });
-    const { title, description, city, state, country='BR', icon='🗺️', category='cultura' } = req.body;
-    if (!title) return res.status(400).json({ error: 'Título obrigatório' });
-    const id = uuidv4();
-    await db.prepare(`INSERT INTO map_routes (id,title,description,city,state,country,icon,category,created_by,active)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,1)`)
-      .run(id, title.trim(), description||'', city||'', state||'', country, icon, category, req.user.id);
-    res.status(201).json({ route: await db.prepare('SELECT * FROM map_routes WHERE id=$1').get(id) });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
 
 module.exports = router;
