@@ -223,7 +223,14 @@ async function seedPedro(pool) {
   const PEDRO_ID = 'pedro-official-daily';
   // Verifica se Pedro já existe
   const { rows } = await pool.query('SELECT id FROM users WHERE id=$1', [PEDRO_ID]);
-  if (rows.length) return;
+  if (rows.length) {
+    // Atualizar foto e bio mesmo se já existe
+    await pool.query('UPDATE users SET avatar_url=$1, bio=$2 WHERE id=$3',
+      ['https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg',
+       'Oi! Eu sou o Pedro 🐱 O gato laranja oficial do Daily. Estou aqui pra animar a rede, comentar seus posts e nunca te deixar sozinho. Fui criado em homenagem ao Pedro real, que partiu mas nunca foi esquecido. 🧡',
+       PEDRO_ID]);
+    return;
+  }
   // Criar conta do Pedro
   const bcrypt = require('bcryptjs');
   const hashed = await bcrypt.hash('pedro-daily-gato-laranja-2026', 12);
@@ -255,7 +262,14 @@ async function seedPedro(pool) {
 
 async function seedRegionalCommunities(pool) {
   const { rows } = await pool.query("SELECT id FROM communities WHERE type='regional' LIMIT 1");
-  if (rows.length) return;
+  if (rows.length) {
+    // Atualizar foto e bio mesmo se já existe
+    await pool.query('UPDATE users SET avatar_url=$1, bio=$2 WHERE id=$3',
+      ['https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg',
+       'Oi! Eu sou o Pedro 🐱 O gato laranja oficial do Daily. Estou aqui pra animar a rede, comentar seus posts e nunca te deixar sozinho. Fui criado em homenagem ao Pedro real, que partiu mas nunca foi esquecido. 🧡',
+       PEDRO_ID]);
+    return;
+  }
   const { v4: uuidv4 } = require('uuid');
   const { BRASIL_DATA } = require('./seed_communities');
   const SYSTEM_USER = 'system-daily';
@@ -288,7 +302,14 @@ async function seedRegionalCommunities(pool) {
 
 async function seedAchievements(pool) {
   const { rows } = await pool.query('SELECT id FROM achievements LIMIT 1');
-  if (rows.length) return;
+  if (rows.length) {
+    // Atualizar foto e bio mesmo se já existe
+    await pool.query('UPDATE users SET avatar_url=$1, bio=$2 WHERE id=$3',
+      ['https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg',
+       'Oi! Eu sou o Pedro 🐱 O gato laranja oficial do Daily. Estou aqui pra animar a rede, comentar seus posts e nunca te deixar sozinho. Fui criado em homenagem ao Pedro real, que partiu mas nunca foi esquecido. 🧡',
+       PEDRO_ID]);
+    return;
+  }
   const { v4: uuidv4 } = require('uuid');
   const list = [
     { slug:'first_login',name:'Primeiro passo',desc:'Fez login pela primeira vez',cat:'cadastro',pts:10,icon:'👋',type:'login',val:1},
@@ -327,7 +348,14 @@ async function seedAchievements(pool) {
 
 async function seedDailyQuestions(pool) {
   const { rows } = await pool.query('SELECT id FROM daily_questions LIMIT 1');
-  if (rows.length) return;
+  if (rows.length) {
+    // Atualizar foto e bio mesmo se já existe
+    await pool.query('UPDATE users SET avatar_url=$1, bio=$2 WHERE id=$3',
+      ['https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg',
+       'Oi! Eu sou o Pedro 🐱 O gato laranja oficial do Daily. Estou aqui pra animar a rede, comentar seus posts e nunca te deixar sozinho. Fui criado em homenagem ao Pedro real, que partiu mas nunca foi esquecido. 🧡',
+       PEDRO_ID]);
+    return;
+  }
   const { v4: uuidv4 } = require('uuid');
   const qs = [
     { period:'manha', question:'Como está seu humor hoje? Por quê?', from:'05:00', to:'11:00' },
