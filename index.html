@@ -1147,16 +1147,19 @@ document.addEventListener('click',e=>{
 // BOOT
 // ═══════════════════════════════════
 window.addEventListener('DOMContentLoaded',async()=>{
-  // Populate state select
+  // Populate state select - protegido contra null
   const stSel=document.getElementById('reg-state');
-  Object.entries(BRASIL_STATES).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([uf,nome])=>{
+  if(stSel) Object.entries(BRASIL_STATES).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([uf,nome])=>{
     stSel.insertAdjacentHTML('beforeend',`<option value="${uf}">${nome}</option>`);
   });
-  // Regional filter states
-  const rsSel=document.getElementById('reg-state-filter');
-  Object.entries(BRASIL_STATES).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([uf,nome])=>{
-    rsSel.insertAdjacentHTML('beforeend',`<option value="${uf}">${nome}</option>`);
-  });
+  // Regional filter states - carregado sob demanda
+  function populateRegStateFilter(){
+    const rsSel=document.getElementById('reg-state-filter');
+    if(!rsSel || rsSel.options.length > 1) return;
+    Object.entries(BRASIL_STATES).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([uf,nome])=>{
+      rsSel.insertAdjacentHTML('beforeend',`<option value="${uf}">${nome}</option>`);
+    });
+  }
 
   const t=tok();
   if(!t){showScreen('landing');return;}
@@ -1172,11 +1175,13 @@ function showScreen(n){
 }
 
 function bootApp(){
+  try{
   showScreen('app');
   const av=document.getElementById('topbar-avatar');
-  av.src=currentUser.avatar_url||avatarUrl(currentUser.name);
-  document.getElementById('topbar-name').textContent=currentUser.name.split(' ')[0];
-  if(currentUser.is_admin) document.getElementById('nav-admin').classList.remove('hidden');
+  if(av) av.src=currentUser.avatar_url||avatarUrl(currentUser.name);
+  const tn=document.getElementById('topbar-name');
+  if(tn) tn.textContent=currentUser.name.split(' ')[0];
+  if(currentUser.is_admin){ const na=document.getElementById('nav-admin'); if(na) na.classList.remove('hidden'); }
   loadGlobal();
   loadDailyMandou();
   checkNotif();
@@ -1186,6 +1191,7 @@ function bootApp(){
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
   setTimeout(registerPush,4000);
   checkMapPermission();
+  }catch(err){ console.error('bootApp error:',err); }
 }
 
 // ═══════════════════════════════════
@@ -1588,6 +1594,7 @@ async function sendFriendRequest(){
 // COMMUNITIES
 // ═══════════════════════════════════
 async function loadCommunities(){
+  populateRegStateFilter();
   const g=document.getElementById('comm-grid');
   g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
   try{
