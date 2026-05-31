@@ -1412,7 +1412,7 @@ async function loadGlobal(){
       posts=(await api('/api/posts?limit=80')).posts.filter(p=>globalFilter==='fotos'?p.type==='photo':true);
     }
     g.innerHTML=posts.length?posts.map(renderCard).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Nenhuma publicação ainda. Seja o primeiro! 📸</p>`;
-  }catch(e){g.innerHTML='<p class="text-muted" style="padding:20px;">Erro ao carregar.</p>';}
+  }catch(e){g.innerHTML='<p class="text-muted" style="padding:20px;">Erro: '+e.message+'</p>';}
 }
 
 function setGlobalFilter(f,btn){
