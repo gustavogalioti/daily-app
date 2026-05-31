@@ -84,9 +84,17 @@ router.post('/request', authMiddleware, async (req, res) => {
     `).get(req.user.id, user_id);
     if (existing) return res.status(409).json({ error: 'Solicitação já existe' });
     const id = uuidv4();
+    const PEDRO_ID = 'pedro-official-daily';
+    const isPedro = user_id === PEDRO_ID;
+    // Pedro aceita automaticamente toda solicitação
+    const status = isPedro ? 'accepted' : 'pending';
     await db.prepare('INSERT INTO friendships (id,requester_id,addressee_id,status,message) VALUES ($1,$2,$3,$4,$5)')
-      .run(id, req.user.id, user_id, 'pending', message.trim());
-    res.status(201).json({ friendship_id: id, message: 'Solicitação enviada!' });
+      .run(id, req.user.id, user_id, status, message.trim());
+    // Também criar a amizade reversa para garantir
+    if (isPedro) {
+      await checkAndGrant(db, req.user.id, 'friends');
+    }
+    res.status(201).json({ friendship_id: id, message: isPedro ? 'Pedro aceitou sua amizade! 🐱🧡' : 'Solicitação enviada!' });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
