@@ -16,7 +16,9 @@ router.get('/', optionalAuth, async (req, res) => {
       (SELECT COUNT(*) FROM community_members cm WHERE cm.community_id=c.id) as member_count
       FROM communities c JOIN users u ON u.id=c.owner_id WHERE 1=1`;
     const p = []; let i = 0;
+    const exclude_type = req.query.exclude_type;
     if (type)         { sql += ` AND c.type=$${++i}`;          p.push(type); }
+    else if (exclude_type) { sql += ` AND c.type != $${++i}`; p.push(exclude_type); }
     if (country)      { sql += ` AND c.country=$${++i}`;       p.push(country); }
     if (state)        { sql += ` AND c.state=$${++i}`;         p.push(state); }
     if (city)         { sql += ` AND c.city=$${++i}`;          p.push(city); }
@@ -261,6 +263,25 @@ router.post('/:id/posts/:postId/comments', authMiddleware, async (req, res) => {
       FROM community_post_comments cc JOIN users u ON u.id=cc.user_id WHERE cc.id=$1
     `).get(id);
     res.status(201).json({ comment });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+
+// DELETE /api/communities/:id/posts/:postId
+router.delete('/:id/posts/:postId', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const post = await db.prepare('SELECT * FROM community_posts WHERE id=$1').get(req.params.postId);
+    if (!post) return res.status(404).json({ error: 'Post não encontrado' });
+    // Só dono do post ou dono/mod da comunidade pode apagar
+    const member = await db.prepare("SELECT role FROM community_members WHERE community_id=$1 AND user_id=$2").get(req.params.id, req.user.id);
+    if (post.user_id !== req.user.id && !['owner','moderator'].includes(member?.role)) {
+      return res.status(403).json({ error: 'Sem permissão' });
+    }
+    await db.prepare('DELETE FROM community_post_reactions WHERE post_id=$1').run(req.params.postId);
+    await db.prepare('DELETE FROM community_post_comments WHERE post_id=$1').run(req.params.postId);
+    await db.prepare('DELETE FROM community_posts WHERE id=$1').run(req.params.postId);
+    res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
