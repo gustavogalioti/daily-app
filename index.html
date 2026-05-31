@@ -2959,9 +2959,7 @@ async function openEventModal(eventId) {
         return `<div class="forum-card">
           <div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32"><div><div style="font-weight:700;font-size:14px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
           <div class="poll-container"><div style="font-weight:700;margin-bottom:10px;">📊 ${pd.question}</div>
-          ${pd.options.map((o,i) => { const pct=total?Math.round((o.votes||0)/total*100):0; return `<div class="poll-option" onclick="${alreadyVoted?'':'`voteEventPoll('${eventId}','${p.id}',${i})`'}">
-            <div class="poll-bar-wrap"><div class="poll-bar" style="width:${pct}%"></div><span class="poll-bar-text">${o.text}</span></div>
-            <span class="poll-pct">${pct}%</span></div>`; }).join('')}
+          ${pd.options.map((o,i) => { const pct=total?Math.round((o.votes||0)/total*100):0; const clickFn=alreadyVoted?'':'voteEventPoll(\''+eventId+'\',\''+p.id+'\','+i+')'; return '<div class="poll-option" onclick="'+clickFn+'">'+'<div class="poll-bar-wrap"><div class="poll-bar" style="width:'+pct+'%"></div><span class="poll-bar-text">'+o.text+'</span></div>'+'<span class="poll-pct">'+pct+'%</span></div>'; }).join('')}
           <div class="text-muted" style="font-size:12px;margin-top:6px;">${total} votos</div></div>
           ${pedro}
         </div>`;
