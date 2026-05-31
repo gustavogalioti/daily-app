@@ -376,42 +376,44 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     <div class="landing-logo">D<span>.</span>AILY</div>
     <div class="landing-tag">compartilhe seu momento com o mundo</div>
 
-    <!-- TABS CSS PURO - sem JS -->
-    <div style="background:#e8e8e8;border-radius:12px;padding:4px;margin-bottom:22px;display:flex;gap:4px;">
-      <label for="tab-login-radio" style="flex:1;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all .18s;" id="lbl-login" onclick="showAuthForm('login')">Entrar</label>
-      <label for="tab-register-radio" style="flex:1;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);transition:all .18s;" id="lbl-register" onclick="showAuthForm('register')">Criar conta</label>
+    <div style="display:flex;border-radius:12px;overflow:hidden;border:2px solid var(--border);margin-bottom:22px;">
+      <button type="button" id="btn-tab-login"
+        style="flex:1;padding:12px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;"
+        onclick="mostrarLogin()">Entrar</button>
+      <button type="button" id="btn-tab-register"
+        style="flex:1;padding:12px;border:none;background:var(--surface);color:var(--muted);font-size:15px;font-weight:600;cursor:pointer;"
+        onclick="mostrarCadastro()">Criar conta</button>
     </div>
-    <input type="radio" name="auth-tab" id="tab-login-radio" style="display:none;" checked onchange="showAuthForm('login')">
-    <input type="radio" name="auth-tab" id="tab-register-radio" style="display:none;" onchange="showAuthForm('register')">
 
     <!-- LOGIN -->
-    <form id="form-login" onsubmit="doLogin(event)" style="display:flex;flex-direction:column;gap:12px;">
-      <div><label>E-mail ou @usuário</label><input type="text" id="login-id" placeholder="seu@email.com" required autocomplete="username"></div>
-      <div><label>Senha</label><input type="password" id="login-pw" placeholder="••••••••" required autocomplete="current-password"></div>
-      <button type="submit" class="btn btn-primary" style="width:100%;font-size:15px;padding:13px;" id="btn-login">Entrar →</button>
+    <div id="bloco-login" style="display:flex;flex-direction:column;gap:12px;">
+      <div><label>E-mail ou @usuário</label><input type="text" id="login-id" placeholder="seu@email.com"></div>
+      <div><label>Senha</label><input type="password" id="login-pw" placeholder="••••••••"></div>
+      <button type="button" id="btn-login"
+        style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;"
+        onclick="doLogin()">Entrar →</button>
       <p style="font-size:12px;color:var(--muted);text-align:center;line-height:1.6;">Compartilhe momentos, faça amigos, participe de comunidades, explore o mapa, vá a eventos e colecione conquistas. O Daily é a sua rede — viva ela!</p>
-    </form>
+    </div>
 
     <!-- CADASTRO -->
-    <form id="form-register" onsubmit="doRegister(event)" style="display:none;flex-direction:column;gap:12px;">
+    <div id="bloco-cadastro" style="display:none;flex-direction:column;gap:12px;">
       <div class="form-row">
-        <div><label>Nome completo</label><input type="text" id="reg-name" placeholder="Seu nome" required></div>
-        <div><label>@usuário</label><input type="text" id="reg-username" placeholder="seunome" required></div>
+        <div><label>Nome completo</label><input type="text" id="reg-name" placeholder="Seu nome"></div>
+        <div><label>@usuário</label><input type="text" id="reg-username" placeholder="seunome"></div>
       </div>
-      <div><label>E-mail</label><input type="email" id="reg-email" placeholder="seu@email.com" required></div>
-      <div><label>Senha</label><input type="password" id="reg-pw" placeholder="••••••••" required></div>
+      <div><label>E-mail</label><input type="email" id="reg-email" placeholder="seu@email.com"></div>
+      <div><label>Senha</label><input type="password" id="reg-pw" placeholder="Mínimo 6 caracteres"></div>
       <div class="form-row">
-        <div><label>Data de nascimento</label><input type="date" id="reg-birth"></div>
-        <div><label>O que você faz?</label><input type="text" id="reg-occ" placeholder="Designer, dev..."></div>
+        <div><label>Nascimento</label><input type="date" id="reg-birth"></div>
+        <div><label>Profissão</label><input type="text" id="reg-occ" placeholder="Designer..."></div>
       </div>
       <div><label>País</label>
         <select id="reg-country" onchange="onCountryChange()">
-          <option value="">Selecione o país</option>
+          <option value="">Selecione</option>
           <option value="BR">🇧🇷 Brasil</option>
-          <option value="US">🇺🇸 Estados Unidos</option>
+          <option value="US">🇺🇸 EUA</option>
           <option value="PT">🇵🇹 Portugal</option>
           <option value="AR">🇦🇷 Argentina</option>
-          <option value="MX">🇲🇽 México</option>
         </select>
       </div>
       <div id="br-fields" class="hidden">
@@ -419,10 +421,12 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <div><label>Estado</label><select id="reg-state" onchange="onStateChange()"><option value="">Selecione</option></select></div>
           <div><label>Cidade</label><select id="reg-city"><option value="">Selecione</option></select></div>
         </div>
-        <div><label>Bairro <span style="font-size:11px;">(opcional)</span></label><input type="text" id="reg-neighborhood" placeholder="Seu bairro"></div>
+        <div><label>Bairro</label><input type="text" id="reg-neighborhood" placeholder="Seu bairro"></div>
       </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;font-size:15px;padding:13px;" id="btn-register">Criar minha conta →</button>
-    </form>
+      <button type="button" id="btn-register"
+        style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;"
+        onclick="doRegister()">Criar minha conta →</button>
+    </div>
   </div>
 </div>
 
@@ -1187,62 +1191,61 @@ function bootApp(){
 // ═══════════════════════════════════
 // AUTH
 // ═══════════════════════════════════
-function switchAuthTab(tab){ showAuthForm(tab); }
+function switchAuthTab(tab){ if(tab==='login') mostrarLogin(); else mostrarCadastro(); }
 
-function showAuthForm(tab) {
-  const login = document.getElementById('form-login');
-  const reg = document.getElementById('form-register');
-  const lblLogin = document.getElementById('lbl-login');
-  const lblReg = document.getElementById('lbl-register');
-  if(tab === 'login') {
-    if(login) login.style.display = 'flex';
-    if(reg) reg.style.display = 'none';
-    if(lblLogin) { lblLogin.style.background='var(--surface)'; lblLogin.style.color='var(--accent)'; lblLogin.style.boxShadow='0 1px 4px rgba(0,0,0,.08)'; }
-    if(lblReg) { lblReg.style.background='transparent'; lblReg.style.color='var(--muted)'; lblReg.style.boxShadow='none'; }
-  } else {
-    if(login) login.style.display = 'none';
-    if(reg) reg.style.display = 'flex';
-    if(lblReg) { lblReg.style.background='var(--surface)'; lblReg.style.color='var(--accent)'; lblReg.style.boxShadow='0 1px 4px rgba(0,0,0,.08)'; }
-    if(lblLogin) { lblLogin.style.background='transparent'; lblLogin.style.color='var(--muted)'; lblLogin.style.boxShadow='none'; }
-  }
+function showAuthForm(tab){ switchAuthTab(tab); }
+
+function mostrarLogin(){
+  const bl=document.getElementById('bloco-login');
+  const bc=document.getElementById('bloco-cadastro');
+  const tl=document.getElementById('btn-tab-login');
+  const tr=document.getElementById('btn-tab-register');
+  if(bl) bl.style.display='flex';
+  if(bc) bc.style.display='none';
+  if(tl){tl.style.background='var(--accent)';tl.style.color='#fff';}
+  if(tr){tr.style.background='var(--surface)';tr.style.color='var(--muted)';}
 }
 
+function mostrarCadastro(){
+  const bl=document.getElementById('bloco-login');
+  const bc=document.getElementById('bloco-cadastro');
+  const tl=document.getElementById('btn-tab-login');
+  const tr=document.getElementById('btn-tab-register');
+  if(bl) bl.style.display='none';
+  if(bc) bc.style.display='flex';
+  if(tr){tr.style.background='var(--accent)';tr.style.color='#fff';}
+  if(tl){tl.style.background='var(--surface)';tl.style.color='var(--muted)';}
+}
+
+
+
 async function doLogin(e){
-  e.preventDefault();
+  if(e) e.preventDefault();
   const btn=document.getElementById('btn-login');
-  btn.disabled=true;btn.textContent='Entrando...';
+  if(btn){btn.disabled=true;btn.textContent='Entrando...';}
   try{
-    const loginVal = document.getElementById('login-id').value.trim();
-    const passVal = document.getElementById('login-pw').value;
-    if(!loginVal || !passVal){ toast('Preencha email e senha','error'); btn.disabled=false;btn.textContent='Entrar →'; return; }
-    const res = await fetch('/api/auth/login', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({login:loginVal, password:passVal})
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok){
-      toast(data.error||'Erro ao fazer login ('+res.status+')', 'error');
-      btn.disabled=false;btn.textContent='Entrar →';
-      return;
-    }
+    const loginVal=(document.getElementById('login-id').value||'').trim();
+    const passVal=(document.getElementById('login-pw').value||'');
+    if(!loginVal||!passVal){toast('Preencha e-mail e senha','error');if(btn){btn.disabled=false;btn.textContent='Entrar →';}return;}
+    const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:loginVal,password:passVal})});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok){toast(data.error||'Erro '+res.status,'error');if(btn){btn.disabled=false;btn.textContent='Entrar →';}return;}
     setTok(data.token);currentUser=data.user;bootApp();
-  }catch(err){
-    toast('Erro de conexão: '+err.message,'error');
-    btn.disabled=false;btn.textContent='Entrar →';
-  }
+  }catch(err){toast('Erro: '+err.message,'error');if(btn){btn.disabled=false;btn.textContent='Entrar →';}}
 }
 
 async function doRegister(e){
-  e.preventDefault();
+  if(e) e.preventDefault();
   const btn=document.getElementById('btn-register');
-  btn.disabled=true;btn.textContent='Criando conta...';
+  if(btn){btn.disabled=true;btn.textContent='Criando conta...';}
   try{
-    const{token,user}=await api('/api/auth/register',{method:'POST',body:JSON.stringify({
-      name:document.getElementById('reg-name').value,
-      username:document.getElementById('reg-username').value,
-      email:document.getElementById('reg-email').value,
-      password:document.getElementById('reg-pw').value,
+    const name=(document.getElementById('reg-name').value||'').trim();
+    const username=(document.getElementById('reg-username').value||'').trim();
+    const email=(document.getElementById('reg-email').value||'').trim();
+    const password=(document.getElementById('reg-pw').value||'');
+    if(!name||!username||!email||!password){toast('Preencha nome, usuário, e-mail e senha','error');if(btn){btn.disabled=false;btn.textContent='Criar minha conta →';}return;}
+    const res=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      name,username,email,password,
       birth_date:document.getElementById('reg-birth').value,
       occupation:document.getElementById('reg-occ').value,
       country:document.getElementById('reg-country').value,
@@ -1250,9 +1253,11 @@ async function doRegister(e){
       city:document.getElementById('reg-city').value,
       neighborhood:document.getElementById('reg-neighborhood').value,
     })});
-    setTok(token);currentUser=user;bootApp();
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok){toast(data.error||'Erro '+res.status,'error');if(btn){btn.disabled=false;btn.textContent='Criar minha conta →';}return;}
+    setTok(data.token);currentUser=data.user;bootApp();
     toast('Bem-vindo(a) ao DAILY! 🎉','success');
-  }catch(e){toast(e.message,'error');btn.disabled=false;btn.textContent='Criar minha conta →';}
+  }catch(err){toast('Erro: '+err.message,'error');if(btn){btn.disabled=false;btn.textContent='Criar minha conta →';}}
 }
 
 function doLogout(){clearTok();currentUser=null;showScreen('landing');}
