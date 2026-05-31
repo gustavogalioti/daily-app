@@ -3,7 +3,11 @@ const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
 const { initDB } = require('./database');
-const { VAPID_PUBLIC } = require('./notifications');
+let VAPID_PUBLIC = '';
+try {
+  const notif = require('./notifications');
+  VAPID_PUBLIC = notif.VAPID_PUBLIC || '';
+} catch(e) { console.error('notifications.js erro:', e.message); }
 
 const app = express();
 app.use(cors({ origin: '*' }));
@@ -23,21 +27,20 @@ process.on('uncaughtException', (err) => {
 (async () => {
   try {
     await initDB();
-  require('./cloudinary');
+  try { require('./cloudinary'); } catch(e) { console.error('cloudinary:', e.message); }
 
-  app.use('/api/auth',            require('./auth'));
-  app.use('/api/posts',           require('./posts'));
-  app.use('/api/users',           require('./users'));
-  app.use('/api/admin',           require('./admin'));
-  app.use('/api/friends',         require('./friends'));
-  app.use('/api/testimonials',    require('./testimonials'));
-  app.use('/api/communities',     require('./communities'));
-  app.use('/api/achievements',    require('./achievements'));
-  app.use('/api/pedro',           require('./pedro'));
-  app.use('/api/daily-questions', require('./daily_questions'));
-  app.use('/api/geo',            require('./geo'));
-  app.use('/api/map-points',     require('./map_points'));
-  app.use('/api/events',         require('./events'));
+  const routeFiles = [
+    ['/api/auth', './auth'], ['/api/posts', './posts'], ['/api/users', './users'],
+    ['/api/admin', './admin'], ['/api/friends', './friends'],
+    ['/api/testimonials', './testimonials'], ['/api/communities', './communities'],
+    ['/api/achievements', './achievements'], ['/api/pedro', './pedro'],
+    ['/api/daily-questions', './daily_questions'], ['/api/geo', './geo'],
+    ['/api/map-points', './map_points'], ['/api/events', './events'],
+  ];
+  for (const [path, file] of routeFiles) {
+    try { app.use(path, require(file)); console.log('  ✓', path); }
+    catch(e) { console.error('ROTA FALHOU', path, e.message); }
+  }
 
   app.get('/api/health', (req, res) => res.json({ status:'ok', app:'DAILY', version:'3.0.0' }));
   app.get('/test', (req, res) => {
