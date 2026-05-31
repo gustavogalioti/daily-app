@@ -376,21 +376,24 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     <div class="landing-logo">D<span>.</span>AILY</div>
     <div class="landing-tag">compartilhe seu momento com o mundo</div>
 
-    <div class="auth-tabs">
-      <button type="button" class="auth-tab active" id="tab-login-btn" onclick="switchAuthTab('login')">Entrar</button>
-      <button type="button" class="auth-tab" id="tab-register-btn" onclick="switchAuthTab('register')">Criar conta</button>
+    <!-- TABS CSS PURO - sem JS -->
+    <div style="background:#e8e8e8;border-radius:12px;padding:4px;margin-bottom:22px;display:flex;gap:4px;">
+      <label for="tab-login-radio" style="flex:1;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all .18s;" id="lbl-login" onclick="showAuthForm('login')">Entrar</label>
+      <label for="tab-register-radio" style="flex:1;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);transition:all .18s;" id="lbl-register" onclick="showAuthForm('register')">Criar conta</label>
     </div>
+    <input type="radio" name="auth-tab" id="tab-login-radio" style="display:none;" checked onchange="showAuthForm('login')">
+    <input type="radio" name="auth-tab" id="tab-register-radio" style="display:none;" onchange="showAuthForm('register')">
 
     <!-- LOGIN -->
-    <form class="auth-form active" id="form-login" onsubmit="doLogin(event)">
-      <div><label>E-mail ou @usuário</label><input type="text" id="login-id" placeholder="seu@email.com" required></div>
-      <div><label>Senha</label><input type="password" id="login-pw" placeholder="••••••••" required></div>
+    <form id="form-login" onsubmit="doLogin(event)" style="display:flex;flex-direction:column;gap:12px;">
+      <div><label>E-mail ou @usuário</label><input type="text" id="login-id" placeholder="seu@email.com" required autocomplete="username"></div>
+      <div><label>Senha</label><input type="password" id="login-pw" placeholder="••••••••" required autocomplete="current-password"></div>
       <button type="submit" class="btn btn-primary" style="width:100%;font-size:15px;padding:13px;" id="btn-login">Entrar →</button>
-      <p class="landing-desc">Compartilhe momentos, faça amigos, participe de comunidades, explore o mapa, vá a eventos e colecione conquistas. O Daily é a sua rede — viva ela!</p>
+      <p style="font-size:12px;color:var(--muted);text-align:center;line-height:1.6;">Compartilhe momentos, faça amigos, participe de comunidades, explore o mapa, vá a eventos e colecione conquistas. O Daily é a sua rede — viva ela!</p>
     </form>
 
     <!-- CADASTRO -->
-    <form class="auth-form" id="form-register" onsubmit="doRegister(event)">
+    <form id="form-register" onsubmit="doRegister(event)" style="display:none;flex-direction:column;gap:12px;">
       <div class="form-row">
         <div><label>Nome completo</label><input type="text" id="reg-name" placeholder="Seu nome" required></div>
         <div><label>@usuário</label><input type="text" id="reg-username" placeholder="seunome" required></div>
@@ -409,8 +412,6 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <option value="PT">🇵🇹 Portugal</option>
           <option value="AR">🇦🇷 Argentina</option>
           <option value="MX">🇲🇽 México</option>
-          <option value="CO">🇨🇴 Colômbia</option>
-          <option value="CL">🇨🇱 Chile</option>
         </select>
       </div>
       <div id="br-fields" class="hidden">
@@ -1186,13 +1187,24 @@ function bootApp(){
 // ═══════════════════════════════════
 // AUTH
 // ═══════════════════════════════════
-function switchAuthTab(tab){
-  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
-  const activeTab = document.getElementById('tab-'+tab+'-btn');
-  if(activeTab) activeTab.classList.add('active');
-  document.querySelectorAll('.auth-form').forEach(f=>f.classList.remove('active'));
-  const form = document.getElementById('form-'+tab);
-  if(form) form.classList.add('active');
+function switchAuthTab(tab){ showAuthForm(tab); }
+
+function showAuthForm(tab) {
+  const login = document.getElementById('form-login');
+  const reg = document.getElementById('form-register');
+  const lblLogin = document.getElementById('lbl-login');
+  const lblReg = document.getElementById('lbl-register');
+  if(tab === 'login') {
+    if(login) login.style.display = 'flex';
+    if(reg) reg.style.display = 'none';
+    if(lblLogin) { lblLogin.style.background='var(--surface)'; lblLogin.style.color='var(--accent)'; lblLogin.style.boxShadow='0 1px 4px rgba(0,0,0,.08)'; }
+    if(lblReg) { lblReg.style.background='transparent'; lblReg.style.color='var(--muted)'; lblReg.style.boxShadow='none'; }
+  } else {
+    if(login) login.style.display = 'none';
+    if(reg) reg.style.display = 'flex';
+    if(lblReg) { lblReg.style.background='var(--surface)'; lblReg.style.color='var(--accent)'; lblReg.style.boxShadow='0 1px 4px rgba(0,0,0,.08)'; }
+    if(lblLogin) { lblLogin.style.background='transparent'; lblLogin.style.color='var(--muted)'; lblLogin.style.boxShadow='none'; }
+  }
 }
 
 async function doLogin(e){
