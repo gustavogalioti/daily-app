@@ -731,6 +731,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="sendNotification()" id="btn-notify">📷 Disparar Daily Mandou</button>
         <button class="btn btn-danger" onclick="if(confirm('Apagar TODOS os posts? Isso não pode ser desfeito.')) clearAllPosts()">🗑️ Limpar todos os posts</button>
+        <button class="btn btn-ghost" onclick="forcePedroFriendship()" style="color:var(--accent2);border-color:var(--accent2);">🐱 Pedro: amigar com todos</button>
       </div>
 
       <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;">Perguntas do Dia</div>
@@ -3205,6 +3206,15 @@ async function checkEventInvitesBoot() {
   } catch(e) {}
 }
 
+
+
+async function forcePedroFriendship() {
+  try {
+    const r = await api('/api/admin/pedro-friendship', {method:'POST'});
+    toast('🐱 Pedro agora é amigo de ' + r.friendships_created + ' usuários!', 'success');
+    loadAdmin();
+  } catch(e) { toast(e.message, 'error'); }
+}
 
 </script>
 </body>
