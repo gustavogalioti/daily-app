@@ -144,4 +144,23 @@ router.put('/daily-questions/:id', authMiddleware, adminOnly, async (req, res) =
   res.json({ ok: true });
 });
 
+
+// POST /api/admin/pedro-friendship — forçar amizade do Pedro com todos
+router.post('/pedro-friendship', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const PEDRO_ID = 'pedro-official-daily';
+  const pedro = await db.prepare('SELECT id FROM users WHERE id=$1').get(PEDRO_ID);
+  if (!pedro) return res.status(404).json({ error: 'Pedro não encontrado. Faça restart do servidor.' });
+  const users = await db.prepare("SELECT id FROM users WHERE id != $1 AND id != 'system-daily'").all(PEDRO_ID);
+  let count = 0;
+  for (const u of users) {
+    try {
+      await db.prepare('INSERT INTO friendships (id,requester_id,addressee_id,status,message) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING')
+        .run(uuidv4(), PEDRO_ID, u.id, 'accepted', 'Oi! Sou o Pedro, seu amigo felino oficial! 🐱🧡');
+      count++;
+    } catch(e) {}
+  }
+  res.json({ ok: true, friendships_created: count });
+});
+
 module.exports = router;
