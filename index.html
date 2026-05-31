@@ -377,8 +377,8 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     <div class="landing-tag">compartilhe seu momento com o mundo</div>
 
     <div class="auth-tabs">
-      <div class="auth-tab active" onclick="switchAuthTab('login')">Entrar</div>
-      <div class="auth-tab" onclick="switchAuthTab('register')">Criar conta</div>
+      <button type="button" class="auth-tab active" id="tab-login-btn" onclick="switchAuthTab('login')">Entrar</button>
+      <button type="button" class="auth-tab" id="tab-register-btn" onclick="switchAuthTab('register')">Criar conta</button>
     </div>
 
     <!-- LOGIN -->
@@ -386,7 +386,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div><label>E-mail ou @usuário</label><input type="text" id="login-id" placeholder="seu@email.com" required></div>
       <div><label>Senha</label><input type="password" id="login-pw" placeholder="••••••••" required></div>
       <button type="submit" class="btn btn-primary" style="width:100%;font-size:15px;padding:13px;" id="btn-login">Entrar →</button>
-      <p class="landing-desc">O Daily é um ambiente em que todos são amigos. Ao receber uma notificação, poste uma foto do seu momento. Mas corra — você tem 1 minuto!</p>
+      <p class="landing-desc">Compartilhe momentos, faça amigos, participe de comunidades, explore o mapa, vá a eventos e colecione conquistas. O Daily é a sua rede — viva ela!</p>
     </form>
 
     <!-- CADASTRO -->
@@ -1187,9 +1187,12 @@ function bootApp(){
 // AUTH
 // ═══════════════════════════════════
 function switchAuthTab(tab){
-  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',['login','register'][i]===tab));
+  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+  const activeTab = document.getElementById('tab-'+tab+'-btn');
+  if(activeTab) activeTab.classList.add('active');
   document.querySelectorAll('.auth-form').forEach(f=>f.classList.remove('active'));
-  document.getElementById('form-'+tab).classList.add('active');
+  const form = document.getElementById('form-'+tab);
+  if(form) form.classList.add('active');
 }
 
 async function doLogin(e){
