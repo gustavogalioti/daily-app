@@ -198,12 +198,12 @@ async function initPG() {
     `ALTER TABLE events ADD COLUMN IF NOT EXISTS location TEXT`,
     `ALTER TABLE event_members ADD COLUMN IF NOT EXISTS decline_reason TEXT`,
   ];
-  for (const m of migrations) { try { await pool.query(m); } catch(e) {} }
+  for (const m of migrations) { try { await pool.query(m); } catch(e) { /* migration já existe */ } }
 
-  await seedAchievements(pool);
-  await seedDailyQuestions(pool);
-  await seedRegionalCommunities(pool);
-  await seedPedro(pool);
+  try { await seedAchievements(pool); } catch(e) { console.error('seedAchievements:', e.message); }
+  try { await seedDailyQuestions(pool); } catch(e) { console.error('seedDailyQuestions:', e.message); }
+  try { await seedRegionalCommunities(pool); } catch(e) { console.error('seedRegionalCommunities:', e.message); }
+  try { await seedPedro(pool); } catch(e) { console.error('seedPedro:', e.message); }
 
   wrapper = {
     prepare: (sql) => ({
@@ -233,7 +233,7 @@ async function seedPedro(pool) {
   }
   // Criar conta do Pedro
   const bcrypt = require('bcryptjs');
-  const hashed = await bcrypt.hash('pedro-daily-gato-laranja-2026', 12);
+  const hashed = await bcrypt.hash('pedro-daily-gato-laranja-2026', 8);
   await pool.query(`
     INSERT INTO users (id,name,username,email,password,bio,avatar_url,is_admin,points,occupation)
     VALUES ($1,$2,$3,$4,$5,$6,$7,0,9999,$8)
