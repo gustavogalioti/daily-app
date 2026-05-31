@@ -15,8 +15,8 @@ router.get('/search', optionalAuth, async (req, res) => {
     const clean = q.replace(/^@/,'').toLowerCase();
     const users = await db.prepare(`
       SELECT id,name,username,avatar_url,bio,occupation,city,state
-      FROM users WHERE username ILIKE $1 OR name ILIKE $2
-      ORDER BY name ASC LIMIT 20
+      FROM users WHERE (username ILIKE $1 OR name ILIKE $2) AND id != 'system-daily'
+      ORDER BY CASE WHEN id='pedro-official-daily' THEN 0 ELSE 1 END, name ASC LIMIT 20
     `).all(`%${clean}%`, `%${q}%`);
     res.json({ users });
   } catch(e) { res.status(500).json({ error: e.message }); }
