@@ -3292,6 +3292,57 @@ document.addEventListener('click', function(e) {
   }
 });
 
+
+async function openUserProfile(username) {
+  if(!username) return;
+  if(username === currentUser?.username) {
+    switchTab('profile', document.querySelector('[data-tab=profile]'));
+    return;
+  }
+  openModal('modal-user-profile');
+  const body = document.getElementById('user-profile-body');
+  if(body) body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { user } = await api('/api/users/' + username);
+    const av = user.avatar_url || avatarUrl(user.name);
+    const fs = user.friendship_status;
+    let actionBtn = '';
+    if (fs === 'friends') {
+      actionBtn = '<span style="color:var(--green);font-weight:600;">&#x2705; Amigos</span>';
+    } else if (fs === 'pending_sent') {
+      actionBtn = '<span style="color:var(--muted);">Solicitacao enviada</span>';
+    } else {
+      actionBtn = '<button class="btn btn-primary btn-sm" onclick="sendFriendReqDirect(\''+user.id+'\',\''+user.name.replace(/[^a-zA-Z0-9 ]/g,'')+'\')" >+ Adicionar amigo</button>';
+    }
+    if(body) body.innerHTML = 
+      '<div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:18px;">'
+      + '<img class="avatar" src="'+av+'" width="72" height="72" style="border:3px solid var(--accent);flex-shrink:0;">'
+      + '<div style="flex:1;">'
+      + '<div style="font-family:Syne;font-size:18px;font-weight:800;">'+user.name+'</div>'
+      + '<div class="text-muted">@'+user.username+'</div>'
+      + (user.bio ? '<div style="font-size:13px;color:var(--text2);margin-top:6px;">'+user.bio+'</div>' : '')
+      + (user.occupation ? '<div class="text-muted" style="font-size:12px;margin-top:4px;">&#x1F4BC; '+user.occupation+'</div>' : '')
+      + (user.city ? '<div class="text-muted" style="font-size:12px;">&#x1F4CD; '+user.city+(user.state?', '+user.state:'')+'</div>' : '')
+      + '<div style="margin-top:10px;">'+actionBtn+'</div>'
+      + '</div></div>'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
+      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--accent);">'+(user.stats?.posts||0)+'</div><div class="text-muted" style="font-size:11px;">Posts</div></div>'
+      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--accent);">'+(user.stats?.friends_count||0)+'</div><div class="text-muted" style="font-size:11px;">Amigos</div></div>'
+      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--gold);">'+(user.points||0)+'</div><div class="text-muted" style="font-size:11px;">Pontos</div></div>'
+      + '</div>';
+  } catch(e) {
+    if(body) body.innerHTML = '<p class="text-muted" style="padding:20px;text-align:center;">'+e.message+'</p>';
+  }
+}
+
+async function sendFriendReqDirect(userId, name) {
+  try {
+    await api('/api/friends/request', { method:'POST', body: JSON.stringify({ user_id: userId, message: 'Oi! Quero ser seu amigo no Daily!' }) });
+    toast('Solicitacao enviada para '+name+'!', 'success');
+    closeModal('modal-user-profile');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
 </script>
 </body>
 </html>
