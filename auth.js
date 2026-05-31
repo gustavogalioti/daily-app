@@ -30,6 +30,15 @@ router.post('/register', async (req, res) => {
     await db.prepare('INSERT INTO users (id,name,username,email,password,birth_date,country,state,city,occupation,is_admin) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)')
       .run(id, name.trim(), uname, mail, hashed, birth_date||null, country||null, state||null, city||null, occupation||null, isAdmin);
     sendWelcomeEmail({ to: mail, name: name.trim(), username: uname }).catch(e => console.error('Email:', e.message));
+    // Amizade automática com Pedro
+    try {
+      const PEDRO_ID = 'pedro-official-daily';
+      const pedro = await db.prepare('SELECT id FROM users WHERE id=$1').get(PEDRO_ID);
+      if (pedro) {
+        await db.prepare('INSERT INTO friendships (id,requester_id,addressee_id,status,message) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING')
+          .run(require('uuid').v4(), PEDRO_ID, id, 'accepted', 'Bem-vindo(a) ao Daily! Sou o Pedro, seu primeiro amigo aqui! 🐱🧡');
+      }
+    } catch(e) { console.error('Pedro friendship:', e.message); }
     const token = jwt.sign({ id, username: uname, name: name.trim() }, SECRET(), { expiresIn: '30d' });
     res.status(201).json({ token, user: { id, name: name.trim(), username: uname, email: mail, bio:'', avatar_url:'', is_admin: isAdmin, points: 0 } });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Erro interno ao criar conta' }); }
