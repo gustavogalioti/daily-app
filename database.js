@@ -238,10 +238,19 @@ async function seedPedro(pool) {
     'pedro@daily.app',
     hashed,
     'Oi! Eu sou o Pedro 🐱 O gato laranja oficial do Daily. Estou aqui pra animar a rede, comentar seus posts e nunca deixar você sozinho. Fui criado em homenagem ao Pedro real, que partiu mas nunca foi esquecido. 🧡',
-    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=pedro-gato-laranja&backgroundColor=ff6b35',
+    'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg',
     'Mascote oficial do Daily'
   ]);
-  console.log('   🐱 Pedro criado!');
+  // Tornar todos usuários existentes amigos do Pedro
+  const { rows: allUsers } = await pool.query("SELECT id FROM users WHERE id != $1 AND id != 'system-daily'", [PEDRO_ID]);
+  for (const u of allUsers) {
+    const { v4: uuidv4 } = require('uuid');
+    await pool.query(
+      'INSERT INTO friendships (id,requester_id,addressee_id,status,message) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',
+      [uuidv4(), PEDRO_ID, u.id, 'accepted', 'Oi! Sou o Pedro, seu amigo felino! 🐱🧡']
+    );
+  }
+  console.log('   🐱 Pedro criado e amizades feitas!');
 }
 
 async function seedRegionalCommunities(pool) {
