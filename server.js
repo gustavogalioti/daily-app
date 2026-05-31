@@ -40,6 +40,10 @@ process.on('uncaughtException', (err) => {
   app.use('/api/events',         require('./events'));
 
   app.get('/api/health', (req, res) => res.json({ status:'ok', app:'DAILY', version:'3.0.0' }));
+  app.get('/test', (req, res) => {
+    res.sendFile(path.join(__dirname, 'test.html'));
+  });
+
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) return res.status(404).json({ error:'Not found' });
     res.sendFile(path.join(__dirname, 'index.html'));
