@@ -65,6 +65,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 /* ─── SCREENS ─── */
 .screen{display:none;min-height:100vh;}
+.screen.active{padding-bottom:calc(var(--nav-h) + 16px);}
 .screen.active{display:block;}
 
 /* ══════════════════
@@ -1290,16 +1291,18 @@ function onStateChange(){
 // ═══════════════════════════════════
 function switchTab(tab,btn){
   closeMoreMenu();
+  window.scrollTo(0,0);
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const tabEl = document.getElementById('tab-'+tab);
   if(tabEl) tabEl.classList.add('active');
   if(btn) btn.classList.add('active');
   const loaders={
-    'agora':loadAgora,'daily-question':loadDailyQuestion,
+    'global':loadGlobal,'agora':loadAgora,'daily-question':loadDailyQuestion,
     'friends':()=>{loadFriends();loadFriendRequests();},
     'communities':loadCommunities,'achievements':loadAchievements,
-    'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou,'mapa':loadMapa,'events':loadEvents
+    'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou,
+    'mapa':loadMapa,'events':loadEvents,'jogos':()=>{}
   };
   loaders[tab]?.();
 }
