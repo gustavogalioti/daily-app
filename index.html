@@ -93,22 +93,22 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .topbar{
   position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:100;
   background:var(--surface);border-bottom:1.5px solid var(--border);
-  display:flex;align-items:center;padding:0 16px;gap:12px;
-  box-shadow:var(--shadow);
+  display:flex;align-items:center;padding:0 6px;gap:4px;
+  box-shadow:var(--shadow);overflow-x:auto;
 }
 .topbar-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-1px;color:var(--text);flex-shrink:0;}
 .topbar-logo span{color:var(--accent);}
 .topbar-nav{display:flex;gap:2px;flex:1;justify-content:center;overflow-x:auto;}
 .nav-btn{
   display:flex;flex-direction:column;align-items:center;gap:2px;
-  padding:8px 12px;border-radius:10px;cursor:pointer;
-  font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  padding:6px 8px;border-radius:8px;cursor:pointer;
+  font-size:9px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;
   color:var(--muted);transition:all .18s;border:none;background:transparent;
-  white-space:nowrap;flex-shrink:0;position:relative;
+  white-space:nowrap;flex-shrink:0;position:relative;min-width:44px;
 }
 .nav-btn:hover{color:var(--text);background:var(--surface2);}
 .nav-btn.active{color:var(--accent);background:var(--accent-light);}
-.nav-btn svg{width:20px;height:20px;}
+.nav-btn svg{width:22px;height:22px;}
 .nav-notif{position:absolute;top:5px;right:8px;width:8px;height:8px;background:var(--accent);border-radius:50%;border:2px solid var(--surface);}
 .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .user-chip{display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 12px 5px 5px;border-radius:24px;background:var(--surface2);border:1.5px solid var(--border);transition:all .18s;}
@@ -237,7 +237,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .rank-pos.p3{color:#cd7c2f;}
 
 /* ── FRIENDS ── */
-.friends-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;}
+.friends-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
 .friend-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;text-align:center;box-shadow:var(--shadow);transition:all .18s;}
 .friend-card:hover{border-color:var(--accent);}
 .req-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:12px;box-shadow:var(--shadow);}
@@ -352,8 +352,9 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .invite-card{background:var(--surface);border:1.5px solid var(--gold);border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:var(--shadow);}
 
 /* ── RESPONSIVE ── */
-@media(max-width:768px){
+@media(max-width:900px){
   .nav-btn span{display:none;}
+  .topbar-logo{display:none!important;}
   .nav-btn{padding:8px 10px;}
   .tab-content{padding:14px 12px;}
   .photo-grid{columns:2;}
@@ -454,11 +455,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
         <span>Daily?</span>
       </button>
-      <button class="nav-btn" data-tab="friends" onclick="switchTab('friends',this)" id="nav-friends">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span>Amigos</span>
-        <span class="nav-notif hidden" id="friends-notif"></span>
-      </button>
+
       <button class="nav-btn" data-tab="communities" onclick="switchTab('communities',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
         <span>Grupos</span>
@@ -665,12 +662,16 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     <div id="tab-profile" class="tab-content">
       <div id="profile-card-wrap"><div class="page-loader"><div class="loader"></div></div></div>
       <div id="profile-tabs-row" class="profile-tabs-row hidden">
-        <div class="profile-tab active" onclick="showProfileSec('timeline',this)">📅 Linha do Tempo</div>
-        <div class="profile-tab" onclick="showProfileSec('depoimentos',this)">💬 Depoimentos</div>
-        <div class="profile-tab" onclick="showProfileSec('conquistas',this)">🏆 Conquistas</div>
-        <div class="profile-tab" onclick="showProfileSec('profissional',this)">💼 Profissional</div>
+        <div class="profile-tab active" onclick="showProfileSec('timeline',this)">📅 Linha</div>
+        <div class="profile-tab" onclick="showProfileSec('amigos',this)">👥 Amigos</div>
+        <div class="profile-tab" onclick="showProfileSec('depoimentos',this)">💬 Depoi.</div>
+        <div class="profile-tab" onclick="showProfileSec('conquistas',this)">🏆</div>
+        <div class="profile-tab" onclick="showProfileSec('profissional',this)">💼</div>
       </div>
       <div id="ps-timeline"><div id="timeline-container"><div class="page-loader"><div class="loader"></div></div></div></div>
+      <div id="ps-amigos" class="hidden">
+        <div id="profile-friends-grid" class="friends-grid" style="margin-top:4px;"></div>
+      </div>
       <div id="ps-depoimentos" class="hidden"><div id="testimonials-wrap"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="ps-conquistas" class="hidden"><div class="ach-grid" id="profile-ach-grid"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="ps-profissional" class="hidden"><div class="card" style="padding:24px;" id="prof-section"><div class="page-loader"><div class="loader"></div></div></div></div>
@@ -1766,7 +1767,7 @@ async function loadProfile(){
       </div>
       <div class="profile-stats">
         <div class="stat-box"><div class="stat-num">${user.stats?.posts||0}</div><div class="stat-lbl">Posts</div></div>
-        <div class="stat-box"><div class="stat-num">${user.stats?.friends_count||0}</div><div class="stat-lbl">Amigos</div></div>
+        <div class="stat-box" onclick="showProfileSec('amigos',document.querySelectorAll('.profile-tab')[4])" style="cursor:pointer;"><div class="stat-num">${user.stats?.friends_count||0}</div><div class="stat-lbl">Amigos</div></div>
         <div class="stat-box"><div class="stat-num">${user.stats?.daily_mandou||0}</div><div class="stat-lbl">⚡ Daily</div></div>
         <div class="stat-box"><div class="stat-num">${user.points||0}</div><div class="stat-lbl">Pontos</div></div>
         <div class="stat-box"><div class="stat-num">${user.stats?.active_days||0}</div><div class="stat-lbl">Dias ativos</div></div>
@@ -1778,12 +1779,32 @@ async function loadProfile(){
 }
 
 function showProfileSec(sec,btn){
-  ['timeline','depoimentos','conquistas','profissional'].forEach(s=>document.getElementById('ps-'+s).classList.toggle('hidden',s!==sec));
+  ['timeline','amigos','depoimentos','conquistas','profissional'].forEach(s=>{
+    const el=document.getElementById('ps-'+s);
+    if(el) el.classList.toggle('hidden',s!==sec);
+  });
   document.querySelectorAll('.profile-tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn) btn.classList.add('active');
   if(sec==='depoimentos') loadTestimonials();
   if(sec==='conquistas') loadProfileAch();
   if(sec==='profissional') loadProfessional();
+  if(sec==='amigos') loadProfileFriends();
+}
+
+async function loadProfileFriends(){
+  const g=document.getElementById('profile-friends-grid');
+  if(!g) return;
+  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try{
+    const{friends}=await api('/api/friends');
+    g.innerHTML=friends.length?friends.map(f=>`
+      <div class="friend-card" onclick="openUserProfile('${f.username}')" style="cursor:pointer;">
+        <img class="avatar" src="${f.avatar_url||avatarUrl(f.name)}" width="56" height="56" style="margin:0 auto 8px;">
+        <div style="font-weight:700;font-size:13px;">${f.name.split(' ')[0]}</div>
+        <div class="text-muted" style="font-size:11px;">@${f.username}</div>
+      </div>`).join('')
+    :'<p class="text-muted" style="padding:20px;text-align:center;grid-column:1/-1;">Ainda sem amigos. Busque pessoas!</p>';
+  }catch(e){}
 }
 
 // ── TIMELINE — TODOS OS POSTS ──
