@@ -65,7 +65,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 /* ─── SCREENS ─── */
 .screen{display:none;min-height:100vh;}
-.screen.active{padding-bottom:calc(var(--nav-h) + 16px);}
+
 .screen.active{display:block;}
 
 /* ══════════════════
@@ -92,8 +92,8 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 /* TOPBAR */
 .topbar{
-  position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:100;
-  background:var(--surface);border-bottom:1.5px solid var(--border);
+  position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);z-index:100;
+  background:var(--surface);border-top:1.5px solid var(--border);
   display:flex;align-items:center;padding:0 6px;gap:4px;
   box-shadow:var(--shadow);overflow-x:auto;
 }
@@ -118,7 +118,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 /* CONTENT */
 .app-content{padding-top:var(--nav-h);}
-.tab-content{display:none;max-width:1100px;margin:0 auto;padding:24px 20px;}
+.tab-content{display:none;max-width:1100px;margin:0 auto;padding:24px 20px 100px;}
 .tab-content.active{display:block;}
 
 /* ── NOTIFICATION BANNER ── */
