@@ -1189,6 +1189,7 @@ function bootApp(){
     const na=document.getElementById('nav-admin'); if(na) na.classList.remove('hidden');
     const ma=document.getElementById('more-admin-btn'); if(ma) ma.style.display='flex';
   }
+  toast('Daily v'+document.querySelector('meta[name=version]').content+' carregado!','success');
   loadGlobal();
   loadDailyMandou();
   checkNotif();
