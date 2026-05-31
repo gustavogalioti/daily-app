@@ -10,16 +10,19 @@ const router = express.Router();
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    const friends = await db.prepare(`
-      SELECT u.id, u.name, u.username, u.avatar_url, u.bio, u.occupation, u.city, u.state,
-             f.created_at as friends_since
-      FROM friendships f
-      JOIN users u ON (
-        CASE WHEN f.requester_id=$1 THEN f.addressee_id ELSE f.requester_id END = u.id
-      )
-      WHERE (f.requester_id=$1 OR f.addressee_id=$1) AND f.status='accepted'
-      ORDER BY u.name ASC
-    `).all(req.user.id, req.user.id);
+    // Query simplificada - busca amigos em ambas as direções
+    const friendsA = await db.prepare(`
+      SELECT u.id, u.name, u.username, u.avatar_url, u.bio, u.occupation, u.city, u.state, f.created_at as friends_since
+      FROM friendships f JOIN users u ON u.id=f.addressee_id
+      WHERE f.requester_id=$1 AND f.status='accepted'
+    `).all(req.user.id);
+    const friendsB = await db.prepare(`
+      SELECT u.id, u.name, u.username, u.avatar_url, u.bio, u.occupation, u.city, u.state, f.created_at as friends_since
+      FROM friendships f JOIN users u ON u.id=f.requester_id
+      WHERE f.addressee_id=$1 AND f.status='accepted'
+    `).all(req.user.id);
+    const seen = new Set();
+    const friends = [...friendsA, ...friendsB].filter(f => { if(seen.has(f.id)) return false; seen.add(f.id); return true; }).sort((a,b) => a.name.localeCompare(b.name));
     res.json({ friends });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
