@@ -261,14 +261,7 @@ async function seedPedro(pool) {
 
 async function seedRegionalCommunities(pool) {
   const { rows } = await pool.query("SELECT id FROM communities WHERE type='regional' LIMIT 1");
-  if (rows.length) {
-    // Atualizar foto e bio mesmo se já existe
-    await pool.query('UPDATE users SET avatar_url=$1, bio=$2 WHERE id=$3',
-      ['https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg',
-       'Oi! Eu sou o Pedro 🐱 O gato laranja oficial do Daily. Estou aqui pra animar a rede, comentar seus posts e nunca te deixar sozinho. Fui criado em homenagem ao Pedro real, que partiu mas nunca foi esquecido. 🧡',
-       PEDRO_ID]);
-    return;
-  }
+  if (rows.length) return;
   const { v4: uuidv4 } = require('uuid');
   const { BRASIL_DATA } = require('./seed_communities');
   const SYSTEM_USER = 'system-daily';
