@@ -1972,7 +1972,7 @@ async function loadAdmin(){
       <td><span style="color:${u.is_moderator?'var(--accent2)':'var(--muted)'};">${u.is_moderator?'⚡':'—'}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;">
         <button class="btn btn-xs btn-ghost" onclick="toggleAdmin('${u.id}','${u.name}',${u.is_admin})">${u.is_admin?'- ADM':'+ ADM'}</button>
-        ${u.is_admin?'':'<button class="btn btn-xs btn-ghost" onclick="toggleMod(''+u.id+'',''+u.name+'','+u.is_moderator+')">'+(u.is_moderator?'- MOD':'+ MOD')+'</button>'}
+        ${u.is_admin?'':('<button class="btn btn-xs btn-ghost" onclick="toggleMod(\''+u.id+'\',\''+u.name+'\','+u.is_moderator+')">'+(u.is_moderator?'- MOD':'+ MOD')+'</button>')}
       </td>
     </tr>`).join('');
   }catch(e){}
