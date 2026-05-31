@@ -203,6 +203,7 @@ async function initPG() {
   await seedAchievements(pool);
   await seedDailyQuestions(pool);
   await seedRegionalCommunities(pool);
+  await seedPedro(pool);
 
   wrapper = {
     prepare: (sql) => ({
@@ -214,6 +215,33 @@ async function initPG() {
     pool
   };
   return wrapper;
+}
+
+
+async function seedPedro(pool) {
+  const { v4: uuidv4 } = require('uuid');
+  const PEDRO_ID = 'pedro-official-daily';
+  // Verifica se Pedro já existe
+  const { rows } = await pool.query('SELECT id FROM users WHERE id=$1', [PEDRO_ID]);
+  if (rows.length) return;
+  // Criar conta do Pedro
+  const bcrypt = require('bcryptjs');
+  const hashed = await bcrypt.hash('pedro-daily-gato-laranja-2026', 12);
+  await pool.query(`
+    INSERT INTO users (id,name,username,email,password,bio,avatar_url,is_admin,points,occupation)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,0,9999,$8)
+    ON CONFLICT(id) DO NOTHING
+  `, [
+    PEDRO_ID,
+    'Pedro',
+    'pedro',
+    'pedro@daily.app',
+    hashed,
+    'Oi! Eu sou o Pedro 🐱 O gato laranja oficial do Daily. Estou aqui pra animar a rede, comentar seus posts e nunca deixar você sozinho. Fui criado em homenagem ao Pedro real, que partiu mas nunca foi esquecido. 🧡',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=pedro-gato-laranja&backgroundColor=ff6b35',
+    'Mascote oficial do Daily'
+  ]);
+  console.log('   🐱 Pedro criado!');
 }
 
 async function seedRegionalCommunities(pool) {
