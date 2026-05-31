@@ -694,7 +694,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <button class="map-ctrl-btn" onclick="centerMyLocation()">📍 Minha loc.</button>
           <button class="map-ctrl-btn" onclick="loadNearby()">👥 Próximos</button>
           <button class="map-ctrl-btn" id="chat-toggle" onclick="toggleGeoChat()">💬 Chat local</button>
-          <button class="map-ctrl-btn hidden" id="btn-add-point" onclick="openAddPointModal()">➕ Ponto</button>
+          <button class="map-ctrl-btn hidden" id="btn-add-point" onclick="activatePointPlacement()">➕ Ponto</button>
         </div>
         <div class="geo-chat-panel" id="geo-chat-panel">
           <div style="padding:12px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;">💬 Chat da área</div>
@@ -1511,6 +1511,7 @@ async function loadFriends(){
       <div style="font-weight:700;font-size:14px;">${f.name}</div>
       <div class="text-muted">@${f.username}</div>
       ${f.bio?`<div style="font-size:12px;color:var(--muted);margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${f.bio}</div>`:''}
+      <div style="margin-top:8px;font-size:12px;color:var(--accent);font-weight:600;">Ver perfil →</div>
     </div>`).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Ainda sem amigos. Busque pessoas!</p>`;
   }catch(e){}
 }
@@ -2665,6 +2666,33 @@ function setPointModalType(type, btn) {
   btn.classList.add('active');
   document.getElementById('pm-ponto').style.display = type === 'ponto' ? 'flex' : 'none';
   document.getElementById('pm-roteiro').style.display = type === 'roteiro' ? 'flex' : 'none';
+}
+
+
+function activatePointPlacement() {
+  if (!map) { toast('Ative o mapa primeiro', 'info'); return; }
+  const btn = document.getElementById('btn-add-point');
+  btn.textContent = '❌ Cancelar';
+  btn.onclick = cancelPointPlacement;
+  map.getContainer().style.cursor = 'crosshair';
+  toast('📍 Clique no mapa para marcar o local', 'info');
+  map.once('click', function(e) {
+    cancelPointPlacement();
+    openAddPointModalWithCoords(e.latlng.lat, e.latlng.lng);
+  });
+}
+
+function cancelPointPlacement() {
+  if (map) { map.off('click'); map.getContainer().style.cursor = ''; }
+  const btn = document.getElementById('btn-add-point');
+  if (btn) { btn.textContent = '➕ Ponto'; btn.onclick = activatePointPlacement; }
+}
+
+async function openAddPointModalWithCoords(lat, lng) {
+  document.getElementById('pm-lat').value = lat.toFixed(6);
+  document.getElementById('pm-lng').value = lng.toFixed(6);
+  document.getElementById('pm-loc-status').textContent = '✅ Local selecionado: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+  await openAddPointModal(lat, lng);
 }
 
 async function openAddPointModal() {
@@ -3919,7 +3947,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <button class="map-ctrl-btn" onclick="centerMyLocation()">📍 Minha loc.</button>
           <button class="map-ctrl-btn" onclick="loadNearby()">👥 Próximos</button>
           <button class="map-ctrl-btn" id="chat-toggle" onclick="toggleGeoChat()">💬 Chat local</button>
-          <button class="map-ctrl-btn hidden" id="btn-add-point" onclick="openAddPointModal()">➕ Ponto</button>
+          <button class="map-ctrl-btn hidden" id="btn-add-point" onclick="activatePointPlacement()">➕ Ponto</button>
         </div>
         <div class="geo-chat-panel" id="geo-chat-panel">
           <div style="padding:12px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;">💬 Chat da área</div>
@@ -4736,6 +4764,7 @@ async function loadFriends(){
       <div style="font-weight:700;font-size:14px;">${f.name}</div>
       <div class="text-muted">@${f.username}</div>
       ${f.bio?`<div style="font-size:12px;color:var(--muted);margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${f.bio}</div>`:''}
+      <div style="margin-top:8px;font-size:12px;color:var(--accent);font-weight:600;">Ver perfil →</div>
     </div>`).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Ainda sem amigos. Busque pessoas!</p>`;
   }catch(e){}
 }
@@ -5890,6 +5919,33 @@ function setPointModalType(type, btn) {
   btn.classList.add('active');
   document.getElementById('pm-ponto').style.display = type === 'ponto' ? 'flex' : 'none';
   document.getElementById('pm-roteiro').style.display = type === 'roteiro' ? 'flex' : 'none';
+}
+
+
+function activatePointPlacement() {
+  if (!map) { toast('Ative o mapa primeiro', 'info'); return; }
+  const btn = document.getElementById('btn-add-point');
+  btn.textContent = '❌ Cancelar';
+  btn.onclick = cancelPointPlacement;
+  map.getContainer().style.cursor = 'crosshair';
+  toast('📍 Clique no mapa para marcar o local', 'info');
+  map.once('click', function(e) {
+    cancelPointPlacement();
+    openAddPointModalWithCoords(e.latlng.lat, e.latlng.lng);
+  });
+}
+
+function cancelPointPlacement() {
+  if (map) { map.off('click'); map.getContainer().style.cursor = ''; }
+  const btn = document.getElementById('btn-add-point');
+  if (btn) { btn.textContent = '➕ Ponto'; btn.onclick = activatePointPlacement; }
+}
+
+async function openAddPointModalWithCoords(lat, lng) {
+  document.getElementById('pm-lat').value = lat.toFixed(6);
+  document.getElementById('pm-lng').value = lng.toFixed(6);
+  document.getElementById('pm-loc-status').textContent = '✅ Local selecionado: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+  await openAddPointModal(lat, lng);
 }
 
 async function openAddPointModal() {
