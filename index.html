@@ -3077,14 +3077,22 @@ function showEventSection(sec, btn) {
 }
 
 function openCreateEventModal() {
-  document.getElementById('ev-title').value = '';
-  document.getElementById('ev-desc').value = '';
-  document.getElementById('ev-location').value = '';
-  const now = new Date(); now.setMinutes(0,0,0);
-  document.getElementById('ev-start').value = now.toISOString().slice(0,16);
-  const end = new Date(now.getTime() + 3*3600000);
-  document.getElementById('ev-end').value = end.toISOString().slice(0,16);
-  openModal('modal-create-event');
+  try {
+    const fields = ['ev-title','ev-desc','ev-location'];
+    fields.forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    const now = new Date(); now.setMinutes(0,0,0);
+    const startEl = document.getElementById('ev-start');
+    const endEl = document.getElementById('ev-end');
+    if(startEl) startEl.value = now.toISOString().slice(0,16);
+    if(endEl) { const e = new Date(now.getTime() + 3*3600000); endEl.value = e.toISOString().slice(0,16); }
+    const prev = document.getElementById('ev-photo-preview');
+    const lbl = document.getElementById('ev-photo-label');
+    const fi = document.getElementById('ev-photo-file');
+    if(prev) prev.style.display = 'none';
+    if(lbl) lbl.style.display = 'flex';
+    if(fi) fi.value = '';
+    openModal('modal-create-event');
+  } catch(e) { toast('Erro ao abrir form: '+e.message, 'error'); }
 }
 
 function previewEventPhoto(input) {
