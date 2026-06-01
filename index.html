@@ -3879,9 +3879,9 @@ async function saveEditCommunity() {
     </div>
     <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
       <div style="display:flex;gap:8px;">
-        <input type="text" id="invite-search-input" placeholder="Buscar usuário pelo nome..." style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;background:var(--surface2);" oninput="searchUsersToInvite(this.value)">
+        <input type="text" id="comm-invite-input" placeholder="Buscar usuário pelo nome..." style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;background:var(--surface2);" oninput="searchUsersToInvite(this.value)">
       </div>
-      <div id="invite-search-results" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;"></div>
+      <div id="comm-invite-results" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;"></div>
     </div>
   </div>
 </div>
@@ -4037,8 +4037,8 @@ let inviteCommunityId = null;
 
 function openInviteCommunity(communityId) {
   inviteCommunityId = communityId;
-  document.getElementById('invite-search-input').value = '';
-  document.getElementById('invite-search-results').innerHTML = '';
+  document.getElementById('comm-invite-input').value = '';
+  document.getElementById('comm-invite-results').innerHTML = '';
   openModal('modal-invite-community');
 }
 
@@ -4046,13 +4046,13 @@ let inviteSearchTimeout = null;
 function searchUsersToInvite(query) {
   clearTimeout(inviteSearchTimeout);
   if (query.length < 2) {
-    document.getElementById('invite-search-results').innerHTML = '';
+    document.getElementById('comm-invite-results').innerHTML = '';
     return;
   }
   inviteSearchTimeout = setTimeout(async () => {
     try {
       const { users } = await api(`/api/users/search?q=${encodeURIComponent(query)}`);
-      const el = document.getElementById('invite-search-results');
+      const el = document.getElementById('comm-invite-results');
       if (!users.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px;">Nenhum usuário encontrado</div>'; return; }
       el.innerHTML = users.map(u => `
         <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:var(--surface2);">
