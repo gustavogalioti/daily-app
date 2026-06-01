@@ -11,22 +11,45 @@ const router = express.Router();
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const db = getDB();
-    const { type, country, state, city, neighborhood, search, limit=40, offset=0 } = req.query;
-    let sql = `SELECT c.*, u.name as owner_name, u.username as owner_username,
+    const { type, country, state, city, neighborhood, search, limit=40, offset=0, exclude_type, mine, sort } = req.query;
+    const p = [];
+    const conditions = ['1=1'];
+
+    // mine=1: só comunidades onde o usuário logado é membro
+    if (mine === '1' && req.user) {
+      conditions.push(`c.id IN (SELECT community_id FROM community_members WHERE user_id=$${p.push(req.user.id)})`);
+    }
+
+    if (type)         { conditions.push(`c.type=$${p.push(type)}`); }
+    else if (exclude_type) { conditions.push(`c.type != $${p.push(exclude_type)}`); }
+    if (country)      { conditions.push(`c.country=$${p.push(country)}`); }
+    if (state)        { conditions.push(`c.state=$${p.push(state)}`); }
+    if (city)         { conditions.push(`c.city ILIKE $${p.push('%'+city+'%')}`); }
+    if (neighborhood) { conditions.push(`c.neighborhood=$${p.push(neighborhood)}`); }
+    if (search) {
+      const si = p.push('%'+search+'%');
+      conditions.push(`(c.name ILIKE $${si} OR c.description ILIKE $${si})`);
+    }
+
+    const orderBy = sort === 'members' ? 'member_count DESC' : 'member_count DESC, c.created_at DESC';
+    const limitIdx = p.push(parseInt(limit));
+    const offsetIdx = p.push(parseInt(offset));
+
+    const sql = `SELECT c.*, u.name as owner_name, u.username as owner_username,
       (SELECT COUNT(*) FROM community_members cm WHERE cm.community_id=c.id) as member_count
-      FROM communities c JOIN users u ON u.id=c.owner_id WHERE 1=1`;
-    const p = []; let i = 0;
-    const exclude_type = req.query.exclude_type;
-    if (type)         { sql += ` AND c.type=$${++i}`;          p.push(type); }
-    else if (exclude_type) { sql += ` AND c.type != $${++i}`; p.push(exclude_type); }
-    if (country)      { sql += ` AND c.country=$${++i}`;       p.push(country); }
-    if (state)        { sql += ` AND c.state=$${++i}`;         p.push(state); }
-    if (city)         { sql += ` AND c.city=$${++i}`;          p.push(city); }
-    if (neighborhood) { sql += ` AND c.neighborhood=$${++i}`;  p.push(neighborhood); }
-    if (search)       { sql += ` AND (c.name ILIKE $${++i} OR c.description ILIKE $${++i})`; p.push(`%${search}%`); p.push(`%${search}%`); i++; }
-    sql += ` ORDER BY member_count DESC, c.created_at DESC LIMIT $${++i} OFFSET $${++i}`;
-    p.push(parseInt(limit), parseInt(offset));
+      FROM communities c JOIN users u ON u.id=c.owner_id
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY ${orderBy} LIMIT $${limitIdx} OFFSET $${offsetIdx}`;
+
     const communities = await db.prepare(sql).all(...p);
+
+    // Marcar quais o usuário já é membro
+    if (req.user) {
+      const myComms = await db.prepare('SELECT community_id FROM community_members WHERE user_id=$1').all(req.user.id);
+      const mySet = new Set(myComms.map(m => m.community_id));
+      communities.forEach(c => c.is_member = mySet.has(c.id));
+    }
+
     res.json({ communities });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
