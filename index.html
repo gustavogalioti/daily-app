@@ -3805,13 +3805,7 @@ async function saveEditCommunity() {
     if (photoInput.files[0]) {
       const fd = new FormData();
       fd.append('photo', photoInput.files[0]);
-      const r = await fetch(`/api/communities/${editCommId}/photo`, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-        body: fd
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || 'Erro no upload');
+      const data = await apiForm(`/api/communities/${editCommId}/photo`, fd);
       image_url = data.image_url;
     }
 
