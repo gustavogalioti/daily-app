@@ -12,6 +12,13 @@ async function canManageMap(db, userId) {
   return u && (u.is_admin || u.is_moderator);
 }
 
+async function canManagePoint(db, userId, pointId) {
+  const u = await db.prepare('SELECT is_admin, is_moderator FROM users WHERE id=$1').get(userId);
+  if (u && (u.is_admin || u.is_moderator)) return true;
+  const p = await db.prepare('SELECT created_by FROM map_points WHERE id=$1').get(pointId);
+  return p && p.created_by === userId;
+}
+
 // Distância em metros entre dois pontos
 function distanceMeters(lat1, lng1, lat2, lng2) {
   const R = 6371000;
@@ -105,7 +112,7 @@ router.post('/routes', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    if (!await canManageMap(db, req.user.id)) return res.status(403).json({ error: 'Sem permissão' });
+    if (!await canManagePoint(db, req.user.id, req.params.id)) return res.status(403).json({ error: 'Sem permissão' });
     const { title, description, points, checkin_radius, icon, category, active } = req.body;
     await db.prepare(`UPDATE map_points SET
       title=COALESCE($1,title), description=COALESCE($2,description),
@@ -122,7 +129,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    if (!await canManageMap(db, req.user.id)) return res.status(403).json({ error: 'Sem permissão' });
+    if (!await canManagePoint(db, req.user.id, req.params.id)) return res.status(403).json({ error: 'Sem permissão' });
     await db.prepare('UPDATE map_points SET active=0 WHERE id=$1').run(req.params.id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }

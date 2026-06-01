@@ -2532,13 +2532,10 @@ function cancelPointPlacement() {
 }
 
 async function openAddPointModalWithCoords(lat, lng) {
-  document.getElementById('pm-lat').value = lat.toFixed(6);
-  document.getElementById('pm-lng').value = lng.toFixed(6);
-  document.getElementById('pm-loc-status').textContent = '✅ Local selecionado: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
   await openAddPointModal(lat, lng);
 }
 
-async function openAddPointModal() {
+async function openAddPointModal(presetLat, presetLng) {
   // Carregar roteiros para o select
   try {
     const { routes } = await api('/api/map-points/routes/all');
@@ -2551,10 +2548,19 @@ async function openAddPointModal() {
   document.getElementById('pm-desc').value = '';
   document.getElementById('pm-points').value = '100';
   document.getElementById('pm-radius').value = '100';
-  document.getElementById('pm-lat').value = myLat || '';
-  document.getElementById('pm-lng').value = myLng || '';
-  if (myLat && myLng) {
-    document.getElementById('pm-loc-status').textContent = `📍 Usando sua localização atual: ${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
+  // Se vieram coords do clique no mapa, usa elas; senão usa localização atual
+  if (presetLat && presetLng) {
+    document.getElementById('pm-lat').value = presetLat.toFixed(6);
+    document.getElementById('pm-lng').value = presetLng.toFixed(6);
+    document.getElementById('pm-loc-status').textContent = `✅ Local selecionado: ${presetLat.toFixed(5)}, ${presetLng.toFixed(5)}`;
+  } else {
+    document.getElementById('pm-lat').value = myLat || '';
+    document.getElementById('pm-lng').value = myLng || '';
+    if (myLat && myLng) {
+      document.getElementById('pm-loc-status').textContent = `📍 Usando sua localização atual: ${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
+    } else {
+      document.getElementById('pm-loc-status').textContent = '📍 Nenhum local definido';
+    }
   }
   setPointModalType('ponto', document.getElementById('pt-ponto'));
   openModal('modal-add-point');
@@ -2630,10 +2636,43 @@ async function loadMapPointsList() {
           <div class="text-muted">${p.description||''}</div>
           <div style="font-size:12px;margin-top:4px;"><span style="color:var(--gold);font-weight:700;">+${p.points} pts</span> · 📍 raio ${p.checkin_radius}m · 👥 ${p.checkin_count||0} check-ins</div>
         </div>
-        ${!p.checked_in ? `<button class="btn btn-primary btn-sm" onclick="openCheckinModal('${p.id}')">Check-in</button>` : ''}
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+          ${!p.checked_in ? `<button class="btn btn-primary btn-sm" onclick="openCheckinModal('${p.id}')">Check-in</button>` : ''}
+          ${(p.created_by === currentUser?.id || currentUser?.is_admin) ? `
+            <button class="btn btn-sm" style="background:var(--surface2);font-size:11px;" onclick="editMapPoint('${p.id}','${p.title.replace(/'/g,"\\'")}','${(p.description||'').replace(/'/g,"\\'")}',${p.points},${p.checkin_radius},'${p.icon||'🏆'}')">✏️ Editar</button>
+            <button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;font-size:11px;" onclick="deleteMapPoint('${p.id}','${p.title.replace(/'/g,"\\'")}')">🗑️ Apagar</button>
+          ` : ''}
+        </div>
       </div>
     `).join('') : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum ponto de conquista no mapa ainda.</p>';
   } catch(e) {}
+}
+
+async function deleteMapPoint(id, title) {
+  if (!confirm(`Apagar o ponto "${title}"? Essa ação não pode ser desfeita.`)) return;
+  try {
+    await api(`/api/map-points/${id}`, { method: 'DELETE' });
+    toast('Ponto apagado!', 'success');
+    loadMapPoints();
+    loadMapPointsList();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function editMapPoint(id, title, desc, points, radius, icon) {
+  const newTitle = prompt('Título do ponto:', title);
+  if (newTitle === null) return;
+  const newDesc = prompt('Descrição:', desc);
+  if (newDesc === null) return;
+  const newPoints = prompt('Pontos ao fazer check-in:', points);
+  if (newPoints === null) return;
+  try {
+    await api(`/api/map-points/${id}`, { method: 'PUT', body: JSON.stringify({
+      title: newTitle, description: newDesc, points: parseInt(newPoints)
+    })});
+    toast('Ponto atualizado! ✅', 'success');
+    loadMapPoints();
+    loadMapPointsList();
+  } catch(e) { toast(e.message, 'error'); }
 }
 
 async function loadRoutesList() {
@@ -2807,49 +2846,58 @@ function previewEventPhoto(input) {
 }
 
 async function createEvent() {
-  const title = document.getElementById('ev-title').value.trim();
-  const event_date = document.getElementById('ev-start').value;
+  const titleEl = document.getElementById('ev-title');
+  const startEl = document.getElementById('ev-start');
+  if (!titleEl || !startEl) { toast('Erro interno: campos não encontrados', 'error'); return; }
+  const title = titleEl.value.trim();
+  const event_date = startEl.value;
   if (!title) { toast('Título obrigatório', 'error'); return; }
   if (!event_date) { toast('Data de início obrigatória', 'error'); return; }
   const btn = document.getElementById('ev-submit-btn');
-  btn.disabled = true; btn.textContent = 'Criando...';
+  if (btn) { btn.disabled = true; btn.textContent = 'Criando...'; }
   try {
-    // 1. Criar evento
-    const { event } = await api('/api/events', { method:'POST', body: JSON.stringify({
+    const endEl = document.getElementById('ev-end');
+    const body = {
       title,
-      description: document.getElementById('ev-desc').value || '',
-      location: document.getElementById('ev-location').value || '',
+      description: document.getElementById('ev-desc')?.value || '',
+      location: document.getElementById('ev-location')?.value || '',
       event_date: new Date(event_date).toISOString(),
-      event_end_date: document.getElementById('ev-end').value ? new Date(document.getElementById('ev-end').value).toISOString() : null,
-    })});
+      event_end_date: endEl?.value ? new Date(endEl.value).toISOString() : null,
+    };
+    const result = await api('/api/events', { method:'POST', body: JSON.stringify(body) });
+    const event = result.event || result;
+    if (!event || !event.id) throw new Error('Resposta inválida do servidor');
 
-    // 2. Upload da foto de capa se tiver
-    const photoFile = document.getElementById('ev-photo-file').files[0];
+    // Upload da foto de capa se tiver
+    const photoFile = document.getElementById('ev-photo-file')?.files[0];
     if (photoFile) {
       try {
         const fd = new FormData();
         fd.append('photo', photoFile);
         await apiForm(`/api/events/${event.id}/cover`, fd);
-      } catch(e) { /* não bloqueia se foto falhar */ }
+      } catch(e) { /* não bloqueia */ }
     }
 
     toast('Evento criado! 🎉', 'success');
     closeModal('modal-create-event');
     // Reset form
-    document.getElementById('ev-title').value = '';
-    document.getElementById('ev-desc').value = '';
-    document.getElementById('ev-location').value = '';
-    document.getElementById('ev-start').value = '';
-    document.getElementById('ev-end').value = '';
-    document.getElementById('ev-photo-preview').style.display = 'none';
-    document.getElementById('ev-photo-label').style.display = 'flex';
-    document.getElementById('ev-photo-file').value = '';
+    ['ev-title','ev-desc','ev-location','ev-start','ev-end'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.value = '';
+    });
+    const prev = document.getElementById('ev-photo-preview');
+    const lbl = document.getElementById('ev-photo-label');
+    const fi = document.getElementById('ev-photo-file');
+    if(prev) prev.style.display = 'none';
+    if(lbl) lbl.style.display = 'flex';
+    if(fi) fi.value = '';
     loadEvents();
-    setTimeout(() => openEventModal(event.id), 300);
+    if (typeof loadProfileEvents === 'function') loadProfileEvents();
+    setTimeout(() => openEventModal(event.id), 400);
   } catch(e) {
     toast(e.message || 'Erro ao criar evento', 'error');
+    console.error('createEvent error:', e);
   } finally {
-    btn.disabled = false; btn.textContent = 'Criar evento 🎉';
+    if (btn) { btn.disabled = false; btn.textContent = 'Criar evento 🎉'; }
   }
 }
 
