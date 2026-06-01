@@ -27,7 +27,7 @@ router.get('/', authMiddleware, async (req, res) => {
 router.put('/read-all', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    await db.prepare('UPDATE user_notifications SET read=1 WHERE user_id=$1').run(req.user.id);
+    await db.prepare('UPDATE user_notifications SET read=true WHERE user_id=$1').run(req.user.id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -36,7 +36,7 @@ router.put('/read-all', authMiddleware, async (req, res) => {
 router.put('/:id/read', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    await db.prepare('UPDATE user_notifications SET read=1 WHERE id=$1 AND user_id=$2').run(req.params.id, req.user.id);
+    await db.prepare('UPDATE user_notifications SET read=true WHERE id=$1 AND user_id=$2').run(req.params.id, req.user.id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -99,7 +99,7 @@ router.post('/community-invite/:id/accept', authMiddleware, async (req, res) => 
     await db.prepare("UPDATE community_invites SET status='accepted' WHERE id=$1").run(req.params.id);
 
     // Marcar notificação como lida
-    await db.prepare("UPDATE user_notifications SET read=1 WHERE user_id=$1 AND data->>'invite_id'=$2").run(req.user.id, req.params.id);
+    await db.prepare("UPDATE user_notifications SET read=true WHERE user_id=$1 AND data->>'invite_id'=$2").run(req.user.id, req.params.id);
 
     // Notificar quem convidou
     const community = await db.prepare('SELECT name FROM communities WHERE id=$1').get(invite.community_id);
@@ -124,7 +124,7 @@ router.post('/community-invite/:id/decline', authMiddleware, async (req, res) =>
     const invite = await db.prepare('SELECT * FROM community_invites WHERE id=$1 AND invitee_id=$2').get(req.params.id, req.user.id);
     if (!invite) return res.status(404).json({ error: 'Convite não encontrado' });
     await db.prepare("UPDATE community_invites SET status='declined' WHERE id=$1").run(req.params.id);
-    await db.prepare("UPDATE user_notifications SET read=1 WHERE user_id=$1 AND data->>'invite_id'=$2").run(req.user.id, req.params.id);
+    await db.prepare("UPDATE user_notifications SET read=true WHERE user_id=$1 AND data->>'invite_id'=$2").run(req.user.id, req.params.id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });

@@ -2948,18 +2948,17 @@ function previewEventPhoto(input) {
 
 async function createEvent() {
   const title = document.getElementById('ev-title')?.value.trim();
-  const event_date = document.getElementById('ev-start')?.value;
   if (!title) { toast('Título obrigatório', 'error'); return; }
-  if (!event_date) { toast('Data de início obrigatória', 'error'); return; }
   const errEl = document.getElementById('ev-error-msg');
   if (errEl) errEl.style.display = 'none';
   try {
+    const event_date_val = document.getElementById('ev-start')?.value;
     await api('/api/events', { method:'POST', body: JSON.stringify({
       title,
       description: document.getElementById('ev-desc')?.value || '',
       location: document.getElementById('ev-location')?.value || '',
-      event_date: new Date(event_date).toISOString(),
-      event_end_date: document.getElementById('ev-end')?.value ? new Date(document.getElementById('ev-end').value).toISOString() : null,
+      event_date: event_date_val ? new Date(event_date_val).toISOString() : new Date(Date.now() + 86400000).toISOString(),
+      event_end_date: null,
     })});
     toast('Evento criado! 🎉', 'success');
     closeModal('modal-create-event');
@@ -2967,12 +2966,11 @@ async function createEvent() {
     const prev=document.getElementById('ev-photo-preview'); if(prev) prev.style.display='none';
     const lbl=document.getElementById('ev-photo-label'); if(lbl) lbl.style.display='flex';
     const fi=document.getElementById('ev-photo-file'); if(fi) fi.value='';
-    loadEvents();
-    if (typeof loadProfileEvents==='function') loadProfileEvents();
+    loadProfileEvents();
   } catch(e) {
     const msg = e.message || 'Erro desconhecido';
     toast(msg, 'error');
-    if (errEl) { errEl.textContent = '❌ Erro: ' + msg; errEl.style.display = 'block'; }
+    if (errEl) { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; }
   }
 }
 
@@ -3400,7 +3398,7 @@ async function loadVisitorSection(sec, username, btn) {
       el.innerHTML = '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;">'
         + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">✍️ Deixar depoimento</div>'
         + '<textarea id="visitor-testimonial-text" placeholder="Escreva algo sobre '+user.name+'..." style="min-height:80px;width:100%;"></textarea>'
-        + '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="sendTestimonialToUser(\''+user.id+'\')">Enviar depoimento</button>'
+        + '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="sendTestimonialToUser(\''+username+'\')">Enviar depoimento</button>'
         + '</div>' + list;
     }
   } catch(e) { el.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
@@ -3608,16 +3606,15 @@ async function loadAgoraFeed() {
 }
 
 // Depoimento em outro usuário
-async function sendTestimonialToUser(targetUserId) {
+async function sendTestimonialToUser(targetUsername) {
   const content = document.getElementById('visitor-testimonial-text')?.value?.trim();
   if(!content){ toast('Escreva o depoimento', 'error'); return; }
+  if(content.length < 10){ toast('Depoimento muito curto (mínimo 10 caracteres)', 'error'); return; }
   try {
-    await api('/api/testimonials/'+targetUserId, { method:'POST', body: JSON.stringify({ content }) });
+    await api('/api/testimonials/' + targetUsername, { method:'POST', body: JSON.stringify({ content }) });
     toast('Depoimento enviado! 💬', 'success');
     document.getElementById('visitor-testimonial-text').value = '';
-    // Recarregar depoimentos
-    const username = document.getElementById('visitor-section-content')?.dataset?.username;
-    if(username) loadVisitorSection('depoimentos', username, null);
+    loadVisitorSection('depoimentos', targetUsername, null);
   } catch(e) { toast(e.message, 'error'); }
 }
 
@@ -4009,8 +4006,8 @@ async function sendCommunityInvite(userId, btn) {
 const _origLoadApp = typeof loadApp !== 'undefined' ? loadApp : null;
 document.addEventListener('DOMContentLoaded', () => {
   // Polling começa quando usuário estiver logado
-  setInterval(() => { if (currentUser) pollNotifBadge(); }, 30000);
-  setTimeout(() => { if (currentUser) pollNotifBadge(); }, 2000);
+  setInterval(() => { if (currentUser) pollNotifBadge(); }, 10000);
+  setTimeout(() => { if (currentUser) pollNotifBadge(); }, 1000);
 });
 </script>
 
@@ -4257,25 +4254,11 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="modal">
     <div class="modal-hdr"><span class="modal-title">📅 Criar evento</span><button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
     <div class="modal-body">
-      <!-- Foto do evento -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:4px;">
-        <div style="position:relative;width:100%;height:140px;background:var(--surface2);border-radius:12px;overflow:hidden;border:2px dashed var(--border);">
-          <img id="ev-photo-preview" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
-          <label for="ev-photo-file" id="ev-photo-label" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:6px;color:var(--muted);">
-            <span style="font-size:28px;">🖼️</span>
-            <span style="font-size:13px;font-weight:600;">Adicionar capa do evento</span>
-          </label>
-          <input type="file" id="ev-photo-file" accept="image/*" style="display:none;" onchange="previewEventPhoto(this)">
-        </div>
-      </div>
-      <div><label>Título do evento</label><input type="text" id="ev-title" placeholder="Ex: Churrasco de aniversário"></div>
+      <div><label>Nome do evento *</label><input type="text" id="ev-title" placeholder="Ex: Churrasco de aniversário"></div>
       <div><label>Descrição</label><textarea id="ev-desc" placeholder="Conte mais sobre o evento..." style="min-height:80px;"></textarea></div>
-      <div><label>Local</label><input type="text" id="ev-location" placeholder="Ex: Minha casa, Parque da Cidade..."></div>
-      <div class="form-row">
-        <div><label>Data e hora de início</label><input type="datetime-local" id="ev-start"></div>
-        <div><label>Data e hora de fim</label><input type="datetime-local" id="ev-end"></div>
-      </div>
-      <button class="btn btn-primary" style="width:100%;" id="ev-submit-btn" onclick="createEvent()">Criar evento 🎉</button>
+      <div><label>Local</label><input type="text" id="ev-location" placeholder="Ex: Minha casa, Parque..."></div>
+      <div><label>Data e hora (opcional)</label><input type="datetime-local" id="ev-start"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="createEvent()">Criar evento 🎉</button>
       <div id="ev-error-msg" style="display:none;margin-top:10px;padding:10px;background:#fee2e2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:600;"></div>
     </div>
   </div>
