@@ -3307,8 +3307,6 @@ async function openFullUserProfile(username) {
     switchTab('profile', document.querySelector('[data-tab=profile]'));
     return;
   }
-  const modal = document.getElementById('modal-user-profile');
-  if(!modal) { toast('Modal não encontrado', 'error'); return; }
   openModal('modal-user-profile');
   const body = document.getElementById('user-profile-body');
   if(body) body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
@@ -3318,43 +3316,69 @@ async function openFullUserProfile(username) {
     const fs = user.friendship_status;
     let actionBtn = '';
     if (fs === 'friends') {
-      actionBtn = '<span style="color:var(--green);font-weight:600;">✅ Amigos</span>';
+      actionBtn = '<span style="color:var(--green);font-weight:700;font-size:13px;">✅ Amigos</span>';
     } else if (fs === 'pending_sent') {
-      actionBtn = '<span style="color:var(--muted);">⏳ Solicitação enviada</span>';
+      actionBtn = '<span style="color:var(--muted);font-size:13px;">⏳ Enviada</span>';
     } else {
-      actionBtn = '<button class="btn btn-primary btn-sm" onclick="sendFriendReqDirect(\''+user.id+'\',\''+user.name.replace(/[^a-zA-Z0-9 ]/g,'')+'\')" >+ Adicionar amigo</button>';
+      actionBtn = `<button class="btn btn-primary btn-sm" onclick="sendFriendReqDirect('${user.id}','${(user.name||'').replace(/'/g,'')}')">+ Adicionar</button>`;
     }
-    // Perfil completo com tabs
-    if(body) body.innerHTML =
-      '<div style="text-align:center;padding:16px 0 12px;">'
-      + '<img class="avatar" src="'+av+'" width="80" height="80" style="border:3px solid var(--accent);margin-bottom:10px;">'
-      + '<div style="font-family:Syne;font-size:18px;font-weight:800;">'+user.name+'</div>'
-      + '<div class="text-muted">@'+user.username+'</div>'
-      + (user.bio ? '<div style="font-size:13px;color:var(--text2);margin-top:6px;padding:0 10px;">'+user.bio+'</div>' : '')
-      + (user.city ? '<div class="text-muted" style="font-size:12px;margin-top:4px;">📍 '+user.city+(user.state?', '+user.state:'')+'</div>' : '')
-      + '<div style="margin-top:10px;">'+actionBtn+'</div></div>'
-      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">'
-      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--accent);">'+(user.stats?.posts||0)+'</div><div class="text-muted" style="font-size:11px;">Posts</div></div>'
-      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--accent);">'+(user.stats?.friends_count||0)+'</div><div class="text-muted" style="font-size:11px;">Amigos</div></div>'
-      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--gold);">'+(user.points||0)+'</div><div class="text-muted" style="font-size:11px;">Pontos</div></div>'
-      + '</div>'
-      + '<div style="display:flex;border-bottom:1.5px solid var(--border);margin-bottom:12px;gap:0;">'
-      + '<button style="flex:1;padding:10px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;border-bottom:2.5px solid var(--accent);color:var(--accent);" onclick="loadVisitorSection(\'posts\',\''+username+'\',this)">Posts</button>'
-      + '<button style="flex:1;padding:10px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection(\'conquistas\',\''+username+'\',this)">🏆</button>'
-      + '<button style="flex:1;padding:10px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection(\'depoimentos\',\''+username+'\',this)">💬 Depoi.</button>'
-      + '</div>'
-      + '<div id="visitor-section-content"><div class="page-loader"><div class="loader"></div></div></div>';
-    // Carregar posts automaticamente
-    loadVisitorSection('posts', username, document.querySelector('#user-profile-body button'));
+    const badges = (user.featured_badges||[]).map(b =>
+      `<div style="background:var(--surface2);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">${b.icon} ${b.name}</div>`
+    ).join('');
+    body.innerHTML = `
+      <div style="background:linear-gradient(135deg,var(--accent),#c2500a);height:90px;border-radius:12px 12px 0 0;margin:-20px -20px 0;"></div>
+      <div style="padding:0 16px 16px;">
+        <div style="display:flex;align-items:flex-end;gap:14px;margin-top:-36px;margin-bottom:10px;">
+          <img src="${av}" style="width:72px;height:72px;border-radius:50%;border:3px solid var(--surface);object-fit:cover;flex-shrink:0;">
+          <div style="flex:1;padding-bottom:4px;">
+            <div style="font-family:Syne;font-size:17px;font-weight:800;">${user.name}</div>
+            <div class="text-muted">@${user.username}</div>
+          </div>
+          <div style="padding-bottom:4px;">${actionBtn}</div>
+        </div>
+        ${user.bio ? `<div style="font-size:13px;margin-bottom:8px;">${user.bio}</div>` : ''}
+        <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--muted);margin-bottom:10px;">
+          ${user.occupation ? `<span>💼 ${user.occupation}</span>` : ''}
+          ${user.city ? `<span>📍 ${user.city}${user.state?', '+user.state:''}</span>` : ''}
+        </div>
+        ${badges ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">${badges}</div>` : ''}
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:10px;">
+            <div style="font-family:Syne;font-size:16px;font-weight:800;color:var(--accent);">${user.stats?.posts||0}</div>
+            <div class="text-muted" style="font-size:10px;">Posts</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:10px;">
+            <div style="font-family:Syne;font-size:16px;font-weight:800;color:var(--accent);">${user.stats?.friends_count||0}</div>
+            <div class="text-muted" style="font-size:10px;">Amigos</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:10px;">
+            <div style="font-family:Syne;font-size:16px;font-weight:800;color:var(--gold);">${user.points||0}</div>
+            <div class="text-muted" style="font-size:10px;">Pontos</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:10px;">
+            <div style="font-family:Syne;font-size:16px;font-weight:800;color:var(--accent);">${user.stats?.active_days||0}</div>
+            <div class="text-muted" style="font-size:10px;">Dias</div>
+          </div>
+        </div>
+        <div style="display:flex;border-bottom:1.5px solid var(--border);margin-bottom:12px;overflow-x:auto;gap:0;">
+          <button id="vtab-posts" style="flex-shrink:0;padding:9px 12px;border:none;background:transparent;font-weight:700;font-size:12px;cursor:pointer;border-bottom:2.5px solid var(--accent);color:var(--accent);" onclick="loadVisitorSection('posts','${username}',this)">📋 Posts</button>
+          <button id="vtab-linha" style="flex-shrink:0;padding:9px 12px;border:none;background:transparent;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('linha','${username}',this)">📅 Linha</button>
+          <button id="vtab-conquistas" style="flex-shrink:0;padding:9px 12px;border:none;background:transparent;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('conquistas','${username}',this)">🏆</button>
+          <button id="vtab-depoimentos" style="flex-shrink:0;padding:9px 12px;border:none;background:transparent;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('depoimentos','${username}',this)">💬 Depoi.</button>
+          <button id="vtab-amigos" style="flex-shrink:0;padding:9px 12px;border:none;background:transparent;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('amigos','${username}',this)">👥 Amigos</button>
+        </div>
+        <div id="visitor-section-content" data-username="${username}"></div>
+      </div>`;
+    loadVisitorSection('posts', username, document.getElementById('vtab-posts'));
   } catch(e) {
-    if(body) body.innerHTML = '<p class="text-muted" style="padding:20px;text-align:center;">'+e.message+'</p>';
+    if(body) body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
   }
 }
 
 async function loadVisitorSection(sec, username, btn) {
-  // Atualizar tab ativa
-  const btns = document.querySelectorAll('#user-profile-body button[onclick*="loadVisitorSection"]');
-  btns.forEach(b => { b.style.borderBottom='none'; b.style.color='var(--muted)'; });
+  document.querySelectorAll('#user-profile-body button[id^="vtab-"]').forEach(b => {
+    b.style.borderBottom='none'; b.style.color='var(--muted)';
+  });
   if(btn) { btn.style.borderBottom='2.5px solid var(--accent)'; btn.style.color='var(--accent)'; }
   const el = document.getElementById('visitor-section-content');
   if(!el) return;
@@ -3362,49 +3386,82 @@ async function loadVisitorSection(sec, username, btn) {
   try {
     if (sec === 'posts') {
       const { user } = await api('/api/users/' + username);
-      const posts = await api('/api/posts?user_id='+user.id+'&limit=20');
-      el.innerHTML = posts.posts?.length
-        ? '<div style="display:flex;flex-direction:column;gap:10px;">' + posts.posts.map(p =>
+      const r = await api('/api/posts?user_id='+user.id+'&limit=20');
+      el.innerHTML = r.posts?.length
+        ? '<div style="display:flex;flex-direction:column;gap:10px;">' + r.posts.map(p =>
             '<div style="background:var(--surface2);border-radius:10px;padding:12px;">'
-            + (p.image_url ? '<img src="'+p.image_url+'" style="width:100%;border-radius:8px;margin-bottom:8px;">' : '')
-            + '<div style="font-size:13px;">'+( p.caption||p.content||'')+'</div>'
-            + '<div class="text-muted" style="font-size:11px;margin-top:4px;">'+timeAgo(p.created_at)+'</div>'
+            + (p.image_url ? `<img src="${p.image_url}" style="width:100%;border-radius:8px;margin-bottom:8px;">` : '')
+            + `<div style="font-size:13px;">${p.caption||p.content||''}</div>`
+            + `<div class="text-muted" style="font-size:11px;margin-top:4px;">${timeAgo(p.created_at)}</div>`
             + '</div>'
           ).join('') + '</div>'
         : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum post ainda.</p>';
+
+    } else if (sec === 'linha') {
+      const { user } = await api('/api/users/' + username);
+      const r = await api('/api/posts?user_id='+user.id+'&limit=50');
+      const posts = r.posts || [];
+      if (!posts.length) { el.innerHTML = '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum post.</p>'; return; }
+      const byDate = {};
+      posts.forEach(p => { const d = new Date(p.created_at).toLocaleDateString('pt-BR'); if(!byDate[d]) byDate[d]=[]; byDate[d].push(p); });
+      el.innerHTML = '<div style="display:flex;flex-direction:column;gap:14px;">' +
+        Object.entries(byDate).map(([date,ps]) =>
+          `<div><div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">📅 ${date}</div>`
+          + '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">'
+          + ps.map(p =>
+              '<div style="flex-shrink:0;width:110px;background:var(--surface2);border-radius:8px;overflow:hidden;">'
+              + (p.image_url ? `<img src="${p.image_url}" style="width:110px;height:80px;object-fit:cover;">` : `<div style="width:110px;height:80px;display:flex;align-items:center;justify-content:center;padding:6px;font-size:11px;color:var(--text2);">${(p.caption||p.content||'').slice(0,50)}</div>`)
+              + `<div style="padding:3px 6px;font-size:10px;color:var(--muted);">${new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div>`
+            ).join('')
+          + '</div></div>'
+        ).join('') + '</div>';
+
     } else if (sec === 'conquistas') {
       const data = await api('/api/achievements/user/' + username);
       el.innerHTML = data.earned?.length
         ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' + data.earned.map(a =>
             '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;">'
-            + '<div style="font-size:28px;">'+a.icon+'</div>'
-            + '<div style="font-size:11px;font-weight:700;margin-top:4px;">'+a.name+'</div>'
+            + (a.image_url ? `<img src="${a.image_url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;margin:0 auto 4px;display:block;">` : `<div style="font-size:28px;">${a.icon}</div>`)
+            + `<div style="font-size:11px;font-weight:700;margin-top:4px;">${a.name}</div>`
+            + `<div style="font-size:10px;color:var(--gold);">+${a.points} pts</div>`
             + '</div>'
           ).join('') + '</div>'
-        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhuma conquista ainda.</p>';
+        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhuma conquista.</p>';
+
     } else if (sec === 'depoimentos') {
-      const { user } = await api('/api/users/' + username);
-      const data = await api('/api/testimonials/' + user.id);
+      const data = await api('/api/testimonials/' + username);
       const list = data.testimonials?.length
         ? data.testimonials.map(t =>
-            '<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">'
-            + '<div style="font-weight:700;font-size:13px;">'+t.author_name+'</div>'
-            + '<div style="font-size:13px;color:var(--text2);margin-top:4px;font-style:italic;">'+t.content+'</div>'
+            '<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;gap:10px;">'
+            + `<img src="${t.author_avatar||avatarUrl(t.author_name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" data-username="${t.author_username}">`
+            + '<div><div style="font-weight:700;font-size:13px;cursor:pointer;" data-username="'+t.author_username+'">'+t.author_name+'</div>'
+            + `<div style="font-size:13px;font-style:italic;margin-top:4px;">${t.content}</div>`
+            + `<div class="text-muted" style="font-size:11px;margin-top:4px;">${timeAgo(t.created_at)}</div></div>`
             + '</div>'
           ).join('')
         : '<p class="text-muted" style="padding:16px;text-align:center;">Nenhum depoimento ainda.</p>';
-      // Formulário para escrever depoimento
-      el.dataset.username = username;
-      el.innerHTML = '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;">'
-        + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">✍️ Deixar depoimento</div>'
-        + '<textarea id="visitor-testimonial-text" placeholder="Escreva algo sobre '+user.name+'..." style="min-height:80px;width:100%;"></textarea>'
-        + '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="sendTestimonialToUser(\''+username+'\')">Enviar depoimento</button>'
-        + '</div>' + list;
+      el.innerHTML =
+        `<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:8px;">✍️ Deixar um depoimento</div>
+          <textarea id="visitor-testimonial-text" placeholder="O que você pensa sobre esta pessoa?" style="width:100%;min-height:80px;"></textarea>
+          <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="sendTestimonialToUser('${username}')">Enviar 💬</button>
+        </div>` + list;
+
+    } else if (sec === 'amigos') {
+      const { user } = await api('/api/users/' + username);
+      const r = await api('/api/friends/' + user.id);
+      el.innerHTML = r.friends?.length
+        ? '<div style="display:flex;flex-direction:column;gap:8px;">' + r.friends.map(f =>
+            `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px;cursor:pointer;" data-username="${f.username}">`
+            + `<img src="${f.avatar_url||avatarUrl(f.name)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`
+            + `<div><div style="font-weight:700;font-size:14px;">${f.name}</div><div class="text-muted" style="font-size:12px;">@${f.username}</div></div></div>`
+          ).join('') + '</div>'
+        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum amigo ainda.</p>';
     }
-  } catch(e) { el.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
+  } catch(e) { el.innerHTML = `<p class="text-muted" style="padding:16px;">${e.message}</p>`; }
 }
 
-async function sendFriendReqDirect(userId, name) {
+async function sendFriendReqDirect(userId, name) {async function sendFriendReqDirect(userId, name) {
   try {
     await api('/api/friends/request', { method:'POST', body: JSON.stringify({ user_id: userId, message: 'Oi! Quero ser seu amigo no Daily!' }) });
     toast('Solicitacao enviada para '+name+'!', 'success');
@@ -4294,12 +4351,12 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 <div class="modal-overlay" id="modal-user-profile">
-  <div class="modal">
-    <div class="modal-hdr">
+  <div class="modal" style="max-height:92vh;display:flex;flex-direction:column;">
+    <div class="modal-hdr" style="flex-shrink:0;">
       <span class="modal-title">Perfil</span>
       <button class="modal-close" onclick="closeModal('modal-user-profile')">✕</button>
     </div>
-    <div class="modal-body" id="user-profile-body">
+    <div class="modal-body" id="user-profile-body" style="flex:1;overflow-y:auto;padding:20px;">
       <div class="page-loader"><div class="loader"></div></div>
     </div>
   </div>

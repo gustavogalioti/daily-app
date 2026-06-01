@@ -7,6 +7,19 @@ const { createNotification } = require('./notif_helper');
 
 const router = express.Router();
 
+// GET /api/friends/:userId — amigos de outro usuário (público)
+router.get('/:userId', async (req, res) => {
+  try {
+    const db = getDB();
+    const uid = req.params.userId;
+    const friendsA = await db.prepare(`SELECT u.id,u.name,u.username,u.avatar_url FROM friendships f JOIN users u ON u.id=f.addressee_id WHERE f.requester_id=$1 AND f.status='accepted'`).all(uid);
+    const friendsB = await db.prepare(`SELECT u.id,u.name,u.username,u.avatar_url FROM friendships f JOIN users u ON u.id=f.requester_id WHERE f.addressee_id=$1 AND f.status='accepted'`).all(uid);
+    const seen = new Set();
+    const friends = [...friendsA,...friendsB].filter(f=>{ if(seen.has(f.id)) return false; seen.add(f.id); return true; });
+    res.json({ friends });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/friends — lista amigos aceitos
 router.get('/', authMiddleware, async (req, res) => {
   try {
