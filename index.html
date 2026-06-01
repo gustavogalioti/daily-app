@@ -3445,6 +3445,26 @@ async function loadEvents() {
   } catch(e) { if(el) el.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
 }
 
+
+async function loadProfileEvents() {
+  const el = document.getElementById('profile-events-list');
+  if (!el) return;
+  el.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { events } = await api('/api/events');
+    el.innerHTML = events.length ? events.map(e => {
+      const d = new Date(e.event_date);
+      const statusLabel = {accepted:'✅ Confirmado', declined:'❌ Recusado', pending:'⏳ Pendente'};
+      return `<div class="event-card" onclick="openEventModal('${e.id}')">
+        <div style="font-family:Syne;font-size:15px;font-weight:800;">${e.title}</div>
+        <div class="text-muted" style="font-size:13px;">📅 ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+        ${e.location ? '<div class="text-muted" style="font-size:12px;">📍 '+e.location+'</div>' : ''}
+        <span class="event-status-pill ${e.my_status==='accepted'?'status-accepted':e.my_status==='declined'?'status-declined':'status-pending'}" style="margin-top:6px;display:inline-flex;">${statusLabel[e.my_status]||'—'}</span>
+      </div>`;
+    }).join('') : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum evento ainda. Crie ou aguarde convites!</p>';
+  } catch(e) { el.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
+}
+
 </script>
 </body>
 </html>
