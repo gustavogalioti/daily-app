@@ -2951,8 +2951,10 @@ async function createEvent() {
   const event_date = document.getElementById('ev-start')?.value;
   if (!title) { toast('Título obrigatório', 'error'); return; }
   if (!event_date) { toast('Data de início obrigatória', 'error'); return; }
+  const errEl = document.getElementById('ev-error-msg');
+  if (errEl) errEl.style.display = 'none';
   try {
-    const result = await api('/api/events', { method:'POST', body: JSON.stringify({
+    await api('/api/events', { method:'POST', body: JSON.stringify({
       title,
       description: document.getElementById('ev-desc')?.value || '',
       location: document.getElementById('ev-location')?.value || '',
@@ -2968,7 +2970,9 @@ async function createEvent() {
     loadEvents();
     if (typeof loadProfileEvents==='function') loadProfileEvents();
   } catch(e) {
-    toast(e.message || 'Erro ao criar evento', 'error');
+    const msg = e.message || 'Erro desconhecido';
+    toast(msg, 'error');
+    if (errEl) { errEl.textContent = '❌ Erro: ' + msg; errEl.style.display = 'block'; }
   }
 }
 
@@ -4266,6 +4270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div><label>Data e hora de fim</label><input type="datetime-local" id="ev-end"></div>
       </div>
       <button class="btn btn-primary" style="width:100%;" id="ev-submit-btn" onclick="createEvent()">Criar evento 🎉</button>
+      <div id="ev-error-msg" style="display:none;margin-top:10px;padding:10px;background:#fee2e2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:600;"></div>
     </div>
   </div>
 </div>

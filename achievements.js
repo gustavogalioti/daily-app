@@ -142,9 +142,10 @@ router.post('/', authMiddleware, (req, res, next) => {
       let image_url = null;
       if (req.file) image_url = await getUploadedUrl(req.file);
       const id = uuidv4();
-      await db.prepare(`INSERT INTO achievements (id,name,description,icon,image_url,points,category,trigger_type,trigger_value,active)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,1)`)
-        .run(id, name.trim(), description||'', icon||'🏆', image_url, parseInt(points)||100, category||'geral', trigger_type||'manual', '{}');
+      const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') + '-' + Date.now();
+      await db.prepare(`INSERT INTO achievements (id,slug,name,description,icon,image_url,points,category,trigger_type,requirement_type,requirement_value,active)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true)`)
+        .run(id, slug, name.trim(), description||'', icon||'🏆', image_url, parseInt(points)||100, category||'geral', trigger_type||'manual', trigger_type||'manual', 1);
       const ach = await db.prepare('SELECT * FROM achievements WHERE id=$1').get(id);
       res.status(201).json({ achievement: ach });
     } catch(e) { res.status(500).json({ error: e.message }); }
