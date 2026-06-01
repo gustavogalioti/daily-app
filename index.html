@@ -2211,10 +2211,11 @@ async function openCommunity(id, name) {
         <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
           <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">💬 ${p.comment_count||0} comentários</div>
           <div id="comments-${p.id}" class="hidden" style="display:none;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
-          ${isMember ? `<div style="display:flex;gap:6px;">
-            <input type="text" placeholder="Comentar..." style="flex:1;padding:8px 10px;font-size:13px;" id="ci-${p.id}" onkeydown="if(event.key==='Enter')postCommComment('${id}','${p.id}')">
-            <button class="btn btn-primary btn-xs" onclick="toggleCommComments('${id}','${p.id}')">Ver / Resp.</button>
-          </div>` : `<button class="btn btn-ghost btn-xs" onclick="toggleCommComments('${id}','${p.id}')">Ver comentários</button>`}
+          ${isMember ? `<div style="display:flex;gap:6px;margin-top:6px;">
+            <input type="text" placeholder="Comentar..." style="flex:1;padding:8px 10px;font-size:13px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);" id="ci-${p.id}" onkeydown="if(event.key==='Enter')postCommComment('${id}','${p.id}')">
+            <button class="btn btn-primary btn-xs" onclick="postCommComment('${id}','${p.id}')">Enviar</button>
+          </div>
+          <button class="btn btn-ghost btn-xs" style="margin-top:4px;font-size:11px;" onclick="toggleCommComments('${id}','${p.id}')">💬 Ver comentários</button>` : `<button class="btn btn-ghost btn-xs" onclick="toggleCommComments('${id}','${p.id}')">Ver comentários</button>`}
         </div>
       </div>`;
     };
@@ -2261,6 +2262,7 @@ async function openCommunity(id, name) {
           <div style="font-size:18px;font-weight:800;font-family:Syne,sans-serif;">${community.name}</div>
           <p style="font-size:13px;color:var(--muted);margin:6px 0 12px;line-height:1.5;">${community.description||''}</p>
           <div class="text-muted">👥 ${community.member_count} membros · ${community.is_open?'Aberta':'Fechada'}</div>
+          ${my_role === 'owner' ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="openEditCommunity('${id}')">✏️ Editar comunidade</button>` : ''}
           ${isMember && my_role !== 'owner' ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="leaveComm('${id}')">Sair do grupo</button>` : ''}
           ${!isMember ? `<button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%;" onclick="joinFromForum('${id}','${community.name}')">Participar</button>` : ''}
         </div>
@@ -3724,6 +3726,109 @@ async function loadMundoAgora() {
   } catch(e) { g.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
 }
 
+</script>
+
+<!-- ─── MODAL EDITAR COMUNIDADE ─── -->
+<div id="modal-edit-community" class="modal-overlay hidden" onclick="if(event.target===this)closeModal('modal-edit-community')">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Editar Comunidade</div>
+      <button class="modal-close" onclick="closeModal('modal-edit-community')">×</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+      <!-- Foto da comunidade -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div style="position:relative;width:90px;height:90px;">
+          <img id="edit-comm-photo-preview" src="" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);background:var(--surface2);">
+          <label for="edit-comm-photo-input" style="position:absolute;bottom:0;right:0;background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;">📷</label>
+          <input type="file" id="edit-comm-photo-input" accept="image/*" style="display:none;" onchange="previewCommPhoto(this)">
+        </div>
+        <div style="font-size:12px;color:var(--muted);">Toque na câmera para trocar a foto</div>
+      </div>
+      <!-- Nome -->
+      <div>
+        <label style="font-size:13px;font-weight:700;display:block;margin-bottom:4px;">Nome</label>
+        <input type="text" id="edit-comm-name" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;background:var(--surface2);" maxlength="60">
+      </div>
+      <!-- Descrição -->
+      <div>
+        <label style="font-size:13px;font-weight:700;display:block;margin-bottom:4px;">Descrição</label>
+        <textarea id="edit-comm-desc" rows="3" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;background:var(--surface2);resize:none;" maxlength="300"></textarea>
+      </div>
+      <!-- Tipo aberta/fechada -->
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label style="font-size:13px;font-weight:700;">Comunidade aberta</label>
+        <input type="checkbox" id="edit-comm-open" style="width:18px;height:18px;cursor:pointer;">
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="saveEditCommunity()">💾 Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── EDITAR COMUNIDADE ──
+let editCommId = null;
+
+function previewCommPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('edit-comm-photo-preview').src = e.target.result; };
+  reader.readAsDataURL(file);
+}
+
+async function openEditCommunity(id) {
+  editCommId = id;
+  try {
+    const { community } = await api(`/api/communities/${id}`);
+    document.getElementById('edit-comm-name').value = community.name || '';
+    document.getElementById('edit-comm-desc').value = community.description || '';
+    document.getElementById('edit-comm-open').checked = !!community.is_open;
+    const prev = document.getElementById('edit-comm-photo-preview');
+    prev.src = community.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(community.name)}&background=ff6b35&color=fff&size=90`;
+    openModal('modal-edit-community');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function saveEditCommunity() {
+  const name = document.getElementById('edit-comm-name').value.trim();
+  const description = document.getElementById('edit-comm-desc').value.trim();
+  const is_open = document.getElementById('edit-comm-open').checked ? 1 : 0;
+  const photoInput = document.getElementById('edit-comm-photo-input');
+
+  if (!name) { toast('Nome obrigatório', 'error'); return; }
+
+  try {
+    let image_url = null;
+
+    // Upload da foto se selecionada
+    if (photoInput.files[0]) {
+      const fd = new FormData();
+      fd.append('photo', photoInput.files[0]);
+      const r = await fetch(`/api/communities/${editCommId}/photo`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+        body: fd
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Erro no upload');
+      image_url = data.image_url;
+    }
+
+    const body = { name, description, is_open };
+    if (image_url) body.image_url = image_url;
+
+    await api(`/api/communities/${editCommId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    });
+
+    toast('Comunidade atualizada! ✅', 'success');
+    closeModal('modal-edit-community');
+    openCommunity(editCommId, name);
+    loadCommunities();
+  } catch(e) { toast(e.message, 'error'); }
+}
 </script>
 </body>
 </html>
