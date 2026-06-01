@@ -470,10 +470,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
         <span>Daily?</span>
       </button>
-      <button class="nav-btn" data-tab="communities" onclick="switchTab('communities',this)">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-        <span>Grupos</span>
-      </button>
+
 
       <button class="nav-btn" data-tab="achievements" onclick="switchTab('achievements',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
@@ -685,6 +682,9 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <div class="profile-tab" onclick="showProfileSec('profissional',this)">💼</div>
       </div>
       <div id="ps-timeline"><div id="timeline-container"><div class="page-loader"><div class="loader"></div></div></div></div>
+      <div id="ps-comunidades" class="hidden">
+        <div id="profile-communities-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:4px;"></div>
+      </div>
       <div id="ps-amigos" class="hidden">
         <div id="profile-friends-grid" class="friends-grid" style="margin-top:4px;"></div>
       </div>
@@ -1644,10 +1644,9 @@ async function loadCommunities(){
   g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
   try{
     const s=document.getElementById('comm-search')?.value||'';
-    const t=document.getElementById('comm-type-filter')?.value||'';
-    let url='/api/communities?limit=40';
     const typeVal=document.getElementById('comm-type-filter')?.value||'';
-    if(typeVal) url+='&type='+typeVal;
+    let url='/api/communities?limit=40';
+    if(typeVal && typeVal!=='') url+='&type='+encodeURIComponent(typeVal);
     else url+='&exclude_type=regional';
     if(s) url+=`&search=${encodeURIComponent(s)}`;
     const{communities}=await api(url);
@@ -1718,10 +1717,11 @@ function showCommSection(sec,btn){
 }
 
 function openCreateCommunityModal(){
-  document.getElementById('cn-name').value='';
-  document.getElementById('cn-desc').value='';
-  const t=document.getElementById('cn-type'); if(t) t.value='interest';
-  const o=document.getElementById('cn-open'); if(o) o.value='1';
+  ['cn-name','cn-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const t=document.getElementById('cn-type');if(t)t.value='interest';
+  const o=document.getElementById('cn-open');if(o)o.value='1';
+  const prev=document.getElementById('cn-img-preview');if(prev){prev.innerHTML='🌐';}
+  const fi=document.getElementById('cn-img-file');if(fi)fi.value='';
   openModal('modal-create-comm');
 }
 async function createCommunity(){
@@ -1838,6 +1838,7 @@ function showProfileSec(sec,btn){
   if(sec==='profissional') loadProfessional();
   if(sec==='amigos') loadProfileFriends();
   if(sec==='eventos') loadProfileEvents();
+  if(sec==='comunidades') loadProfileCommunities();
 }
 
 async function loadProfileFriends(){
