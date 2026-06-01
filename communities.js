@@ -308,4 +308,41 @@ router.delete('/:id/posts/:postId', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// PUT /api/communities/:id — editar comunidade (só dono)
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const member = await db.prepare("SELECT role FROM community_members WHERE community_id=$1 AND user_id=$2").get(req.params.id, req.user.id);
+    if (member?.role !== 'owner') return res.status(403).json({ error: 'Apenas o dono pode editar a comunidade' });
+    const { name, description, is_open, image_url } = req.body;
+    if (!name) return res.status(400).json({ error: 'Nome obrigatório' });
+    if (image_url) {
+      await db.prepare('UPDATE communities SET name=$1, description=$2, is_open=$3, image_url=$4 WHERE id=$5')
+        .run(name, description||'', is_open ? 1 : 0, image_url, req.params.id);
+    } else {
+      await db.prepare('UPDATE communities SET name=$1, description=$2, is_open=$3 WHERE id=$4')
+        .run(name, description||'', is_open ? 1 : 0, req.params.id);
+    }
+    const updated = await db.prepare('SELECT * FROM communities WHERE id=$1').get(req.params.id);
+    res.json({ community: updated });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/communities/:id/photo — upload foto da comunidade (só dono)
+router.post('/:id/photo', authMiddleware, (req, res, next) => {
+  createPhotoUpload().single('photo')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      const db = getDB();
+      const member = await db.prepare("SELECT role FROM community_members WHERE community_id=$1 AND user_id=$2").get(req.params.id, req.user.id);
+      if (member?.role !== 'owner') return res.status(403).json({ error: 'Apenas o dono pode editar' });
+      if (!req.file) return res.status(400).json({ error: 'Nenhuma imagem enviada' });
+      const image_url = getUploadedUrl(req, req.file);
+      await db.prepare('UPDATE communities SET image_url=$1 WHERE id=$2').run(image_url, req.params.id);
+      res.json({ image_url });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+});
+
 module.exports = router;
