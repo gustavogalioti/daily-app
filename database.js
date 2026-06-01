@@ -223,6 +223,11 @@ async function initPG() {
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_user_notif_user ON user_notifications(user_id, read, created_at DESC)'); } catch(_) {}
   try { await pool.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_url TEXT'); } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_comm_invites ON community_invites(invitee_id, status)'); } catch(_) {}
+  try { await pool.query('ALTER TABLE achievements ADD COLUMN IF NOT EXISTS image_url TEXT'); } catch(_) {}
+  try { await pool.query('ALTER TABLE achievements ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true'); } catch(_) {}
+  try { await pool.query('ALTER TABLE achievements ADD COLUMN IF NOT EXISTS trigger_type TEXT DEFAULT \'manual\''); } catch(_) {}
+  try { await pool.query('ALTER TABLE achievements ADD COLUMN IF NOT EXISTS trigger_value JSONB DEFAULT \'{}\''); } catch(_) {}
+  try { await pool.query('UPDATE achievements SET active=true WHERE active IS NULL'); } catch(_) {}
 
   try { await seedAchievements(pool); } catch(e) { console.error('seedAchievements:', e.message); }
   try { await seedDailyQuestions(pool); } catch(e) { console.error('seedDailyQuestions:', e.message); }
