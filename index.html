@@ -454,18 +454,15 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   <nav class="topbar">
     <div class="topbar-logo">D<span>.</span>AILY</div>
     <div class="topbar-nav" id="topbar-nav">
-      <button class="nav-btn active" data-tab="global" onclick="switchTab('global',this)">
+      <button class="nav-btn active" data-tab="mundo" onclick="switchTab('mundo',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        <span>Global</span>
+        <span>Mundo</span>
       </button>
       <button class="nav-btn" data-tab="daily-mandou" onclick="switchTab('daily-mandou',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
         <span>Daily!</span>
       </button>
-      <button class="nav-btn" data-tab="agora" onclick="switchTab('agora',this)">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span>Ágora</span>
-      </button>
+
       <button class="nav-btn" data-tab="daily-question" onclick="switchTab('daily-question',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
         <span>Daily?</span>
@@ -499,7 +496,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   <div class="app-content">
 
     <!-- ─── GLOBAL ─── -->
-    <div id="tab-global" class="tab-content active">
+    <div id="tab-mundo" class="tab-content active">
       <div id="notif-banner" class="notif-banner hidden">
         <div>
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📷 Daily Mandou!</div>
@@ -510,14 +507,41 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <button class="btn btn-sm" style="background:#fff;color:var(--accent);font-weight:700;" onclick="openPostModal('photo','daily_mandou')">Postar agora →</button>
         </div>
       </div>
-      <div class="page-header">
-        <div class="page-header-left"><span class="page-icon">🌍</span><div><div class="section-title">Global</div><div class="text-muted">O que o mundo está fazendo agora</div></div></div>
-        <button class="btn btn-primary btn-sm" onclick="openPostModal('photo','global')">+ Foto</button>
+
+      <!-- Alternância Global / Ágora -->
+      <div style="display:flex;background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:14px;gap:4px;">
+        <button id="btn-mundo-global" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;background:var(--accent);color:#fff;transition:all .18s;" onclick="setMundoMode('global')">🌍 Global</button>
+        <button id="btn-mundo-agora" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;" onclick="setMundoMode('agora')">💬 Ágora</button>
       </div>
-      <div class="filter-pills" id="global-filters">
-        <span class="pill active" onclick="setGlobalFilter('todos',this)">Todos</span>
-        <span class="pill" onclick="setGlobalFilter('fotos',this)">Fotos</span>
+
+      <!-- Filtros Global -->
+      <div id="mundo-global-filters" class="filter-pills" style="margin-bottom:14px;">
+        <span class="pill active" onclick="setGlobalFilter('fotos',this)">📷 Fotos</span>
         <span class="pill" onclick="setGlobalFilter('destaques',this)">⚡ Destaques</span>
+      </div>
+
+      <!-- Filtros Ágora -->
+      <div id="mundo-agora-filters" class="filter-pills" style="margin-bottom:14px;display:none;">
+        <span class="pill active" onclick="setMundoAgoraFilter('todos',this)">Todos</span>
+        <span class="pill" onclick="setMundoAgoraFilter('anonimo',this)">👤 Anônimos</span>
+      </div>
+
+      <!-- Botão postar (muda conforme modo) -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button id="btn-mundo-post" class="btn btn-primary btn-sm" onclick="openPostModal('photo','global')">+ Foto</button>
+      </div>
+      <!--old notif removed-->
+      <div style="display:none" class="notif-banner hidden">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📷 Daily Mandou!</div>
+          <div style="font-size:13px;opacity:.9;margin-top:2px;">Poste uma foto do seu momento agora. Corra!</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+          <div class="notif-timer" id="notif-countdown">01:00</div>
+          <button class="btn btn-sm" style="background:#fff;color:var(--accent);font-weight:700;" onclick="openPostModal('photo','daily_mandou')">Postar agora →</button>
+        </div>
+      </div>
+
       </div>
       <div class="photo-grid" id="global-grid"><div class="page-loader"><div class="loader"></div></div></div>
     </div>
@@ -1345,7 +1369,7 @@ function switchTab(tab,btn){
   if(tabEl) tabEl.classList.add('active');
   if(btn) btn.classList.add('active');
   const loaders={
-    'global':loadGlobal,'agora':loadAgora,'daily-question':loadDailyQuestion,
+    'mundo':loadMundo,'daily-question':loadDailyQuestion,
     'friends':()=>{loadFriends();loadFriendRequests();},
     'communities':loadCommunities,'achievements':loadAchievements,
     'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou,
@@ -3657,6 +3681,58 @@ async function sendTestimonialToUser(targetUserId) {
     const username = document.getElementById('visitor-section-content')?.dataset?.username;
     if(username) loadVisitorSection('depoimentos', username, null);
   } catch(e) { toast(e.message, 'error'); }
+}
+
+
+// ═══════════════════════════════════
+// MUNDO (Global + Ágora)
+// ═══════════════════════════════════
+let mundoMode = 'global';
+let mundoAgoraFilter = 'todos';
+
+function loadMundo() {
+  setMundoMode(mundoMode);
+}
+
+function setMundoMode(mode) {
+  mundoMode = mode;
+  const btnG = document.getElementById('btn-mundo-global');
+  const btnA = document.getElementById('btn-mundo-agora');
+  const fG = document.getElementById('mundo-global-filters');
+  const fA = document.getElementById('mundo-agora-filters');
+  const btnPost = document.getElementById('btn-mundo-post');
+
+  if (btnG) { btnG.style.background = mode==='global' ? 'var(--accent)' : 'transparent'; btnG.style.color = mode==='global' ? '#fff' : 'var(--muted)'; }
+  if (btnA) { btnA.style.background = mode==='agora' ? 'var(--accent)' : 'transparent'; btnA.style.color = mode==='agora' ? '#fff' : 'var(--muted)'; }
+  if (fG) fG.style.display = mode==='global' ? 'flex' : 'none';
+  if (fA) fA.style.display = mode==='agora' ? 'flex' : 'none';
+  if (btnPost) {
+    if (mode==='global') { btnPost.textContent = '+ Foto'; btnPost.onclick = () => openPostModal('photo','global'); }
+    else { btnPost.textContent = '+ Publicar'; btnPost.onclick = () => openPostModal('text','agora'); }
+  }
+  if (mode==='global') loadGlobal();
+  else loadMundoAgora();
+}
+
+function setMundoAgoraFilter(f, btn) {
+  mundoAgoraFilter = f;
+  document.querySelectorAll('#mundo-agora-filters .pill').forEach(p=>p.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  loadMundoAgora();
+}
+
+async function loadMundoAgora() {
+  const g = document.getElementById('global-grid');
+  if(!g) return;
+  g.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    let url = '/api/posts?tab=agora&limit=60';
+    if(mundoAgoraFilter==='anonimo') url += '&is_anonymous=1';
+    const posts = (await api(url)).posts;
+    g.innerHTML = posts.length
+      ? '<div style="display:flex;flex-direction:column;gap:12px;">' + posts.map(p => renderCard(p)).join('') + '</div>'
+      : '<p class="text-muted" style="padding:40px;text-align:center;">Nenhum desabafo ainda. Seja o primeiro!</p>';
+  } catch(e) { g.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
 }
 
 </script>
