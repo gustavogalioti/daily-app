@@ -38,10 +38,13 @@ async function pedroAutoComment(postId, type) {
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const db = getDB();
-    const { tab, user_id, date, limit=50, offset=0 } = req.query;
+    const { tab, user_id, date, limit=50, offset=0, exclude_tab, type: ptype, is_anonymous } = req.query;
     let sql = 'SELECT * FROM posts WHERE 1=1'; const p = []; let i = 0;
-    if (tab)     { sql += ` AND tab=$${++i}`;              p.push(tab); }
-    if (user_id) { sql += ` AND user_id=$${++i}`;         p.push(user_id); }
+    if (tab)         { sql += ` AND tab=$${++i}`;              p.push(tab); }
+    if (exclude_tab) { sql += ` AND tab != $${++i}`;           p.push(exclude_tab); }
+    if (user_id)     { sql += ` AND user_id=$${++i}`;          p.push(user_id); }
+    if (ptype)       { sql += ` AND type=$${++i}`;             p.push(ptype); }
+    if (is_anonymous){ sql += ` AND is_anonymous=$${++i}`;     p.push(parseInt(is_anonymous)); }
     if (date)    { sql += ` AND DATE(created_at)=$${++i}`; p.push(date); }
     sql += ` ORDER BY created_at DESC LIMIT $${++i} OFFSET $${++i}`;
     p.push(parseInt(limit), parseInt(offset));
