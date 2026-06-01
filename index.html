@@ -2833,16 +2833,7 @@ let pendingDeclineEventId = null;
 let inviteTargetEventId = null;
 let allEvents = [];
 
-async function loadEvents() {
-  const el = document.getElementById('events-list');
-  el.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
-  try {
-    const { events } = await api('/api/events');
-    allEvents = events;
-    checkEventInvites(events);
-    renderEventsList(events, 'upcoming');
-  } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
-}
+async function loadEvents_UNUSED() {
 
 function checkEventInvites(events) {
   const pending = events.filter(e => e.my_status === 'pending');
@@ -3461,7 +3452,7 @@ async function loadVisitorSection(sec, username, btn) {
   } catch(e) { el.innerHTML = `<p class="text-muted" style="padding:16px;">${e.message}</p>`; }
 }
 
-async function sendFriendReqDirect(userId, name) {async function sendFriendReqDirect(userId, name) {
+async function sendFriendReqDirect(userId, name) {
   try {
     await api('/api/friends/request', { method:'POST', body: JSON.stringify({ user_id: userId, message: 'Oi! Quero ser seu amigo no Daily!' }) });
     toast('Solicitacao enviada para '+name+'!', 'success');
