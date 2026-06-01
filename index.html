@@ -742,7 +742,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div id="ps-eventos" class="hidden">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <div style="font-family:Syne;font-weight:700;font-size:15px;">Meus Eventos</div>
-          <button class="btn btn-primary btn-sm" onclick="openCreateEventModal()">+ Criar evento</button>
+          <button class="btn btn-primary btn-sm" onclick="alert('clicou');openCreateEventModal()">+ Criar evento</button>
         </div>
         <div id="profile-events-list" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
@@ -2774,6 +2774,7 @@ function showEventSection(sec, btn) {
 }
 
 function openCreateEventModal() {
+  alert('openCreateEventModal chamada!');
   try {
     const fields = ['ev-title','ev-desc','ev-location'];
     fields.forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
