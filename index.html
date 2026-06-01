@@ -1089,6 +1089,17 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   <div class="modal">
     <div class="modal-hdr"><span class="modal-title">📅 Criar evento</span><button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
     <div class="modal-body">
+      <!-- Foto do evento -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:4px;">
+        <div style="position:relative;width:100%;height:140px;background:var(--surface2);border-radius:12px;overflow:hidden;border:2px dashed var(--border);">
+          <img id="ev-photo-preview" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+          <label for="ev-photo-file" id="ev-photo-label" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:6px;color:var(--muted);">
+            <span style="font-size:28px;">🖼️</span>
+            <span style="font-size:13px;font-weight:600;">Adicionar capa do evento</span>
+          </label>
+          <input type="file" id="ev-photo-file" accept="image/*" style="display:none;" onchange="previewEventPhoto(this)">
+        </div>
+      </div>
       <div><label>Título do evento</label><input type="text" id="ev-title" placeholder="Ex: Churrasco de aniversário"></div>
       <div><label>Descrição</label><textarea id="ev-desc" placeholder="Conte mais sobre o evento..." style="min-height:80px;"></textarea></div>
       <div><label>Local</label><input type="text" id="ev-location" placeholder="Ex: Minha casa, Parque da Cidade..."></div>
@@ -1096,7 +1107,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <div><label>Data e hora de início</label><input type="datetime-local" id="ev-start"></div>
         <div><label>Data e hora de fim</label><input type="datetime-local" id="ev-end"></div>
       </div>
-      <button class="btn btn-primary" style="width:100%;" onclick="createEvent()">Criar evento 🎉</button>
+      <button class="btn btn-primary" style="width:100%;" id="ev-submit-btn" onclick="createEvent()">Criar evento 🎉</button>
     </div>
   </div>
 </div>
@@ -1131,7 +1142,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   <div class="modal">
     <div class="modal-hdr"><span class="modal-title">👥 Convidar pessoas</span><button class="modal-close" onclick="closeModal('modal-invite-event')">✕</button></div>
     <div class="modal-body">
-      <input type="text" id="invite-search-input" placeholder="Buscar por nome ou @usuário..." oninput="searchUsersForInvite()">
+      <input type="text" id="invite-search-input" placeholder="Buscar por nome ou @usuário..." oninput="debouncedEventSearch()">
       <div id="invite-search-results" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
     </div>
   </div>
@@ -3076,23 +3087,64 @@ function openCreateEventModal() {
   openModal('modal-create-event');
 }
 
+function previewEventPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('ev-photo-preview');
+    prev.src = e.target.result;
+    prev.style.display = 'block';
+    document.getElementById('ev-photo-label').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
 async function createEvent() {
   const title = document.getElementById('ev-title').value.trim();
   const event_date = document.getElementById('ev-start').value;
-  if (!title || !event_date) { toast('Título e data obrigatórios', 'error'); return; }
+  if (!title) { toast('Título obrigatório', 'error'); return; }
+  if (!event_date) { toast('Data de início obrigatória', 'error'); return; }
+  const btn = document.getElementById('ev-submit-btn');
+  btn.disabled = true; btn.textContent = 'Criando...';
   try {
+    // 1. Criar evento
     const { event } = await api('/api/events', { method:'POST', body: JSON.stringify({
       title,
-      description: document.getElementById('ev-desc').value,
-      location: document.getElementById('ev-location').value,
+      description: document.getElementById('ev-desc').value || '',
+      location: document.getElementById('ev-location').value || '',
       event_date: new Date(event_date).toISOString(),
       event_end_date: document.getElementById('ev-end').value ? new Date(document.getElementById('ev-end').value).toISOString() : null,
     })});
+
+    // 2. Upload da foto de capa se tiver
+    const photoFile = document.getElementById('ev-photo-file').files[0];
+    if (photoFile) {
+      try {
+        const fd = new FormData();
+        fd.append('photo', photoFile);
+        await apiForm(`/api/events/${event.id}/cover`, fd);
+      } catch(e) { /* não bloqueia se foto falhar */ }
+    }
+
     toast('Evento criado! 🎉', 'success');
     closeModal('modal-create-event');
+    // Reset form
+    document.getElementById('ev-title').value = '';
+    document.getElementById('ev-desc').value = '';
+    document.getElementById('ev-location').value = '';
+    document.getElementById('ev-start').value = '';
+    document.getElementById('ev-end').value = '';
+    document.getElementById('ev-photo-preview').style.display = 'none';
+    document.getElementById('ev-photo-label').style.display = 'flex';
+    document.getElementById('ev-photo-file').value = '';
     loadEvents();
-    openEventModal(event.id);
-  } catch(e) { toast(e.message, 'error'); }
+    setTimeout(() => openEventModal(event.id), 300);
+  } catch(e) {
+    toast(e.message || 'Erro ao criar evento', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Criar evento 🎉';
+  }
 }
 
 async function openEventModal(eventId) {
@@ -3147,45 +3199,60 @@ async function openEventModal(eventId) {
 
     body.innerHTML = `
       <!-- Header do evento -->
-      <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:16px;padding:20px;color:#fff;margin-bottom:18px;">
-        <div style="font-family:Syne;font-size:22px;font-weight:800;">${event.title}</div>
-        <div style="margin-top:8px;opacity:.9;font-size:14px;">📅 ${d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
-        ${dEnd?`<div style="opacity:.9;font-size:13px;">até ${dEnd.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
-        ${event.location?`<div style="margin-top:4px;opacity:.9;font-size:13px;">📍 ${event.location}</div>`:''}
-        ${event.description?`<div style="margin-top:10px;font-size:14px;opacity:.95;">${event.description}</div>`:''}
+      <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:16px;overflow:hidden;margin-bottom:18px;">
+        ${event.cover_url ? `<img src="${event.cover_url}" style="width:100%;max-height:200px;object-fit:cover;display:block;">` : ''}
+        <div style="padding:20px;color:#fff;">
+          <div style="font-family:Syne;font-size:22px;font-weight:800;">${event.title}</div>
+          <div style="margin-top:8px;opacity:.9;font-size:14px;">📅 ${d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+          ${dEnd?`<div style="opacity:.9;font-size:13px;">até ${dEnd.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
+          ${event.location?`<div style="margin-top:4px;opacity:.9;font-size:13px;">📍 ${event.location}</div>`:''}
+          ${event.description?`<div style="margin-top:10px;font-size:14px;opacity:.95;">${event.description}</div>`:''}
+          ${is_owner ? `<button class="btn btn-sm" style="margin-top:12px;background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);" onclick="openInviteModal('${eventId}')">👥 Convidar pessoas</button>` : ''}
+        </div>
       </div>
 
       <!-- Pedro no evento -->
       ${pedroFake.message ? `<div class="pedro-comment" style="margin-bottom:16px;"><strong>🐱 Pedro:</strong> ${pedroFake.message}</div>` : ''}
 
-      <!-- Participantes -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;">
+      <!-- Participantes - contadores -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
         <div class="card" style="padding:12px;text-align:center;">
           <div style="font-family:Syne;font-size:22px;font-weight:800;color:var(--green);">${confirmed.length}</div>
-          <div class="text-muted">Confirmados</div>
+          <div class="text-muted" style="font-size:12px;">✅ Confirmados</div>
         </div>
         <div class="card" style="padding:12px;text-align:center;">
           <div style="font-family:Syne;font-size:22px;font-weight:800;color:var(--gold);">${pending.length}</div>
-          <div class="text-muted">Pendentes</div>
+          <div class="text-muted" style="font-size:12px;">⏳ Convidados</div>
         </div>
         <div class="card" style="padding:12px;text-align:center;">
           <div style="font-family:Syne;font-size:22px;font-weight:800;color:var(--muted);">${declined.length}</div>
-          <div class="text-muted">Recusaram</div>
+          <div class="text-muted" style="font-size:12px;">❌ Recusaram</div>
         </div>
       </div>
 
-      <!-- Lista de confirmados -->
-      <div class="card" style="padding:14px;margin-bottom:18px;">
-        <div style="font-weight:700;margin-bottom:10px;">👥 Quem vai</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${confirmed.map(m => `<div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border-radius:20px;padding:4px 10px 4px 4px;">
-            <img class="avatar" src="${m.avatar_url||avatarUrl(m.name)}" width="24" height="24">
-            <span style="font-size:12px;font-weight:600;">${m.name.split(' ')[0]}</span>
+      <!-- Confirmados -->
+      ${confirmed.length ? `<div class="card" style="padding:14px;margin-bottom:10px;">
+        <div style="font-weight:700;margin-bottom:10px;font-size:13px;">✅ Confirmados</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${confirmed.map(m => `<div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openUserProfile('${m.username}')">
+            <img class="avatar" src="${m.avatar_url||avatarUrl(m.name)}" width="32" height="32">
+            <span style="font-size:13px;font-weight:600;">${m.name}</span>
+            ${m.user_id===event.owner_id?'<span style="font-size:10px;color:var(--accent);font-weight:700;">CRIADOR</span>':''}
           </div>`).join('')}
-          ${!confirmed.length ? '<p class="text-muted" style="font-size:13px;">Nenhuma confirmação ainda.</p>' : ''}
         </div>
-        ${is_owner ? `<button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;" onclick="openInviteModal('${eventId}')">+ Convidar pessoas</button>` : ''}
-      </div>
+      </div>` : ''}
+
+      <!-- Convidados pendentes (só dono vê) -->
+      ${is_owner && pending.length ? `<div class="card" style="padding:14px;margin-bottom:10px;">
+        <div style="font-weight:700;margin-bottom:10px;font-size:13px;">⏳ Aguardando resposta</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${pending.map(m => `<div style="display:flex;align-items:center;gap:8px;">
+            <img class="avatar" src="${m.avatar_url||avatarUrl(m.name)}" width="32" height="32">
+            <span style="font-size:13px;font-weight:600;flex:1;">${m.name}</span>
+            <span style="font-size:11px;color:var(--muted);">Pendente</span>
+          </div>`).join('')}
+        </div>
+      </div>` : ''}
 
       <!-- Feed do evento -->
       <div style="font-weight:700;margin-bottom:12px;">📸 Timeline do evento</div>
@@ -3252,25 +3319,38 @@ function openInviteModal(eventId) {
   openModal('modal-invite-event');
 }
 
-async function searchUsersForInvite() {
-  const q = document.getElementById('invite-search-input').value.trim();
-  if (q.length < 2) return;
-  try {
-    const { users } = await api(`/api/users/search?q=${encodeURIComponent(q)}`);
-    document.getElementById('invite-search-results').innerHTML = users.map(u => `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px;">
-        <img class="avatar" src="${u.avatar_url||avatarUrl(u.name)}" width="36" height="36">
-        <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${u.name}</div><div class="text-muted">@${u.username}</div></div>
-        <button class="btn btn-primary btn-sm" onclick="inviteToEvent('${u.id}','${u.name.replace(/'/g,"\'")}')">Convidar</button>
-      </div>`).join('') || '<p class="text-muted">Nenhum resultado.</p>';
-  } catch(e) {}
+let _eventSearchTimer = null;
+function debouncedEventSearch() {
+  clearTimeout(_eventSearchTimer);
+  _eventSearchTimer = setTimeout(searchUsersForInvite, 350);
 }
 
-async function inviteToEvent(userId, name) {
+async function searchUsersForInvite() {
+  const q = document.getElementById('invite-search-input').value.trim();
+  const el = document.getElementById('invite-search-results');
+  if (q.length < 2) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="text-muted" style="font-size:13px;padding:8px;">Buscando...</div>';
   try {
+    const { users } = await api(`/api/users/search?q=${encodeURIComponent(q)}`);
+    el.innerHTML = users.length ? users.map(u => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px;">
+        <img class="avatar" src="${u.avatar_url||avatarUrl(u.name)}" width="36" height="36" style="cursor:pointer;" onclick="openUserProfile('${u.username}')">
+        <div style="flex:1;"><div style="font-weight:700;font-size:14px;cursor:pointer;" onclick="openUserProfile('${u.username}')">${u.name}</div><div class="text-muted">@${u.username}</div></div>
+        <button class="btn btn-primary btn-sm" id="invite-btn-${u.id}" onclick="inviteToEvent('${u.id}','${u.name.replace(/'/g,"\'")}',this)">Convidar</button>
+      </div>`).join('') : '<p class="text-muted" style="font-size:13px;padding:8px;">Nenhum resultado.</p>';
+  } catch(e) { el.innerHTML = '<p class="text-muted" style="font-size:13px;">Erro na busca.</p>'; }
+}
+
+async function inviteToEvent(userId, name, btn) {
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
     await api(`/api/events/${inviteTargetEventId}/invite`, { method:'POST', body: JSON.stringify({ user_id: userId }) });
     toast(`${name} foi convidado(a)! 📬`, 'success');
-  } catch(e) { toast(e.message, 'error'); }
+    if (btn) { btn.textContent = '✅ Enviado'; btn.style.background = 'var(--green, #22c55e)'; }
+  } catch(e) {
+    toast(e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Convidar'; }
+  }
 }
 
 // ── POSTS DO EVENTO ──
