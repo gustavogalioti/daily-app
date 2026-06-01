@@ -826,340 +826,37 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 <!-- ═══ MODALS ═══ -->
 <!-- Post -->
-<div class="modal-overlay" id="modal-post">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title" id="post-modal-title">Nova publicação</span><button class="modal-close" onclick="closeModal('modal-post')">✕</button></div>
-    <div class="modal-body">
-      <div class="post-type-sw" id="post-type-sw">
-        <button class="pt-btn active" onclick="setPostType('photo')">📷 Foto</button>
-        <button class="pt-btn" onclick="setPostType('text')">✍️ Texto</button>
-      </div>
-      <div id="photo-section">
-        <img class="photo-preview-img" id="photo-preview">
-        <label class="drop-zone" for="photo-file" id="drop-label">
-          <div style="font-size:28px;margin-bottom:8px;">📷</div>
-          <div style="font-size:14px;color:var(--muted);">Abrir câmera ou escolher foto</div>
-        </label>
-        <input type="file" id="photo-file" accept="image/*" capture="environment" style="display:none;" onchange="onPhotoSelected(event)">
-        <input type="text" id="photo-caption" placeholder="Descrição da foto (opcional)">
-      </div>
-      <div id="text-section" class="hidden">
-        <textarea id="post-text" placeholder="O que você está pensando?" style="min-height:110px;"></textarea>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
-          <input type="checkbox" id="post-anon" style="width:auto;">
-          <span style="color:var(--muted);">Postar como anônimo</span>
-        </label>
-      </div>
-      <button class="btn btn-primary" style="width:100%;" onclick="submitPost()" id="btn-submit">Publicar</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Search User -->
-<div class="modal-overlay" id="modal-search-user">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">Buscar pessoas</span><button class="modal-close" onclick="closeModal('modal-search-user')">✕</button></div>
-    <div class="modal-body">
-      <input type="text" id="search-input" placeholder="Nome ou @usuário..." oninput="searchUsers()">
-      <div id="search-results" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-  </div>
-</div>
+
 
 <!-- Friend Request -->
-<div class="modal-overlay" id="modal-friend-req">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">Adicionar amigo</span><button class="modal-close" onclick="closeModal('modal-friend-req')">✕</button></div>
-    <div class="modal-body">
-      <div id="friend-req-user" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:12px;"></div>
-      <p style="font-size:13px;color:var(--muted);font-style:italic;">"o que dizer de <span id="friend-req-name"></span> que mal conheço e já considero pakas..."</p>
-      <textarea id="friend-req-msg" placeholder="Escreva uma mensagem para enviar junto..." style="min-height:90px;"></textarea>
-      <button class="btn btn-primary" style="width:100%;" onclick="sendFriendRequest()">Enviar solicitação 🤝</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Create Community -->
-<div class="modal-overlay" id="modal-create-comm">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">Criar comunidade</span><button class="modal-close" onclick="closeModal('modal-create-comm')">✕</button></div>
-    <div class="modal-body">
-      <div><label>Nome</label><input type="text" id="cn-name" placeholder="Ex: Amantes de café"></div>
-      <div><label>Descrição</label><textarea id="cn-desc" placeholder="Do que se trata essa comunidade?"></textarea></div>
-      <div class="form-row">
-        <div><label>Tipo</label><select id="cn-type"><option value="interest">Interesse / Hobby</option><option value="local">Local / Regional</option></select></div>
-        <div><label>Privacidade</label><select id="cn-open"><option value="1">Aberta — qualquer um entra</option><option value="0">Fechada — precisa de aprovação</option></select></div>
-      </div>
-      <button class="btn btn-primary" style="width:100%;" onclick="createCommunity()">Criar comunidade 🏗️</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Edit Profile -->
-<div class="modal-overlay" id="modal-edit-profile">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">Editar perfil</span><button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button></div>
-    <div class="modal-body">
-      <div><label>Nome</label><input type="text" id="ep-name"></div>
-      <div><label>Bio</label><textarea id="ep-bio" style="min-height:70px;"></textarea></div>
-      <div><label>O que você faz</label><input type="text" id="ep-occ"></div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:4px 0;">Profissional</div>
-      <div><label>Título profissional</label><input type="text" id="ep-ptitle" placeholder="Ex: Designer UX Sênior"></div>
-      <div><label>Link (portfólio, site)</label><input type="url" id="ep-purl" placeholder="https://"></div>
-      <div><label>Sobre o trabalho</label><textarea id="ep-pdesc" style="min-height:70px;" placeholder="O que você faz, vende, oferece..."></textarea></div>
-      <button class="btn btn-primary" style="width:100%;" onclick="saveProfile()">Salvar ✅</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Post Detail -->
-<div class="modal-overlay" id="modal-post-detail">
-  <div class="modal" style="max-width:600px;">
-    <div class="modal-hdr"><span class="modal-title">Post</span><button class="modal-close" onclick="closeModal('modal-post-detail')">✕</button></div>
-    <div class="modal-body" id="post-detail-body"></div>
-  </div>
-</div>
+
 
 
 <!-- Community Forum -->
-<div class="modal-overlay" id="modal-community" style="align-items:stretch;padding:0;">
-  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
-    <div class="modal-hdr" style="flex-shrink:0;">
-      <span class="modal-title" id="comm-forum-title">Comunidade</span>
-      <button class="modal-close" onclick="closeModal('modal-community')">✕</button>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:16px;">
-      <div class="comm-forum-layout" id="comm-forum-layout">
-        <div class="page-loader"><div class="loader"></div></div>
-      </div>
-    </div>
-  </div>
-</div>
+
 
 
 <!-- Badge Selector Modal -->
-<div class="modal-overlay" id="modal-badges">
-  <div class="modal">
-    <div class="modal-hdr">
-      <span class="modal-title">🏅 Escolher badges em destaque</span>
-      <button class="modal-close" onclick="closeModal('modal-badges')">✕</button>
-    </div>
-    <div class="modal-body">
-      <p class="text-muted" style="margin-bottom:14px;">Escolha até 5 conquistas para exibir no seu perfil. Clique para selecionar/desselecionar.</p>
-      <div id="badge-selector-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;max-height:400px;overflow-y:auto;"></div>
-      <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="saveBadges()">Salvar badges ✅</button>
-    </div>
-  </div>
-</div>
 
-<!-- Modal: Adicionar Ponto de Conquista -->
-<div class="modal-overlay" id="modal-add-point" style="z-index:10000;">
-  <div class="modal" style="max-width:580px;">
-    <div class="modal-hdr">
-      <span class="modal-title">🏆 Adicionar ponto de conquista</span>
-      <button class="modal-close" onclick="closeModal('modal-add-point')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button class="pt-btn active" id="pt-ponto" onclick="setPointModalType('ponto',this)">📍 Ponto</button>
-        <button class="pt-btn" id="pt-roteiro" onclick="setPointModalType('roteiro',this)">🗺️ Roteiro</button>
-      </div>
 
-      <!-- PONTO -->
-      <div id="pm-ponto" style="display:flex;flex-direction:column;gap:10px;">
-        <div><label>Título do local</label><input type="text" id="pm-title" placeholder="Ex: Torre Eiffel, Ponte Torta, Museu X..."></div>
-        <div><label>Descrição / Instrução para o usuário</label><textarea id="pm-desc" placeholder="Ex: Poste uma selfie em frente ao museu!" style="min-height:70px;"></textarea></div>
-        <div class="form-row">
-          <div><label>Ícone</label>
-            <select id="pm-icon">
-              <option value="🏆">🏆 Conquista</option>
-              <option value="📸">📸 Foto</option>
-              <option value="🏛️">🏛️ Cultura</option>
-              <option value="🍽️">🍽️ Gastronomia</option>
-              <option value="🌿">🌿 Natureza</option>
-              <option value="⚽">⚽ Esporte</option>
-              <option value="🛍️">🛍️ Compras</option>
-              <option value="🎭">🎭 Arte</option>
-              <option value="🏖️">🏖️ Praia</option>
-              <option value="⭐">⭐ Especial</option>
-            </select>
-          </div>
-          <div><label>Categoria</label>
-            <select id="pm-category">
-              <option value="cultura">Cultura</option>
-              <option value="gastronomia">Gastronomia</option>
-              <option value="natureza">Natureza</option>
-              <option value="esporte">Esporte</option>
-              <option value="turismo">Turismo</option>
-              <option value="marca">Marca / Parceiro</option>
-              <option value="especial">Especial</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div><label>Pontos ao fazer check-in</label><input type="number" id="pm-points" value="100" min="10" max="2000"></div>
-          <div><label>Raio de check-in (metros)</label><input type="number" id="pm-radius" value="100" min="20" max="1000"></div>
-        </div>
-        <div><label>Roteiro (opcional)</label>
-          <select id="pm-route"><option value="">Nenhum roteiro</option></select>
-        </div>
-        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:14px;">
-          <div style="font-weight:700;font-size:13px;margin-bottom:8px;">📍 Localização do ponto</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Clique no botão abaixo para usar sua localização atual, ou preencha as coordenadas manualmente.</div>
-          <button class="btn btn-ghost btn-sm" onclick="useMyLocationForPoint()" style="margin-bottom:10px;">📍 Usar minha localização atual</button>
-          <div class="form-row">
-            <div><label>Latitude</label><input type="number" id="pm-lat" placeholder="-23.1841" step="0.000001"></div>
-            <div><label>Longitude</label><input type="number" id="pm-lng" placeholder="-46.8825" step="0.000001"></div>
-          </div>
-          <div id="pm-loc-status" class="text-muted" style="font-size:12px;margin-top:6px;"></div>
-        </div>
-        <button class="btn btn-primary" style="width:100%;" onclick="saveMapPoint()">Criar ponto de conquista 🏆</button>
-      </div>
 
-      <!-- ROTEIRO -->
-      <div id="pm-roteiro" style="display:none;flex-direction:column;gap:10px;">
-        <div><label>Nome do roteiro</label><input type="text" id="rr-title" placeholder="Ex: Roteiro Cultural de Jundiaí"></div>
-        <div><label>Descrição</label><textarea id="rr-desc" placeholder="Conheça os pontos históricos de..." style="min-height:70px;"></textarea></div>
-        <div class="form-row">
-          <div><label>Cidade</label><input type="text" id="rr-city" placeholder="Jundiaí"></div>
-          <div><label>Estado</label><input type="text" id="rr-state" placeholder="SP" maxlength="2"></div>
-        </div>
-        <div class="form-row">
-          <div><label>Ícone</label>
-            <select id="rr-icon">
-              <option value="🗺️">🗺️ Roteiro</option>
-              <option value="🏛️">🏛️ Cultura</option>
-              <option value="🍽️">🍽️ Gastronomia</option>
-              <option value="🌿">🌿 Natureza</option>
-              <option value="⚽">⚽ Esporte</option>
-            </select>
-          </div>
-          <div><label>Categoria</label>
-            <select id="rr-category">
-              <option value="cultura">Cultura</option>
-              <option value="gastronomia">Gastronomia</option>
-              <option value="natureza">Natureza</option>
-              <option value="turismo">Turismo</option>
-              <option value="esporte">Esporte</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn btn-primary" style="width:100%;" onclick="saveRoute()">Criar roteiro 🗺️</button>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Modal: Check-in -->
-<div class="modal-overlay" id="modal-checkin" style="z-index:10000;">
-  <div class="modal">
-    <div class="modal-hdr">
-      <span class="modal-title" id="checkin-modal-title">Check-in</span>
-      <button class="modal-close" onclick="closeModal('modal-checkin')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="checkin-body">
-        <div style="text-align:center;padding:20px 0;">
-          <div style="font-size:48px;" id="checkin-icon">🏆</div>
-          <div style="font-family:Syne;font-size:20px;font-weight:800;margin:8px 0;" id="checkin-title"></div>
-          <div style="font-size:14px;color:var(--muted);margin-bottom:16px;" id="checkin-desc"></div>
-          <div style="background:var(--surface2);border-radius:12px;padding:12px;margin-bottom:16px;">
-            <div class="text-muted" style="font-size:12px;margin-bottom:4px;">Pontos ao fazer check-in</div>
-            <div style="font-family:'DM Mono';font-size:28px;font-weight:700;color:var(--gold);" id="checkin-pts"></div>
-          </div>
-          <div id="checkin-dist-info" style="font-size:13px;color:var(--muted);margin-bottom:16px;"></div>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Tire uma foto para registrar sua visita e compartilhar com todos! 📸</p>
-          <label class="drop-zone" for="checkin-photo" style="padding:20px;margin-bottom:12px;display:block;">
-            <div style="font-size:28px;">📷</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:6px;">Abrir câmera</div>
-          </label>
-          <input type="file" id="checkin-photo" accept="image/*" capture="environment" style="display:none;" onchange="onCheckinPhotoSelected(event)">
-          <img id="checkin-preview" style="width:100%;border-radius:12px;margin-bottom:12px;display:none;">
-          <button class="btn btn-primary" style="width:100%;font-size:16px;padding:14px;" onclick="doCheckin()" id="btn-do-checkin">
-            📍 Fazer check-in
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Modal: Criar Evento -->
-<div class="modal-overlay" id="modal-create-event">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">📅 Criar evento</span><button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
-    <div class="modal-body">
-      <!-- Foto do evento -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:4px;">
-        <div style="position:relative;width:100%;height:140px;background:var(--surface2);border-radius:12px;overflow:hidden;border:2px dashed var(--border);">
-          <img id="ev-photo-preview" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
-          <label for="ev-photo-file" id="ev-photo-label" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:6px;color:var(--muted);">
-            <span style="font-size:28px;">🖼️</span>
-            <span style="font-size:13px;font-weight:600;">Adicionar capa do evento</span>
-          </label>
-          <input type="file" id="ev-photo-file" accept="image/*" style="display:none;" onchange="previewEventPhoto(this)">
-        </div>
-      </div>
-      <div><label>Título do evento</label><input type="text" id="ev-title" placeholder="Ex: Churrasco de aniversário"></div>
-      <div><label>Descrição</label><textarea id="ev-desc" placeholder="Conte mais sobre o evento..." style="min-height:80px;"></textarea></div>
-      <div><label>Local</label><input type="text" id="ev-location" placeholder="Ex: Minha casa, Parque da Cidade..."></div>
-      <div class="form-row">
-        <div><label>Data e hora de início</label><input type="datetime-local" id="ev-start"></div>
-        <div><label>Data e hora de fim</label><input type="datetime-local" id="ev-end"></div>
-      </div>
-      <button class="btn btn-primary" style="width:100%;" id="ev-submit-btn" onclick="createEvent()">Criar evento 🎉</button>
-    </div>
-  </div>
-</div>
 
-<!-- Modal: Evento (página interna) -->
-<div class="modal-overlay" id="modal-event" style="align-items:stretch;padding:0;">
-  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
-    <div class="modal-hdr" style="flex-shrink:0;">
-      <span class="modal-title" id="event-modal-title">Evento</span>
-      <button class="modal-close" onclick="closeModal('modal-event')">✕</button>
-    </div>
-    <div style="flex:1;overflow-y:auto;">
-      <div id="event-modal-body" style="padding:16px;"></div>
-    </div>
-  </div>
-</div>
 
-<!-- Modal: Recusar convite -->
-<div class="modal-overlay" id="modal-decline-event">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">😔 Não vai poder ir?</span><button class="modal-close" onclick="closeModal('modal-decline-event')">✕</button></div>
-    <div class="modal-body">
-      <p class="text-muted" style="margin-bottom:12px;">Conta o motivo para quem te convidou. Vai fazer diferença!</p>
-      <textarea id="decline-reason" placeholder="Ex: Tenho outro compromisso nesse dia..." style="min-height:80px;"></textarea>
-      <button class="btn btn-primary" style="width:100%;" onclick="confirmDecline()">Enviar resposta</button>
-    </div>
-  </div>
-</div>
 
-<!-- Modal: Convidar para evento -->
-<div class="modal-overlay" id="modal-invite-event">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">👥 Convidar pessoas</span><button class="modal-close" onclick="closeModal('modal-invite-event')">✕</button></div>
-    <div class="modal-body">
-      <input type="text" id="invite-search-input" placeholder="Buscar por nome ou @usuário..." oninput="debouncedEventSearch()">
-      <div id="invite-search-results" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: Ver perfil de usuário -->
-<div class="modal-overlay" id="modal-user-profile">
-  <div class="modal">
-    <div class="modal-hdr">
-      <span class="modal-title">Perfil</span>
-      <button class="modal-close" onclick="closeModal('modal-user-profile')">✕</button>
-    </div>
-    <div class="modal-body" id="user-profile-body">
-      <div class="page-loader"><div class="loader"></div></div>
-    </div>
-  </div>
-</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -4187,5 +3884,311 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+
+<!-- Modais -->
+<div class="modal-overlay" id="modal-post">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title" id="post-modal-title">Nova publicação</span><button class="modal-close" onclick="closeModal('modal-post')">✕</button></div>
+    <div class="modal-body">
+      <div class="post-type-sw" id="post-type-sw">
+        <button class="pt-btn active" onclick="setPostType('photo')">📷 Foto</button>
+        <button class="pt-btn" onclick="setPostType('text')">✍️ Texto</button>
+      </div>
+      <div id="photo-section">
+        <img class="photo-preview-img" id="photo-preview">
+        <label class="drop-zone" for="photo-file" id="drop-label">
+          <div style="font-size:28px;margin-bottom:8px;">📷</div>
+          <div style="font-size:14px;color:var(--muted);">Abrir câmera ou escolher foto</div>
+        </label>
+        <input type="file" id="photo-file" accept="image/*" capture="environment" style="display:none;" onchange="onPhotoSelected(event)">
+        <input type="text" id="photo-caption" placeholder="Descrição da foto (opcional)">
+      </div>
+      <div id="text-section" class="hidden">
+        <textarea id="post-text" placeholder="O que você está pensando?" style="min-height:110px;"></textarea>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
+          <input type="checkbox" id="post-anon" style="width:auto;">
+          <span style="color:var(--muted);">Postar como anônimo</span>
+        </label>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="submitPost()" id="btn-submit">Publicar</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-search-user">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Buscar pessoas</span><button class="modal-close" onclick="closeModal('modal-search-user')">✕</button></div>
+    <div class="modal-body">
+      <input type="text" id="search-input" placeholder="Nome ou @usuário..." oninput="searchUsers()">
+      <div id="search-results" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-friend-req">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Adicionar amigo</span><button class="modal-close" onclick="closeModal('modal-friend-req')">✕</button></div>
+    <div class="modal-body">
+      <div id="friend-req-user" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:12px;"></div>
+      <p style="font-size:13px;color:var(--muted);font-style:italic;">"o que dizer de <span id="friend-req-name"></span> que mal conheço e já considero pakas..."</p>
+      <textarea id="friend-req-msg" placeholder="Escreva uma mensagem para enviar junto..." style="min-height:90px;"></textarea>
+      <button class="btn btn-primary" style="width:100%;" onclick="sendFriendRequest()">Enviar solicitação 🤝</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-create-comm">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Criar comunidade</span><button class="modal-close" onclick="closeModal('modal-create-comm')">✕</button></div>
+    <div class="modal-body">
+      <div><label>Nome</label><input type="text" id="cn-name" placeholder="Ex: Amantes de café"></div>
+      <div><label>Descrição</label><textarea id="cn-desc" placeholder="Do que se trata essa comunidade?"></textarea></div>
+      <div class="form-row">
+        <div><label>Tipo</label><select id="cn-type"><option value="interest">Interesse / Hobby</option><option value="local">Local / Regional</option></select></div>
+        <div><label>Privacidade</label><select id="cn-open"><option value="1">Aberta — qualquer um entra</option><option value="0">Fechada — precisa de aprovação</option></select></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="createCommunity()">Criar comunidade 🏗️</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-edit-profile">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Editar perfil</span><button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button></div>
+    <div class="modal-body">
+      <div><label>Nome</label><input type="text" id="ep-name"></div>
+      <div><label>Bio</label><textarea id="ep-bio" style="min-height:70px;"></textarea></div>
+      <div><label>O que você faz</label><input type="text" id="ep-occ"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:4px 0;">Profissional</div>
+      <div><label>Título profissional</label><input type="text" id="ep-ptitle" placeholder="Ex: Designer UX Sênior"></div>
+      <div><label>Link (portfólio, site)</label><input type="url" id="ep-purl" placeholder="https://"></div>
+      <div><label>Sobre o trabalho</label><textarea id="ep-pdesc" style="min-height:70px;" placeholder="O que você faz, vende, oferece..."></textarea></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="saveProfile()">Salvar ✅</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-post-detail">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-hdr"><span class="modal-title">Post</span><button class="modal-close" onclick="closeModal('modal-post-detail')">✕</button></div>
+    <div class="modal-body" id="post-detail-body"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-community" style="align-items:stretch;padding:0;">
+  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
+    <div class="modal-hdr" style="flex-shrink:0;">
+      <span class="modal-title" id="comm-forum-title">Comunidade</span>
+      <button class="modal-close" onclick="closeModal('modal-community')">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px;">
+      <div class="comm-forum-layout" id="comm-forum-layout">
+        <div class="page-loader"><div class="loader"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-badges">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">🏅 Escolher badges em destaque</span>
+      <button class="modal-close" onclick="closeModal('modal-badges')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom:14px;">Escolha até 5 conquistas para exibir no seu perfil. Clique para selecionar/desselecionar.</p>
+      <div id="badge-selector-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;max-height:400px;overflow-y:auto;"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="saveBadges()">Salvar badges ✅</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-add-point" style="z-index:10000;">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-hdr">
+      <span class="modal-title">🏆 Adicionar ponto de conquista</span>
+      <button class="modal-close" onclick="closeModal('modal-add-point')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="pt-btn active" id="pt-ponto" onclick="setPointModalType('ponto',this)">📍 Ponto</button>
+        <button class="pt-btn" id="pt-roteiro" onclick="setPointModalType('roteiro',this)">🗺️ Roteiro</button>
+      </div>
+
+      <!-- PONTO -->
+      <div id="pm-ponto" style="display:flex;flex-direction:column;gap:10px;">
+        <div><label>Título do local</label><input type="text" id="pm-title" placeholder="Ex: Torre Eiffel, Ponte Torta, Museu X..."></div>
+        <div><label>Descrição / Instrução para o usuário</label><textarea id="pm-desc" placeholder="Ex: Poste uma selfie em frente ao museu!" style="min-height:70px;"></textarea></div>
+        <div class="form-row">
+          <div><label>Ícone</label>
+            <select id="pm-icon">
+              <option value="🏆">🏆 Conquista</option>
+              <option value="📸">📸 Foto</option>
+              <option value="🏛️">🏛️ Cultura</option>
+              <option value="🍽️">🍽️ Gastronomia</option>
+              <option value="🌿">🌿 Natureza</option>
+              <option value="⚽">⚽ Esporte</option>
+              <option value="🛍️">🛍️ Compras</option>
+              <option value="🎭">🎭 Arte</option>
+              <option value="🏖️">🏖️ Praia</option>
+              <option value="⭐">⭐ Especial</option>
+            </select>
+          </div>
+          <div><label>Categoria</label>
+            <select id="pm-category">
+              <option value="cultura">Cultura</option>
+              <option value="gastronomia">Gastronomia</option>
+              <option value="natureza">Natureza</option>
+              <option value="esporte">Esporte</option>
+              <option value="turismo">Turismo</option>
+              <option value="marca">Marca / Parceiro</option>
+              <option value="especial">Especial</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div><label>Pontos ao fazer check-in</label><input type="number" id="pm-points" value="100" min="10" max="2000"></div>
+          <div><label>Raio de check-in (metros)</label><input type="number" id="pm-radius" value="100" min="20" max="1000"></div>
+        </div>
+        <div><label>Roteiro (opcional)</label>
+          <select id="pm-route"><option value="">Nenhum roteiro</option></select>
+        </div>
+        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:14px;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;">📍 Localização do ponto</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Clique no botão abaixo para usar sua localização atual, ou preencha as coordenadas manualmente.</div>
+          <button class="btn btn-ghost btn-sm" onclick="useMyLocationForPoint()" style="margin-bottom:10px;">📍 Usar minha localização atual</button>
+          <div class="form-row">
+            <div><label>Latitude</label><input type="number" id="pm-lat" placeholder="-23.1841" step="0.000001"></div>
+            <div><label>Longitude</label><input type="number" id="pm-lng" placeholder="-46.8825" step="0.000001"></div>
+          </div>
+          <div id="pm-loc-status" class="text-muted" style="font-size:12px;margin-top:6px;"></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="saveMapPoint()">Criar ponto de conquista 🏆</button>
+      </div>
+
+      <!-- ROTEIRO -->
+      <div id="pm-roteiro" style="display:none;flex-direction:column;gap:10px;">
+        <div><label>Nome do roteiro</label><input type="text" id="rr-title" placeholder="Ex: Roteiro Cultural de Jundiaí"></div>
+        <div><label>Descrição</label><textarea id="rr-desc" placeholder="Conheça os pontos históricos de..." style="min-height:70px;"></textarea></div>
+        <div class="form-row">
+          <div><label>Cidade</label><input type="text" id="rr-city" placeholder="Jundiaí"></div>
+          <div><label>Estado</label><input type="text" id="rr-state" placeholder="SP" maxlength="2"></div>
+        </div>
+        <div class="form-row">
+          <div><label>Ícone</label>
+            <select id="rr-icon">
+              <option value="🗺️">🗺️ Roteiro</option>
+              <option value="🏛️">🏛️ Cultura</option>
+              <option value="🍽️">🍽️ Gastronomia</option>
+              <option value="🌿">🌿 Natureza</option>
+              <option value="⚽">⚽ Esporte</option>
+            </select>
+          </div>
+          <div><label>Categoria</label>
+            <select id="rr-category">
+              <option value="cultura">Cultura</option>
+              <option value="gastronomia">Gastronomia</option>
+              <option value="natureza">Natureza</option>
+              <option value="turismo">Turismo</option>
+              <option value="esporte">Esporte</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="saveRoute()">Criar roteiro 🗺️</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-checkin" style="z-index:10000;">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title" id="checkin-modal-title">Check-in</span>
+      <button class="modal-close" onclick="closeModal('modal-checkin')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="checkin-body">
+        <div style="text-align:center;padding:20px 0;">
+          <div style="font-size:48px;" id="checkin-icon">🏆</div>
+          <div style="font-family:Syne;font-size:20px;font-weight:800;margin:8px 0;" id="checkin-title"></div>
+          <div style="font-size:14px;color:var(--muted);margin-bottom:16px;" id="checkin-desc"></div>
+          <div style="background:var(--surface2);border-radius:12px;padding:12px;margin-bottom:16px;">
+            <div class="text-muted" style="font-size:12px;margin-bottom:4px;">Pontos ao fazer check-in</div>
+            <div style="font-family:'DM Mono';font-size:28px;font-weight:700;color:var(--gold);" id="checkin-pts"></div>
+          </div>
+          <div id="checkin-dist-info" style="font-size:13px;color:var(--muted);margin-bottom:16px;"></div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Tire uma foto para registrar sua visita e compartilhar com todos! 📸</p>
+          <label class="drop-zone" for="checkin-photo" style="padding:20px;margin-bottom:12px;display:block;">
+            <div style="font-size:28px;">📷</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:6px;">Abrir câmera</div>
+          </label>
+          <input type="file" id="checkin-photo" accept="image/*" capture="environment" style="display:none;" onchange="onCheckinPhotoSelected(event)">
+          <img id="checkin-preview" style="width:100%;border-radius:12px;margin-bottom:12px;display:none;">
+          <button class="btn btn-primary" style="width:100%;font-size:16px;padding:14px;" onclick="doCheckin()" id="btn-do-checkin">
+            📍 Fazer check-in
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-create-event">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">📅 Criar evento</span><button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
+    <div class="modal-body">
+      <!-- Foto do evento -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:4px;">
+        <div style="position:relative;width:100%;height:140px;background:var(--surface2);border-radius:12px;overflow:hidden;border:2px dashed var(--border);">
+          <img id="ev-photo-preview" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+          <label for="ev-photo-file" id="ev-photo-label" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:6px;color:var(--muted);">
+            <span style="font-size:28px;">🖼️</span>
+            <span style="font-size:13px;font-weight:600;">Adicionar capa do evento</span>
+          </label>
+          <input type="file" id="ev-photo-file" accept="image/*" style="display:none;" onchange="previewEventPhoto(this)">
+        </div>
+      </div>
+      <div><label>Título do evento</label><input type="text" id="ev-title" placeholder="Ex: Churrasco de aniversário"></div>
+      <div><label>Descrição</label><textarea id="ev-desc" placeholder="Conte mais sobre o evento..." style="min-height:80px;"></textarea></div>
+      <div><label>Local</label><input type="text" id="ev-location" placeholder="Ex: Minha casa, Parque da Cidade..."></div>
+      <div class="form-row">
+        <div><label>Data e hora de início</label><input type="datetime-local" id="ev-start"></div>
+        <div><label>Data e hora de fim</label><input type="datetime-local" id="ev-end"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" id="ev-submit-btn" onclick="createEvent()">Criar evento 🎉</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-event" style="align-items:stretch;padding:0;">
+  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
+    <div class="modal-hdr" style="flex-shrink:0;">
+      <span class="modal-title" id="event-modal-title">Evento</span>
+      <button class="modal-close" onclick="closeModal('modal-event')">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;">
+      <div id="event-modal-body" style="padding:16px;"></div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-decline-event">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">😔 Não vai poder ir?</span><button class="modal-close" onclick="closeModal('modal-decline-event')">✕</button></div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom:12px;">Conta o motivo para quem te convidou. Vai fazer diferença!</p>
+      <textarea id="decline-reason" placeholder="Ex: Tenho outro compromisso nesse dia..." style="min-height:80px;"></textarea>
+      <button class="btn btn-primary" style="width:100%;" onclick="confirmDecline()">Enviar resposta</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-invite-event">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">👥 Convidar pessoas</span><button class="modal-close" onclick="closeModal('modal-invite-event')">✕</button></div>
+    <div class="modal-body">
+      <input type="text" id="invite-search-input" placeholder="Buscar por nome ou @usuário..." oninput="debouncedEventSearch()">
+      <div id="invite-search-results" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-user-profile">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">Perfil</span>
+      <button class="modal-close" onclick="closeModal('modal-user-profile')">✕</button>
+    </div>
+    <div class="modal-body" id="user-profile-body">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
