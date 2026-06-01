@@ -88,8 +88,10 @@ router.get('/:username', optionalAuth, async (req, res) => {
     // Amizade com quem está vendo
     let friendship_status = 'none';
     if (req.user && req.user.id !== user.id) {
-      const f = await db.prepare("SELECT status, requester_id FROM friendships WHERE (requester_id=$1 AND addressee_id=$2) OR (requester_id=$2 AND addressee_id=$1)").get(req.user.id, user.id);
-      if (f) friendship_status = f.status === 'accepted' ? 'friends' : (f.requester_id === req.user.id ? 'pending_sent' : 'pending_received');
+      const f1 = await db.prepare("SELECT status FROM friendships WHERE requester_id=$1 AND addressee_id=$2").get(req.user.id, user.id);
+      const f2 = await db.prepare("SELECT status FROM friendships WHERE requester_id=$1 AND addressee_id=$2").get(user.id, req.user.id);
+      if (f1) friendship_status = f1.status === 'accepted' ? 'friends' : 'pending_sent';
+      else if (f2) friendship_status = f2.status === 'accepted' ? 'friends' : 'pending_received';
     }
 
     res.json({ user: { ...user, stats: { posts, photos, reactions, active_days, friends_count, daily_mandou }, featured_badges, friendship_status } });
