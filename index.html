@@ -674,12 +674,14 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     <!-- ─── PERFIL ─── -->
     <div id="tab-profile" class="tab-content">
       <div id="profile-card-wrap"><div class="page-loader"><div class="loader"></div></div></div>
-      <div id="profile-tabs-row" class="profile-tabs-row hidden">
-        <div class="profile-tab active" onclick="showProfileSec('timeline',this)">📅 Linha</div>
-        <div class="profile-tab" onclick="showProfileSec('amigos',this)">👥 Amigos</div>
-        <div class="profile-tab" onclick="showProfileSec('depoimentos',this)">💬 Depoi.</div>
-        <div class="profile-tab" onclick="showProfileSec('conquistas',this)">🏆</div>
-        <div class="profile-tab" onclick="showProfileSec('profissional',this)">💼</div>
+      <div id="profile-tabs-row" class="profile-tabs-row hidden" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;display:flex;flex-wrap:nowrap;gap:4px;padding:4px 0;">
+        <div class="profile-tab active" onclick="showProfileSec('timeline',this)" style="flex-shrink:0;">📅 Linha</div>
+        <div class="profile-tab" onclick="showProfileSec('amigos',this)" style="flex-shrink:0;">👥 Amigos</div>
+        <div class="profile-tab" onclick="showProfileSec('comunidades',this)" style="flex-shrink:0;">🏘️ Comunidades</div>
+        <div class="profile-tab" onclick="showProfileSec('eventos',this)" style="flex-shrink:0;">📅 Eventos</div>
+        <div class="profile-tab" onclick="showProfileSec('depoimentos',this)" style="flex-shrink:0;">💬 Depoi.</div>
+        <div class="profile-tab" onclick="showProfileSec('conquistas',this)" style="flex-shrink:0;">🏆</div>
+        <div class="profile-tab" onclick="showProfileSec('profissional',this)" style="flex-shrink:0;">💼</div>
       </div>
       <div id="ps-timeline"><div id="timeline-container"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="ps-comunidades" class="hidden">
@@ -1442,7 +1444,7 @@ async function loadGlobal(){
     if(globalFilter==='destaques'){
       posts=(await api('/api/posts/highlights?filter=todos')).posts;
     }else{
-      posts=(await api('/api/posts?limit=80&exclude_tab=agora')).posts.filter(p=>globalFilter==='fotos'?p.type==='photo':true);
+      posts=(await api('/api/posts?limit=80&exclude_tab=agora&type=photo')).posts;
     }
     g.innerHTML=posts.length?posts.map(renderCard).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Nenhuma publicação ainda. Seja o primeiro! 📸</p>`;
   }catch(e){g.innerHTML='<p class="text-muted" style="padding:20px;">Erro: '+e.message+'</p>';}
@@ -1831,7 +1833,7 @@ function showProfileSec(sec,btn){
     const el=document.getElementById('ps-'+s);
     if(el) el.classList.toggle('hidden',s!==sec);
   });
-  document.querySelectorAll('.profile-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#profile-tabs-row .profile-tab').forEach(t=>t.classList.remove('active'));
   if(btn) btn.classList.add('active');
   if(sec==='depoimentos') loadTestimonials();
   if(sec==='conquistas') loadProfileAch();
@@ -3411,14 +3413,21 @@ async function loadVisitorSection(sec, username, btn) {
     } else if (sec === 'depoimentos') {
       const { user } = await api('/api/users/' + username);
       const data = await api('/api/testimonials/' + user.id);
-      el.innerHTML = data.testimonials?.length
+      const list = data.testimonials?.length
         ? data.testimonials.map(t =>
             '<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">'
             + '<div style="font-weight:700;font-size:13px;">'+t.author_name+'</div>'
             + '<div style="font-size:13px;color:var(--text2);margin-top:4px;font-style:italic;">'+t.content+'</div>'
             + '</div>'
           ).join('')
-        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum depoimento ainda. Seja o primeiro!</p>';
+        : '<p class="text-muted" style="padding:16px;text-align:center;">Nenhum depoimento ainda.</p>';
+      // Formulário para escrever depoimento
+      el.dataset.username = username;
+      el.innerHTML = '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;">'
+        + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">✍️ Deixar depoimento</div>'
+        + '<textarea id="visitor-testimonial-text" placeholder="Escreva algo sobre '+user.name+'..." style="min-height:80px;width:100%;"></textarea>'
+        + '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="sendTestimonialToUser(\''+user.id+'\')">Enviar depoimento</button>'
+        + '</div>' + list;
     }
   } catch(e) { el.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
 }
@@ -3547,6 +3556,65 @@ async function loadProfileCommunities() {
         + '<div style="font-size:11px;color:var(--muted);">&#x1F465; '+(c.member_count||0)+'</div></div></div>';
     }).join('');
   } catch(e) { el.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
+}
+
+
+// ═══════════════════════════════════
+// FEED MODE: Global / Ágora
+// ═══════════════════════════════════
+let feedMode = 'global';
+let agoraFilter = 'todos';
+
+function setFeedMode(mode, btn) {
+  feedMode = mode;
+  // Atualizar botões
+  document.getElementById('feed-tab-global').style.background = mode==='global'?'var(--accent)':'transparent';
+  document.getElementById('feed-tab-global').style.color = mode==='global'?'#fff':'var(--muted)';
+  document.getElementById('feed-tab-agora').style.background = mode==='agora'?'var(--accent)':'transparent';
+  document.getElementById('feed-tab-agora').style.color = mode==='agora'?'#fff':'var(--muted)';
+  // Mostrar filtros corretos
+  const gf = document.getElementById('global-filter-pills');
+  const af = document.getElementById('agora-filter-pills');
+  if(gf) gf.style.display = mode==='global'?'flex':'none';
+  if(af) af.style.display = mode==='agora'?'flex':'none';
+  // Recarregar feed
+  if(mode==='global') loadGlobal();
+  else loadAgoraFeed();
+}
+
+function setAgoraFilter(f, btn) {
+  agoraFilter = f;
+  document.querySelectorAll('#agora-filter-pills .pill').forEach(p=>p.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  loadAgoraFeed();
+}
+
+async function loadAgoraFeed() {
+  const g = document.getElementById('global-grid');
+  if(!g) return;
+  g.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    let url = '/api/posts?tab=agora&limit=60';
+    if(agoraFilter==='anonimo') url += '&is_anonymous=1';
+    const posts = (await api(url)).posts;
+    g.innerHTML = posts.length
+      ? posts.map(p => renderCard(p)).join('')
+      : '<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Nenhum desabafo ainda. Seja o primeiro!</p>';
+  } catch(e) { g.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
+}
+
+// Depoimento em outro usuário
+async function sendTestimonialToUser(targetUserId) {
+  const content = document.getElementById('visitor-testimonial-text')?.value?.trim();
+  if(!content){ toast('Escreva o depoimento', 'error'); return; }
+  try {
+    await api('/api/testimonials/'+targetUserId, { method:'POST', body: JSON.stringify({ content }) });
+    toast('Depoimento enviado! 💬', 'success');
+    document.getElementById('visitor-testimonial-text').value = '';
+    // Recarregar depoimentos
+    const username = document.getElementById('visitor-section-content')?.dataset?.username;
+    if(username) loadVisitorSection('depoimentos', username, null);
+  } catch(e) { toast(e.message, 'error'); }
 }
 
 </script>
