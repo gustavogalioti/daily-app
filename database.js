@@ -221,6 +221,7 @@ async function initPG() {
   for (const m of migrations) { try { await pool.query(m); } catch(e) { /* migration já existe */ } }
   // Criar índices para notificações (não bloqueante)
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_user_notif_user ON user_notifications(user_id, read, created_at DESC)'); } catch(_) {}
+  try { await pool.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_url TEXT'); } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_comm_invites ON community_invites(invitee_id, status)'); } catch(_) {}
 
   try { await seedAchievements(pool); } catch(e) { console.error('seedAchievements:', e.message); }
