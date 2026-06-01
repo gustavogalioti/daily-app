@@ -42,6 +42,26 @@ async function initPG() {
       expires_at TIMESTAMPTZ NOT NULL,
       active INTEGER DEFAULT 1
     );
+
+    CREATE TABLE IF NOT EXISTS user_notifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      from_user_id TEXT,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT,
+      data JSONB DEFAULT '{}',
+      read INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS community_invites (
+      id TEXT PRIMARY KEY,
+      community_id TEXT NOT NULL,
+      inviter_id TEXT NOT NULL,
+      invitee_id TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
       subscription JSONB NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
@@ -199,6 +219,9 @@ async function initPG() {
     `ALTER TABLE event_members ADD COLUMN IF NOT EXISTS decline_reason TEXT`,
   ];
   for (const m of migrations) { try { await pool.query(m); } catch(e) { /* migration já existe */ } }
+  // Criar índices para notificações (não bloqueante)
+  try { await pool.query('CREATE INDEX IF NOT EXISTS idx_user_notif_user ON user_notifications(user_id, read, created_at DESC)'); } catch(_) {}
+  try { await pool.query('CREATE INDEX IF NOT EXISTS idx_comm_invites ON community_invites(invitee_id, status)'); } catch(_) {}
 
   try { await seedAchievements(pool); } catch(e) { console.error('seedAchievements:', e.message); }
   try { await seedDailyQuestions(pool); } catch(e) { console.error('seedDailyQuestions:', e.message); }
