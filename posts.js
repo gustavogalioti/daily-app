@@ -4,6 +4,7 @@ const { getDB } = require('./database');
 const { createPhotoUpload, getUploadedUrl } = require('./cloudinary');
 const { authMiddleware, optionalAuth } = require('./authmiddleware');
 const { checkAndGrant } = require('./achievements');
+const { createNotification } = require('./notif_helper');
 const { getPedroComment } = require('./pedro');
 
 const router = express.Router();
@@ -152,7 +153,18 @@ router.post('/:id/react', authMiddleware, async (req, res) => {
     const reactions = await db.prepare('SELECT emoji, COUNT(*) as count FROM reactions WHERE post_id=$1 GROUP BY emoji').all(req.params.id);
     // Verifica conquista de reações recebidas (para o dono do post)
     const post = await db.prepare('SELECT user_id FROM posts WHERE id=$1').get(req.params.id);
-    if (post) await checkAndGrant(db, post.user_id, 'reactions_received');
+    if (post) {
+      await checkAndGrant(db, post.user_id, 'reactions_received');
+      // Notificar dono do post
+      const reactor = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
+      await createNotification(db, {
+        userId: post.user_id, fromUserId: req.user.id,
+        type: 'reaction',
+        title: `${reactor.name} reagiu ao seu post ${emoji}`,
+        body: post.caption || post.content || '',
+        data: { post_id: post.id, emoji }
+      });
+    }
     res.json({ action:'added', emoji, reactions });
   } catch(e) { console.error(e); res.status(500).json({ error: e.message }); }
 });
@@ -178,6 +190,18 @@ router.post('/:id/comments', authMiddleware, async (req, res) => {
       .run(id, req.params.id, req.user.id, parent_id||null, content, is_anonymous?1:0);
     const comment = await db.prepare('SELECT c.*,u.name,u.username,u.avatar_url FROM comments c JOIN users u ON u.id=c.user_id WHERE c.id=$1').get(id);
     const safe = is_anonymous ? {...comment, name:'Usuário anônimo', username:'anonimo', avatar_url:''} : comment;
+    // Notificar dono do post
+    const postRow = await db.prepare('SELECT * FROM posts WHERE id=$1').get(req.params.id);
+    if (postRow && !is_anonymous) {
+      const commenter = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
+      await createNotification(db, {
+        userId: postRow.user_id, fromUserId: req.user.id,
+        type: 'comment',
+        title: `${commenter.name} comentou no seu post`,
+        body: content.substring(0, 80),
+        data: { post_id: postRow.id }
+      });
+    }
     res.status(201).json({ comment: safe });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
