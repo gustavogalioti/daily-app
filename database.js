@@ -51,7 +51,7 @@ async function initPG() {
       title TEXT NOT NULL,
       body TEXT,
       data JSONB DEFAULT '{}',
-      read BOOLEAN DEFAULT false,
+      read INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS community_invites (
@@ -223,7 +223,6 @@ async function initPG() {
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_user_notif_user ON user_notifications(user_id, read, created_at DESC)'); } catch(_) {}
   try { await pool.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_url TEXT'); } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_comm_invites ON community_invites(invitee_id, status)'); } catch(_) {}
-  try { await pool.query('ALTER TABLE user_notifications ALTER COLUMN read TYPE BOOLEAN USING read::boolean'); } catch(_) {}
   try { await pool.query('ALTER TABLE achievements ADD COLUMN IF NOT EXISTS image_url TEXT'); } catch(_) {}
   try { await pool.query('ALTER TABLE achievements ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true'); } catch(_) {}
   try { await pool.query('ALTER TABLE achievements ADD COLUMN IF NOT EXISTS trigger_type TEXT DEFAULT \'manual\''); } catch(_) {}
