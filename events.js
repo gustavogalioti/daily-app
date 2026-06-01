@@ -113,12 +113,31 @@ router.post('/', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/events/:id/invite — convidar usuário
+// POST /api/events/:id/invite — convidar usuário (com notificação)
 router.post('/:id/invite', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     const event = await db.prepare('SELECT * FROM events WHERE id=$1').get(req.params.id);
     if (!event) return res.status(404).json({ error: 'Evento não encontrado' });
+    if (event.owner_id !== req.user.id) return res.status(403).json({ error: 'Só o criador pode convidar' });
+    const { user_id } = req.body;
+    if (!user_id) return res.status(400).json({ error: 'user_id obrigatório' });
+    const existing = await db.prepare('SELECT id FROM event_members WHERE event_id=$1 AND user_id=$2').get(req.params.id, user_id);
+    if (existing) return res.status(409).json({ error: 'Usuário já convidado' });
+    await db.prepare('INSERT INTO event_members (id,event_id,user_id,status) VALUES ($1,$2,$3,$4)')
+      .run(uuidv4(), req.params.id, user_id, 'pending');
+    // Notificação
+    const inviter = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
+    await createNotification(db, {
+      userId: user_id, fromUserId: req.user.id,
+      type: 'event_invite',
+      title: `${inviter.name} te convidou para um evento`,
+      body: event.title,
+      data: { event_id: req.params.id }
+    });
+    res.status(201).json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
     if (event.owner_id !== req.user.id) return res.status(403).json({ error: 'Só o criador pode convidar' });
     const { user_id } = req.body;
     if (!user_id) return res.status(400).json({ error: 'user_id obrigatório' });
@@ -266,6 +285,24 @@ router.post('/:id/posts/:postId/comments', authMiddleware, async (req, res) => {
     const c = await db.prepare(`SELECT cc.*, u.name, u.username, u.avatar_url FROM event_post_comments cc JOIN users u ON u.id=cc.user_id WHERE cc.id=$1`).get(id);
     res.status(201).json({ comment: c });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+
+// POST /api/events/:id/cover — foto de capa
+router.post('/:id/cover', authMiddleware, (req, res, next) => {
+  createPhotoUpload().single('photo')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      const db = getDB();
+      const event = await db.prepare('SELECT * FROM events WHERE id=$1').get(req.params.id);
+      if (!event) return res.status(404).json({ error: 'Evento não encontrado' });
+      if (event.owner_id !== req.user.id) return res.status(403).json({ error: 'Sem permissão' });
+      if (!req.file) return res.status(400).json({ error: 'Foto obrigatória' });
+      const cover_url = getUploadedUrl(req, req.file);
+      await db.prepare('UPDATE events SET cover_url=$1 WHERE id=$2').run(cover_url, req.params.id);
+      res.json({ cover_url });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
 });
 
 module.exports = router;
