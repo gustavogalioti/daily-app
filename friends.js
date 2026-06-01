@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
 const { authMiddleware } = require('./authmiddleware');
 const { checkAndGrant } = require('./achievements');
+const { createNotification } = require('./notif_helper');
 
 const router = express.Router();
 
@@ -97,6 +98,17 @@ router.post('/request', authMiddleware, async (req, res) => {
     if (isPedro) {
       await checkAndGrant(db, req.user.id, 'friends');
     }
+    // Notificar o destinatário
+    if (!isPedro) {
+      const sender = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
+      await createNotification(db, {
+        userId: addressee_id, fromUserId: req.user.id,
+        type: 'friend_request',
+        title: `${sender.name} quer ser seu amigo`,
+        body: 'Aceitar ou recusar o pedido de amizade?',
+        data: { friendship_id: id }
+      });
+    }
     res.status(201).json({ friendship_id: id, message: isPedro ? 'Pedro aceitou sua amizade! 🐱🧡' : 'Solicitação enviada!' });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -109,6 +121,15 @@ router.put('/request/:id/accept', authMiddleware, async (req, res) => {
     if (!f) return res.status(404).json({ error: 'Solicitação não encontrada' });
     if (f.addressee_id !== req.user.id) return res.status(403).json({ error: 'Sem permissão' });
     await db.prepare("UPDATE friendships SET status='accepted', updated_at=NOW() WHERE id=$1").run(req.params.id);
+    // Notificar quem fez o pedido
+    const accepter = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
+    await createNotification(db, {
+      userId: f.requester_id, fromUserId: req.user.id,
+      type: 'friend_accepted',
+      title: `${accepter.name} aceitou seu pedido de amizade! 🎉`,
+      body: 'Agora vocês são amigos!',
+      data: { friendship_id: f.id }
+    });
     // Verifica conquistas de amizade para os dois
     await checkAndGrant(db, req.user.id, 'friends');
     await checkAndGrant(db, f.requester_id, 'friends');
