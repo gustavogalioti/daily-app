@@ -1829,7 +1829,7 @@ async function loadProfile(){
 }
 
 function showProfileSec(sec,btn){
-  ['timeline','amigos','depoimentos','conquistas','profissional'].forEach(s=>{
+  ['timeline','amigos','comunidades','eventos','depoimentos','conquistas','profissional'].forEach(s=>{
     const el=document.getElementById('ps-'+s);
     if(el) el.classList.toggle('hidden',s!==sec);
   });
