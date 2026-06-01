@@ -204,6 +204,7 @@ async function initPG() {
   try { await seedDailyQuestions(pool); } catch(e) { console.error('seedDailyQuestions:', e.message); }
   try { await seedRegionalCommunities(pool); } catch(e) { console.error('seedRegionalCommunities:', e.message); }
   try { await seedPedro(pool); } catch(e) { console.error('seedPedro:', e.message); }
+  try { await seedPedroCommunity(pool); } catch(e) { console.error('seedPedroCommunity:', e.message); }
 
   wrapper = {
     prepare: (sql) => ({
@@ -375,4 +376,19 @@ function toPg(sql) {
 
 async function initDB() { return initPG(); }
 function getDB() { return wrapper; }
+
+async function seedPedroCommunity(pool) {
+  const { v4: uuidv4 } = require('uuid');
+  const { rows } = await pool.query("SELECT id FROM communities WHERE name='Eu amo o Pedro Daily' LIMIT 1");
+  if (rows.length) return;
+  const SYSTEM = 'system-daily';
+  const commId = 'comm-pedro-daily-oficial';
+  await pool.query(`INSERT INTO communities (id,name,description,type,is_open,owner_id,created_at)
+    VALUES ($1,$2,$3,'interest',true,$4,NOW()) ON CONFLICT(id) DO NOTHING`,
+    [commId, 'Eu amo o Pedro Daily', 'Comunidade oficial dos fãs do Pedro, o gato laranja mascote do Daily! 🐱🧡', SYSTEM]);
+  await pool.query(`INSERT INTO community_members (id,community_id,user_id,role) VALUES ($1,$2,$3,'member') ON CONFLICT DO NOTHING`,
+    [uuidv4(), commId, SYSTEM]);
+  console.log('   🐱 Comunidade do Pedro criada!');
+}
+
 module.exports = { initDB, getDB };
