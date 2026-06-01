@@ -102,7 +102,7 @@ router.post('/request', authMiddleware, async (req, res) => {
     if (!isPedro) {
       const sender = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
       await createNotification(db, {
-        userId: addressee_id, fromUserId: req.user.id,
+        userId: user_id, fromUserId: req.user.id,
         type: 'friend_request',
         title: `${sender.name} quer ser seu amigo`,
         body: 'Aceitar ou recusar o pedido de amizade?',

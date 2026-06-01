@@ -140,7 +140,7 @@ router.post('/', authMiddleware, (req, res, next) => {
       const { name, description, icon, points, category, trigger_type } = req.body;
       if (!name) return res.status(400).json({ error: 'Nome obrigatório' });
       let image_url = null;
-      if (req.file) image_url = await getUploadedUrl(req.file);
+      if (req.file) image_url = getUploadedUrl(req, req.file);
       const id = uuidv4();
       const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') + '-' + Date.now();
       await db.prepare(`INSERT INTO achievements (id,slug,name,description,icon,image_url,points,category,trigger_type,requirement_type,requirement_value,active)
@@ -162,7 +162,7 @@ router.put('/:id', authMiddleware, (req, res, next) => {
       if (!u?.is_admin) return res.status(403).json({ error: 'Apenas admins podem editar conquistas' });
       const { name, description, icon, points, category } = req.body;
       let image_url = undefined;
-      if (req.file) image_url = await getUploadedUrl(req.file);
+      if (req.file) image_url = getUploadedUrl(req, req.file);
       const sets = [];
       const vals = [];
       let i = 1;
