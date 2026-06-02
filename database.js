@@ -64,6 +64,16 @@ async function initPG() {
       emoji TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(post_id, user_id, emoji)
     );
+
+    CREATE TABLE IF NOT EXISTS agenda_gastos (
+      id TEXT PRIMARY KEY, agenda_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      descricao TEXT NOT NULL, valor NUMERIC(10,2) NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS agenda_rateio_participantes (
+      id TEXT PRIMARY KEY, agenda_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      UNIQUE(agenda_id, user_id)
+    );
     CREATE TABLE IF NOT EXISTS agora_banners (
       id TEXT PRIMARY KEY, message TEXT NOT NULL, author TEXT,
       active INTEGER DEFAULT 1, created_at TIMESTAMPTZ DEFAULT NOW()
