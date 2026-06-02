@@ -202,6 +202,7 @@ router.get('/ranking', async (req, res) => {
              COUNT(ua.id) as achievements_count
       FROM users u
       LEFT JOIN user_achievements ua ON ua.user_id=u.id
+      WHERE u.id NOT IN ('pedro-official-daily', 'system-daily')
       GROUP BY u.id ORDER BY u.points DESC, achievements_count DESC LIMIT 50
     `).all();
     res.json({ users });
