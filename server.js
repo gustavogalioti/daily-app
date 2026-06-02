@@ -34,6 +34,7 @@ process.on('uncaughtException', (err) => {
     ['/api/admin', './admin'], ['/api/friends', './friends'],
     ['/api/testimonials', './testimonials'], ['/api/communities', './communities'],
     ['/api/user-notifications', './user_notifications'],
+    ['/api/agenda', './agenda'],
     ['/api/achievements', './achievements'], ['/api/pedro', './pedro'],
     ['/api/daily-questions', './daily_questions'], ['/api/geo', './geo'],
     ['/api/map-points', './map_points'], ['/api/events', './events'],
