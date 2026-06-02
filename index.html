@@ -1576,8 +1576,8 @@ function renderCard(p){
       <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')">
       <div class="photo-card-body">
         <div class="photo-card-author">
-          <img class="avatar" src="${av}" width="24" height="24" style="cursor:pointer;" onclick="openUserProfile('${p.author?.username}')">
-          <span style="font-size:13px;font-weight:600;flex:1;cursor:pointer;" onclick="openUserProfile('${p.author?.username}')">${p.author?.name||'Anônimo'}</span>${dmBadge}
+          <img class="avatar" src="${av}" width="32" height="32" style="cursor:pointer;border-radius:50%;object-fit:cover;flex-shrink:0;" onclick="openUserProfile('${p.author?.username}')">
+          <span style="font-size:13px;font-weight:700;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="openUserProfile('${p.author?.username}')">${p.author?.name||'Anônimo'}</span>${dmBadge}
         </div>
         ${p.caption?`<p style="font-size:12px;color:var(--muted);margin-top:5px;">${p.caption}</p>`:''}
         <div class="reactions-row">${reactions}${addEmojis}</div>
@@ -4602,7 +4602,7 @@ async function submitVisitorTestimonial(username) {
 
 <!-- Modal: Criar Agenda -->
 <div class="modal-overlay" id="modal-create-agenda" onclick="if(event.target===this)closeModal('modal-create-agenda')">
-  <div class="modal-box" style="max-width:460px;">
+  <div class="modal-box" style="max-width:460px;background:var(--surface);">
     <div class="modal-header">
       <div class="modal-title">📆 Nova agenda</div>
       <button class="modal-close" onclick="closeModal('modal-create-agenda')">×</button>
@@ -4627,7 +4627,7 @@ async function submitVisitorTestimonial(username) {
 
 <!-- Modal: Visualizar Agenda -->
 <div class="modal-overlay" id="modal-agenda" onclick="if(event.target===this)closeModal('modal-agenda')">
-  <div class="modal-box" style="max-width:540px;max-height:90vh;overflow-y:auto;">
+  <div class="modal-box" style="max-width:540px;max-height:90vh;overflow-y:auto;background:var(--surface2);">
     <div class="modal-header">
       <div class="modal-title" id="agenda-modal-title">Agenda</div>
       <button class="modal-close" onclick="closeModal('modal-agenda')">×</button>
