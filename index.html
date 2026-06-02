@@ -1575,9 +1575,13 @@ function renderCard(p){
     return`<div class="photo-card">
       <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')">
       <div class="photo-card-body">
-        <div class="photo-card-author">
-          <img class="avatar" src="${av}" width="32" height="32" style="cursor:pointer;border-radius:50%;object-fit:cover;flex-shrink:0;" onclick="openUserProfile('${p.author?.username}')">
-          <span style="font-size:13px;font-weight:700;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="openUserProfile('${p.author?.username}')">${p.author?.name||'Anônimo'}</span>${dmBadge}
+        <div class="photo-card-author" style="cursor:pointer;" onclick="openUserProfile('${p.author?.username}')">
+          <img class="avatar" src="${av}" width="36" height="36" style="border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--surface2);">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.author?.name||'Anônimo'}</div>
+            <div style="font-size:11px;color:var(--muted);">@${p.author?.username||''}</div>
+          </div>
+          ${dmBadge}
         </div>
         ${p.caption?`<p style="font-size:12px;color:var(--muted);margin-top:5px;">${p.caption}</p>`:''}
         <div class="reactions-row">${reactions}${addEmojis}</div>
@@ -4726,14 +4730,22 @@ async function loadAgenda() {
   } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
 }
 
+function closeAgendaScreen() {
+  document.getElementById('screen-agenda').style.display = 'none';
+}
+
 async function openAgendaModal(agendaId) {
   currentAgendaId = agendaId;
-  openModal('modal-agenda');
-  const body = document.getElementById('agenda-modal-body');
+  // Abrir tela cheia
+  const sc = document.getElementById('screen-agenda');
+  const body = document.getElementById('agenda-screen-body');
+  sc.style.display = 'flex';
+  sc.style.flexDirection = 'column';
+  sc.scrollTop = 0;
   body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
   try {
     const { agenda, members, posts, is_owner } = await api('/api/agenda/' + agendaId);
-    document.getElementById('agenda-modal-title').textContent = agenda.title;
+    document.getElementById('agenda-screen-title').textContent = agenda.title;
     const d = new Date(agenda.event_date);
     const confirmed = members.filter(m => m.status === 'accepted');
     const pending = members.filter(m => m.status === 'pending');
@@ -4814,7 +4826,7 @@ async function openAgendaModal(agendaId) {
         ${posts.length ? posts.map(renderPost).join('') : '<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma publicação ainda.</p></div>'}
       </div>`;
   } catch(e) {
-    body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
+    if(body) body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
   }
 }
 
@@ -5089,6 +5101,16 @@ function renderCardWithMentions(p) {
   );
 }
 </script>
+
+
+  <!-- ─── TELA AGENDA ─── -->
+  <div id="screen-agenda" style="display:none;position:fixed;inset:0;z-index:650;flex-direction:column;background:var(--surface2);overflow-y:auto;">
+    <div style="background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
+      <button onclick="closeAgendaScreen()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--text);line-height:1;padding:0 8px 0 0;">‹</button>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;" id="agenda-screen-title">Agenda</div>
+    </div>
+    <div id="agenda-screen-body" style="max-width:600px;margin:0 auto;width:100%;padding:16px;"></div>
+  </div>
 
 </body>
 </html>
