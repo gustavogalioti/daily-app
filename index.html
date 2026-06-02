@@ -407,6 +407,21 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .notif-overlay{position:fixed;inset:0;z-index:299;background:rgba(0,0,0,.3);display:none;}
 .notif-overlay.open{display:block;}
 
+
+/* ── BANNERS DE ONBOARDING ── */
+.onboard-banner{position:fixed;bottom:0;left:0;right:0;z-index:400;padding:16px;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+.onboard-card{background:#fff;border-radius:18px;padding:16px 18px;box-shadow:0 8px 32px rgba(0,0,0,.18);pointer-events:all;display:flex;gap:14px;align-items:flex-start;animation:slideUp .35s cubic-bezier(.4,0,.2,1);}
+.onboard-card-icon{font-size:32px;flex-shrink:0;line-height:1;}
+.onboard-card-body{flex:1;min-width:0;}
+.onboard-card-title{font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:3px;}
+.onboard-card-text{font-size:13px;color:#666;line-height:1.4;}
+.onboard-card-actions{display:flex;gap:8px;margin-top:10px;}
+.onboard-close{background:none;border:none;font-size:20px;color:#aaa;cursor:pointer;padding:0 0 0 4px;flex-shrink:0;margin-top:-2px;}
+.ios-steps{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.ios-step{display:flex;align-items:center;gap:8px;font-size:12px;color:#555;}
+.ios-step-num{background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
 </style>
 </head>
 <body>
@@ -1310,6 +1325,7 @@ function bootApp(){
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
   setTimeout(registerPush,4000);
   checkMapPermission();
+  setTimeout(showOnboardBanners, 3000); // Mostrar banners após 3s
   }catch(err){ console.error('bootApp error:',err); }
 }
 
@@ -3124,10 +3140,8 @@ async function createEvent() {
   if (!title) { toast('Título obrigatório', 'error'); return; }
   if (!event_date) { toast('Data de início obrigatória', 'error'); return; }
   const btn = document.getElementById('ev-submit-btn');
-  if (!btn) { toast('Erro: botão não encontrado', 'error'); return; }
   btn.disabled = true; btn.textContent = 'Criando...';
   try {
-    toast('Criando evento...', 'info');
     // 1. Criar evento
     const { event } = await api('/api/events', { method:'POST', body: JSON.stringify({
       title,
@@ -4387,6 +4401,104 @@ async function deleteAchievement(id, name) {
     toast('Conquista desativada.', 'success');
     loadAdminAchievements();
   } catch(e) { toast(e.message, 'error'); }
+}
+</script>
+
+
+<!-- ── BANNERS DE ONBOARDING ── -->
+<div class="onboard-banner" id="onboard-banner" style="display:none;">
+  <!-- Banner notificações push (Android/Desktop) -->
+  <div class="onboard-card" id="banner-push" style="display:none;">
+    <div class="onboard-card-icon">🔔</div>
+    <div class="onboard-card-body">
+      <div class="onboard-card-title">Ative as notificações</div>
+      <div class="onboard-card-text">Receba pedidos de amizade, reações e novidades do DAILY em tempo real.</div>
+      <div class="onboard-card-actions">
+        <button class="btn btn-primary btn-sm" onclick="requestPushPermission()">Ativar agora</button>
+        <button class="btn btn-ghost btn-sm" onclick="dismissBanner('push')">Agora não</button>
+      </div>
+    </div>
+    <button class="onboard-close" onclick="dismissBanner('push')">×</button>
+  </div>
+
+  <!-- Banner iOS — adicionar à tela inicial -->
+  <div class="onboard-card" id="banner-ios" style="display:none;">
+    <div class="onboard-card-icon">📱</div>
+    <div class="onboard-card-body">
+      <div class="onboard-card-title">Instale o DAILY no seu iPhone</div>
+      <div class="onboard-card-text">Para receber notificações no iOS, adicione o DAILY à sua tela inicial:</div>
+      <div class="ios-steps">
+        <div class="ios-step"><div class="ios-step-num">1</div><span>Toque no ícone <strong>Compartilhar</strong> <span style="font-size:15px;">⎙</span> no Safari</span></div>
+        <div class="ios-step"><div class="ios-step-num">2</div><span>Selecione <strong>"Adicionar à Tela de Início"</strong></span></div>
+        <div class="ios-step"><div class="ios-step-num">3</div><span>Toque em <strong>Adicionar</strong> — pronto! 🎉</span></div>
+      </div>
+      <div class="onboard-card-actions">
+        <button class="btn btn-ghost btn-sm" onclick="dismissBanner('ios')">Entendido</button>
+      </div>
+    </div>
+    <button class="onboard-close" onclick="dismissBanner('ios')">×</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// ONBOARDING — NOTIFICAÇÕES E IOS
+// ═══════════════════════════════════════
+
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function isInStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function dismissBanner(type) {
+  const el = document.getElementById('banner-' + type);
+  if (el) el.style.display = 'none';
+  localStorage.setItem('dismissed_' + type, '1');
+  // Esconder container se todos fechados
+  const remaining = document.querySelectorAll('.onboard-card[style*="display: none"], .onboard-card[style*="display:none"]');
+  const allCards = document.querySelectorAll('#onboard-banner .onboard-card');
+  if ([...allCards].every(c => c.style.display === 'none')) {
+    document.getElementById('onboard-banner').style.display = 'none';
+  }
+}
+
+async function requestPushPermission() {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      toast('Notificações ativadas! 🔔', 'success');
+      dismissBanner('push');
+      // Registrar push subscription
+      await registerPush();
+    } else {
+      toast('Permissão negada. Você pode ativar nas configurações do navegador.', 'info');
+      dismissBanner('push');
+    }
+  } catch(e) {
+    dismissBanner('push');
+  }
+}
+
+function showOnboardBanners() {
+  let anyVisible = false;
+  const container = document.getElementById('onboard-banner');
+
+  // iOS sem standalone — mostrar instrução de instalar
+  if (isIOS() && !isInStandaloneMode() && !localStorage.getItem('dismissed_ios')) {
+    const el = document.getElementById('banner-ios');
+    if (el) { el.style.display = 'flex'; anyVisible = true; }
+  }
+
+  // Android/Desktop — pedir permissão push se ainda não concedida e não dismissado
+  if (!isIOS() && 'Notification' in window && Notification.permission === 'default' && !localStorage.getItem('dismissed_push')) {
+    const el = document.getElementById('banner-push');
+    if (el) { el.style.display = 'flex'; anyVisible = true; }
+  }
+
+  if (anyVisible) container.style.display = 'flex';
 }
 </script>
 
