@@ -261,7 +261,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .users-table tr:last-child td{border-bottom:none;}
 
 /* ── MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px);}
 .modal-overlay.open{display:flex;}
 .modal{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md);}
 .modal-hdr{padding:20px 20px 0;display:flex;justify-content:space-between;align-items:center;}
@@ -611,8 +611,8 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       </div>
 
       <!-- Painel de composição Ágora (aparece só no modo agora) -->
-      <div id="agora-compose-panel" style="display:none;margin-bottom:14px;position:relative;">
-        <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;">
+      <div id="agora-compose-panel" style="display:none;margin-bottom:14px;position:relative;overflow:visible;">
+        <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;overflow:visible;">
           <textarea id="agora-compose-text" placeholder="O que você quer compartilhar? Use @ para marcar alguém..." 
             style="width:100%;min-height:80px;border:none;background:transparent;font-size:14px;resize:none;outline:none;font-family:inherit;line-height:1.5;"
             oninput="onAgoraTyping(this)" onkeydown="onAgoraKeydown(event)"></textarea>
@@ -4578,7 +4578,7 @@ function showOnboardBanners() {
 
 
   <!-- ─── TELA PERFIL VISITANTE ─── -->
-  <div id="screen-visitor" style="display:none;position:fixed;inset:0;z-index:250;flex-direction:column;background:var(--surface2);overflow-y:auto;">
+  <div id="screen-visitor" style="display:none;position:fixed;inset:0;z-index:650;flex-direction:column;background:var(--surface2);overflow-y:auto;">
     <div style="background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
       <button onclick="closeVisitorProfile()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--text);line-height:1;padding:0 8px 0 0;">‹</button>
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;" id="visitor-screen-name">Perfil</div>
@@ -4997,7 +4997,7 @@ function focusMentionItem(dd, dir) {
 }
 
 let mentionSearchTimer = null;
-function handleMentionTyping(textarea, dropdownId) {
+async function handleMentionTyping(textarea, dropdownId) {
   const val = textarea.value;
   const pos = textarea.selectionStart;
   const before = val.substring(0, pos);
