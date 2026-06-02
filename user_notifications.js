@@ -18,8 +18,14 @@ router.get('/', authMiddleware, async (req, res) => {
       WHERE n.user_id = $1
       ORDER BY n.created_at DESC LIMIT 50
     `).all(req.user.id);
-    const unread = notifs.filter(n => !n.read).length;
-    res.json({ notifications: notifs, unread });
+    const unread = notifs.filter(n => !n.read || n.read === 0 || n.read === '0').length;
+    // Garantir que data é sempre objeto
+    const safe = notifs.map(n => ({
+      ...n,
+      read: n.read === 1 || n.read === true ? 1 : 0,
+      data: typeof n.data === 'string' ? JSON.parse(n.data) : (n.data || {})
+    }));
+    res.json({ notifications: safe, unread });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
