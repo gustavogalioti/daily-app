@@ -3124,8 +3124,10 @@ async function createEvent() {
   if (!title) { toast('Título obrigatório', 'error'); return; }
   if (!event_date) { toast('Data de início obrigatória', 'error'); return; }
   const btn = document.getElementById('ev-submit-btn');
+  if (!btn) { toast('Erro: botão não encontrado', 'error'); return; }
   btn.disabled = true; btn.textContent = 'Criando...';
   try {
+    toast('Criando evento...', 'info');
     // 1. Criar evento
     const { event } = await api('/api/events', { method:'POST', body: JSON.stringify({
       title,
