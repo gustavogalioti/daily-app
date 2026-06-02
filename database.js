@@ -43,6 +43,27 @@ async function initPG() {
       active INTEGER DEFAULT 1
     );
 
+
+    CREATE TABLE IF NOT EXISTS agendas (
+      id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT,
+      event_date TIMESTAMPTZ NOT NULL, owner_id TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS agenda_members (
+      id TEXT PRIMARY KEY, agenda_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      status TEXT DEFAULT 'pending', created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(agenda_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS agenda_posts (
+      id TEXT PRIMARY KEY, agenda_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      content TEXT NOT NULL, image_url TEXT, post_type TEXT DEFAULT 'text',
+      poll_data JSONB, created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS agenda_post_reactions (
+      id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      emoji TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(post_id, user_id, emoji)
+    );
     CREATE TABLE IF NOT EXISTS user_notifications (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
