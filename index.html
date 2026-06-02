@@ -655,8 +655,11 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
     <!-- ─── CONQUISTAS ─── -->
     <div id="tab-achievements" class="tab-content">
-      <div class="page-header"><div class="page-header-left"><span class="page-icon">🏆</span><div class="section-title">Conquistas & Ranking</div></div></div>
-      <div class="filter-pills">
+      <div class="page-header">
+        <div class="page-header-left"><span class="page-icon">🏆</span><div class="section-title">Conquistas & Ranking</div></div>
+        <button class="btn btn-primary btn-sm hidden" id="btn-manage-ach" onclick="showAchSection('gerenciar', this)">⚙️ Gerenciar</button>
+      </div>
+      <div class="filter-pills" id="ach-filter-pills">
         <span class="pill active" onclick="showAchSection('earned',this)">Minhas</span>
         <span class="pill" onclick="showAchSection('all',this)">Todas</span>
         <span class="pill" onclick="showAchSection('ranking',this)">🏅 Ranking</span>
@@ -664,6 +667,13 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div id="as-earned"><div class="ach-grid" id="ach-earned-grid"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="as-all" class="hidden"><div class="ach-grid" id="ach-all-grid"></div></div>
       <div id="as-ranking" class="hidden"><div class="ranking-list" id="ranking-list"></div></div>
+      <div id="as-gerenciar" class="hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-weight:700;font-size:15px;">Conquistas cadastradas</div>
+          <button class="btn btn-primary btn-sm" onclick="openCreateAchievement()">+ Nova</button>
+        </div>
+        <div id="admin-achievements" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;"></div>
+      </div>
     </div>
 
 
@@ -807,15 +817,6 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <button class="btn btn-primary" onclick="sendNotification()" id="btn-notify">📷 Disparar Daily Mandou</button>
         <button class="btn btn-danger" onclick="if(confirm('Apagar TODOS os posts? Isso não pode ser desfeito.')) clearAllPosts()">🗑️ Limpar todos os posts</button>
         <button class="btn btn-ghost" onclick="forcePedroFriendship()" style="color:var(--accent2);border-color:var(--accent2);">🐱 Pedro: amigar com todos</button>
-      </div>
-
-      <!-- CONQUISTAS ADM -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;">🏆 Conquistas</div>
-        <button class="btn btn-primary btn-sm" onclick="openCreateAchievement()">+ Nova conquista</button>
-      </div>
-      <div id="admin-achievements" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:24px;">
-        <div class="page-loader"><div class="loader"></div></div>
       </div>
 
       <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;">Perguntas do Dia</div>
@@ -1825,6 +1826,7 @@ async function createCommunity(){
 // ACHIEVEMENTS
 // ═══════════════════════════════════
 async function loadAchievements(){
+  if(currentUser?.is_admin) document.getElementById('btn-manage-ach')?.classList.remove('hidden');
   const g=document.getElementById('ach-earned-grid');
   g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
   try{
@@ -1857,10 +1859,11 @@ async function loadRanking(){
 }
 
 function showAchSection(sec,btn){
-  ['earned','all','ranking'].forEach(s=>document.getElementById('as-'+s).classList.toggle('hidden',s!==sec));
-  document.querySelectorAll('#tab-achievements .filter-pills .pill').forEach(p=>p.classList.remove('active'));
-  btn.classList.add('active');
+  ['earned','all','ranking','gerenciar'].forEach(s=>document.getElementById('as-'+s)?.classList.toggle('hidden',s!==sec));
+  document.querySelectorAll('#ach-filter-pills .pill').forEach(p=>p.classList.remove('active'));
+  if(btn) btn.classList.add('active');
   if(sec==='ranking') loadRanking();
+  if(sec==='gerenciar') loadAdminAchievements();
 }
 
 // ═══════════════════════════════════
@@ -2112,7 +2115,6 @@ async function react(postId,emoji,el){
 // ADMIN
 // ═══════════════════════════════════
 async function loadAdmin(){
-  loadAdminAchievements();
   try{
     const{total_users,total_posts,today_posts,total_friends,total_communities}=await api('/api/admin/stats');
     document.getElementById('admin-stats').innerHTML=`
