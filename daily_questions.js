@@ -36,7 +36,24 @@ router.get('/current', optionalAuth, async (req, res) => {
     // Gera word cloud data
     const responses = await db.prepare('SELECT content FROM daily_question_responses WHERE question_id=$1 AND response_date=$2').all(q.id, today);
     const wordCloud = buildWordCloud(responses.map(r => r.content));
-    res.json({ question: q, period, total_responses: total, my_response, word_cloud: wordCloud });
+    // Calcular percentuais se houver opções fixas
+    let option_stats = null;
+    if (q.options) {
+      const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+      const counts = {};
+      opts.forEach(o => counts[o] = 0);
+      const allRes = await db.prepare('SELECT content FROM daily_question_responses WHERE question_id=$1 AND response_date=$2').all(q.id, today);
+      allRes.forEach(r => { if (counts[r.content] !== undefined) counts[r.content]++; });
+      const tot = Object.values(counts).reduce((a,b) => a+b, 0);
+      option_stats = opts.map(o => ({ option: o, count: counts[o], pct: tot ? Math.round(counts[o]/tot*100) : 0 }));
+    }
+    // Pedro comentando sobre os stats
+    let pedro_stat_comment = null;
+    if (option_stats && total >= 3) {
+      const top = option_stats.sort((a,b) => b.pct - a.pct)[0];
+      pedro_stat_comment = `Pedro analisou: ${top.pct}% escolheram "${top.option}"! ${top.option.toLowerCase().includes('sim') || top.option.toLowerCase().includes('bom') ? '😻 Que notícia boa!' : '😿 Poxa, esperava mais!'}`;
+    }
+    res.json({ question: q, period, total_responses: total, my_response, word_cloud: wordCloud, option_stats, pedro_stat_comment });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
