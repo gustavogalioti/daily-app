@@ -10,8 +10,10 @@ const router = express.Router();
 router.get('/:username', async (req, res) => {
   try {
     const db = getDB();
-    const username = req.params.username.replace(/^@/,'').toLowerCase();
-    const target = await db.prepare('SELECT id FROM users WHERE username=$1').get(username);
+    const param = req.params.username.replace(/^@/,'').toLowerCase();
+    // Aceita tanto username quanto ID direto
+    let target = await db.prepare('SELECT id FROM users WHERE username=$1').get(param);
+    if (!target) target = await db.prepare('SELECT id FROM users WHERE id=$1').get(req.params.username);
     if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
     const testimonials = await db.prepare(`
       SELECT t.*, u.name as author_name, u.username as author_username, u.avatar_url as author_avatar
@@ -26,8 +28,9 @@ router.get('/:username', async (req, res) => {
 router.post('/:username', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    const username = req.params.username.replace(/^@/,'').toLowerCase();
-    const target = await db.prepare('SELECT id FROM users WHERE username=$1').get(username);
+    const param = req.params.username.replace(/^@/,'').toLowerCase();
+    let target = await db.prepare('SELECT id FROM users WHERE username=$1').get(param);
+    if (!target) target = await db.prepare('SELECT id FROM users WHERE id=$1').get(req.params.username);
     if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
     if (target.id === req.user.id) return res.status(400).json({ error: 'Você não pode escrever depoimento para si mesmo' });
     const { content } = req.body;
