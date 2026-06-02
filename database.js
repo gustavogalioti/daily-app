@@ -74,6 +74,16 @@ async function initPG() {
       id TEXT PRIMARY KEY, agenda_id TEXT NOT NULL, user_id TEXT NOT NULL,
       UNIQUE(agenda_id, user_id)
     );
+
+    CREATE TABLE IF NOT EXISTS dailypokes (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
+      config JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW(),
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS dailypoke_actions (
+      id TEXT PRIMARY KEY, from_user_id TEXT NOT NULL, to_user_id TEXT NOT NULL,
+      action TEXT DEFAULT 'wave', created_at TIMESTAMPTZ DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS agora_banners (
       id TEXT PRIMARY KEY, message TEXT NOT NULL, author TEXT,
       active INTEGER DEFAULT 1, created_at TIMESTAMPTZ DEFAULT NOW()
