@@ -143,7 +143,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .pill.active,.pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
 
 /* ── PHOTO GRID ── */
-.photo-grid{columns:3 200px;gap:12px;}
+.photo-grid{columns:4 160px;gap:8px;}
 .photo-card{break-inside:avoid;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .18s;box-shadow:var(--shadow);}
 .photo-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
 .photo-card img{width:100%;display:block;background:var(--surface2);}
@@ -372,7 +372,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   .topbar-logo{display:none!important;}
   .nav-btn{padding:8px 10px;}
   .tab-content{padding:14px 12px;}
-  .photo-grid{columns:2;}
+  .photo-grid{columns:3;}
   .discuss-grid{columns:1;}
   .comm-grid{grid-template-columns:1fr 1fr;}
   .profile-top{flex-direction:column;align-items:center;text-align:center;}
@@ -760,9 +760,9 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div class="jogos-soon">
         <div class="jogos-badge">Em breve</div>
         <h2 style="font-family:'Syne',sans-serif;font-size:42px;font-weight:800;margin-bottom:8px;">🎮 Jogos</h2>
-        <p style="color:var(--muted);font-size:15px;max-width:380px;margin:0 auto;">BuddyPoke, Fazendinha, Minha Cidade e muito mais. A diversão está chegando!</p>
+        <p style="color:var(--muted);font-size:15px;max-width:380px;margin:0 auto;">DailyPoke, Fazendinha, Minha Cidade e muito mais. A diversão está chegando!</p>
         <div class="game-cards">
-          <div class="game-card-soon"><div style="font-size:44px;">🐱</div><div style="font-size:12px;font-weight:600;margin-top:8px;">BuddyPoke</div></div>
+          <div class="game-card-soon"><div style="font-size:44px;">🐱</div><div style="font-size:12px;font-weight:600;margin-top:8px;">DailyPoke</div></div>
           <div class="game-card-soon"><div style="font-size:44px;">🌾</div><div style="font-size:12px;font-weight:600;margin-top:8px;">Fazendinha</div></div>
           <div class="game-card-soon"><div style="font-size:44px;">🏙️</div><div style="font-size:12px;font-weight:600;margin-top:8px;">Minha Cidade</div></div>
           <div class="game-card-soon" style="opacity:1;border-color:var(--accent);background:var(--accent-light);">
@@ -1585,18 +1585,15 @@ function renderCard(p){
   const dmBadge=p.tab==='daily_mandou'?'<span class="badge-pill" style="font-size:10px;">⚡ Daily</span>':'';;
   if(p.type==='photo'&&p.image_url){
     return`<div class="photo-card">
-      <!-- Imagem com avatar sobreposto -->
-      <div style="position:relative;">
-        <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')" style="display:block;width:100%;">
-        <!-- Avatar + @username sobrepostos na borda inferior esquerda da foto -->
-        <div style="position:absolute;bottom:8px;left:8px;display:flex;align-items:center;gap:6px;cursor:pointer;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);border-radius:20px;padding:4px 10px 4px 4px;" onclick="openUserProfile('${p.author?.username}')">
-          <img src="${av}" width="30" height="30" style="border-radius:50%;object-fit:cover;border:2px solid #fff;flex-shrink:0;">
-          <span style="font-size:12px;font-weight:700;color:#fff;">@${p.author?.username||'anon'}</span>
-          ${dmBadge?`<span style="font-size:10px;color:#ffd700;">⚡</span>`:''}
-        </div>
-      </div>
+      <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')">
       <div class="photo-card-body">
-        ${p.caption?`<p style="font-size:13px;color:var(--text);margin-bottom:6px;">${p.caption}</p>`:''}
+        <!-- Autor: bolinha redonda + @username em linha -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;" onclick="openUserProfile('${p.author?.username}')">
+          <img src="${av}" width="30" height="30" style="border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--accent);">
+          <span style="font-size:12px;font-weight:700;color:var(--accent);">@${p.author?.username||'anon'}</span>
+          ${dmBadge}
+        </div>
+        ${p.caption?`<p style="font-size:12px;color:var(--text2);margin-bottom:6px;">${p.caption}</p>`:''}
         <div class="reactions-row">${reactions}${addEmojis}</div>
         ${pedro}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
@@ -1635,18 +1632,63 @@ async function loadDailyQuestion(){
   const c=document.getElementById('dq-container');
   c.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
   try{
-    const{question,period,my_response,word_cloud,total_responses}=await api('/api/daily-questions/current');
+    const{question,period,my_response,word_cloud,total_responses,option_stats,pedro_stat_comment}=await api('/api/daily-questions/current');
     const pl={manha:'☀️ Manhã',almoco:'🍽️ Almoço',tarde:'🌤️ Tarde',noite:'🌙 Noite'};
     if(!question){c.innerHTML=`<div class="dq-card"><p class="text-muted">Nenhuma pergunta ativa agora. Volte mais tarde!</p></div>`;return;}
+
+    const opts = question.options ? (typeof question.options==='string'?JSON.parse(question.options):question.options) : null;
+    const isPhoto = question.photo_mode === 1 || question.photo_mode === true;
+
+    // Bloco de resposta
+    let answerBlock = '';
+    if(my_response) {
+      answerBlock = `<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 16px;font-size:14px;color:var(--green);">✅ Você já respondeu: <em>"${my_response.content}"</em><div style="font-size:11px;color:var(--muted);margin-top:4px;">+10 pontos ganhos!</div></div>`;
+    } else if(opts) {
+      // Opções fixas (tarde/noite)
+      answerBlock = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+        ${opts.map(o=>`<button class="btn btn-ghost" style="border:2px solid var(--accent);flex:1;min-width:80px;" onclick="submitDQOption('${question.id}','${o}')">${o}</button>`).join('')}
+      </div>`;
+    } else if(isPhoto) {
+      answerBlock = `<div style="margin-top:8px;">
+        <img id="dq-photo-prev" style="width:100%;border-radius:10px;margin-bottom:8px;display:none;">
+        <label class="drop-zone" for="dq-photo-input" style="padding:12px;text-align:center;display:block;cursor:pointer;">📷 Tirar foto do prato</label>
+        <input type="file" id="dq-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="onDQPhotoSel(event)">
+        <input type="text" id="dq-ans" placeholder="O que você comeu?" style="margin-top:8px;">
+        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="submitDQPhoto('${question.id}')">Enviar 📸</button>
+      </div>`;
+    } else {
+      answerBlock = `<textarea id="dq-ans" placeholder="Sua resposta..." style="min-height:70px;"></textarea>
+      <button class="btn btn-primary" onclick="submitDQ('${question.id}')">Responder (+10 pts)</button>`;
+    }
+
+    // Bloco de stats (% das opções)
+    let statsBlock = '';
+    if(option_stats && my_response) {
+      statsBlock = `<div style="margin-top:14px;display:flex;flex-direction:column;gap:6px;">
+        ${option_stats.map(s=>`<div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;background:var(--surface2);border-radius:99px;overflow:hidden;height:24px;">
+            <div style="width:${s.pct}%;background:var(--accent);height:100%;border-radius:99px;transition:width .5s;display:flex;align-items:center;padding-left:8px;">
+              <span style="font-size:11px;font-weight:700;color:#fff;white-space:nowrap;">${s.pct}%</span>
+            </div>
+          </div>
+          <span style="font-size:12px;font-weight:700;min-width:60px;">${s.option}</span>
+        </div>`).join('')}
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${total_responses} resposta${total_responses!==1?'s':''}</div>
+      </div>`;
+    }
+
+    // Pedro sobre os stats
+    const pedroStats = pedro_stat_comment && my_response ? `<div style="background:#fff8f0;border:1.5px solid var(--accent-light,#ffd0b0);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px;">🐱 <b>Pedro:</b> ${pedro_stat_comment}</div>` : '';
+
     c.innerHTML=`<div class="dq-card">
       <div class="dq-period-pill">${pl[period]||period}</div>
       <div class="dq-question">${question.question}</div>
-      ${my_response?`<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 16px;font-size:14px;color:var(--green);">✅ Você já respondeu: <em>"${my_response.content}"</em></div>`:
-      `<textarea id="dq-ans" placeholder="Sua resposta..." style="min-height:80px;"></textarea>
-      <button class="btn btn-primary" onclick="submitDQ('${question.id}')">Responder</button>`}
-      ${total_responses>0?`
-      <div style="margin-top:18px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      ${answerBlock}
+      ${statsBlock}
+      ${pedroStats}
+      ${total_responses>0&&word_cloud?.length?`
+      <div style="margin-top:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div class="text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;">☁️ ${total_responses} respostas</div>
           <button class="btn btn-ghost btn-xs" onclick="loadDailyQuestion()">🔄</button>
         </div>
@@ -5247,6 +5289,46 @@ function drawWordCloud(words, canvasId) {
     const angle = (i % 5 === 1) ? -Math.PI/6 : (i % 5 === 3) ? Math.PI/6 : 0;
     placeWord(item.word, fontSize, color, angle);
   });
+}
+</script>
+
+
+<script>
+async function submitDQOption(qid, option) {
+  try {
+    const r = await api('/api/daily-questions/respond', { method:'POST', body: JSON.stringify({ content: option }) });
+    toast('Resposta enviada! +10 pontos 🎉', 'success');
+    loadDailyQuestion();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function onDQPhotoSel(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const p = document.getElementById('dq-photo-prev');
+    p.src = ev.target.result; p.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitDQPhoto(qid) {
+  const file = document.getElementById('dq-photo-input')?.files[0];
+  const text = document.getElementById('dq-ans')?.value.trim() || 'Foto do prato';
+  if (!file) { toast('Tire uma foto do prato!', 'error'); return; }
+  try {
+    const fd = new FormData();
+    fd.append('photo', file);
+    fd.append('caption', text);
+    fd.append('type', 'photo');
+    fd.append('tab', 'global');
+    // Postar a foto no Global e responder a pergunta
+    await apiForm('/api/posts', fd);
+    await api('/api/daily-questions/respond', { method:'POST', body: JSON.stringify({ content: text }) });
+    toast('Foto postada! +10 pontos 🎉', 'success');
+    loadDailyQuestion();
+  } catch(e) { toast(e.message, 'error'); }
 }
 </script>
 
