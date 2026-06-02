@@ -895,6 +895,18 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;">Perguntas do Dia</div>
       <div id="admin-questions" style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;"></div>
 
+      <!-- Reset pedidos de amizade -->
+      <div style="margin-bottom:20px;">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;">🔄 Manutenção</div>
+        <div style="background:var(--surface2);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div>
+            <div style="font-weight:700;font-size:13px;">Zerar pedidos de amizade pendentes</div>
+            <div style="font-size:12px;color:var(--muted);">Remove pedidos antigos sem notificação</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="resetPendingFriendships()" style="flex-shrink:0;">Zerar</button>
+        </div>
+      </div>
+
       <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:12px;">Usuários cadastrados</div>
       <div style="overflow-x:auto;">
         <table class="users-table" id="users-table">
@@ -1575,13 +1587,9 @@ function renderCard(p){
     return`<div class="photo-card">
       <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')">
       <div class="photo-card-body">
-        <div class="photo-card-author" style="cursor:pointer;" onclick="openUserProfile('${p.author?.username}')">
-          <img class="avatar" src="${av}" width="36" height="36" style="border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--surface2);">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.author?.name||'Anônimo'}</div>
-            <div style="font-size:11px;color:var(--muted);">@${p.author?.username||''}</div>
-          </div>
-          ${dmBadge}
+        <div class="photo-card-author">
+          <img class="avatar" src="${av}" width="32" height="32" style="cursor:pointer;border-radius:50%;object-fit:cover;flex-shrink:0;" onclick="openUserProfile('${p.author?.username}')">
+          <span style="font-size:13px;font-weight:700;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="openUserProfile('${p.author?.username}')">${p.author?.name||'Anônimo'}</span>${dmBadge}
         </div>
         ${p.caption?`<p style="font-size:12px;color:var(--muted);margin-top:5px;">${p.caption}</p>`:''}
         <div class="reactions-row">${reactions}${addEmojis}</div>
@@ -4137,7 +4145,8 @@ function renderNotifItem(n) {
   const icons = {
     friend_request: '🤝', friend_accepted: '🎉',
     reaction: '❤️', comment: '💬',
-    community_invite: '🏘️', community_invite_accepted: '✅'
+    community_invite: '🏘️', community_invite_accepted: '✅',
+    agenda_invite: '📆', testimonial: '💬', friend_accepted: '🎉'
   };
   const icon = icons[n.type] || '🔔';
   const avatar = n.from_avatar
@@ -4157,6 +4166,19 @@ function renderNotifItem(n) {
     actions = `<div class="notif-actions">
       <button class="btn btn-primary btn-xs" onclick="acceptInviteFromNotif('${d.invite_id}','${n.id}')">Entrar</button>
       <button class="btn btn-ghost btn-xs" onclick="declineInviteFromNotif('${d.invite_id}','${n.id}')">Recusar</button>
+    </div>`;
+  }
+  if (n.type === 'agenda_invite' && !n.read) {
+    const d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
+    actions = `<div class="notif-actions">
+      <button class="btn btn-primary btn-xs" onclick="acceptAgendaInviteNotif('${d.agenda_id}','${n.id}')">✅ Aceitar</button>
+      <button class="btn btn-ghost btn-xs" onclick="declineAgendaInviteNotif('${d.agenda_id}','${n.id}')">Recusar</button>
+    </div>`;
+  }
+  if (n.type === 'testimonial' && !n.read) {
+    const d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
+    actions = `<div class="notif-actions">
+      <button class="btn btn-ghost btn-xs" onclick="openUserProfile('${n.from_username}');closeNotifPanel()">Ver perfil →</button>
     </div>`;
   }
 
@@ -4221,6 +4243,27 @@ async function acceptInviteFromNotif(inviteId, notifId) {
 async function declineInviteFromNotif(inviteId, notifId) {
   try {
     await api(`/api/user-notifications/community-invite/${inviteId}/decline`, { method: 'POST' });
+    toast('Convite recusado.', 'info');
+    await loadNotifications();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function acceptAgendaInviteNotif(agendaId, notifId) {
+  try {
+    await api(`/api/agenda/${agendaId}/respond`, { method: 'PUT', body: JSON.stringify({ status: 'accepted' }) });
+    await api(`/api/user-notifications/${notifId}/read`, { method: 'PUT' });
+    toast('Convite aceito! 📆', 'success');
+    closeNotifPanel();
+    await loadNotifications();
+    // Abrir a agenda aceita
+    setTimeout(() => openAgendaModal(agendaId), 300);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function declineAgendaInviteNotif(agendaId, notifId) {
+  try {
+    await api(`/api/agenda/${agendaId}/respond`, { method: 'PUT', body: JSON.stringify({ status: 'declined' }) });
+    await api(`/api/user-notifications/${notifId}/read`, { method: 'PUT' });
     toast('Convite recusado.', 'info');
     await loadNotifications();
   } catch(e) { toast(e.message, 'error'); }
@@ -4730,22 +4773,14 @@ async function loadAgenda() {
   } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
 }
 
-function closeAgendaScreen() {
-  document.getElementById('screen-agenda').style.display = 'none';
-}
-
 async function openAgendaModal(agendaId) {
   currentAgendaId = agendaId;
-  // Abrir tela cheia
-  const sc = document.getElementById('screen-agenda');
-  const body = document.getElementById('agenda-screen-body');
-  sc.style.display = 'flex';
-  sc.style.flexDirection = 'column';
-  sc.scrollTop = 0;
+  openModal('modal-agenda');
+  const body = document.getElementById('agenda-modal-body');
   body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
   try {
     const { agenda, members, posts, is_owner } = await api('/api/agenda/' + agendaId);
-    document.getElementById('agenda-screen-title').textContent = agenda.title;
+    document.getElementById('agenda-modal-title').textContent = agenda.title;
     const d = new Date(agenda.event_date);
     const confirmed = members.filter(m => m.status === 'accepted');
     const pending = members.filter(m => m.status === 'pending');
@@ -4826,7 +4861,7 @@ async function openAgendaModal(agendaId) {
         ${posts.length ? posts.map(renderPost).join('') : '<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma publicação ainda.</p></div>'}
       </div>`;
   } catch(e) {
-    if(body) body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
+    body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
   }
 }
 
@@ -5103,14 +5138,15 @@ function renderCardWithMentions(p) {
 </script>
 
 
-  <!-- ─── TELA AGENDA ─── -->
-  <div id="screen-agenda" style="display:none;position:fixed;inset:0;z-index:650;flex-direction:column;background:var(--surface2);overflow-y:auto;">
-    <div style="background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
-      <button onclick="closeAgendaScreen()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--text);line-height:1;padding:0 8px 0 0;">‹</button>
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;" id="agenda-screen-title">Agenda</div>
-    </div>
-    <div id="agenda-screen-body" style="max-width:600px;margin:0 auto;width:100%;padding:16px;"></div>
-  </div>
+<script>
+async function resetPendingFriendships() {
+  if (!confirm('Zerar todos os pedidos de amizade pendentes? Eles precisarão ser enviados novamente.')) return;
+  try {
+    await api('/api/admin/reset-pending-friendships', { method: 'POST' });
+    toast('Pedidos pendentes zerados! Os próximos funcionarão com notificação. ✅', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+</script>
 
 </body>
 </html>
