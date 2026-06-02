@@ -217,11 +217,11 @@ async function initPG() {
     `ALTER TABLE events ADD COLUMN IF NOT EXISTS description TEXT`,
     `ALTER TABLE events ADD COLUMN IF NOT EXISTS location TEXT`,
     `ALTER TABLE event_members ADD COLUMN IF NOT EXISTS decline_reason TEXT`,
+    `ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_url TEXT`,
   ];
   for (const m of migrations) { try { await pool.query(m); } catch(e) { /* migration já existe */ } }
   // Criar índices para notificações (não bloqueante)
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_user_notif_user ON user_notifications(user_id, read, created_at DESC)'); } catch(_) {}
-  try { await pool.query('ALTER TABLE events ADD COLUMN IF NOT EXISTS cover_url TEXT'); } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_comm_invites ON community_invites(invitee_id, status)'); } catch(_) {}
 
   try { await seedAchievements(pool); } catch(e) { console.error('seedAchievements:', e.message); }
