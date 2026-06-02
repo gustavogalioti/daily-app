@@ -1,18 +1,24 @@
+// Pega período atual (horário Brasil = UTC-3)
+function getCurrentPeriod() {
+  const now = new Date();
+  const brasilOffset = -3 * 60; // UTC-3 em minutos
+  const localOffset = now.getTimezoneOffset(); // minutos atrás de UTC
+  const brasilMs = now.getTime() + (localOffset + brasilOffset) * 60000;
+  const h = new Date(brasilMs).getHours();
+  const m = new Date(brasilMs).getMinutes();
+  const hm = h * 60 + m; // minutos desde meia-noite
+  if (hm >= 300  && hm < 691)  return 'manha';  // 05:00 até 11:30
+  if (hm >= 691  && hm < 900)  return 'almoco'; // 11:31 até 15:00
+  if (hm >= 900  && hm < 1081) return 'tarde';  // 15:01 até 18:00
+  return 'noite';                                 // 18:01 até 04:59
+}
+
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
 const { authMiddleware, optionalAuth } = require('./authmiddleware');
 
 const router = express.Router();
-
-// Pega período atual
-function getCurrentPeriod() {
-  const h = new Date().getHours();
-  if (h >= 5  && h < 11) return 'manha';
-  if (h >= 11 && h < 14) return 'almoco';
-  if (h >= 14 && h < 18) return 'tarde';
-  return 'noite';
-}
 
 // GET /api/daily-questions/current — pergunta atual
 router.get('/current', optionalAuth, async (req, res) => {
