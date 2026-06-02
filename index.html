@@ -422,6 +422,23 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .ios-step-num{background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
 @keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
 
+
+/* ── MENÇÕES @ ── */
+.mention-highlight { color: var(--accent); font-weight: 700; cursor: pointer; }
+.mention-dropdown {
+  position: absolute; background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.15); z-index: 500;
+  max-height: 200px; overflow-y: auto; min-width: 200px;
+}
+.mention-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer;
+  font-size: 13px; transition: background .12s;
+}
+.mention-item:hover { background: var(--surface2); }
+.mention-item img { width: 28px; height: 28px; border-radius: 50%; }
+/* Painel escrever na Ágora com @mention */
+.agora-compose { position: relative; }
+
 </style>
 </head>
 <body>
@@ -562,6 +579,15 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <span class="pill" onclick="setGlobalFilter('destaques',this)">⚡ Destaques</span>
       </div>
 
+      <!-- Banner ADM Ágora -->
+      <div id="agora-admin-banner" style="display:none;margin-bottom:14px;">
+        <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:14px;padding:16px 18px;color:#fff;position:relative;">
+          <div style="font-size:10px;font-weight:800;letter-spacing:1px;opacity:.8;margin-bottom:4px;">📢 DAILY PERGUNTA</div>
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;line-height:1.3;" id="agora-banner-text">—</div>
+          <div style="font-size:11px;opacity:.75;margin-top:6px;" id="agora-banner-time"></div>
+        </div>
+      </div>
+
       <!-- Filtros Ágora -->
       <div id="mundo-agora-filters" class="filter-pills" style="margin-bottom:14px;display:none;">
         <span class="pill active" onclick="setMundoAgoraFilter('todos',this)">Todos</span>
@@ -584,6 +610,22 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         </div>
       </div>
 
+      <!-- Painel de composição Ágora (aparece só no modo agora) -->
+      <div id="agora-compose-panel" style="display:none;margin-bottom:14px;position:relative;">
+        <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;">
+          <textarea id="agora-compose-text" placeholder="O que você quer compartilhar? Use @ para marcar alguém..." 
+            style="width:100%;min-height:80px;border:none;background:transparent;font-size:14px;resize:none;outline:none;font-family:inherit;line-height:1.5;"
+            oninput="onAgoraTyping(this)" onkeydown="onAgoraKeydown(event)"></textarea>
+          <!-- Dropdown de menções -->
+          <div id="mention-dropdown" class="mention-dropdown" style="display:none;position:absolute;bottom:60px;left:14px;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;border-top:1px solid var(--border);padding-top:10px;">
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-ghost btn-xs" onclick="toggleAgAnon(this)" id="ag-anon-btn">👤 Anônimo</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="submitAgoraPost()">Publicar →</button>
+          </div>
+        </div>
+      </div>
       <div class="photo-grid" id="global-grid"><div class="page-loader"><div class="loader"></div></div></div>
     </div>
 
@@ -835,6 +877,20 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <button class="btn btn-primary" onclick="sendNotification()" id="btn-notify">📷 Disparar Daily Mandou</button>
         <button class="btn btn-danger" onclick="if(confirm('Apagar TODOS os posts? Isso não pode ser desfeito.')) clearAllPosts()">🗑️ Limpar todos os posts</button>
         <button class="btn btn-ghost" onclick="forcePedroFriendship()" style="color:var(--accent2);border-color:var(--accent2);">🐱 Pedro: amigar com todos</button>
+      </div>
+
+      <!-- MENSAGEM ÁGORA -->
+      <div style="margin-bottom:24px;">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;">💬 Mensagem do Topo — Ágora</div>
+        <div style="background:var(--surface2);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+          <textarea id="agora-banner-input" rows="2" placeholder="Escreva uma pergunta ou mensagem que aparece no topo da Ágora..."
+            style="resize:none;font-size:14px;"></textarea>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="saveAgoraBanner()">💾 Publicar</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearAgoraBanner()">🗑️ Remover</button>
+          </div>
+          <div id="agora-banner-current" style="font-size:12px;color:var(--muted);"></div>
+        </div>
       </div>
 
       <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;">Perguntas do Dia</div>
@@ -3797,8 +3853,13 @@ function setFeedMode(mode, btn) {
   if(gf) gf.style.display = mode==='global'?'flex':'none';
   if(af) af.style.display = mode==='agora'?'flex':'none';
   // Recarregar feed
+  // Mostrar/ocultar painel de composição e banner ADM
+  const composePanel = document.getElementById('agora-compose-panel');
+  const adminBanner = document.getElementById('agora-admin-banner');
+  if(composePanel) composePanel.style.display = mode==='agora' ? 'block' : 'none';
+  if(adminBanner) adminBanner.style.display = mode==='agora' ? 'block' : 'none';
   if(mode==='global') loadGlobal();
-  else loadAgoraFeed();
+  else { loadAgoraFeed(); loadAgoraBanner(); }
 }
 
 function setAgoraFilter(f, btn) {
@@ -4852,6 +4913,175 @@ async function voteAgendaPoll(agendaId, postId, idx) {
     await api('/api/agenda/' + agendaId + '/posts/' + postId + '/vote', { method: 'POST', body: JSON.stringify({ option_index: idx }) });
     openAgendaModal(agendaId);
   } catch(e) { toast(e.message, 'error'); }
+}
+</script>
+
+
+<script>
+// ═══════════════════════════════════════
+// BANNER ADM ÁGORA
+// ═══════════════════════════════════════
+async function loadAgoraBanner() {
+  try {
+    const data = await api('/api/admin/agora-banner').catch(() => null);
+    if (!data?.banner) { document.getElementById('agora-admin-banner').style.display = 'none'; return; }
+    document.getElementById('agora-banner-text').textContent = data.banner.message;
+    document.getElementById('agora-banner-time').textContent = 'Publicado por ' + (data.banner.author || 'ADM') + ' · ' + timeAgo(data.banner.created_at);
+    document.getElementById('agora-admin-banner').style.display = 'block';
+    // Preencher campo ADM se for admin
+    if (currentUser?.is_admin) {
+      const inp = document.getElementById('agora-banner-input');
+      if (inp) inp.value = data.banner.message;
+      const curr = document.getElementById('agora-banner-current');
+      if (curr) curr.textContent = 'Atual: "' + data.banner.message + '"';
+    }
+  } catch(e) {}
+}
+
+async function saveAgoraBanner() {
+  const msg = document.getElementById('agora-banner-input')?.value.trim();
+  if (!msg) { toast('Escreva uma mensagem', 'error'); return; }
+  try {
+    await api('/api/admin/agora-banner', { method: 'POST', body: JSON.stringify({ message: msg }) });
+    toast('Mensagem publicada na Ágora! 📢', 'success');
+    loadAgoraBanner();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function clearAgoraBanner() {
+  try {
+    await api('/api/admin/agora-banner', { method: 'DELETE' });
+    toast('Mensagem removida.', 'info');
+    document.getElementById('agora-admin-banner').style.display = 'none';
+    const inp = document.getElementById('agora-banner-input');
+    if (inp) inp.value = '';
+    const curr = document.getElementById('agora-banner-current');
+    if (curr) curr.textContent = '';
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════
+// @MENÇÃO
+// ═══════════════════════════════════════
+let mentionQuery = '';
+let mentionStart = -1;
+let currentMentionTarget = null; // { textarea, dropdown }
+
+function onAgoraTyping(textarea) {
+  handleMentionTyping(textarea, 'mention-dropdown');
+}
+
+function onAgoraKeydown(e) {
+  const dd = document.getElementById('mention-dropdown');
+  if (dd.style.display !== 'none') {
+    if (e.key === 'Escape') { dd.style.display = 'none'; e.preventDefault(); return; }
+    if (e.key === 'ArrowDown') { focusMentionItem(dd, 1); e.preventDefault(); return; }
+    if (e.key === 'ArrowUp') { focusMentionItem(dd, -1); e.preventDefault(); return; }
+    if (e.key === 'Enter') { const focused = dd.querySelector('.mention-item:focus,.mention-item.focused'); if(focused){ focused.click(); e.preventDefault(); } }
+  }
+}
+
+function focusMentionItem(dd, dir) {
+  const items = [...dd.querySelectorAll('.mention-item')];
+  const current = dd.querySelector('.mention-item.focused');
+  let idx = current ? items.indexOf(current) + dir : (dir > 0 ? 0 : items.length-1);
+  idx = Math.max(0, Math.min(idx, items.length-1));
+  items.forEach(i => i.classList.remove('focused'));
+  items[idx]?.classList.add('focused');
+  items[idx]?.scrollIntoView({ block: 'nearest' });
+}
+
+let mentionSearchTimer = null;
+function handleMentionTyping(textarea, dropdownId) {
+  const val = textarea.value;
+  const pos = textarea.selectionStart;
+  const before = val.substring(0, pos);
+  const match = before.match(/@(\w*)$/);
+  const dd = document.getElementById(dropdownId);
+
+  if (!match) { dd.style.display = 'none'; return; }
+  mentionQuery = match[1];
+  mentionStart = pos - match[0].length;
+  currentMentionTarget = textarea;
+
+  if (mentionQuery.length === 0) { dd.style.display = 'none'; return; }
+  clearTimeout(mentionSearchTimer);
+  mentionSearchTimer = setTimeout(async () => {
+    try {
+      const { users } = await api('/api/users/search?q=' + encodeURIComponent(mentionQuery));
+      if (!users.length) { dd.style.display = 'none'; return; }
+      dd.innerHTML = users.slice(0,6).map(u => `
+        <div class="mention-item" tabindex="0" onclick="insertMention('${u.username}', '${dropdownId}')">
+          <img src="${u.avatar_url||avatarUrl(u.name)}" alt="">
+          <div>
+            <div style="font-weight:700;">${u.name}</div>
+            <div style="font-size:11px;color:var(--muted);">@${u.username}</div>
+          </div>
+        </div>`).join('');
+      dd.style.display = 'block';
+    } catch(e) { dd.style.display = 'none'; }
+  }, 300);
+}
+
+function insertMention(username, dropdownId) {
+  if (!currentMentionTarget) return;
+  const ta = currentMentionTarget;
+  const val = ta.value;
+  const pos = ta.selectionStart;
+  const before = val.substring(0, mentionStart);
+  const after = val.substring(pos);
+  ta.value = before + '@' + username + ' ' + after;
+  ta.selectionStart = ta.selectionEnd = mentionStart + username.length + 2;
+  ta.focus();
+  document.getElementById(dropdownId).style.display = 'none';
+  mentionQuery = '';
+}
+
+function parseMentions(text) {
+  // Detecta @username e substitui por link clicável
+  return (text || '').replace(/@(\w+)/g, (match, uname) =>
+    `<span class="mention-highlight" onclick="openUserProfile('${uname}')">${match}</span>`
+  );
+}
+
+// ═══════════════════════════════════════
+// POSTAR NA ÁGORA (com @mention e Pedro)
+// ═══════════════════════════════════════
+let agoraIsAnon = false;
+
+function toggleAgAnon(btn) {
+  agoraIsAnon = !agoraIsAnon;
+  btn.style.background = agoraIsAnon ? 'var(--accent)' : '';
+  btn.style.color = agoraIsAnon ? '#fff' : '';
+}
+
+async function submitAgoraPost() {
+  const content = document.getElementById('agora-compose-text')?.value.trim();
+  if (!content) { toast('Escreva algo', 'error'); return; }
+  try {
+    await api('/api/posts', { method: 'POST', body: JSON.stringify({
+      content, type: 'text', tab: 'agora', is_anonymous: agoraIsAnon ? 1 : 0
+    })});
+    document.getElementById('agora-compose-text').value = '';
+    toast('Publicado! ✅', 'success');
+    loadAgoraFeed();
+    // Verificar @pedro no conteúdo
+    if (content.toLowerCase().includes('@pedro')) {
+      toast('Pedro recebeu sua menção! 🐱', 'info');
+    }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// Aplicar parseMentions nos cards renderizados
+const _origRenderCard = renderCard;
+// Override para renderizar @mentions nos textos
+function renderCardWithMentions(p) {
+  const card = _origRenderCard(p);
+  // Aplicar highlight de menções no conteúdo
+  return card.replace(
+    />(.*?)<\/div>/gs,
+    (m, inner) => inner.includes('@') ? m.replace(inner, parseMentions(inner)) : m
+  );
 }
 </script>
 
