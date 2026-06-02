@@ -3555,7 +3555,9 @@ async function loadVisitorSection(sec, username, btn) {
         : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum post ainda.</p>';
 
     } else if (sec === 'amigos') {
-      const { friends } = await api('/api/friends?user_id=' + username);
+      // Buscar ID do usuário pelo username, depois pegar amigos
+      const { user: uData } = await api('/api/users/' + username);
+      const { friends } = await api('/api/friends/' + uData.id);
       el.innerHTML = friends?.length
         ? '<div style="display:flex;flex-direction:column;gap:8px;">' + friends.map(f =>
             `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface2);border-radius:10px;cursor:pointer;" onclick="showVisitorProfile('${f.username}')">
@@ -3580,7 +3582,15 @@ async function loadVisitorSection(sec, username, btn) {
 
     } else if (sec === 'depoimentos') {
       const data = await api('/api/testimonials/' + username);
-      el.innerHTML = data.testimonials?.length
+      // Caixa para escrever depoimento (só se não for o próprio usuário)
+      const writeBox = username !== currentUser?.username ? `
+        <div style="margin-bottom:14px;background:var(--surface2);border-radius:12px;padding:12px;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;">✍️ Deixar um depoimento</div>
+          <textarea id="new-testimonial-text" placeholder="Escreva algo sobre ${username}..." rows="3"
+            style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;resize:none;background:var(--surface);"></textarea>
+          <button class="btn btn-primary btn-sm" style="margin-top:8px;width:100%;" onclick="submitVisitorTestimonial('${username}')">Publicar depoimento</button>
+        </div>` : '';
+      el.innerHTML = writeBox + (data.testimonials?.length
         ? '<div style="display:flex;flex-direction:column;gap:10px;">' + data.testimonials.map(t =>
             `<div style="background:var(--surface2);border-radius:12px;padding:12px;">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -3593,7 +3603,7 @@ async function loadVisitorSection(sec, username, btn) {
               <div style="font-size:14px;line-height:1.5;">${t.content}</div>
             </div>`
           ).join('') + '</div>'
-        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum depoimento ainda.</p>';
+        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum depoimento ainda.</p>');
     }
   } catch(e) {
     el.innerHTML = '<p class="text-muted" style="padding:20px;text-align:center;">'+e.message+'</p>';
@@ -4499,5 +4509,19 @@ function showOnboardBanners() {
     </div>
     <div id="visitor-screen-body" style="max-width:600px;margin:0 auto;width:100%;"></div>
   </div>
+
+<script>
+async function submitVisitorTestimonial(username) {
+  const content = document.getElementById('new-testimonial-text')?.value.trim();
+  if (!content || content.length < 5) { toast('Escreva pelo menos 5 caracteres', 'error'); return; }
+  try {
+    await api('/api/testimonials/' + username, { method: 'POST', body: JSON.stringify({ content }) });
+    toast('Depoimento publicado! 💬', 'success');
+    // Recarregar depoimentos
+    loadVisitorSection('depoimentos', username, document.querySelector('#visitor-tabs .vtab:last-child'));
+  } catch(e) { toast(e.message, 'error'); }
+}
+</script>
+
 </body>
 </html>
