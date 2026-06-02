@@ -755,25 +755,60 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div id="events-list"><div class="page-loader"><div class="loader"></div></div></div>
     </div>
 
-    <!-- ─── JOGOS ─── -->
+    <!-- ─── JOGOS / DAILYPOKE ─── -->
     <div id="tab-jogos" class="tab-content">
-      <div class="jogos-soon">
-        <div class="jogos-badge">Em breve</div>
-        <h2 style="font-family:'Syne',sans-serif;font-size:42px;font-weight:800;margin-bottom:8px;">🎮 Jogos</h2>
-        <p style="color:var(--muted);font-size:15px;max-width:380px;margin:0 auto;">DailyPoke, Fazendinha, Minha Cidade e muito mais. A diversão está chegando!</p>
-        <div class="game-cards">
-          <div class="game-card-soon"><div style="font-size:44px;">🐱</div><div style="font-size:12px;font-weight:600;margin-top:8px;">DailyPoke</div></div>
-          <div class="game-card-soon"><div style="font-size:44px;">🌾</div><div style="font-size:12px;font-weight:600;margin-top:8px;">Fazendinha</div></div>
-          <div class="game-card-soon"><div style="font-size:44px;">🏙️</div><div style="font-size:12px;font-weight:600;margin-top:8px;">Minha Cidade</div></div>
-          <div class="game-card-soon" style="opacity:1;border-color:var(--accent);background:var(--accent-light);">
-            <div style="font-size:44px;">🗺️</div>
-            <div style="font-size:12px;font-weight:700;margin-top:8px;color:var(--accent);">WAR Maps</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:4px;">Em breve</div>
+      <!-- Sub-nav Jogos -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">
+        <button class="btn btn-primary btn-sm" onclick="showJogoSection('dailypoke',this)" id="btn-jogo-dp">🎭 DailyPoke</button>
+        <button class="btn btn-ghost btn-sm" onclick="showJogoSection('outros',this)" style="opacity:.5;">🌾 Em breve</button>
+      </div>
+
+      <!-- DailyPoke -->
+      <div id="jogo-dailypoke">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+
+          <!-- Meu bonequinho -->
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;text-align:center;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px;">Meu DailyPoke</div>
+            <div id="my-poke-preview" style="display:flex;justify-content:center;margin-bottom:12px;">
+              <div style="font-size:48px;color:var(--muted);">🎭</div>
+            </div>
+            <button class="btn btn-primary btn-sm" style="width:100%;" onclick="openPokeEditor()">✏️ Criar / Editar</button>
+            <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;" onclick="openPokeActions()">💌 Mandar poke</button>
           </div>
-          <div class="game-card-soon" style="opacity:1;border-color:#7c3aed;background:#f5f3ff;">
-            <div style="font-size:44px;">🏆</div>
-            <div style="font-size:12px;font-weight:700;margin-top:8px;color:#7c3aed;">DOMINA</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:4px;">Em breve</div>
+
+          <!-- Pokes dos amigos -->
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px;">Pokes recebidos</div>
+            <div id="pokes-received" style="display:flex;flex-direction:column;gap:8px;">
+              <div class="page-loader"><div class="loader"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Amigos com bonequinho -->
+        <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;margin-top:12px;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px;">🎭 DailyPokes dos amigos</div>
+          <div id="friends-pokes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:12px;">
+            <div class="page-loader"><div class="loader"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Outros jogos (em breve) -->
+      <div id="jogo-outros" style="display:none;">
+        <div class="jogos-soon">
+          <div class="jogos-badge">Em breve</div>
+          <h2 style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;">🎮 Mais jogos</h2>
+          <div class="game-cards">
+            <div class="game-card-soon"><div style="font-size:44px;">🌾</div><div>Fazendinha</div></div>
+            <div class="game-card-soon"><div style="font-size:44px;">🏙️</div><div>Minha Cidade</div></div>
+            <div class="game-card-soon" style="border-color:var(--accent);background:var(--accent-light);">
+              <div style="font-size:44px;">🗺️</div><div style="color:var(--accent);font-weight:700;">WAR Maps</div>
+            </div>
+            <div class="game-card-soon" style="border-color:#7c3aed;background:#f5f3ff;">
+              <div style="font-size:44px;">🏆</div><div style="color:#7c3aed;font-weight:700;">DOMINA</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1966,38 +2001,74 @@ async function loadProfile(){
     const{user}=await api(`/api/users/${currentUser.username}`);
     const av=user.avatar_url||avatarUrl(user.name);
     const badges=user.featured_badges?.map(b=>`<div class="profile-badge-chip">${b.icon} ${b.name}</div>`).join('')||'';
-    w.innerHTML=`<div class="profile-card">
-      <div class="profile-top">
-        <div class="profile-avatar-wrap">
-          <img class="profile-avatar" src="${av}">
-          <label class="avatar-edit-btn" for="avatar-input" title="Trocar foto">📷</label>
-          <input type="file" id="avatar-input" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
+    w.innerHTML=`
+      <div style="display:grid;grid-template-columns:160px 1fr;gap:14px;align-items:start;">
+
+        <!-- SIDEBAR do perfil -->
+        <div style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
+
+          <!-- Avatar + nome -->
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;text-align:center;">
+            <div class="profile-avatar-wrap" style="margin:0 auto 10px;width:80px;height:80px;">
+              <img class="profile-avatar" src="${av}" style="width:80px;height:80px;">
+              <label class="avatar-edit-btn" for="avatar-input" title="Trocar foto">📷</label>
+              <input type="file" id="avatar-input" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
+            </div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;line-height:1.2;">${user.name}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">@${user.username}</div>
+            ${user.occupation?`<div style="font-size:11px;color:var(--muted);margin-top:4px;">💼 ${user.occupation}</div>`:''}
+            ${user.city?`<div style="font-size:11px;color:var(--muted);margin-top:2px;">📍 ${user.city}${user.state?', '+user.state:''}</div>`:''}
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px;">
+              <button class="btn btn-primary btn-sm" style="width:100%;font-size:11px;" onclick="openEditProfile()">✏️ Editar perfil</button>
+              <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openBadgeSelector()">🏅 Badges</button>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--muted);">Posts</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);">${user.stats?.posts||0}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="showProfileSec('amigos',null)">
+                <span style="font-size:12px;color:var(--muted);">Amigos</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);">${user.stats?.friends_count||0}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--muted);">⚡ Daily</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);">${user.stats?.daily_mandou||0}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--gold);">Pontos</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;color:var(--gold);">${user.points||0}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--muted);">Dias ativos</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);">${user.stats?.active_days||0}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Badges -->
+          ${badges ? `<div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Badges</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">${badges}</div>
+          </div>` : ''}
+
+          <!-- DailyPoke mini -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;text-align:center;cursor:pointer;" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'))">
+            <div id="profile-poke-mini" style="font-size:32px;">🎭</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">Meu DailyPoke</div>
+          </div>
         </div>
-        <div style="flex:1;">
-          <div class="profile-name">${user.name}</div>
-          <div class="profile-username">@${user.username}</div>
-          <div class="profile-bio">${user.bio||'<span style="color:var(--muted)">Sem bio ainda.</span>'}</div>
-          <div class="profile-meta">
-            ${user.occupation?`<span>💼 ${user.occupation}</span>`:''}
-            ${user.city?`<span>📍 ${user.city}${user.state?', '+user.state:''}</span>`:''}
-          </div>
-          <div class="profile-badges-row" id="profile-badges-row">
-            ${badges || '<span class="text-muted" style="font-size:12px;">Nenhum badge em destaque — escolha até 5 conquistas!</span>'}
-          </div>
-          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-            <button class="btn btn-ghost btn-sm" onclick="openEditProfile()">✏️ Editar perfil</button>
-            <button class="btn btn-ghost btn-sm" onclick="openBadgeSelector()">🏅 Badges em destaque</button>
-          </div>
+
+        <!-- CONTEÚDO CENTRAL do perfil -->
+        <div>
+          ${user.bio?`<div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;margin-bottom:12px;font-size:14px;color:var(--text2);line-height:1.6;">"${user.bio}"</div>`:''}
+          <div id="profile-tabs-row-wrap"></div>
         </div>
-      </div>
-      <div class="profile-stats">
-        <div class="stat-box"><div class="stat-num">${user.stats?.posts||0}</div><div class="stat-lbl">Posts</div></div>
-        <div class="stat-box" onclick="showProfileSec('amigos',document.querySelectorAll('.profile-tab')[4])" style="cursor:pointer;"><div class="stat-num">${user.stats?.friends_count||0}</div><div class="stat-lbl">Amigos</div></div>
-        <div class="stat-box"><div class="stat-num">${user.stats?.daily_mandou||0}</div><div class="stat-lbl">⚡ Daily</div></div>
-        <div class="stat-box"><div class="stat-num">${user.points||0}</div><div class="stat-lbl">Pontos</div></div>
-        <div class="stat-box"><div class="stat-num">${user.stats?.active_days||0}</div><div class="stat-lbl">Dias ativos</div></div>
-      </div>
-    </div>`;
+      </div>`;
     document.getElementById('profile-tabs-row').classList.remove('hidden');
     loadTimeline();
   }catch(e){w.innerHTML='<p class="text-muted">Erro ao carregar perfil.</p>';}
@@ -5545,6 +5616,273 @@ async function toggleParticipante(userId) {
     });
     await loadRateio();
   } catch(e) { toast(e.message, 'error'); }
+}
+</script>
+
+
+<!-- Modal Editor DailyPoke -->
+<div class="modal-overlay" id="modal-poke-editor" onclick="if(event.target===this)closeModal('modal-poke-editor')">
+  <div class="modal-box" style="max-width:520px;max-height:92vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title">🎭 Criar DailyPoke</div>
+      <button class="modal-close" onclick="closeModal('modal-poke-editor')">×</button>
+    </div>
+    <div style="padding:16px;display:grid;grid-template-columns:140px 1fr;gap:16px;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+        <div id="poke-editor-preview" style="display:flex;justify-content:center;"></div>
+        <button class="btn btn-primary btn-sm" style="width:100%;" onclick="savePoke()">💾 Salvar</button>
+      </div>
+      <div id="poke-editor-options" style="overflow-y:auto;max-height:70vh;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Enviar Poke -->
+<div class="modal-overlay" id="modal-send-poke" onclick="if(event.target===this)closeModal('modal-send-poke')">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">👋 Mandar poke</div>
+      <button class="modal-close" onclick="closeModal('modal-send-poke')">×</button>
+    </div>
+    <div style="padding:16px;">
+      <div id="poke-friends-list" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;">
+        <div class="page-loader"><div class="loader"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// buildPokeSVG
+function buildPokeSVG(config) {
+  const {
+    skinColor='#FDBCB4', hairColor='#4A3728', hairStyle='medium',
+    eyeColor='#3B82F6', shirtColor='#FF6B35', pantsColor='#1E40AF',
+    shoeColor='#1F2937', expression='happy', accessory='none', shirtDesign='plain'
+  } = config || {};
+
+  const expressions = {
+    happy:   `<ellipse cx="38" cy="62" rx="4" ry="4.5" fill="${eyeColor}"/><ellipse cx="62" cy="62" rx="4" ry="4.5" fill="${eyeColor}"/><ellipse cx="38" cy="61" rx="2" ry="2" fill="#fff" opacity=".7"/><ellipse cx="62" cy="61" rx="2" ry="2" fill="#fff" opacity=".7"/><path d="M35 72 Q50 82 65 72" stroke="#C0392B" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    love:    `<text x="34" y="67" font-size="11" fill="#E91E63">♥</text><text x="57" y="67" font-size="11" fill="#E91E63">♥</text><path d="M36 75 Q50 85 64 75" stroke="#C0392B" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    cool:    `<rect x="28" y="57" width="18" height="8" rx="4" fill="#1F2937" opacity=".85"/><rect x="54" y="57" width="18" height="8" rx="4" fill="#1F2937" opacity=".85"/><line x1="46" y1="61" x2="54" y2="61" stroke="#1F2937" stroke-width="2"/><path d="M36 75 Q50 82 64 75" stroke="#C0392B" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    sad:     `<ellipse cx="38" cy="63" rx="4" ry="4.5" fill="${eyeColor}"/><ellipse cx="62" cy="63" rx="4" ry="4.5" fill="${eyeColor}"/><path d="M36 76 Q50 70 64 76" stroke="#C0392B" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="34" cy="74" rx="3" ry="4" fill="#ADD8E6" opacity=".6"/>`,
+    surprised:`<ellipse cx="38" cy="62" rx="5" ry="5.5" fill="${eyeColor}"/><ellipse cx="62" cy="62" rx="5" ry="5.5" fill="${eyeColor}"/><ellipse cx="38" cy="61" rx="2.5" ry="2.5" fill="#fff" opacity=".7"/><ellipse cx="62" cy="61" rx="2.5" ry="2.5" fill="#fff" opacity=".7"/><ellipse cx="50" cy="76" rx="5" ry="6" fill="#C0392B"/>`,
+    wink:    `<ellipse cx="38" cy="62" rx="4" ry="4.5" fill="${eyeColor}"/><path d="M57 62 Q62 57 67 62" stroke="${eyeColor}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M35 72 Q50 82 65 72" stroke="#C0392B" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+  };
+
+  const hairs = {
+    short:    `<ellipse cx="50" cy="38" rx="22" ry="10" fill="${hairColor}"/><rect x="28" y="38" width="44" height="8" fill="${hairColor}"/>`,
+    medium:   `<ellipse cx="50" cy="36" rx="23" ry="12" fill="${hairColor}"/><rect x="27" y="36" width="46" height="14" fill="${hairColor}"/><path d="M27 44 Q24 58 26 68" stroke="${hairColor}" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M73 44 Q76 58 74 68" stroke="${hairColor}" stroke-width="8" fill="none" stroke-linecap="round"/>`,
+    long:     `<ellipse cx="50" cy="36" rx="23" ry="12" fill="${hairColor}"/><rect x="27" y="36" width="46" height="14" fill="${hairColor}"/><path d="M27 44 Q22 70 26 100" stroke="${hairColor}" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M73 44 Q78 70 74 100" stroke="${hairColor}" stroke-width="10" fill="none" stroke-linecap="round"/>`,
+    curly:    `<ellipse cx="50" cy="35" rx="24" ry="13" fill="${hairColor}"/><circle cx="28" cy="42" r="7" fill="${hairColor}"/><circle cx="72" cy="42" r="7" fill="${hairColor}"/><circle cx="36" cy="30" r="8" fill="${hairColor}"/><circle cx="64" cy="30" r="8" fill="${hairColor}"/><circle cx="50" cy="27" r="9" fill="${hairColor}"/>`,
+    ponytail: `<ellipse cx="50" cy="36" rx="23" ry="12" fill="${hairColor}"/><rect x="27" y="36" width="46" height="12" fill="${hairColor}"/><path d="M73 40 Q88 50 82 70 Q78 85 72 95" stroke="${hairColor}" stroke-width="9" fill="none" stroke-linecap="round"/>`,
+    bald:     ``,
+  };
+
+  const accessories = {
+    none:    ``,
+    hat:     `<ellipse cx="50" cy="34" rx="28" ry="7" fill="#E74C3C"/><rect x="30" y="14" width="40" height="22" rx="8" fill="#C0392B"/>`,
+    glasses: `<circle cx="38" cy="63" r="7" fill="none" stroke="#1F2937" stroke-width="2.5"/><circle cx="62" cy="63" r="7" fill="none" stroke="#1F2937" stroke-width="2.5"/><line x1="45" y1="63" x2="55" y2="63" stroke="#1F2937" stroke-width="2.5"/>`,
+    crown:   `<path d="M28 34 L34 22 L42 32 L50 18 L58 32 L66 22 L72 34 Z" fill="#F1C40F"/><ellipse cx="50" cy="35" rx="22" ry="6" fill="#E67E22"/>`,
+    flower:  `<circle cx="72" cy="38" r="5" fill="#FF69B4"/><circle cx="80" cy="32" r="4" fill="#FF69B4"/><circle cx="76" cy="44" r="4" fill="#FF1493"/><circle cx="76" cy="38" r="3" fill="#FFD700"/>`,
+  };
+
+  const shirtDesigns = {
+    plain:'', heart:`<text x="44" y="130" font-size="12" fill="white" opacity=".8">♥</text>`,
+    star:`<text x="44" y="130" font-size="12" fill="white" opacity=".8">★</text>`,
+    question:`<text x="46" y="130" font-size="12" fill="white" opacity=".8" font-weight="bold">?</text>`,
+    smile:`<text x="43" y="130" font-size="12" fill="#FFD700" opacity=".9">☺</text>`,
+  };
+
+  const exp = expressions[expression] || expressions.happy;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200" width="100" height="200">
+  <ellipse cx="50" cy="195" rx="22" ry="5" fill="rgba(0,0,0,.12)"/>
+  <rect x="34" y="155" width="13" height="30" rx="5" fill="${pantsColor}"/>
+  <rect x="53" y="155" width="13" height="30" rx="5" fill="${pantsColor}"/>
+  <ellipse cx="40" cy="185" rx="10" ry="6" fill="${shoeColor}"/>
+  <ellipse cx="60" cy="185" rx="10" ry="6" fill="${shoeColor}"/>
+  <rect x="27" y="105" width="46" height="55" rx="10" fill="${shirtColor}"/>
+  ${shirtDesigns[shirtDesign]||''}
+  <path d="M27 115 Q12 125 14 140" stroke="${shirtColor}" stroke-width="11" fill="none" stroke-linecap="round"/>
+  <path d="M73 115 Q88 125 86 140" stroke="${shirtColor}" stroke-width="11" fill="none" stroke-linecap="round"/>
+  <circle cx="14" cy="142" r="7" fill="${skinColor}"/>
+  <circle cx="86" cy="142" r="7" fill="${skinColor}"/>
+  <rect x="43" y="95" width="14" height="14" rx="4" fill="${skinColor}"/>
+  <ellipse cx="50" cy="60" rx="24" ry="27" fill="${skinColor}"/>
+  <ellipse cx="30" cy="70" rx="6" ry="4" fill="#FFB6C1" opacity=".5"/>
+  <ellipse cx="70" cy="70" rx="6" ry="4" fill="#FFB6C1" opacity=".5"/>
+  ${hairs[hairStyle]||hairs.medium}
+  <path d="M32 54 Q38 50 44 54" stroke="${hairColor}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M56 54 Q62 50 68 54" stroke="${hairColor}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <ellipse cx="50" cy="70" rx="3" ry="2" fill="${skinColor}" stroke="#d4956a" stroke-width="1"/>
+  ${exp}
+  ${accessories[accessory]||''}
+</svg>`;
+}
+
+// ═══════════════════════════════════════
+// DAILYPOKE UI
+// ═══════════════════════════════════════
+const POKE_DEFAULTS = {skinColor:'#FDBCB4',hairColor:'#4A3728',hairStyle:'medium',eyeColor:'#3B82F6',shirtColor:'#FF6B35',pantsColor:'#1E40AF',shoeColor:'#1F2937',expression:'happy',accessory:'none',shirtDesign:'plain'};
+let myPokeConfig = null;
+let editorCfg = null;
+
+function showJogoSection(sec, btn) {
+  document.getElementById('jogo-dailypoke').style.display = sec==='dailypoke'?'block':'none';
+  document.getElementById('jogo-outros').style.display = sec==='outros'?'block':'none';
+  if (sec === 'dailypoke') loadDailyPoke();
+}
+
+async function loadDailyPoke() {
+  try {
+    const data = await api('/api/dailypoke/me').catch(()=>null);
+    myPokeConfig = data?.config ? (typeof data.config==='string'?JSON.parse(data.config):data.config) : null;
+    renderMyPoke();
+    loadFriendsPokes();
+    loadPokesReceived();
+  } catch(e) {}
+}
+
+function renderMyPoke() {
+  const cfg = myPokeConfig || POKE_DEFAULTS;
+  const svg = buildPokeSVG(cfg);
+  const el = document.getElementById('my-poke-preview');
+  if (el) el.innerHTML = svg;
+  const mini = document.getElementById('profile-poke-mini');
+  if (mini && myPokeConfig) mini.innerHTML = buildPokeSVG(cfg).replace('width="100" height="200"','width="48" height="96"');
+}
+
+async function loadFriendsPokes() {
+  const el = document.getElementById('friends-pokes');
+  if (!el) return;
+  try {
+    const {pokes} = await api('/api/dailypoke/friends');
+    if (!pokes.length) { el.innerHTML='<p class="text-muted" style="font-size:13px;grid-column:1/-1;">Amigos ainda não criaram bonequinhos!</p>'; return; }
+    el.innerHTML = pokes.map(p => {
+      const cfg = typeof p.config==='string'?JSON.parse(p.config):p.config;
+      const svg = buildPokeSVG(cfg).replace('width="100" height="200"','width="64" height="128"');
+      return `<div style="text-align:center;cursor:pointer;" onclick="openUserProfile('${p.username}')">
+        ${svg}<div style="font-size:10px;color:var(--muted);margin-top:4px;">${p.name.split(' ')[0]}</div></div>`;
+    }).join('');
+  } catch(e) { el.innerHTML='<p class="text-muted" style="font-size:13px;">Erro ao carregar.</p>'; }
+}
+
+async function loadPokesReceived() {
+  const el = document.getElementById('pokes-received');
+  if (!el) return;
+  try {
+    const {pokes} = await api('/api/dailypoke/received');
+    if (!pokes.length) { el.innerHTML='<p class="text-muted" style="font-size:12px;">Nenhum poke ainda!</p>'; return; }
+    el.innerHTML = pokes.map(p => {
+      const cfg = p.from_config ? (typeof p.from_config==='string'?JSON.parse(p.from_config):p.from_config) : null;
+      const svg = cfg ? buildPokeSVG(cfg).replace('width="100" height="200"','width="40" height="80"') : '<span style="font-size:32px;">🎭</span>';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface2);border-radius:10px;">
+        ${svg}<div style="flex:1;">
+          <div style="font-size:12px;font-weight:700;">${p.from_name}</div>
+          <div style="font-size:11px;color:var(--accent);">👋 te mandou um poke!</div>
+          <div style="font-size:10px;color:var(--muted);">${timeAgo(p.created_at)}</div>
+        </div>
+        <button class="btn btn-ghost btn-xs" onclick="pokeBack('${p.from_id}')">↩️</button>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+function openPokeEditor() {
+  editorCfg = {...(myPokeConfig || POKE_DEFAULTS)};
+  const LABELS = {happy:'😊',love:'😍',cool:'😎',sad:'😢',surprised:'😮',wink:'😉',short:'Curto',medium:'Médio',long:'Longo',curly:'Cacheado',ponytail:'Rabo',bald:'Careca',none:'Nenhum',hat:'Chapéu',glasses:'Óculos',crown:'Coroa',flower:'Flor',plain:'Simples',heart:'❤️',star:'⭐',question:'?',smile:'☺️'};
+
+  function optBtns(field, opts) {
+    return opts.map(o=>`<button style="padding:3px 8px;border-radius:20px;font-size:11px;border:1.5px solid ${o===editorCfg[field]?'var(--accent)':'var(--border)'};background:${o===editorCfg[field]?'var(--accent)':'transparent'};color:${o===editorCfg[field]?'#fff':'var(--text)'};cursor:pointer;" onclick="updatePokeField('${field}','${o}')">${LABELS[o]||o}</button>`).join('');
+  }
+  function colorOpts(field, swatches='#FF6B35,#7C3AED,#2563EB,#059669,#DC2626,#F59E0B,#1F2937,#6B7280') {
+    return swatches.split(',').map(c=>`<div style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:2.5px solid ${c===editorCfg[field]?'var(--accent)':'transparent'};" onclick="updatePokeField('${field}','${c}')"></div>`).join('')
+    + `<input type="color" value="${editorCfg[field]||'#FF6B35'}" style="width:24px;height:24px;border:none;border-radius:50%;cursor:pointer;padding:0;" onchange="updatePokeField('${field}',this.value)">`;
+  }
+
+  document.getElementById('modal-poke-editor').querySelector('#poke-editor-options').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Expressão</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('expression',['happy','love','cool','sad','surprised','wink'])}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Cabelo</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('hairStyle',['short','medium','long','curly','ponytail','bald'])}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Cor do cabelo</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('hairColor','#4A3728,#1F2937,#C0392B,#F1C40F,#E8B89A,#fff,#7c3aed,#E74C3C')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Tom de pele</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('skinColor','#FDBCB4,#F5CBA7,#D4A27F,#A0704B,#7D4A2B,#4A2C17')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Cor dos olhos</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('eyeColor','#3B82F6,#059669,#92400E,#1F2937,#7C3AED,#DC2626')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Camisa</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('shirtColor')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Design camisa</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('shirtDesign',['plain','heart','star','question','smile'])}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Calça</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('pantsColor','#1E40AF,#1F2937,#DC2626,#059669,#92400E,#6B7280')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Acessório</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('accessory',['none','hat','glasses','crown','flower'])}</div></div>
+    </div>`;
+  document.getElementById('poke-editor-preview').innerHTML = buildPokeSVG(editorCfg);
+  openModal('modal-poke-editor');
+}
+
+function updatePokeField(field, value) {
+  if (!editorCfg) editorCfg = {...POKE_DEFAULTS};
+  editorCfg[field] = value;
+  const prev = document.getElementById('poke-editor-preview');
+  if (prev) prev.innerHTML = buildPokeSVG(editorCfg);
+  // Atualizar botão selecionado
+  const modal = document.getElementById('modal-poke-editor');
+  if (!modal) return;
+  modal.querySelectorAll(`button[onclick*="'${field}'"]`).forEach(b => {
+    const sel = b.getAttribute('onclick').includes(`'${value}'`);
+    b.style.borderColor = sel ? 'var(--accent)' : 'var(--border)';
+    b.style.background = sel ? 'var(--accent)' : 'transparent';
+    b.style.color = sel ? '#fff' : 'var(--text)';
+  });
+  modal.querySelectorAll(`div[onclick*="'${field}'"]`).forEach(d => {
+    const sel = d.getAttribute('onclick').includes(`'${value}'`);
+    d.style.borderColor = sel ? 'var(--accent)' : 'transparent';
+  });
+}
+
+async function savePoke() {
+  const cfg = editorCfg || POKE_DEFAULTS;
+  try {
+    await api('/api/dailypoke/save', {method:'POST', body:JSON.stringify({config:cfg})});
+    myPokeConfig = cfg;
+    toast('DailyPoke salvo! 🎭', 'success');
+    closeModal('modal-poke-editor');
+    renderMyPoke();
+    loadFriendsPokes();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openPokeActions() {
+  if (!myPokeConfig) { toast('Crie seu DailyPoke primeiro!','info'); openPokeEditor(); return; }
+  openModal('modal-send-poke');
+  loadFriendsForPoke();
+}
+
+async function loadFriendsForPoke() {
+  const el = document.getElementById('poke-friends-list');
+  if (!el) return;
+  try {
+    const {friends} = await api('/api/friends/list');
+    el.innerHTML = friends.map(f => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:var(--surface2);">
+        <img src="${f.avatar_url||avatarUrl(f.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+        <div style="flex:1;"><div style="font-weight:700;font-size:13px;">${f.name}</div><div class="text-muted" style="font-size:11px;">@${f.username}</div></div>
+        <button class="btn btn-primary btn-xs" id="pokebtn-${f.id}" onclick="sendPoke('${f.id}','${f.name.split(' ')[0]}',this)">👋 Poke!</button>
+      </div>`).join('') || '<p class="text-muted" style="font-size:13px;">Nenhum amigo encontrado.</p>';
+  } catch(e) {}
+}
+
+async function sendPoke(userId, name, btn) {
+  try {
+    btn.disabled=true; btn.textContent='...';
+    await api('/api/dailypoke/send', {method:'POST', body:JSON.stringify({to_user_id:userId, action:'wave'})});
+    btn.textContent='✅';
+    toast(`Poke enviado para ${name}! 👋`, 'success');
+  } catch(e) { toast(e.message,'error'); btn.disabled=false; btn.textContent='👋 Poke!'; }
+}
+
+async function pokeBack(userId) {
+  try {
+    await api('/api/dailypoke/send', {method:'POST', body:JSON.stringify({to_user_id:userId, action:'wave'})});
+    toast('Poke de volta! 👋', 'success');
+    loadPokesReceived();
+  } catch(e) { toast(e.message,'error'); }
 }
 </script>
 
