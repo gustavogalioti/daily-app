@@ -617,7 +617,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
             style="width:100%;min-height:80px;border:none;background:transparent;font-size:14px;resize:none;outline:none;font-family:inherit;line-height:1.5;"
             oninput="onAgoraTyping(this)" onkeydown="onAgoraKeydown(event)"></textarea>
           <!-- Dropdown de menções -->
-          <div id="mention-dropdown" class="mention-dropdown" style="display:none;position:absolute;bottom:60px;left:14px;"></div>
+          <div id="mention-dropdown" class="mention-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;z-index:500;"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;border-top:1px solid var(--border);padding-top:10px;">
             <div style="display:flex;gap:6px;">
               <button class="btn btn-ghost btn-xs" onclick="toggleAgAnon(this)" id="ag-anon-btn">👤 Anônimo</button>
@@ -784,7 +784,6 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div id="profile-card-wrap"><div class="page-loader"><div class="loader"></div></div></div>
       <div id="profile-tabs-row" class="profile-tabs-row hidden" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;display:flex;flex-wrap:nowrap;gap:4px;padding:4px 0;">
         <div class="profile-tab active" onclick="showProfileSec('timeline',this)" style="flex-shrink:0;">📅 Linha</div>
-        <div class="profile-tab" onclick="showProfileSec('amigos',this)" style="flex-shrink:0;">👥 Amigos</div>
         <div class="profile-tab" onclick="showProfileSec('comunidades',this)" style="flex-shrink:0;">🏘️ Comunidades</div>
 
         <div class="profile-tab" onclick="showProfileSec('depoimentos',this)" style="flex-shrink:0;">💬 Depoi.</div>
@@ -3924,8 +3923,14 @@ function setMundoMode(mode) {
     if (mode==='global') { btnPost.textContent = '+ Foto'; btnPost.onclick = () => openPostModal('photo','global'); }
     else { btnPost.textContent = '+ Publicar'; btnPost.onclick = () => openPostModal('text','agora'); }
   }
+  // Painel de composição e banner
+  const composePanel = document.getElementById('agora-compose-panel');
+  const adminBanner = document.getElementById('agora-admin-banner');
+  if (composePanel) composePanel.style.display = mode==='agora' ? 'block' : 'none';
+  if (adminBanner && mode==='agora') loadAgoraBanner();
+  else if (adminBanner) adminBanner.style.display = 'none';
   if (mode==='global') loadGlobal();
-  else loadMundoAgora();
+  else loadAgoraFeed();
 }
 
 function setMundoAgoraFilter(f, btn) {
