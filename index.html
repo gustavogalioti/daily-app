@@ -1585,15 +1585,18 @@ function renderCard(p){
   const dmBadge=p.tab==='daily_mandou'?'<span class="badge-pill" style="font-size:10px;">⚡ Daily</span>':'';;
   if(p.type==='photo'&&p.image_url){
     return`<div class="photo-card">
-      <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')">
-      <div class="photo-card-body">
-        <div class="photo-card-author" style="cursor:pointer;gap:6px;" onclick="openUserProfile('${p.author?.username}')">
-          <img src="${av}" width="28" height="28" style="border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--border);">
-          <span style="font-size:12px;font-weight:700;color:var(--text);">${p.author?.name?.split(' ')[0]||'Anônimo'}</span>
-          <span style="font-size:11px;color:var(--muted);">@${p.author?.username||''}</span>
-          ${dmBadge}
+      <!-- Imagem com avatar sobreposto -->
+      <div style="position:relative;">
+        <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')" style="display:block;width:100%;">
+        <!-- Avatar + @username sobrepostos na borda inferior esquerda da foto -->
+        <div style="position:absolute;bottom:8px;left:8px;display:flex;align-items:center;gap:6px;cursor:pointer;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);border-radius:20px;padding:4px 10px 4px 4px;" onclick="openUserProfile('${p.author?.username}')">
+          <img src="${av}" width="30" height="30" style="border-radius:50%;object-fit:cover;border:2px solid #fff;flex-shrink:0;">
+          <span style="font-size:12px;font-weight:700;color:#fff;">@${p.author?.username||'anon'}</span>
+          ${dmBadge?`<span style="font-size:10px;color:#ffd700;">⚡</span>`:''}
         </div>
-        ${p.caption?`<p style="font-size:12px;color:var(--muted);margin-top:5px;">${p.caption}</p>`:''}
+      </div>
+      <div class="photo-card-body">
+        ${p.caption?`<p style="font-size:13px;color:var(--text);margin-bottom:6px;">${p.caption}</p>`:''}
         <div class="reactions-row">${reactions}${addEmojis}</div>
         ${pedro}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
