@@ -748,6 +748,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <div class="profile-tab" onclick="showProfileSec('depoimentos',this)" style="flex-shrink:0;">💬 Depoi.</div>
         <div class="profile-tab" onclick="showProfileSec('conquistas',this)" style="flex-shrink:0;">🏆</div>
         <div class="profile-tab" onclick="showProfileSec('profissional',this)" style="flex-shrink:0;">💼</div>
+        <div class="profile-tab" onclick="showProfileSec('agenda',this)" style="flex-shrink:0;">📆 Agenda</div>
       </div>
       <div id="ps-timeline"><div id="timeline-container"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="ps-comunidades" class="hidden">
@@ -768,6 +769,14 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div id="ps-depoimentos" class="hidden"><div id="testimonials-wrap"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="ps-conquistas" class="hidden"><div class="ach-grid" id="profile-ach-grid"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="ps-profissional" class="hidden"><div class="card" style="padding:24px;" id="prof-section"><div class="page-loader"><div class="loader"></div></div></div></div>
+      <!-- AGENDA -->
+      <div id="ps-agenda" class="hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">📆 Minha Agenda</div>
+          <button class="btn btn-primary btn-sm" onclick="openCreateAgenda()">+ Criar</button>
+        </div>
+        <div id="agenda-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
     </div>
 
 
@@ -1872,7 +1881,7 @@ async function loadProfile(){
 }
 
 function showProfileSec(sec,btn){
-  ['timeline','amigos','comunidades','eventos','depoimentos','conquistas','profissional'].forEach(s=>{
+  ['timeline','amigos','comunidades','eventos','depoimentos','conquistas','profissional','agenda'].forEach(s=>{
     const el=document.getElementById('ps-'+s);
     if(el) el.classList.toggle('hidden',s!==sec);
   });
@@ -1884,6 +1893,7 @@ function showProfileSec(sec,btn){
   if(sec==='amigos') loadProfileFriends();
   if(sec==='eventos') loadProfileEvents();
   if(sec==='comunidades') loadProfileCommunities();
+  if(sec==='agenda') loadAgenda();
 }
 
 async function loadProfileFriends(){
@@ -4519,6 +4529,328 @@ async function submitVisitorTestimonial(username) {
     toast('Depoimento publicado! 💬', 'success');
     // Recarregar depoimentos
     loadVisitorSection('depoimentos', username, document.querySelector('#visitor-tabs .vtab:last-child'));
+  } catch(e) { toast(e.message, 'error'); }
+}
+</script>
+
+
+<!-- Modal: Criar Agenda -->
+<div class="modal-overlay" id="modal-create-agenda" onclick="if(event.target===this)closeModal('modal-create-agenda')">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title">📆 Nova agenda</div>
+      <button class="modal-close" onclick="closeModal('modal-create-agenda')">×</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:12px;font-weight:700;">TÍTULO</label>
+        <input type="text" id="ag-title" placeholder="Ex: Aniversário da Maria" maxlength="80">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;">DESCRIÇÃO</label>
+        <textarea id="ag-desc" rows="3" placeholder="Detalhes do evento..." style="resize:none;"></textarea>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;">DATA E HORA</label>
+        <input type="datetime-local" id="ag-date">
+      </div>
+      <button class="btn btn-primary" style="width:100%;" id="ag-submit-btn" onclick="createAgenda()">Criar 📆</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Visualizar Agenda -->
+<div class="modal-overlay" id="modal-agenda" onclick="if(event.target===this)closeModal('modal-agenda')">
+  <div class="modal-box" style="max-width:540px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title" id="agenda-modal-title">Agenda</div>
+      <button class="modal-close" onclick="closeModal('modal-agenda')">×</button>
+    </div>
+    <div id="agenda-modal-body" style="padding:16px;">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Convidar para Agenda -->
+<div class="modal-overlay" id="modal-invite-agenda" onclick="if(event.target===this)closeModal('modal-invite-agenda')">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">👥 Convidar para agenda</div>
+      <button class="modal-close" onclick="closeModal('modal-invite-agenda')">×</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:12px;">
+      <input type="text" id="ag-invite-input" placeholder="Buscar usuário pelo nome..." 
+        style="padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;"
+        oninput="searchUsersForAgenda(this.value)">
+      <div id="ag-invite-results" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// AGENDA
+// ═══════════════════════════════════════
+let currentAgendaId = null;
+let agendaInviteTimer = null;
+
+function openCreateAgenda() {
+  document.getElementById('ag-title').value = '';
+  document.getElementById('ag-desc').value = '';
+  document.getElementById('ag-date').value = '';
+  openModal('modal-create-agenda');
+}
+
+async function createAgenda() {
+  const title = document.getElementById('ag-title').value.trim();
+  const event_date = document.getElementById('ag-date').value;
+  if (!title) { toast('Título obrigatório', 'error'); return; }
+  if (!event_date) { toast('Data obrigatória', 'error'); return; }
+  const btn = document.getElementById('ag-submit-btn');
+  btn.disabled = true; btn.textContent = 'Criando...';
+  try {
+    await api('/api/agenda', { method: 'POST', body: JSON.stringify({
+      title,
+      description: document.getElementById('ag-desc').value || '',
+      event_date: new Date(event_date).toISOString()
+    })});
+    toast('Agenda criada! 📆', 'success');
+    closeModal('modal-create-agenda');
+    loadAgenda();
+  } catch(e) {
+    toast(e.message || 'Erro ao criar', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Criar 📆';
+  }
+}
+
+async function loadAgenda() {
+  const el = document.getElementById('agenda-list');
+  if (!el) return;
+  el.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { mine, invited } = await api('/api/agenda');
+    if (!mine.length && !invited.length) {
+      el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);">Nenhum evento ainda.<br>Crie o primeiro! 📆</div>';
+      return;
+    }
+    const renderCard = (a, isOwner) => {
+      const d = new Date(a.event_date);
+      const dateStr = d.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short' });
+      const timeStr = d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+      return `<div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);overflow:hidden;cursor:pointer;" onclick="openAgendaModal('${a.id}')">
+        <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);padding:14px 16px;color:#fff;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">${a.title}</div>
+          <div style="font-size:12px;opacity:.9;margin-top:3px;">📅 ${dateStr} às ${timeStr}</div>
+        </div>
+        <div style="padding:10px 16px;display:flex;align-items:center;gap:10px;">
+          <div style="flex:1;font-size:12px;color:var(--muted);">${a.description||''}</div>
+          <div style="font-size:11px;color:var(--muted);">👥 ${a.member_count||0}</div>
+          ${isOwner ? '<span style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:2px 6px;border-radius:99px;font-weight:700;">MEU</span>' : ''}
+        </div>
+      </div>`;
+    };
+    let html = mine.map(a => renderCard(a, true)).join('');
+    if (invited.length) {
+      html += '<div style="font-size:12px;color:var(--muted);margin:14px 0 8px;font-weight:700;">CONVIDADO</div>';
+      html += invited.map(a => renderCard(a, false)).join('');
+    }
+    el.innerHTML = html;
+  } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
+}
+
+async function openAgendaModal(agendaId) {
+  currentAgendaId = agendaId;
+  openModal('modal-agenda');
+  const body = document.getElementById('agenda-modal-body');
+  body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { agenda, members, posts, is_owner } = await api('/api/agenda/' + agendaId);
+    document.getElementById('agenda-modal-title').textContent = agenda.title;
+    const d = new Date(agenda.event_date);
+    const confirmed = members.filter(m => m.status === 'accepted');
+    const pending = members.filter(m => m.status === 'pending');
+
+    const renderPost = (p) => {
+      const av = p.author_avatar || avatarUrl(p.author_name);
+      const reactions = (p.reactions||[]).map(r => `<span class="reaction-chip" onclick="reactAgendaPost('${agendaId}','${p.id}','${r.emoji}',this)">${r.emoji}<span>${r.count}</span></span>`).join('');
+      const addR = ['👍','❤️','😂','🔥'].filter(e => !(p.reactions||[]).find(r => r.emoji===e)).map(e => `<span class="reaction-chip" onclick="reactAgendaPost('${agendaId}','${p.id}','${e}',this)">${e}</span>`).join('');
+      if (p.post_type === 'poll' && p.poll_data) {
+        const pd = p.poll_data;
+        const total = pd.options.reduce((s,o) => s+(o.votes||0), 0);
+        const voted = pd.options.some(o => o.voter_ids?.includes(currentUser?.id));
+        return `<div class="forum-card">
+          <div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32" style="cursor:pointer;" onclick="openUserProfile('${p.author_username}')"><div><div style="font-weight:700;font-size:13px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
+          <div class="poll-container"><div style="font-weight:700;margin-bottom:8px;">📊 ${pd.question}</div>
+          ${pd.options.map((o,i) => { const pct=total?Math.round((o.votes||0)/total*100):0; return `<div class="poll-option" onclick="${voted?'':'voteAgendaPoll(\''+agendaId+'\',\''+p.id+'\','+i+')'}"><div class="poll-bar-wrap"><div class="poll-bar" style="width:${pct}%"></div><span class="poll-bar-text">${o.text}</span></div><span class="poll-pct">${pct}%</span></div>`; }).join('')}
+          <div class="text-muted" style="font-size:12px;margin-top:4px;">${total} votos</div></div>
+          <div class="reactions-row">${reactions}${addR}</div>
+        </div>`;
+      }
+      if (p.post_type === 'photo' && p.image_url) {
+        return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32" style="cursor:pointer;" onclick="openUserProfile('${p.author_username}')"><div><div style="font-weight:700;font-size:13px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
+          <img class="forum-card-img" src="${p.image_url}">
+          ${p.content ? `<div class="forum-card-text">${p.content}</div>` : ''}
+          <div class="reactions-row">${reactions}${addR}</div>
+        </div>`;
+      }
+      return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32" style="cursor:pointer;" onclick="openUserProfile('${p.author_username}')"><div><div style="font-weight:700;font-size:13px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
+        <div class="forum-card-text">${p.content}</div>
+        <div class="reactions-row">${reactions}${addR}</div>
+      </div>`;
+    };
+
+    const canPost = is_owner || confirmed.find(m => m.user_id === currentUser?.id);
+
+    body.innerHTML = `
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:14px;padding:18px;color:#fff;margin-bottom:14px;">
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">${agenda.title}</div>
+        <div style="opacity:.9;font-size:13px;margin-top:6px;">📅 ${d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+        ${agenda.description ? `<div style="opacity:.9;font-size:13px;margin-top:6px;">${agenda.description}</div>` : ''}
+        ${is_owner ? `<button class="btn btn-sm" style="margin-top:10px;background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);" onclick="openAgendaInvite('${agendaId}')">👥 Convidar</button>` : ''}
+      </div>
+
+      <!-- Membros -->
+      ${confirmed.length || pending.length ? `<div class="card" style="padding:12px;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;">👥 ${confirmed.length} confirmado${confirmed.length!==1?'s':''} ${is_owner && pending.length ? '· '+pending.length+' pendente'+(pending.length!==1?'s':'') : ''}</div>
+        <div style="display:flex;gap:-4px;">
+          ${confirmed.slice(0,8).map(m => `<img class="avatar" src="${m.avatar_url||avatarUrl(m.name)}" width="32" height="32" style="border:2px solid var(--surface);margin-right:-6px;cursor:pointer;" title="${m.name}" onclick="openUserProfile('${m.username}')">`).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- Publicar -->
+      ${canPost ? `<div class="card" style="padding:14px;margin-bottom:14px;">
+        <div class="post-type-tabs" style="margin-bottom:10px;">
+          <button class="ptype-btn active" onclick="setAgendaPostType('text',this)">📝 Texto</button>
+          <button class="ptype-btn" onclick="setAgendaPostType('photo',this)">📷 Foto</button>
+          <button class="ptype-btn" onclick="setAgendaPostType('poll',this)">📊 Enquete</button>
+        </div>
+        <div id="apt-text"><textarea id="agenda-post-text" placeholder="Compartilhe algo com o grupo..." style="min-height:70px;"></textarea></div>
+        <div id="apt-photo" style="display:none;">
+          <img id="agenda-photo-prev" style="width:100%;border-radius:10px;margin-bottom:8px;display:none;">
+          <label class="drop-zone" for="agenda-photo-file" style="padding:14px;">📷 Escolher foto</label>
+          <input type="file" id="agenda-photo-file" accept="image/*" style="display:none;" onchange="onAgendaPhotoSel(event)">
+          <input type="text" id="agenda-photo-cap" placeholder="Legenda (opcional)" style="margin-top:8px;">
+        </div>
+        <div id="apt-poll" style="display:none;flex-direction:column;gap:8px;">
+          <input type="text" id="apoll-q" placeholder="Pergunta da enquete...">
+          <input type="text" id="apoll-o1" placeholder="Opção 1">
+          <input type="text" id="apoll-o2" placeholder="Opção 2">
+          <input type="text" id="apoll-o3" placeholder="Opção 3 (opcional)">
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="submitAgendaPost('${agendaId}')">Publicar</button>
+      </div>` : ''}
+
+      <!-- Posts -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${posts.length ? posts.map(renderPost).join('') : '<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma publicação ainda.</p></div>'}
+      </div>`;
+  } catch(e) {
+    body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
+  }
+}
+
+function openAgendaInvite(agendaId) {
+  currentAgendaId = agendaId;
+  document.getElementById('ag-invite-input').value = '';
+  document.getElementById('ag-invite-results').innerHTML = '';
+  openModal('modal-invite-agenda');
+}
+
+function searchUsersForAgenda(q) {
+  clearTimeout(agendaInviteTimer);
+  if (q.length < 2) { document.getElementById('ag-invite-results').innerHTML = ''; return; }
+  agendaInviteTimer = setTimeout(async () => {
+    try {
+      const { users } = await api('/api/users/search?q=' + encodeURIComponent(q));
+      const el = document.getElementById('ag-invite-results');
+      el.innerHTML = users.length ? users.map(u => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface2);border-radius:10px;">
+          <img class="avatar" src="${u.avatar_url||avatarUrl(u.name)}" width="36" height="36">
+          <div style="flex:1;"><div style="font-weight:700;font-size:13px;">${u.name}</div><div class="text-muted" style="font-size:11px;">@${u.username}</div></div>
+          <button class="btn btn-primary btn-xs" onclick="inviteToAgenda('${u.id}',this)">Convidar</button>
+        </div>`).join('') : '<p class="text-muted" style="font-size:13px;">Nenhum resultado.</p>';
+    } catch(e) {}
+  }, 350);
+}
+
+async function inviteToAgenda(userId, btn) {
+  try {
+    btn.disabled = true; btn.textContent = '...';
+    await api('/api/agenda/' + currentAgendaId + '/invite', { method: 'POST', body: JSON.stringify({ user_id: userId }) });
+    btn.textContent = '✅'; btn.style.background = 'var(--green,#22c55e)';
+    toast('Convite enviado! 🎉', 'success');
+  } catch(e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = 'Convidar'; }
+}
+
+let currentAgendaPostType = 'text';
+function setAgendaPostType(type, btn) {
+  currentAgendaPostType = type;
+  ['text','photo','poll'].forEach(t => {
+    const el = document.getElementById('apt-' + t);
+    if (el) el.style.display = t === type ? (t === 'poll' ? 'flex' : 'block') : 'none';
+  });
+  document.querySelectorAll('#agenda-modal-body .ptype-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function onAgendaPhotoSel(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const prev = document.getElementById('agenda-photo-prev');
+    prev.src = ev.target.result; prev.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitAgendaPost(agendaId) {
+  try {
+    if (currentAgendaPostType === 'photo') {
+      const file = document.getElementById('agenda-photo-file').files[0];
+      if (!file) { toast('Selecione uma foto', 'error'); return; }
+      const fd = new FormData();
+      fd.append('photo', file);
+      fd.append('caption', document.getElementById('agenda-photo-cap').value || '');
+      await apiForm('/api/agenda/' + agendaId + '/posts/photo', fd);
+    } else if (currentAgendaPostType === 'poll') {
+      const q = document.getElementById('apoll-q').value.trim();
+      const o1 = document.getElementById('apoll-o1').value.trim();
+      const o2 = document.getElementById('apoll-o2').value.trim();
+      if (!q || !o1 || !o2) { toast('Preencha pergunta e opções', 'error'); return; }
+      const options = [o1, o2, document.getElementById('apoll-o3').value.trim()].filter(Boolean).map(t => ({ text: t, votes: 0, voter_ids: [] }));
+      await api('/api/agenda/' + agendaId + '/posts', { method: 'POST', body: JSON.stringify({ content: q, post_type: 'poll', poll_data: { question: q, options } }) });
+    } else {
+      const content = document.getElementById('agenda-post-text').value.trim();
+      if (!content) { toast('Escreva algo', 'error'); return; }
+      await api('/api/agenda/' + agendaId + '/posts', { method: 'POST', body: JSON.stringify({ content, post_type: 'text' }) });
+    }
+    toast('Publicado! ✅', 'success');
+    openAgendaModal(agendaId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function reactAgendaPost(agendaId, postId, emoji, btn) {
+  try {
+    const { reactions } = await api('/api/agenda/' + agendaId + '/posts/' + postId + '/react', { method: 'POST', body: JSON.stringify({ emoji }) });
+    const row = btn.closest('.reactions-row');
+    if (row) {
+      const chips = row.querySelectorAll('.reaction-chip[data-live]');
+      reactions.forEach(r => {
+        const chip = row.querySelector(`.reaction-chip[data-emoji="${r.emoji}"]`);
+        if (chip) chip.querySelector('span').textContent = r.count;
+      });
+    }
+  } catch(e) {}
+}
+
+async function voteAgendaPoll(agendaId, postId, idx) {
+  try {
+    await api('/api/agenda/' + agendaId + '/posts/' + postId + '/vote', { method: 'POST', body: JSON.stringify({ option_index: idx }) });
+    openAgendaModal(agendaId);
   } catch(e) { toast(e.message, 'error'); }
 }
 </script>
