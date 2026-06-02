@@ -18,6 +18,11 @@ const PEDRO = {
     "Essa foto merece prêmio! Estou impressionado 🏆",
     "Mostrei pra dona. Ela quase chorou de tanto gostar! 😭🧡",
     "Me afeta tanto quanto catnip! 😸",
+    "Imprimindo mentalmente pra guardar no álbum de memórias felinas! 📸🐾",
+    "Fui mostrar pra todos os pombos da janela. Ficaram impressionados! 🐦😹",
+    "Aprovado! Assinado com uma patada carinhosa 🐾🧡",
+    "Corri pela casa duas vezes de alegria. Foi involuntário. 😂",
+    "Zoomies de entusiasmo!! 🏃🏃🐱",
   ],
   text: [
     "Li e concordei balançando a cabeça 🤔🧡",
@@ -83,6 +88,25 @@ const PEDRO = {
     "Analisei e concordo com sua perspectiva! 🧡",
     "Boa resposta! Teria dito a mesma coisa 🐱",
   ],
+  politics: [
+    "Política? To fora!! Pego meu catnip e vou embora! 🐱🌿",
+    "Política? Prefiro ficar em cima do roteador. Tô fora! 😹",
+    "Política? Não, obrigado! Vou lamber minha patinha e fingir que não li 🐾",
+    "Política?? *sai correndo e some debaixo da cama* 🐱💨",
+    "Esse assunto me dá urticária! Vou tomar meu catnip com paz 🌿😸",
+  ],
+  question_text: [
+    "Boa pergunta! Eu tentaria responder mas me distraí com uma borboleta 🦋🐱",
+    "Hmm, pensei muito sobre isso. Resultado: tirei uma soneca 😴🐱",
+    "Que dilema profundo! Estou aqui pensando com a patinha no queixo 🤔🐾",
+    "Perguntinha boa! Deixa eu consultar minha bola de pelo como oráculo 😂",
+    "Analisei com a profundidade de quem passou 16h dormindo hoje 💤🐱",
+  ],
+  location: [
+    "Que lugar incrível! Teria ido mas gatos não gostam de sair de casa 😅🐾",
+    "Uau! Fiquei aqui na janela tomando sol enquanto você vai pra lugares incríveis 🌞😹",
+    "Check-in feito! Certifico a aventura com a patinha! ✅🐾",
+  ],
   selfie: [
     "Que selfie! Fiquei com ciúmes da câmera de frente 📸😹",
     "LINDA! Tentaria tirar selfie mas não alcanço o botão 😂🐾",
@@ -105,9 +129,16 @@ function detectPostType(content, tab) {
   if (tab === 'daily_mandou') return 'daily_mandou';
   if (!content) return 'photo';
   const lower = content.toLowerCase();
+  // Política — prioridade máxima
+  const politica = ['polít','eleição','eleicao','presidente','partido','voto','governo','congresso','senado','deputado','lula','bolsonaro','prefeito','governador','esquerda','direita'];
+  if (politica.some(p => lower.includes(p))) return 'politics';
+  // Outros tipos
   if (lower.includes('selfie') || lower.includes('eu ') || lower.includes('me ')) return 'selfie';
-  if (lower.includes('almoço') || lower.includes('jantar') || lower.includes('comendo') || lower.includes('prato') || lower.includes('pizza') || lower.includes('hamburguer')) return 'food';
-  return 'photo';
+  if (lower.includes('almoço') || lower.includes('almoco') || lower.includes('jantar') || lower.includes('comendo') || lower.includes('comi') || lower.includes('prato') || lower.includes('pizza') || lower.includes('hamburguer') || lower.includes('restaurante') || lower.includes('lanche')) return 'food';
+  if (lower.includes('bom dia') || lower.includes('boa manhã') || lower.includes('acordei')) return 'morning';
+  if (lower.includes('boa noite') || lower.includes('dormindo') || lower.includes('dormir')) return 'night';
+  if (lower.includes('?')) return 'question_text';
+  return 'text';
 }
 
 router.post('/comment', async (req, res) => {
