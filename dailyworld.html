@@ -2,735 +2,719 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>DAILYWORLD</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0a0a; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-  
-  #loading-screen {
-    position: fixed; inset: 0; background: #0a0a0a;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 1000; transition: opacity 0.8s;
-  }
-  #loading-screen .logo {
-    font-size: 52px; font-weight: 900; letter-spacing: -2px;
-    color: #fff; margin-bottom: 8px;
-  }
-  #loading-screen .logo span { color: #ff6b00; }
-  #loading-screen .sub { color: #666; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 48px; }
-  #loading-bar-wrap { width: 280px; height: 4px; background: #1a1a1a; border-radius: 2px; overflow: hidden; }
-  #loading-bar { height: 100%; background: #ff6b00; width: 0%; transition: width 0.3s; border-radius: 2px; }
-  #loading-text { color: #444; font-size: 12px; margin-top: 16px; letter-spacing: 2px; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a0a2e;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none}
 
-  /* CHARACTER CREATOR */
-  #char-creator {
-    position: fixed; inset: 0; background: #0f0f0f;
-    display: none; flex-direction: row; z-index: 900;
-  }
-  #char-preview {
-    flex: 1; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
-    position: relative;
-  }
-  #char-canvas { border-radius: 12px; }
-  #char-preview .preview-label {
-    position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
-    color: #444; font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
-  }
-  #char-panel {
-    width: 380px; background: #0a0a0a; padding: 32px 28px;
-    overflow-y: auto; border-left: 1px solid #1a1a1a;
-    display: flex; flex-direction: column; gap: 0;
-  }
-  .creator-title { color: #fff; font-size: 22px; font-weight: 800; margin-bottom: 4px; }
-  .creator-title span { color: #ff6b00; }
-  .creator-subtitle { color: #444; font-size: 12px; letter-spacing: 2px; margin-bottom: 32px; }
+/* LOADING */
+#loading{position:fixed;inset:0;background:linear-gradient(160deg,#1a0a2e,#0d1f4a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2000}
+.ld-logo{font-size:56px;font-weight:900;color:#fff;letter-spacing:-2px;text-shadow:0 0 40px rgba(255,107,0,0.6)}
+.ld-logo span{color:#ff6b00}
+.ld-sub{color:#6666aa;font-size:12px;letter-spacing:5px;margin:8px 0 48px;text-transform:uppercase}
+.ld-bar-wrap{width:300px;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden}
+.ld-bar{height:100%;background:linear-gradient(90deg,#ff6b00,#ffaa00);width:0%;transition:width 0.2s;border-radius:3px}
+.ld-txt{color:#4444aa;font-size:11px;margin-top:16px;letter-spacing:2px}
+.ld-pixels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.ld-pixel{position:absolute;border-radius:2px;animation:pixelFloat 3s infinite}
+@keyframes pixelFloat{0%{transform:translateY(0) rotate(0);opacity:0}50%{opacity:0.6}100%{transform:translateY(-100px) rotate(45deg);opacity:0}}
 
-  .cc-section { margin-bottom: 24px; }
-  .cc-label { color: #888; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px; }
-  .cc-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  
-  .color-btn {
-    width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent;
-    cursor: pointer; transition: all 0.15s; flex-shrink: 0;
-  }
-  .color-btn.active, .color-btn:hover { border-color: #ff6b00; transform: scale(1.15); }
-  
-  .style-btn {
-    padding: 6px 14px; border-radius: 6px; border: 1px solid #222;
-    background: #111; color: #666; font-size: 12px; cursor: pointer;
-    transition: all 0.15s;
-  }
-  .style-btn.active, .style-btn:hover { border-color: #ff6b00; color: #ff6b00; background: #1a0f00; }
+/* CHARACTER CREATOR */
+#creator{position:fixed;inset:0;background:#0f0f1a;display:none;z-index:1000;flex-direction:row}
+#prev-area{flex:1;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#12121f,#1a1a2e);position:relative}
+#char-canvas{image-rendering:pixelated;border-radius:16px;box-shadow:0 0 60px rgba(255,107,0,0.2)}
+.prev-tag{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.3);color:#ff8833;font-size:10px;letter-spacing:3px;padding:6px 20px;border-radius:20px;text-transform:uppercase}
+#cc-panel{width:400px;background:#0a0a14;border-left:1px solid #1a1a2e;padding:28px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:0}
+.cc-header{margin-bottom:28px}
+.cc-title{font-size:24px;font-weight:900;color:#fff;letter-spacing:-1px}
+.cc-title span{color:#ff6b00}
+.cc-sub{color:#333355;font-size:10px;letter-spacing:4px;margin-top:3px;text-transform:uppercase}
 
-  .cc-input {
-    width: 100%; padding: 10px 14px; background: #111; border: 1px solid #222;
-    border-radius: 8px; color: #fff; font-size: 14px; outline: none;
-    transition: border-color 0.2s;
-  }
-  .cc-input:focus { border-color: #ff6b00; }
+.cc-sec{margin-bottom:20px}
+.cc-lbl{color:#555577;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.cc-lbl::after{content:'';flex:1;height:1px;background:#1a1a2e}
+.cc-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
 
-  .cc-slider { width: 100%; accent-color: #ff6b00; }
+.cbtn{width:26px;height:26px;border-radius:6px;border:2px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0}
+.cbtn.active,.cbtn:hover{border-color:#ff6b00;transform:scale(1.2);box-shadow:0 0 8px rgba(255,107,0,0.5)}
 
-  #start-btn {
-    margin-top: auto; padding: 16px; background: #ff6b00; color: #fff;
-    border: none; border-radius: 10px; font-size: 16px; font-weight: 700;
-    cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
-    text-transform: uppercase;
-  }
-  #start-btn:hover { background: #ff8c33; transform: translateY(-1px); }
+.sbtn{padding:5px 12px;border-radius:6px;border:1px solid #1a1a2e;background:#111122;color:#444466;font-size:11px;cursor:pointer;transition:all .15s}
+.sbtn.active,.sbtn:hover{border-color:#ff6b00;color:#ff8833;background:#1a0f00}
 
-  /* GAME UI */
-  #game-canvas { position: fixed; inset: 0; display: none; }
-  
-  #hud {
-    position: fixed; inset: 0; pointer-events: none;
-    display: none; z-index: 100;
-  }
+.cc-input{width:100%;padding:10px 14px;background:#111122;border:1px solid #1a1a2e;border-radius:8px;color:#fff;font-size:14px;outline:none;transition:border-color .2s}
+.cc-input:focus{border-color:#ff6b00}
 
-  /* Hearts */
-  #hearts {
-    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 6px; pointer-events: none;
-  }
-  .heart { font-size: 22px; transition: all 0.3s; filter: drop-shadow(0 0 4px rgba(255,50,50,0.5)); }
-  .heart.empty { filter: grayscale(1) opacity(0.3); }
+.gender-row{display:flex;gap:10px;margin-bottom:20px}
+.gender-btn{flex:1;padding:12px;border-radius:10px;border:2px solid #1a1a2e;background:#111122;color:#555577;font-size:13px;cursor:pointer;transition:all .2s;text-align:center}
+.gender-btn.active{border-color:#ff6b00;color:#ff8833;background:#1a0f00}
 
-  /* Crosshair */
-  #crosshair {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-    width: 20px; height: 20px; pointer-events: none;
-  }
-  #crosshair::before, #crosshair::after {
-    content: ''; position: absolute; background: rgba(255,255,255,0.8);
-    border-radius: 1px;
-  }
-  #crosshair::before { width: 2px; height: 20px; left: 9px; top: 0; }
-  #crosshair::after { width: 20px; height: 2px; top: 9px; left: 0; }
+#cc-start{margin-top:auto;padding:16px;background:linear-gradient(135deg,#ff6b00,#ff9500);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:2px;transition:all .2s;text-transform:uppercase;box-shadow:0 4px 20px rgba(255,107,0,0.4)}
+#cc-start:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(255,107,0,0.5)}
 
-  /* Hotbar */
-  #hotbar {
-    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 4px; pointer-events: all;
-  }
-  .hotbar-slot {
-    width: 52px; height: 52px; background: rgba(0,0,0,0.6);
-    border: 2px solid rgba(255,255,255,0.2); border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: all 0.15s; position: relative;
-    backdrop-filter: blur(4px);
-  }
-  .hotbar-slot.active { border-color: #ff6b00; background: rgba(255,107,0,0.2); }
-  .hotbar-slot .slot-icon { font-size: 22px; }
-  .hotbar-slot .slot-num {
-    position: absolute; bottom: 2px; right: 5px;
-    font-size: 9px; color: rgba(255,255,255,0.5);
-  }
-  .hotbar-slot .slot-count {
-    position: absolute; top: 2px; right: 4px;
-    font-size: 9px; color: #ff6b00; font-weight: 700;
-  }
+/* GAME */
+#gc{position:fixed;inset:0;display:none}
+#hud{position:fixed;inset:0;pointer-events:none;display:none;z-index:100}
 
-  /* Minimap */
-  #minimap {
-    position: absolute; top: 16px; right: 16px;
-    width: 120px; height: 120px; border-radius: 50%;
-    overflow: hidden; border: 2px solid rgba(255,255,255,0.15);
-    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-    pointer-events: none;
-  }
-  #minimap-canvas { width: 100%; height: 100%; }
+/* Hearts */
+#hearts{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;gap:4px}
+.heart{font-size:20px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));transition:all .2s}
+.heart.empty{filter:grayscale(1) opacity(.25)}
 
-  /* Coords */
-  #coords {
-    position: absolute; top: 16px; left: 16px;
-    color: rgba(255,255,255,0.7); font-size: 11px;
-    font-family: 'Courier New', monospace; line-height: 1.6;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-    pointer-events: none;
-  }
+/* Crosshair */
+#xhair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+#xhair::before,#xhair::after{content:'';position:absolute;background:rgba(255,255,255,.9);border-radius:1px;box-shadow:0 0 3px rgba(0,0,0,.5)}
+#xhair::before{width:2px;height:22px;left:9px;top:0}
+#xhair::after{width:22px;height:2px;top:9px;left:0}
 
-  /* Inventory */
-  #inventory {
-    position: absolute; inset: 0; background: rgba(0,0,0,0.85);
-    display: none; align-items: center; justify-content: center;
-    pointer-events: all; backdrop-filter: blur(8px);
-  }
-  #inventory.open { display: flex; }
-  .inv-panel {
-    background: #111; border: 1px solid #222; border-radius: 16px;
-    padding: 32px; width: 520px;
-  }
-  .inv-title { color: #fff; font-size: 18px; font-weight: 700; margin-bottom: 24px; }
-  .inv-grid {
-    display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px;
-  }
-  .inv-slot {
-    aspect-ratio: 1; background: #1a1a1a; border: 1px solid #2a2a2a;
-    border-radius: 6px; display: flex; align-items: center; justify-content: center;
-    font-size: 20px; cursor: pointer; transition: all 0.15s; position: relative;
-  }
-  .inv-slot:hover { border-color: #ff6b00; background: #1a0f00; }
-  .inv-slot .qty {
-    position: absolute; bottom: 2px; right: 4px;
-    font-size: 9px; color: #ff6b00; font-weight: 700;
-  }
+/* Block highlight tooltip */
+#block-tip{position:absolute;top:calc(50% + 24px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:5px 14px;border-radius:12px;font-size:12px;letter-spacing:1px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(8px)}
 
-  /* Damage flash */
-  #damage-flash {
-    position: fixed; inset: 0; background: rgba(255,0,0,0);
-    pointer-events: none; z-index: 200; transition: background 0.1s;
-  }
+/* Hotbar */
+#hotbar{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:5px;pointer-events:all}
+.hs{width:56px;height:56px;background:rgba(0,0,0,.65);border:2px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;position:relative;backdrop-filter:blur(6px)}
+.hs.active{border-color:#ff6b00;background:rgba(255,107,0,.25);box-shadow:0 0 12px rgba(255,107,0,.4)}
+.hs .si{font-size:24px;image-rendering:pixelated}
+.hs .sn{position:absolute;bottom:2px;right:5px;font-size:9px;color:rgba(255,255,255,.4)}
+.hs .sc{position:absolute;top:3px;right:5px;font-size:9px;color:#ffaa00;font-weight:700}
 
-  /* Notification */
-  #notif {
-    position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.8); color: #fff; padding: 8px 20px;
-    border-radius: 20px; font-size: 13px; opacity: 0;
-    transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
-    border: 1px solid #ff6b00; backdrop-filter: blur(4px);
-  }
+/* Minimap */
+#mm{position:absolute;top:16px;right:16px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.15);background:rgba(0,0,0,.5);backdrop-filter:blur(4px);pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+#mm canvas{display:block}
 
-  /* Biome indicator */
-  #biome-indicator {
-    position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
-    color: rgba(255,255,255,0.6); font-size: 12px; letter-spacing: 2px;
-    text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-    pointer-events: none;
-  }
+/* Info */
+#info{position:absolute;top:16px;left:16px;color:rgba(255,255,255,.7);font-size:11px;font-family:monospace;line-height:1.8;text-shadow:0 1px 4px rgba(0,0,0,.9);pointer-events:none}
+#info .username{color:#ff8833;font-weight:700}
 
-  /* Pause menu */
-  #pause-menu {
-    position: absolute; inset: 0; background: rgba(0,0,0,0.75);
-    display: none; align-items: center; justify-content: center;
-    pointer-events: all; backdrop-filter: blur(12px);
-  }
-  #pause-menu.open { display: flex; }
-  .pause-panel {
-    background: #0f0f0f; border: 1px solid #222; border-radius: 16px;
-    padding: 48px 56px; text-align: center; min-width: 280px;
-  }
-  .pause-logo { font-size: 32px; font-weight: 900; color: #fff; margin-bottom: 4px; }
-  .pause-logo span { color: #ff6b00; }
-  .pause-sub { color: #444; font-size: 11px; letter-spacing: 3px; margin-bottom: 40px; }
-  .pause-btn {
-    display: block; width: 100%; padding: 13px; margin-bottom: 10px;
-    background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;
-    color: #ccc; font-size: 14px; cursor: pointer; transition: all 0.15s;
-  }
-  .pause-btn:hover { border-color: #ff6b00; color: #ff6b00; background: #1a0f00; }
-  .pause-btn.primary { background: #ff6b00; border-color: #ff6b00; color: #fff; }
-  .pause-btn.primary:hover { background: #ff8c33; }
+/* Biome badge */
+#biome{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:rgba(255,255,255,.8);font-size:11px;letter-spacing:2px;padding:5px 16px;border-radius:20px;text-transform:uppercase;pointer-events:none;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.1)}
 
-  /* Help */
-  #controls-hint {
-    position: absolute; bottom: 90px; right: 16px;
-    color: rgba(255,255,255,0.35); font-size: 10px;
-    line-height: 1.8; text-align: right; pointer-events: none;
-  }
+/* Inventory */
+#inv{position:absolute;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;pointer-events:all;backdrop-filter:blur(12px)}
+#inv.open{display:flex}
+.inv-box{background:#0f0f1a;border:1px solid #1a1a2e;border-radius:20px;padding:36px;width:540px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.inv-title{color:#fff;font-size:16px;font-weight:800;margin-bottom:6px}
+.inv-hint{color:#333355;font-size:11px;margin-bottom:24px}
+.inv-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:7px}
+.is{aspect-ratio:1;background:#111122;border:1px solid #1a1a2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:all .15s;position:relative}
+.is:hover{border-color:#ff6b00;background:#1a0f00}
+.is .iq{position:absolute;bottom:2px;right:4px;font-size:9px;color:#ffaa00;font-weight:700}
+
+/* Tutorial */
+#tutorial{position:absolute;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;pointer-events:all;backdrop-filter:blur(16px);z-index:50}
+#tutorial.show{display:flex}
+.tut-box{background:#0f0f1a;border:1px solid #1a1a2e;border-radius:20px;padding:40px;max-width:480px;text-align:center}
+.tut-title{font-size:28px;font-weight:900;color:#fff;margin-bottom:4px}
+.tut-title span{color:#ff6b00}
+.tut-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:28px 0}
+.tut-item{background:#111122;border:1px solid #1a1a2e;border-radius:12px;padding:16px;text-align:center}
+.tut-key{font-size:22px;margin-bottom:6px}
+.tut-action{color:#fff;font-size:13px;font-weight:700;margin-bottom:3px}
+.tut-desc{color:#555577;font-size:11px}
+.tut-btn{padding:14px 40px;background:linear-gradient(135deg,#ff6b00,#ff9500);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1px}
+
+/* Pause */
+#pause{position:absolute;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;pointer-events:all;backdrop-filter:blur(16px)}
+#pause.open{display:flex}
+.pause-box{background:#0f0f1a;border:1px solid #1a1a2e;border-radius:20px;padding:48px 56px;text-align:center;min-width:290px}
+.p-logo{font-size:30px;font-weight:900;color:#fff}
+.p-logo span{color:#ff6b00}
+.p-sub{color:#333355;font-size:10px;letter-spacing:4px;margin-bottom:36px}
+.pbtn{display:block;width:100%;padding:13px;margin-bottom:10px;background:#111122;border:1px solid #1a1a2e;border-radius:10px;color:#888899;font-size:13px;cursor:pointer;transition:all .15s}
+.pbtn:hover{border-color:#ff6b00;color:#ff8833}
+.pbtn.pri{background:linear-gradient(135deg,#ff6b00,#ff9500);border-color:#ff6b00;color:#fff}
+.pbtn.pri:hover{transform:translateY(-1px)}
+
+/* Notif */
+#notif{position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:8px 22px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;border:1px solid rgba(255,107,0,.5);backdrop-filter:blur(6px)}
+
+/* Damage */
+#dmg{position:fixed;inset:0;pointer-events:none;z-index:200;transition:opacity .15s;opacity:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(220,0,0,.6) 100%)}
+
+/* Controls hint */
+#hint{position:absolute;bottom:90px;right:16px;color:rgba(255,255,255,.3);font-size:10px;line-height:2;text-align:right;pointer-events:none}
+
+/* Action buttons for mobile */
+#mobile-btns{display:none}
 </style>
 </head>
 <body>
 
 <!-- LOADING -->
-<div id="loading-screen">
-  <div class="logo">DAILY<span>WORLD</span></div>
-  <div class="sub">your world · your rules</div>
-  <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
-  <div id="loading-text">Gerando mundo...</div>
+<div id="loading">
+  <div class="ld-pixels" id="ld-pixels"></div>
+  <div class="ld-logo">DAILY<span>WORLD</span></div>
+  <div class="ld-sub">your world · your rules</div>
+  <div class="ld-bar-wrap"><div class="ld-bar" id="ld-bar"></div></div>
+  <div class="ld-txt" id="ld-txt">Iniciando...</div>
 </div>
 
 <!-- CHARACTER CREATOR -->
-<div id="char-creator">
-  <div id="char-preview">
-    <canvas id="char-canvas" width="320" height="480"></canvas>
-    <div class="preview-label">PRÉVIA DO PERSONAGEM</div>
+<div id="creator">
+  <div id="prev-area">
+    <canvas id="char-canvas" width="280" height="420"></canvas>
+    <div class="prev-tag">prévia · dailyworld</div>
   </div>
-  <div id="char-panel">
-    <div class="creator-title">CRIE SEU <span>PERSONAGEM</span></div>
-    <div class="creator-subtitle">PERSONALIZAÇÃO · DAILYWORLD</div>
-
-    <div class="cc-section">
-      <div class="cc-label">Nome de Usuário</div>
-      <input class="cc-input" id="cc-username" type="text" placeholder="@seuusuario" maxlength="20">
+  <div id="cc-panel">
+    <div class="cc-header">
+      <div class="cc-title">CRIE SEU <span>HERÓI</span></div>
+      <div class="cc-sub">personalização · dailyworld</div>
     </div>
 
-    <div class="cc-section">
-      <div class="cc-label">Tom de Pele</div>
-      <div class="cc-row" id="skin-colors">
-        <div class="color-btn active" style="background:#FDDBB4" data-type="skin" data-val="#FDDBB4"></div>
-        <div class="color-btn" style="background:#F0C08A" data-type="skin" data-val="#F0C08A"></div>
-        <div class="color-btn" style="background:#D4956A" data-type="skin" data-val="#D4956A"></div>
-        <div class="color-btn" style="background:#C07642" data-type="skin" data-val="#C07642"></div>
-        <div class="color-btn" style="background:#8D5524" data-type="skin" data-val="#8D5524"></div>
-        <div class="color-btn" style="background:#5C3316" data-type="skin" data-val="#5C3316"></div>
-        <div class="color-btn" style="background:#3B1F0F" data-type="skin" data-val="#3B1F0F"></div>
+    <div class="cc-sec">
+      <div class="cc-lbl">Nome de Usuário</div>
+      <input class="cc-input" id="cc-user" type="text" placeholder="@seuusuario" maxlength="18">
+    </div>
+
+    <div class="cc-sec">
+      <div class="cc-lbl">Gênero</div>
+      <div class="gender-row">
+        <div class="gender-btn active" id="gb-m" onclick="setGender('m')">♂ Masculino</div>
+        <div class="gender-btn" id="gb-f" onclick="setGender('f')">♀ Feminino</div>
       </div>
     </div>
 
-    <div class="cc-section">
-      <div class="cc-label">Cor do Cabelo</div>
-      <div class="cc-row" id="hair-colors">
-        <div class="color-btn active" style="background:#1a0a00" data-type="hair" data-val="#1a0a00"></div>
-        <div class="color-btn" style="background:#3D2B1F" data-type="hair" data-val="#3D2B1F"></div>
-        <div class="color-btn" style="background:#7B4F2E" data-type="hair" data-val="#7B4F2E"></div>
-        <div class="color-btn" style="background:#C8A04A" data-type="hair" data-val="#C8A04A"></div>
-        <div class="color-btn" style="background:#E8D5A0" data-type="hair" data-val="#E8D5A0"></div>
-        <div class="color-btn" style="background:#FF4444" data-type="hair" data-val="#FF4444"></div>
-        <div class="color-btn" style="background:#4488FF" data-type="hair" data-val="#4488FF"></div>
-        <div class="color-btn" style="background:#44FF88" data-type="hair" data-val="#44FF88"></div>
-        <div class="color-btn" style="background:#888" data-type="hair" data-val="#888888"></div>
-        <div class="color-btn" style="background:#eee" data-type="hair" data-val="#eeeeee"></div>
+    <div class="cc-sec">
+      <div class="cc-lbl">Tom de Pele</div>
+      <div class="cc-row" id="skin-row">
+        <div class="cbtn active" style="background:#FDDBB4" data-t="skin" data-v="#FDDBB4"></div>
+        <div class="cbtn" style="background:#F0C08A" data-t="skin" data-v="#F0C08A"></div>
+        <div class="cbtn" style="background:#D4956A" data-t="skin" data-v="#D4956A"></div>
+        <div class="cbtn" style="background:#C07642" data-t="skin" data-v="#C07642"></div>
+        <div class="cbtn" style="background:#8D5524" data-t="skin" data-v="#8D5524"></div>
+        <div class="cbtn" style="background:#5C3316" data-t="skin" data-v="#5C3316"></div>
+        <div class="cbtn" style="background:#3B1F0F" data-t="skin" data-v="#3B1F0F"></div>
       </div>
     </div>
 
-    <div class="cc-section">
-      <div class="cc-label">Estilo do Cabelo</div>
-      <div class="cc-row" id="hair-styles">
-        <div class="style-btn active" data-type="hairstyle" data-val="curto">Curto</div>
-        <div class="style-btn" data-type="hairstyle" data-val="medio">Médio</div>
-        <div class="style-btn" data-type="hairstyle" data-val="longo">Longo</div>
-        <div class="style-btn" data-type="hairstyle" data-val="moicano">Moicano</div>
-        <div class="style-btn" data-type="hairstyle" data-val="careca">Careca</div>
-        <div class="style-btn" data-type="hairstyle" data-val="afro">Afro</div>
-      </div>
-    </div>
-
-    <div class="cc-section">
-      <div class="cc-label">Barba / Bigode</div>
-      <div class="cc-row" id="facial-hair">
-        <div class="style-btn active" data-type="beard" data-val="none">Nenhuma</div>
-        <div class="style-btn" data-type="beard" data-val="bigode">Bigode</div>
-        <div class="style-btn" data-type="beard" data-val="barba">Barba</div>
-        <div class="style-btn" data-type="beard" data-val="cavanhaque">Cavanhaque</div>
-      </div>
-    </div>
-
-    <div class="cc-section">
-      <div class="cc-label">Roupa — Camiseta</div>
-      <div class="cc-row" id="shirt-colors">
-        <div class="color-btn active" style="background:#ff6b00" data-type="shirt" data-val="#ff6b00"></div>
-        <div class="color-btn" style="background:#2255cc" data-type="shirt" data-val="#2255cc"></div>
-        <div class="color-btn" style="background:#22aa44" data-type="shirt" data-val="#22aa44"></div>
-        <div class="color-btn" style="background:#cc2244" data-type="shirt" data-val="#cc2244"></div>
-        <div class="color-btn" style="background:#8822cc" data-type="shirt" data-val="#8822cc"></div>
-        <div class="color-btn" style="background:#222" data-type="shirt" data-val="#222222"></div>
-        <div class="color-btn" style="background:#fff;border:1px solid #333" data-type="shirt" data-val="#ffffff"></div>
-        <div class="color-btn" style="background:#44cccc" data-type="shirt" data-val="#44cccc"></div>
-      </div>
-    </div>
-
-    <div class="cc-section">
-      <div class="cc-label">Calça / Shorts</div>
+    <div class="cc-sec">
+      <div class="cc-lbl">Cor do Cabelo</div>
       <div class="cc-row">
-        <div class="style-btn active" data-type="pants" data-val="calca">Calça</div>
-        <div class="style-btn" data-type="pants" data-val="shorts">Shorts</div>
-      </div>
-      <div class="cc-row" style="margin-top:8px" id="pants-colors">
-        <div class="color-btn active" style="background:#1a3a6b" data-type="pantscolor" data-val="#1a3a6b"></div>
-        <div class="color-btn" style="background:#111" data-type="pantscolor" data-val="#111111"></div>
-        <div class="color-btn" style="background:#555" data-type="pantscolor" data-val="#555555"></div>
-        <div class="color-btn" style="background:#8B4513" data-type="pantscolor" data-val="#8B4513"></div>
-        <div class="color-btn" style="background:#228B22" data-type="pantscolor" data-val="#228B22"></div>
-      </div>
-    </div>
-
-    <div class="cc-section">
-      <div class="cc-label">Tênis / Calçado</div>
-      <div class="cc-row" id="shoe-colors">
-        <div class="color-btn active" style="background:#fff;border:1px solid #333" data-type="shoes" data-val="#ffffff"></div>
-        <div class="color-btn" style="background:#111" data-type="shoes" data-val="#111111"></div>
-        <div class="color-btn" style="background:#cc2244" data-type="shoes" data-val="#cc2244"></div>
-        <div class="color-btn" style="background:#2255cc" data-type="shoes" data-val="#2255cc"></div>
-        <div class="color-btn" style="background:#ff6b00" data-type="shoes" data-val="#ff6b00"></div>
+        <div class="cbtn active" style="background:#1a0a00" data-t="hair" data-v="#1a0a00"></div>
+        <div class="cbtn" style="background:#3D2B1F" data-t="hair" data-v="#3D2B1F"></div>
+        <div class="cbtn" style="background:#7B4F2E" data-t="hair" data-v="#7B4F2E"></div>
+        <div class="cbtn" style="background:#C8A04A" data-t="hair" data-v="#C8A04A"></div>
+        <div class="cbtn" style="background:#E8D5A0" data-t="hair" data-v="#E8D5A0"></div>
+        <div class="cbtn" style="background:#FF5555" data-t="hair" data-v="#FF5555"></div>
+        <div class="cbtn" style="background:#4488FF" data-t="hair" data-v="#4488FF"></div>
+        <div class="cbtn" style="background:#44DDAA" data-t="hair" data-v="#44DDAA"></div>
+        <div class="cbtn" style="background:#FF88DD" data-t="hair" data-v="#FF88DD"></div>
+        <div class="cbtn" style="background:#aaaaaa" data-t="hair" data-v="#aaaaaa"></div>
+        <div class="cbtn" style="background:#eeeeee;border:1px solid #333" data-t="hair" data-v="#eeeeee"></div>
       </div>
     </div>
 
-    <div class="cc-section">
-      <div class="cc-label">Estatura</div>
-      <input type="range" class="cc-slider" id="height-slider" min="0.8" max="1.2" step="0.05" value="1.0">
+    <div class="cc-sec" id="hair-style-sec">
+      <div class="cc-lbl">Estilo do Cabelo</div>
+      <div class="cc-row" id="hs-row">
+        <div class="sbtn active" data-t="hstyle" data-v="curto">Curto</div>
+        <div class="sbtn" data-t="hstyle" data-v="medio">Médio</div>
+        <div class="sbtn" data-t="hstyle" data-v="longo">Longo</div>
+        <div class="sbtn" data-t="hstyle" data-v="moicano">Moicano</div>
+        <div class="sbtn" data-t="hstyle" data-v="careca">Careca</div>
+        <div class="sbtn" data-t="hstyle" data-v="afro">Afro</div>
+        <div class="sbtn" data-t="hstyle" data-v="tranca">Tranças</div>
+        <div class="sbtn" data-t="hstyle" data-v="rabo">Rabo</div>
+      </div>
     </div>
 
-    <button id="start-btn">▶ ENTRAR NO DAILYWORLD</button>
+    <div class="cc-sec" id="beard-sec">
+      <div class="cc-lbl">Barba / Bigode</div>
+      <div class="cc-row">
+        <div class="sbtn active" data-t="beard" data-v="none">Nenhuma</div>
+        <div class="sbtn" data-t="beard" data-v="bigode">Bigode</div>
+        <div class="sbtn" data-t="beard" data-v="barba">Barba</div>
+        <div class="sbtn" data-t="beard" data-v="cavanhaque">Cavanhaque</div>
+      </div>
+    </div>
+
+    <div class="cc-sec">
+      <div class="cc-lbl">Camiseta</div>
+      <div class="cc-row">
+        <div class="cbtn active" style="background:#FF6B00" data-t="shirt" data-v="#FF6B00"></div>
+        <div class="cbtn" style="background:#2255CC" data-t="shirt" data-v="#2255CC"></div>
+        <div class="cbtn" style="background:#22AA44" data-t="shirt" data-v="#22AA44"></div>
+        <div class="cbtn" style="background:#CC2244" data-t="shirt" data-v="#CC2244"></div>
+        <div class="cbtn" style="background:#8822CC" data-t="shirt" data-v="#8822CC"></div>
+        <div class="cbtn" style="background:#111" data-t="shirt" data-v="#111111"></div>
+        <div class="cbtn" style="background:#fff;border:1px solid #333" data-t="shirt" data-v="#ffffff"></div>
+        <div class="cbtn" style="background:#FF88AA" data-t="shirt" data-v="#FF88AA"></div>
+        <div class="cbtn" style="background:#44CCCC" data-t="shirt" data-v="#44CCCC"></div>
+        <div class="cbtn" style="background:#FFDD44" data-t="shirt" data-v="#FFDD44"></div>
+      </div>
+    </div>
+
+    <div class="cc-sec">
+      <div class="cc-lbl" id="pants-lbl">Calça / Shorts</div>
+      <div class="cc-row" id="pants-type-row">
+        <div class="sbtn active" data-t="pantstype" data-v="calca">Calça</div>
+        <div class="sbtn" data-t="pantstype" data-v="shorts">Shorts</div>
+        <div class="sbtn" id="skirt-btn" style="display:none" data-t="pantstype" data-v="saia">Saia</div>
+      </div>
+      <div class="cc-row" style="margin-top:8px">
+        <div class="cbtn active" style="background:#1a3a6b" data-t="pantscolor" data-v="#1a3a6b"></div>
+        <div class="cbtn" style="background:#111" data-t="pantscolor" data-v="#111111"></div>
+        <div class="cbtn" style="background:#555" data-t="pantscolor" data-v="#555555"></div>
+        <div class="cbtn" style="background:#8B4513" data-t="pantscolor" data-v="#8B4513"></div>
+        <div class="cbtn" style="background:#CC2244" data-t="pantscolor" data-v="#CC2244"></div>
+        <div class="cbtn" style="background:#FF88AA" data-t="pantscolor" data-v="#FF88AA"></div>
+        <div class="cbtn" style="background:#228B22" data-t="pantscolor" data-v="#228B22"></div>
+      </div>
+    </div>
+
+    <div class="cc-sec">
+      <div class="cc-lbl">Tênis / Calçado</div>
+      <div class="cc-row">
+        <div class="cbtn active" style="background:#fff;border:1px solid #333" data-t="shoes" data-v="#ffffff"></div>
+        <div class="cbtn" style="background:#111" data-t="shoes" data-v="#111111"></div>
+        <div class="cbtn" style="background:#CC2244" data-t="shoes" data-v="#CC2244"></div>
+        <div class="cbtn" style="background:#2255CC" data-t="shoes" data-v="#2255CC"></div>
+        <div class="cbtn" style="background:#FF6B00" data-t="shoes" data-v="#FF6B00"></div>
+        <div class="cbtn" style="background:#44AA44" data-t="shoes" data-v="#44AA44"></div>
+      </div>
+    </div>
+
+    <button id="cc-start">▶ ENTRAR NO DAILYWORLD</button>
   </div>
 </div>
 
-<!-- GAME -->
-<canvas id="game-canvas"></canvas>
+<!-- GAME CANVAS -->
+<canvas id="gc"></canvas>
 
 <!-- HUD -->
 <div id="hud">
   <div id="hearts"></div>
-  <div id="crosshair"></div>
-  <div id="coords">X: 0 | Y: 0 | Z: 0</div>
-  <canvas id="minimap-canvas" width="120" height="120"></canvas>
-  <div id="minimap"><canvas id="minimap-canvas2" width="120" height="120"></canvas></div>
+  <div id="xhair"></div>
+  <div id="info">X: 0 | Y: 0 | Z: 0<br><span class="username">@Player</span></div>
+  <div id="mm"><canvas id="mc" width="130" height="130"></canvas></div>
   <div id="hotbar"></div>
-  <div id="biome-indicator">Floresta</div>
-  <div id="controls-hint">
+  <div id="biome">🌿 Floresta</div>
+  <div id="block-tip"></div>
+  <div id="hint">
     WASD · Mover<br>
     ESPAÇO · Pular<br>
-    Click Esq · Quebrar<br>
-    Click Dir · Colocar<br>
+    🖱️ Esq · Quebrar bloco<br>
+    🖱️ Dir · Colocar bloco<br>
     E · Inventário<br>
-    ESC · Menu<br>
-    1-9 · Selecionar
+    ESC · Menu
   </div>
-  <div id="inventory">
-    <div class="inv-panel">
+
+  <!-- Inventory -->
+  <div id="inv">
+    <div class="inv-box">
       <div class="inv-title">🎒 Inventário</div>
+      <div class="inv-hint">Clique num item para colocar na hotbar</div>
       <div class="inv-grid" id="inv-grid"></div>
-      <div style="margin-top:16px;color:#444;font-size:11px;">Pressione E para fechar</div>
+      <div style="margin-top:20px;color:#333355;font-size:11px;text-align:center">Pressione E para fechar</div>
     </div>
   </div>
-  <div id="pause-menu">
-    <div class="pause-panel">
-      <div class="pause-logo">DAILY<span>WORLD</span></div>
-      <div class="pause-sub">PAUSADO</div>
-      <button class="pause-btn primary" onclick="resumeGame()">▶ Continuar</button>
-      <button class="pause-btn" onclick="showCharCreator()">👤 Trocar Personagem</button>
-      <button class="pause-btn" onclick="toggleFullscreen()">⛶ Tela Cheia</button>
+
+  <!-- Tutorial -->
+  <div id="tutorial" class="show">
+    <div class="tut-box">
+      <div class="tut-title">BEM-VINDO AO<br><span>DAILYWORLD</span></div>
+      <div class="tut-grid">
+        <div class="tut-item"><div class="tut-key">🕹️</div><div class="tut-action">WASD</div><div class="tut-desc">Mover personagem</div></div>
+        <div class="tut-item"><div class="tut-key">🖱️</div><div class="tut-action">Botão Esquerdo</div><div class="tut-desc">Quebrar bloco (mira no bloco)</div></div>
+        <div class="tut-item"><div class="tut-key">🤚</div><div class="tut-action">Botão Direito</div><div class="tut-desc">Colocar bloco da hotbar</div></div>
+        <div class="tut-item"><div class="tut-key">⬆️</div><div class="tut-action">Espaço</div><div class="tut-desc">Pular</div></div>
+        <div class="tut-item"><div class="tut-key">🎒</div><div class="tut-action">Tecla E</div><div class="tut-desc">Abrir inventário</div></div>
+        <div class="tut-item"><div class="tut-key">🗺️</div><div class="tut-action">Minimapa</div><div class="tut-desc">Canto superior direito</div></div>
+      </div>
+      <button class="tut-btn" onclick="closeTutorial()">🌍 EXPLORAR O MUNDO</button>
     </div>
   </div>
+
+  <!-- Pause -->
+  <div id="pause">
+    <div class="pause-box">
+      <div class="p-logo">DAILY<span>WORLD</span></div>
+      <div class="p-sub">PAUSADO</div>
+      <button class="pbtn pri" onclick="resume()">▶ Continuar</button>
+      <button class="pbtn" onclick="showTutorial()">❓ Controles</button>
+      <button class="pbtn" onclick="goCreator()">👤 Trocar Personagem</button>
+      <button class="pbtn" onclick="document.documentElement.requestFullscreen?.()">⛶ Tela Cheia</button>
+    </div>
+  </div>
+
   <div id="notif"></div>
 </div>
-
-<div id="damage-flash"></div>
+<div id="dmg"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ========== GAME STATE ==========
-const state = {
-  character: {
-    skin: '#FDDBB4', hair: '#1a0a00', hairstyle: 'curto',
-    beard: 'none', shirt: '#ff6b00', pants: 'calca',
-    pantscolor: '#1a3a6b', shoes: '#ffffff', height: 1.0,
-    username: 'Player'
-  },
-  health: 10,
-  maxHealth: 10,
-  inventory: {},
-  hotbar: ['grass','dirt','stone','wood','sand','water_bucket','torch','',''],
-  selectedSlot: 0,
-  paused: false,
-  invOpen: false,
-  position: {x:0,y:0,z:0},
-  currentBiome: 'Floresta',
-  inGame: false
+// ===== STATE =====
+const S = {
+  char: { gender:'m', skin:'#FDDBB4', hair:'#1a0a00', hstyle:'curto', beard:'none',
+          shirt:'#FF6B00', pantstype:'calca', pantscolor:'#1a3a6b', shoes:'#ffffff', username:'Player' },
+  hp: 10, maxHp: 10,
+  inv: {}, hotbar: ['grass','dirt','stone','wood','sand','','','',''],
+  slot: 0, paused: false, invOpen: false, tutOpen: false, inGame: false,
+  pos: {x:0,y:0,z:0}, biome: 'Floresta'
 };
 
 const BLOCKS = {
-  grass: {icon:'🟩', color:0x55aa44, top:0x66cc44, name:'Grama'},
-  dirt: {icon:'🟫', color:0x8B4513, top:0x8B4513, name:'Terra'},
-  stone: {icon:'🩶', color:0x888888, top:0x888888, name:'Pedra'},
-  wood: {icon:'🪵', color:0x8B6914, top:0xA0522D, name:'Madeira'},
-  sand: {icon:'🟡', color:0xF4C430, top:0xF4C430, name:'Areia'},
-  snow: {icon:'⬜', color:0xEEEEFF, top:0xFFFFFF, name:'Neve'},
-  water: {icon:'🔵', color:0x2255cc, top:0x3366dd, name:'Água'},
-  water_bucket: {icon:'🪣', color:0x2255cc, top:0x3366dd, name:'Balde d\'Água'},
-  torch: {icon:'🔦', color:0xffaa00, top:0xffcc00, name:'Tocha'},
-  leaves: {icon:'🍃', color:0x228B22, top:0x2ECC40, name:'Folhas'},
-  brick: {icon:'🧱', color:0xCC4422, top:0xCC4422, name:'Tijolo'},
-  glass: {icon:'🪟', color:0xAADDFF, top:0xCCEEFF, name:'Vidro'},
-  gold: {icon:'🟨', color:0xFFD700, top:0xFFD700, name:'Ouro'},
-  coal: {icon:'⬛', color:0x333333, top:0x333333, name:'Carvão'},
-  planks: {icon:'🟤', color:0xC19A6B, top:0xD4B483, name:'Tábua'},
-  cobble: {icon:'🪨', color:0x777777, top:0x777777, name:'Paralelepípedo'},
+  grass:  {icon:'🟩', col:0x55DD44, name:'Grama'},
+  dirt:   {icon:'🟫', col:0xAA6633, name:'Terra'},
+  stone:  {icon:'🪨', col:0x9999AA, name:'Pedra'},
+  wood:   {icon:'🪵', col:0xAA7722, name:'Madeira'},
+  sand:   {icon:'🟡', col:0xFFDD55, name:'Areia'},
+  snow:   {icon:'⬜', col:0xEEEEFF, name:'Neve'},
+  water:  {icon:'💧', col:0x3377EE, name:'Água'},
+  leaves: {icon:'🍃', col:0x33BB33, name:'Folhas'},
+  cherry: {icon:'🌸', col:0xFFAACC, name:'Flor de Cerejeira'},
+  brick:  {icon:'🧱', col:0xCC5533, name:'Tijolo'},
+  glass:  {icon:'🪟', col:0xAADDFF, name:'Vidro'},
+  gold:   {icon:'🟨', col:0xFFDD00, name:'Ouro'},
+  planks: {icon:'🟤', col:0xCC9944, name:'Tábua'},
+  cobble: {icon:'🔲', col:0x888888, name:'Paralelepípedo'},
+  gravel: {icon:'⬛', col:0x777788, name:'Cascalho'},
+  cactus: {icon:'🌵', col:0x44AA33, name:'Cacto'},
 };
 
-// ========== CHARACTER CREATOR ==========
-const charCtx = document.getElementById('char-canvas').getContext('2d');
+// ===== CHARACTER CREATOR =====
+const cctx = document.getElementById('char-canvas').getContext('2d');
 
-function drawCharacter() {
-  const c = state.character;
-  const ctx = charCtx;
-  const W = 320, H = 480;
+function setGender(g) {
+  S.char.gender = g;
+  document.getElementById('gb-m').classList.toggle('active', g==='m');
+  document.getElementById('gb-f').classList.toggle('active', g==='f');
+  document.getElementById('beard-sec').style.display = g==='m' ? 'block' : 'none';
+  document.getElementById('skirt-btn').style.display = g==='f' ? 'inline-block' : 'none';
+  if(g==='f') {
+    // add feminine hair styles
+  }
+  drawChar();
+}
+
+function hexToRgb(h) {
+  const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
+  return [r,g,b];
+}
+
+function drawChar() {
+  const c = S.char, ctx = cctx;
+  const W=280,H=420;
   ctx.clearRect(0,0,W,H);
 
-  // Background
-  const grad = ctx.createRadialGradient(W/2,H/2,10,W/2,H/2,200);
-  grad.addColorStop(0,'#1a1a1a');
-  grad.addColorStop(1,'#0a0a0a');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,W,H);
+  // BG glow
+  const grd=ctx.createRadialGradient(W/2,H/2,10,W/2,H/2,180);
+  grd.addColorStop(0,'#1a1a2e'); grd.addColorStop(1,'#0a0a14');
+  ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
 
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.beginPath();
-  ctx.ellipse(W/2+2, 390*c.height, 45, 14, 0, 0, Math.PI*2);
-  ctx.fill();
+  // Pixel grid style — draw at 14px block size
+  const bs = 14; // block size
+  const cx = Math.floor(W/2), baseY = 80;
 
-  const scale = c.height;
-  const cx = W/2, cy = 200;
+  function px(bx,by,color,w=1,h=1) {
+    ctx.fillStyle=color;
+    ctx.fillRect(cx+bx*bs, baseY+by*bs, w*bs, h*bs);
+    // pixel outline
+    ctx.strokeStyle='rgba(0,0,0,0.25)';
+    ctx.lineWidth=1;
+    ctx.strokeRect(cx+bx*bs+0.5, baseY+by*bs+0.5, w*bs-1, h*bs-1);
+  }
+
+  function pxNoLine(bx,by,color,w=1,h=1) {
+    ctx.fillStyle=color;
+    ctx.fillRect(cx+bx*bs, baseY+by*bs, w*bs, h*bs);
+  }
+
+  const sk=c.skin, sh=c.shirt, pc=c.pantscolor, sc=c.shoes, hc=c.hair;
+  const isFemale = c.gender==='f';
 
   // SHOES
-  ctx.fillStyle = c.shoes;
-  const shoeY = cy + 180*scale;
-  if(c.pants === 'calca') {
-    ctx.fillRect(cx-30*scale, shoeY, 26*scale, 16*scale);
-    ctx.fillRect(cx+4*scale, shoeY, 26*scale, 16*scale);
-  } else {
-    ctx.fillRect(cx-32*scale, shoeY, 28*scale, 14*scale);
-    ctx.fillRect(cx+4*scale, shoeY, 28*scale, 14*scale);
-  }
+  px(-2,18,sc); px(-1,18,sc);
+  px(1,18,sc); px(2,18,sc);
+  // extra shoe pixel
+  px(-3,18,'#000',1,1); px(3,18,'#000',1,1);
 
   // LEGS
-  ctx.fillStyle = c.pantscolor;
-  const legTop = cy + 90*scale;
-  const legH = 90*scale;
-  if(c.pants === 'calca') {
-    ctx.fillRect(cx-30*scale, legTop, 26*scale, legH);
-    ctx.fillRect(cx+4*scale, legTop, 26*scale, legH);
+  const legC = pc;
+  if(c.pantstype==='saia') {
+    // skirt
+    px(-3,12,legC,6,3);
+    // legs under skirt
+    px(-2,15,sk,2,3); px(1,15,sk,2,3);
+  } else if(c.pantstype==='shorts') {
+    px(-2,12,legC,4,2);
+    px(-2,14,sk,2,4); px(1,14,sk,2,4);
   } else {
-    // shorts
-    ctx.fillRect(cx-32*scale, legTop, 64*scale, 40*scale);
-    // bare legs
-    ctx.fillStyle = c.skin;
-    ctx.fillRect(cx-28*scale, legTop+40*scale, 24*scale, 50*scale);
-    ctx.fillRect(cx+4*scale, legTop+40*scale, 24*scale, 50*scale);
+    px(-2,12,legC,2,6); px(1,12,legC,2,6);
   }
+  // Seam
+  pxNoLine(-1,12,'rgba(0,0,0,0.1)',1,6);
 
-  // BODY (shirt)
-  ctx.fillStyle = c.shirt;
-  ctx.fillRect(cx-36*scale, cy+20*scale, 72*scale, 72*scale);
+  // BODY
+  const bodyW = isFemale ? 4 : 5;
+  const bodyOff = isFemale ? -2 : -3;
+  px(bodyOff,5,sh,bodyW,7);
+  // waist taper for female
+  if(isFemale) {
+    px(-2,9,sh,4,1); // same width
+    // hips
+    px(-3,11,pc,6,1);
+  }
 
   // ARMS
-  ctx.fillStyle = c.skin;
-  ctx.fillRect(cx-54*scale, cy+22*scale, 18*scale, 60*scale);
-  ctx.fillRect(cx+36*scale, cy+22*scale, 18*scale, 60*scale);
-  // Shirt sleeves
-  ctx.fillStyle = c.shirt;
-  ctx.fillRect(cx-54*scale, cy+22*scale, 18*scale, 30*scale);
-  ctx.fillRect(cx+36*scale, cy+22*scale, 18*scale, 30*scale);
+  px(-4,5,sh,2,3); px(bodyOff+bodyW,5,sh,2,3); // sleeves
+  px(-4,8,sk,2,4); px(bodyOff+bodyW,8,sk,2,4); // forearms
 
   // NECK
-  ctx.fillStyle = c.skin;
-  ctx.fillRect(cx-10*scale, cy+4*scale, 20*scale, 18*scale);
+  px(-1,3,sk,2,2);
 
   // HEAD
-  const headR = 32*scale;
-  ctx.fillStyle = c.skin;
-  ctx.beginPath();
-  ctx.roundRect(cx-headR, cy-headR*1.5, headR*2, headR*2.2, 8*scale);
-  ctx.fill();
-
-  // HAIR
-  if(c.hairstyle !== 'careca') {
-    ctx.fillStyle = c.hair;
-    if(c.hairstyle === 'curto') {
-      ctx.fillRect(cx-headR, cy-headR*1.5, headR*2, headR*0.7);
-      ctx.beginPath(); ctx.arc(cx, cy-headR*1.5, headR, Math.PI, 0); ctx.fill();
-    } else if(c.hairstyle === 'medio') {
-      ctx.fillRect(cx-headR, cy-headR*1.5, headR*2, headR*0.8);
-      ctx.beginPath(); ctx.arc(cx, cy-headR*1.5, headR, Math.PI, 0); ctx.fill();
-      ctx.fillRect(cx-headR, cy-headR*0.6, 10*scale, 30*scale);
-      ctx.fillRect(cx+headR-10*scale, cy-headR*0.6, 10*scale, 30*scale);
-    } else if(c.hairstyle === 'longo') {
-      ctx.fillRect(cx-headR, cy-headR*1.5, headR*2, headR*0.8);
-      ctx.beginPath(); ctx.arc(cx, cy-headR*1.5, headR, Math.PI, 0); ctx.fill();
-      ctx.fillRect(cx-headR-2, cy-headR*0.5, 14*scale, 80*scale);
-      ctx.fillRect(cx+headR-12, cy-headR*0.5, 14*scale, 80*scale);
-    } else if(c.hairstyle === 'moicano') {
-      ctx.fillRect(cx-8*scale, cy-headR*2.2, 16*scale, headR*0.9);
-      ctx.beginPath();
-      ctx.moveTo(cx-8*scale, cy-headR*1.5);
-      ctx.lineTo(cx+8*scale, cy-headR*1.5);
-      ctx.lineTo(cx+6*scale, cy-headR*2.2);
-      ctx.lineTo(cx-6*scale, cy-headR*2.2);
-      ctx.closePath(); ctx.fill();
-    } else if(c.hairstyle === 'afro') {
-      ctx.beginPath();
-      ctx.arc(cx, cy-headR*0.8, headR*1.4, 0, Math.PI*2);
-      ctx.fill();
-    }
-  }
+  const headOff = -3;
+  px(headOff,headOff+(-3),sk,6,6);
 
   // EYES
-  ctx.fillStyle = '#1a0a00';
-  ctx.beginPath(); ctx.ellipse(cx-12*scale, cy-headR*0.4, 5*scale, 6*scale, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(cx+12*scale, cy-headR*0.4, 5*scale, 6*scale, 0, 0, Math.PI*2); ctx.fill();
-  // Eye whites
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.ellipse(cx-13*scale, cy-headR*0.42, 2*scale, 2.5*scale, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(cx+11*scale, cy-headR*0.42, 2*scale, 2.5*scale, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='#111122';
+  if(isFemale) {
+    // bigger eyes with lashes
+    ctx.fillRect(cx-2*bs+2,baseY-1*bs+2,bs-2,bs-2);
+    ctx.fillRect(cx+1*bs+2,baseY-1*bs+2,bs-2,bs-2);
+    // lashes
+    ctx.fillStyle='#111';
+    ctx.fillRect(cx-2*bs,baseY-1*bs,bs,3);
+    ctx.fillRect(cx+1*bs,baseY-1*bs,bs,3);
+    // eyeshadow
+    ctx.fillStyle='rgba(200,100,200,0.3)';
+    ctx.fillRect(cx-2*bs,baseY-1*bs,bs,bs/2);
+    ctx.fillRect(cx+1*bs,baseY-1*bs,bs,bs/2);
+  } else {
+    ctx.fillRect(cx-2*bs+3,baseY-1*bs+3,bs-4,bs-4);
+    ctx.fillRect(cx+1*bs+3,baseY-1*bs+3,bs-4,bs-4);
+  }
+  // pupils
+  ctx.fillStyle='#fff';
+  ctx.fillRect(cx-2*bs+5,baseY-1*bs+4,4,4);
+  ctx.fillRect(cx+1*bs+5,baseY-1*bs+4,4,4);
 
   // MOUTH
-  ctx.strokeStyle = '#8B4513';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy+4*scale, 10*scale, 0.1, Math.PI-0.1);
-  ctx.stroke();
+  ctx.fillStyle='#cc6655';
+  if(isFemale) {
+    ctx.fillRect(cx-bs+3,baseY+1*bs+3,bs*2-6,5);
+    ctx.fillStyle='#ff8877';
+    ctx.fillRect(cx-bs+4,baseY+1*bs+3,bs*2-8,3);
+  } else {
+    ctx.fillRect(cx-bs+5,baseY+1*bs+4,bs*2-8,4);
+  }
 
-  // BEARD
-  if(c.beard !== 'none') {
-    ctx.fillStyle = c.hair;
-    if(c.beard === 'bigode') {
-      ctx.beginPath();
-      ctx.ellipse(cx, cy+2*scale, 16*scale, 5*scale, 0, 0, Math.PI*2);
-      ctx.fill();
-    } else if(c.beard === 'barba') {
-      ctx.fillRect(cx-headR+4, cy+4*scale, headR*2-8, 26*scale);
-      ctx.beginPath(); ctx.arc(cx, cy+22*scale, headR-6, 0, Math.PI); ctx.fill();
-    } else if(c.beard === 'cavanhaque') {
-      ctx.beginPath(); ctx.ellipse(cx, cy+12*scale, 10*scale, 14*scale, 0, 0, Math.PI*2); ctx.fill();
+  // NOSE
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.fillRect(cx-2,baseY+4,4,6);
+
+  // HAIR
+  if(c.hstyle!=='careca') {
+    ctx.fillStyle=hc;
+    if(c.hstyle==='curto') {
+      // Top + sides
+      ctx.fillRect(cx-3*bs,baseY-3*bs,6*bs,bs);
+      ctx.fillRect(cx-3*bs,baseY-3*bs,bs,3*bs);
+      ctx.fillRect(cx+2*bs,baseY-3*bs,bs,3*bs);
+      // round top
+      ctx.beginPath(); ctx.arc(cx,baseY-3*bs,3*bs*0.8,Math.PI,0); ctx.fill();
+    } else if(c.hstyle==='medio') {
+      ctx.fillRect(cx-3*bs,baseY-3*bs,6*bs,bs);
+      ctx.fillRect(cx-3*bs,baseY-3*bs,bs,4*bs);
+      ctx.fillRect(cx+2*bs,baseY-3*bs,bs,4*bs);
+      ctx.beginPath(); ctx.arc(cx,baseY-3*bs,3*bs*0.85,Math.PI,0); ctx.fill();
+    } else if(c.hstyle==='longo') {
+      ctx.fillRect(cx-3*bs,baseY-3*bs,6*bs,bs);
+      ctx.fillRect(cx-3*bs,baseY-3*bs,bs,8*bs);
+      ctx.fillRect(cx+2*bs,baseY-3*bs,bs,8*bs);
+      ctx.beginPath(); ctx.arc(cx,baseY-3*bs,3*bs*0.85,Math.PI,0); ctx.fill();
+    } else if(c.hstyle==='moicano') {
+      ctx.fillRect(cx-bs/2,baseY-4*bs,bs,4*bs);
+      ctx.beginPath(); ctx.moveTo(cx-bs*0.5,baseY-3*bs); ctx.lineTo(cx+bs*0.5,baseY-3*bs); ctx.lineTo(cx,baseY-4.5*bs); ctx.fill();
+    } else if(c.hstyle==='afro') {
+      ctx.beginPath(); ctx.arc(cx,baseY-1.5*bs,3.5*bs,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=S.char.skin; // restore face
+      px(headOff,headOff+(-3),sk,6,6);
+    } else if(c.hstyle==='tranca') {
+      ctx.fillRect(cx-3*bs,baseY-3*bs,6*bs,bs*1.5);
+      // braids
+      for(let b=0;b<3;b++) {
+        ctx.fillRect(cx-2*bs+b*bs,baseY,bs-2,7*bs);
+      }
+      ctx.beginPath(); ctx.arc(cx,baseY-3*bs,3*bs*0.85,Math.PI,0); ctx.fill();
+    } else if(c.hstyle==='rabo') {
+      ctx.fillRect(cx-3*bs,baseY-3*bs,6*bs,bs);
+      ctx.beginPath(); ctx.arc(cx,baseY-3*bs,3*bs*0.85,Math.PI,0); ctx.fill();
+      // ponytail
+      ctx.fillRect(cx+2*bs,baseY-2*bs,bs,6*bs);
+      ctx.beginPath(); ctx.arc(cx+2.5*bs,baseY+4*bs,bs,0,Math.PI*2); ctx.fill();
     }
   }
 
-  // Username
-  ctx.fillStyle = '#ff6b00';
-  ctx.font = `bold ${14*scale}px 'Segoe UI', sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.fillText('@'+c.username, W/2, H-60);
+  // BEARD (male)
+  if(!isFemale && c.beard!=='none') {
+    ctx.fillStyle=hc;
+    if(c.beard==='bigode') { ctx.fillRect(cx-bs,baseY+bs,2*bs,bs/2); }
+    else if(c.beard==='barba') { ctx.fillRect(cx-2*bs,baseY+bs,4*bs,2*bs); ctx.fillRect(cx-2*bs,baseY+3*bs,4*bs,bs); }
+    else if(c.beard==='cavanhaque') { ctx.fillRect(cx-bs/2,baseY+bs,bs,2.5*bs); }
+  }
+
+  // Blush for female
+  if(isFemale) {
+    ctx.fillStyle='rgba(255,150,150,0.3)';
+    ctx.beginPath(); ctx.ellipse(cx-2*bs,baseY+bs,bs*0.7,bs*0.4,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+2*bs,baseY+bs,bs*0.7,bs*0.4,0,0,Math.PI*2); ctx.fill();
+  }
+
+  // USERNAME
+  ctx.fillStyle='#ff8833';
+  ctx.font='bold 13px monospace';
+  ctx.textAlign='center';
+  ctx.fillText('@'+c.username, W/2, H-28);
+  ctx.fillStyle='rgba(255,136,51,0.3)';
+  ctx.fillRect(W/2-50,H-44,100,2);
 }
 
-// Color/style buttons
-document.querySelectorAll('.color-btn, .style-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const type = btn.dataset.type;
-    document.querySelectorAll(`[data-type="${type}"]`).forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.character[type] = btn.dataset.val;
-    drawCharacter();
+document.querySelectorAll('.cbtn,.sbtn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const t=b.dataset.t;
+    document.querySelectorAll(`[data-t="${t}"]`).forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    S.char[t]=b.dataset.v;
+    drawChar();
   });
 });
-
-document.getElementById('height-slider').addEventListener('input', e => {
-  state.character.height = parseFloat(e.target.value);
-  drawCharacter();
+document.getElementById('cc-user').addEventListener('input',e=>{
+  S.char.username=e.target.value.replace('@','')||'Player';
+  drawChar();
 });
+document.getElementById('cc-start').addEventListener('click', startGame);
+drawChar();
 
-document.getElementById('cc-username').addEventListener('input', e => {
-  state.character.username = e.target.value.replace('@','') || 'Player';
-  drawCharacter();
-});
+// ===== LOADING PIXELS =====
+(function(){
+  const wrap=document.getElementById('ld-pixels');
+  const cols=['#ff6b00','#ff9500','#ffcc00','#ff4488','#44aaff'];
+  for(let i=0;i<30;i++){
+    const d=document.createElement('div');
+    const s=4+Math.random()*10;
+    d.style.cssText=`width:${s}px;height:${s}px;background:${cols[i%cols.length]};left:${Math.random()*100}%;bottom:${Math.random()*50}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*3}s`;
+    d.className='ld-pixel';
+    wrap.appendChild(d);
+  }
+})();
 
-document.getElementById('start-btn').addEventListener('click', startGame);
-drawCharacter();
+// ===== THREE.JS ENGINE =====
+let scene,camera,renderer,clock;
+let pPos,pVel,onGround;
+let keys={};
+let yaw=0,pitch=0;
+let worldData=new Map();
+let meshMap=new Map();
+const CHUNK=16, RDIST=4, SEA=32;
 
-// ========== THREE.JS GAME ENGINE ==========
-let scene, camera, renderer, clock;
-let playerBody, playerVelocity, onGround, playerHeight;
-let keys = {}, mouseButtons = {};
-let worldBlocks = new Map();
-let chunkMeshes = new Map();
-let yaw = 0, pitch = 0;
-const CHUNK_SIZE = 16;
-const WORLD_HEIGHT = 64;
-const SEA_LEVEL = 32;
-const RENDER_DIST = 4;
+function hsh(n){n=Math.sin(n)*43758.5;return n-Math.floor(n);}
+function n2d(x,z){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,ux=fx*fx*(3-2*fx),uz=fz*fz*(3-2*fz),a=hsh(ix+iz*57),b=hsh(ix+1+iz*57),c=hsh(ix+(iz+1)*57),d=hsh(ix+1+(iz+1)*57);return a+(b-a)*ux+(c-a)*uz+(d-a+a-b-c+b)*ux*uz;}
+function fbm(x,z,o=4){let v=0,a=0.5,f=0.01,m=0;for(let i=0;i<o;i++){v+=n2d(x*f,z*f)*a;m+=a;a*=0.5;f*=2.1;}return v/m;}
 
-function blockKey(x,y,z) { return `${x},${y},${z}`; }
-function chunkKey(cx,cz) { return `${cx},${cz}`; }
-
-// Simple noise
-function hash(n) {
-  n = Math.sin(n) * 43758.5453123;
-  return n - Math.floor(n);
+// Island shape — distance from center falls off
+function islandMask(x,z){
+  const d=Math.sqrt(x*x+z*z)/280;
+  return Math.max(0, 1-d*d*1.8);
 }
-function noise2D(x,z) {
-  const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz;
-  const ux=fx*fx*(3-2*fx),uz=fz*fz*(3-2*fz);
-  const a=hash(ix*1.0+iz*57),b=hash((ix+1)+iz*57),c=hash(ix+(iz+1)*57),d=hash((ix+1)+(iz+1)*57);
-  return a+(b-a)*ux+(c-a)*uz+(d-a+a-b-c+b)*ux*uz;
-}
-function fbm(x,z,oct=4){let v=0,amp=0.5,freq=0.015,max=0;for(let i=0;i<oct;i++){v+=noise2D(x*freq,z*freq)*amp;max+=amp;amp*=0.5;freq*=2.1;}return v/max;}
 
-function getBiomeAt(x,z) {
-  const t = fbm(x+1000,z+1000,3);
-  const m = fbm(x*0.5+5000,z*0.5+5000,3);
-  if(t<0.35) return 'ocean';
-  if(t<0.4) return 'beach';
-  if(m>0.72) return 'mountains';
-  if(t>0.7 && m<0.45) return 'desert';
-  if(t>0.65 && m>0.5) return 'snowy';
-  if(t>0.55 && m<0.4) return 'plains';
+function getBiome(x,z){
+  const t=fbm(x+1000,z+2000,3);
+  const m=fbm(x*0.5+500,z*0.5+700,3);
+  if(t<0.32) return 'ocean';
+  if(t<0.38) return 'beach';
+  if(m>0.75) return 'mountains';
+  if(t>0.65&&m<0.4) return 'plains';
+  if(t>0.7&&m>0.55) return 'snowy';
+  if(t>0.6&&m>0.45&&m<0.6) return 'cherry';
   return 'forest';
 }
 
-function getHeight(x,z) {
-  const biome = getBiomeAt(x,z);
-  const base = fbm(x,z) * 24 + SEA_LEVEL - 4;
-  if(biome==='ocean') return Math.min(SEA_LEVEL-3, base);
-  if(biome==='beach') return SEA_LEVEL + 1;
-  if(biome==='mountains') return base + fbm(x*0.5,z*0.5)*18;
-  if(biome==='desert') return SEA_LEVEL + fbm(x,z)*6 + 2;
-  if(biome==='snowy') return base + 2;
-  return base;
+function getH(x,z){
+  const mask=islandMask(x,z);
+  if(mask<0.05) return SEA-5;
+  const base=fbm(x,z)*28+SEA-2;
+  const detail=fbm(x*2+500,z*2+500,2)*4;
+  const biome=getBiome(x,z);
+  let h=base+detail;
+  if(biome==='mountains') h+=fbm(x*0.3+200,z*0.3+200,3)*22;
+  if(biome==='plains') h=SEA+fbm(x*0.5,z*0.5,2)*4+3;
+  if(biome==='beach') h=SEA+1;
+  return Math.floor(h*mask+SEA*(1-mask));
 }
 
-function getSurfaceBlock(biome, isTop) {
-  if(biome==='ocean') return 'water';
-  if(biome==='beach') return isTop ? 'sand' : 'sand';
-  if(biome==='desert') return isTop ? 'sand' : 'sand';
-  if(biome==='snowy') return isTop ? 'snow' : 'stone';
-  if(biome==='mountains') return isTop ? (Math.random()>0.7?'snow':'stone') : 'stone';
-  return isTop ? 'grass' : 'dirt';
-}
+function bk(x,y,z){return `${x},${y},${z}`;}
+function ck(cx,cz){return `${cx},${cz}`;}
 
-// Metro city at center (0,0)
-function isMetro(x,z) { return Math.abs(x)<50 && Math.abs(z)<50; }
-function getMetroBlock(x,y,z) {
-  const ground = SEA_LEVEL+1;
-  if(y===ground-1) return 'stone';
-  if(y===ground) {
-    if((x%8===0||z%8===0)) return 'cobble';
-    return 'stone';
-  }
-  // buildings
-  const bx=Math.floor(x/10), bz=Math.floor(z/10);
-  const bh = 8 + ((Math.abs(bx*7+bz*13))%12)*2;
-  if((x%10===0||x%10===9||z%10===0||z%10===9) && y<=ground+bh && y>ground) {
-    if(y===ground+bh) return 'stone';
-    return y%4===0?'glass':'brick';
-  }
-  return null;
-}
+// Metro city at origin
+const METRO=45;
+function isMetro(x,z){return Math.abs(x)<METRO&&Math.abs(z)<METRO;}
 
-function generateChunk(cx,cz) {
-  const blocks = {};
-  for(let lx=0;lx<CHUNK_SIZE;lx++) {
-    for(let lz=0;lz<CHUNK_SIZE;lz++) {
-      const wx=cx*CHUNK_SIZE+lx, wz=cz*CHUNK_SIZE+lz;
-      if(isMetro(wx,wz)) {
-        // metro ground
-        const ground=SEA_LEVEL+1;
-        for(let y=0;y<ground;y++) blocks[blockKey(lx,y,lz)]='stone';
-        blocks[blockKey(lx,ground,lz)]='stone';
-        // buildings
-        const bx=Math.floor(wx/10),bz2=Math.floor(wz/10);
-        const bh=8+((Math.abs(bx*7+bz2*13))%12)*2;
-        const inWall=(wx%10===0||wx%10===9||wz%10===0||wz%10===9);
-        for(let y=ground+1;y<=ground+bh;y++) {
-          if(inWall) {
-            blocks[blockKey(lx,y,lz)]=y%4===0?'glass':'brick';
-          }
+function genChunk(cx,cz){
+  const blocks={};
+  for(let lx=0;lx<CHUNK;lx++) for(let lz=0;lz<CHUNK;lz++){
+    const wx=cx*CHUNK+lx,wz=cz*CHUNK+lz;
+    if(isMetro(wx,wz)){
+      const g=SEA+2;
+      for(let y=0;y<=g;y++) blocks[bk(lx,y,lz)]='stone';
+      // Roads
+      if(wx%10===0||wz%10===0){blocks[bk(lx,g,lz)]='cobble';}
+      // Buildings
+      const bx=Math.floor((wx+METRO)/10),bz2=Math.floor((wz+METRO)/10);
+      const bh=6+((bx*7+bz2*13+bx*bz2)%10)*3;
+      const isWall=(wx%10===0||wx%10===9||wz%10===0||wz%10===9)&&wx%10!==0&&wz%10!==0;
+      if(isWall){
+        for(let y=g+1;y<=g+bh;y++){
+          blocks[bk(lx,y,lz)]=y%5===0?'glass':'brick';
         }
-        if(inWall) blocks[blockKey(lx,ground+bh+1,lz)]='stone';
+        blocks[bk(lx,g+bh+1,lz)]='stone';
+      }
+    } else {
+      const biome=getBiome(wx,wz);
+      const sh=getH(wx,wz);
+      if(biome==='ocean'||sh<SEA){
+        for(let y=0;y<=sh;y++) blocks[bk(lx,y,lz)]='gravel';
+        for(let y=sh+1;y<=SEA;y++) blocks[bk(lx,y,lz)]='water';
       } else {
-        const biome=getBiomeAt(wx,wz);
-        const surfH=Math.floor(getHeight(wx,wz));
-        for(let y=0;y<=surfH;y++) {
+        for(let y=0;y<=sh;y++){
           let bt;
-          if(y===surfH) bt=getSurfaceBlock(biome,true);
-          else if(y>=surfH-3) bt=getSurfaceBlock(biome,false);
-          else if(y<8) bt='stone';
+          if(y===sh){
+            if(biome==='beach'||biome==='desert') bt='sand';
+            else if(biome==='snowy') bt='snow';
+            else if(biome==='mountains'&&sh>SEA+22) bt=Math.random()>0.5?'snow':'stone';
+            else bt='grass';
+          } else if(y>=sh-3) bt=(biome==='beach'||biome==='desert')?'sand':'dirt';
+          else if(y<10) bt='stone';
           else bt='dirt';
-          blocks[blockKey(lx,y,lz)]=bt;
+          blocks[bk(lx,y,lz)]=bt;
         }
-        if(biome==='ocean') {
-          for(let y=surfH+1;y<=SEA_LEVEL;y++) blocks[blockKey(lx,y,lz)]='water';
-        }
-        // trees
-        if((biome==='forest'||biome==='plains'||biome==='snowy') && Math.random()<0.04 && biome!=='snowy' || biome==='forest'&&Math.random()<0.06) {
-          const ty=surfH+1;
-          for(let tr=1;tr<=5;tr++) blocks[blockKey(lx,ty+tr,lz)]='wood';
-          for(let ldy=-1;ldy<=1;ldy++) for(let ldx=-2;ldx<=2;ldx++) for(let ldz2=-2;ldz2<=2;ldz2++) {
-            if(Math.abs(ldx)+Math.abs(ldz2)<=2) {
-              const lk=blockKey(lx+ldx,ty+4+ldy,lz+ldz2);
-              if(!blocks[lk]) blocks[lk]='leaves';
-            }
+        // Trees
+        const rng=hsh(wx*1.1+wz*3.7);
+        if(rng<0.06&&biome==='forest'){
+          const ty=sh+1;
+          for(let tr=1;tr<=5;tr++) blocks[bk(lx,ty+tr,lz)]='wood';
+          for(let dy=-1;dy<=1;dy++) for(let dx=-2;dx<=2;dx++) for(let dz=-2;dz<=2;dz++){
+            if(Math.abs(dx)+Math.abs(dz)<=2&&!blocks[bk(lx+dx,ty+4+dy,lz+dz)])
+              blocks[bk(lx+dx,ty+4+dy,lz+dz)]='leaves';
           }
+        }
+        if(rng<0.04&&biome==='cherry'){
+          const ty=sh+1;
+          for(let tr=1;tr<=4;tr++) blocks[bk(lx,ty+tr,lz)]='wood';
+          for(let dy=-1;dy<=1;dy++) for(let dx=-2;dx<=2;dx++) for(let dz=-2;dz<=2;dz++){
+            if(Math.abs(dx)+Math.abs(dz)<=2&&!blocks[bk(lx+dx,ty+3+dy,lz+dz)])
+              blocks[bk(lx+dx,ty+3+dy,lz+dz)]='cherry';
+          }
+        }
+        if(rng<0.03&&biome==='plains'){
+          // Flowers (small decorative)
+        }
+        if(rng<0.08&&biome==='mountains'){
+          // Rocky outcrops
+          const ty=sh+1;
+          blocks[bk(lx,ty,lz)]='stone';
+          if(rng<0.03){blocks[bk(lx,ty+1,lz)]='stone';blocks[bk(lx,ty+2,lz)]='stone';}
         }
       }
     }
@@ -738,509 +722,434 @@ function generateChunk(cx,cz) {
   return blocks;
 }
 
-const blockMaterials = {};
-function getBlockMaterial(type) {
-  if(!blockMaterials[type]) {
-    const def = BLOCKS[type]||BLOCKS.stone;
-    blockMaterials[type] = new THREE.MeshLambertMaterial({
-      color: def.color,
-      transparent: type==='water'||type==='glass',
-      opacity: type==='water'?0.7:type==='glass'?0.5:1.0
+// Materials cache
+const MATS={};
+function getMat(type){
+  if(!MATS[type]){
+    const d=BLOCKS[type]||BLOCKS.stone;
+    MATS[type]=new THREE.MeshLambertMaterial({
+      color:d.col, transparent:type==='water'||type==='glass',
+      opacity:type==='water'?0.72:type==='glass'?0.55:1
     });
   }
-  return blockMaterials[type];
+  return MATS[type];
 }
 
-const BOX_GEO = new THREE.BoxGeometry(1,1,1);
+const GEO=new THREE.BoxGeometry(1,1,1);
 
-function buildChunkMesh(cx,cz,chunkData) {
-  const group = new THREE.Group();
-  const ox=cx*CHUNK_SIZE, oz=cz*CHUNK_SIZE;
-
-  // Get neighbor chunks for face culling
-  const getBlock=(x,y,z)=>{
-    const lcx=Math.floor(x/CHUNK_SIZE),lcz=Math.floor(z/CHUNK_SIZE);
-    if(lcx===cx&&lcz===cz) return chunkData[blockKey(x-ox,y,z-oz)];
-    const nk=chunkKey(lcx,lcz);
-    if(worldBlocks.has(nk)) return worldBlocks.get(nk)[blockKey(x-lcx*CHUNK_SIZE,y,z-lcz*CHUNK_SIZE)];
+function buildMesh(cx,cz,data){
+  const g=new THREE.Group();
+  const ox=cx*CHUNK,oz=cz*CHUNK;
+  function gb(x,y,z){
+    const lcx=Math.floor(x/CHUNK),lcz=Math.floor(z/CHUNK);
+    const k=ck(lcx,lcz);
+    if(lcx===cx&&lcz===cz) return data[bk(x-ox,y,z-oz)];
+    if(worldData.has(k)) return worldData.get(k)[bk(x-lcx*CHUNK,y,z-lcz*CHUNK)];
     return undefined;
-  };
-
-  const merged = {}; // type -> [{x,y,z}]
-  for(const [k,type] of Object.entries(chunkData)) {
+  }
+  const buckets={};
+  for(const [k,type] of Object.entries(data)){
     const [lx,y,lz]=k.split(',').map(Number);
     const wx=ox+lx,wz=oz+lz;
-    // Check if any face is exposed
-    const nb=[getBlock(wx+1,y,wz),getBlock(wx-1,y,wz),getBlock(wx,y+1,wz),
-               getBlock(wx,y-1,wz),getBlock(wx,y,wz+1),getBlock(wx,y,wz-1)];
-    const exposed=nb.some(b=>!b||(b==='water'&&type!=='water')||(b==='glass'&&type!=='glass'));
-    if(exposed) {
-      if(!merged[type]) merged[type]=[];
-      merged[type].push({x:wx,y,z:wz});
-    }
+    const nb=[gb(wx+1,y,wz),gb(wx-1,y,wz),gb(wx,y+1,wz),gb(wx,y-1,wz),gb(wx,y,wz+1),gb(wx,y,wz-1)];
+    const exp=nb.some(b=>!b||(b==='water'&&type!=='water')||(b==='glass'&&type!=='glass'));
+    if(exp){if(!buckets[type])buckets[type]=[];buckets[type].push({x:wx,y,z:wz});}
   }
-
-  for(const [type,positions] of Object.entries(merged)) {
-    const mat = getBlockMaterial(type);
-    const geo = new THREE.InstancedMesh(BOX_GEO,mat,positions.length);
-    const mat4 = new THREE.Matrix4();
-    positions.forEach((p,i)=>{ mat4.setPosition(p.x,p.y,p.z); geo.setMatrixAt(i,mat4); });
-    geo.instanceMatrix.needsUpdate=true;
-    geo.castShadow=true;
-    group.add(geo);
+  for(const [type,pos] of Object.entries(buckets)){
+    const mesh=new THREE.InstancedMesh(GEO,getMat(type),pos.length);
+    const m4=new THREE.Matrix4();
+    pos.forEach((p,i)=>{m4.setPosition(p.x,p.y,p.z);mesh.setMatrixAt(i,m4);});
+    mesh.instanceMatrix.needsUpdate=true;
+    mesh.castShadow=true;
+    g.add(mesh);
   }
-  return group;
+  return g;
 }
 
-function loadChunksAround(px,pz) {
-  const cx=Math.floor(px/CHUNK_SIZE), cz=Math.floor(pz/CHUNK_SIZE);
-  const toLoad=[];
-  for(let dx=-RENDER_DIST;dx<=RENDER_DIST;dx++) for(let dz=-RENDER_DIST;dz<=RENDER_DIST;dz++) {
-    if(dx*dx+dz*dz<=RENDER_DIST*RENDER_DIST) toLoad.push([cx+dx,cz+dz]);
-  }
-  // Remove far chunks
-  chunkMeshes.forEach((mesh,key)=>{
-    const [kcx,kcz]=key.split(',').map(Number);
-    const d=(kcx-cx)*(kcx-cx)+(kcz-cz)*(kcz-cz);
-    if(d>(RENDER_DIST+1)*(RENDER_DIST+1)) { scene.remove(mesh); chunkMeshes.delete(key); }
+function loadAround(px,pz){
+  const cx=Math.floor(px/CHUNK),cz=Math.floor(pz/CHUNK);
+  meshMap.forEach((m,k)=>{
+    const [kcx,kcz]=k.split(',').map(Number);
+    if((kcx-cx)**2+(kcz-cz)**2>(RDIST+1)**2){scene.remove(m);meshMap.delete(k);}
   });
-  // Load new
-  toLoad.forEach(([tcx,tcz])=>{
-    const k=chunkKey(tcx,tcz);
-    if(!chunkMeshes.has(k)) {
-      if(!worldBlocks.has(k)) worldBlocks.set(k,generateChunk(tcx,tcz));
-      const mesh=buildChunkMesh(tcx,tcz,worldBlocks.get(k));
-      scene.add(mesh);
-      chunkMeshes.set(k,mesh);
+  for(let dx=-RDIST;dx<=RDIST;dx++) for(let dz=-RDIST;dz<=RDIST;dz++){
+    if(dx*dx+dz*dz>RDIST*RDIST) continue;
+    const k=ck(cx+dx,cz+dz);
+    if(!meshMap.has(k)){
+      if(!worldData.has(k)) worldData.set(k,genChunk(cx+dx,cz+dz));
+      const m=buildMesh(cx+dx,cz+dz,worldData.get(k));
+      scene.add(m);meshMap.set(k,m);
     }
-  });
-}
-
-function rebuildChunk(cx,cz) {
-  const k=chunkKey(cx,cz);
-  if(chunkMeshes.has(k)) { scene.remove(chunkMeshes.get(k)); chunkMeshes.delete(k); }
-  if(worldBlocks.has(k)) {
-    const mesh=buildChunkMesh(cx,cz,worldBlocks.get(k));
-    scene.add(mesh);
-    chunkMeshes.set(k,mesh);
   }
 }
 
-// ========== PLAYER ==========
-function createPlayer() {
-  playerVelocity = new THREE.Vector3();
-  onGround = false;
-  playerHeight = state.character.height * 1.8;
-  const spawnX=0, spawnZ=60;
-  const spawnY = Math.floor(getHeight(spawnX,spawnZ))+playerHeight+2;
-  playerBody = new THREE.Vector3(spawnX, spawnY, spawnZ);
-  camera.position.copy(playerBody);
-  yaw=0; pitch=0;
+function rebuild(cx,cz){
+  const k=ck(cx,cz);
+  if(meshMap.has(k)){scene.remove(meshMap.get(k));meshMap.delete(k);}
+  if(worldData.has(k)){const m=buildMesh(cx,cz,worldData.get(k));scene.add(m);meshMap.set(k,m);}
 }
 
-function getBlockAt(x,y,z) {
+function getBlock(x,y,z){
   const bx=Math.floor(x),by=Math.floor(y),bz=Math.floor(z);
-  const cx=Math.floor(bx/CHUNK_SIZE),cz2=Math.floor(bz/CHUNK_SIZE);
-  const k=chunkKey(cx,cz2);
-  if(!worldBlocks.has(k)) return null;
-  return worldBlocks.get(k)[blockKey(bx-cx*CHUNK_SIZE,by,bz-cz2*CHUNK_SIZE)]||null;
+  const cx=Math.floor(bx/CHUNK),cz=Math.floor(bz/CHUNK);
+  const d=worldData.get(ck(cx,cz));
+  return d?d[bk(bx-cx*CHUNK,by,bz-cz*CHUNK)]||null:null;
 }
-
-function setBlockAt(x,y,z,type) {
+function setBlock(x,y,z,t){
   const bx=Math.floor(x),by=Math.floor(y),bz=Math.floor(z);
-  const cx=Math.floor(bx/CHUNK_SIZE),cz2=Math.floor(bz/CHUNK_SIZE);
-  const k=chunkKey(cx,cz2);
-  if(!worldBlocks.has(k)) return;
-  const chunk=worldBlocks.get(k);
-  const lk=blockKey(bx-cx*CHUNK_SIZE,by,bz-cz2*CHUNK_SIZE);
-  if(type===null) delete chunk[lk]; else chunk[lk]=type;
-  rebuildChunk(cx,cz2);
+  const cx=Math.floor(bx/CHUNK),cz=Math.floor(bz/CHUNK);
+  const k=ck(cx,cz);
+  if(!worldData.has(k)) return;
+  const lk=bk(bx-cx*CHUNK,by,bz-cz*CHUNK);
+  if(t===null) delete worldData.get(k)[lk]; else worldData.get(k)[lk]=t;
+  rebuild(cx,cz);
 }
 
-function raycast(origin, dir, maxDist=6) {
-  let hit=null, hitNormal=new THREE.Vector3();
-  const step=0.05;
-  let px=origin.x,py=origin.y,pz=origin.z;
-  let prevBx=null,prevBy=null,prevBz=null;
-  for(let d=0;d<maxDist;d+=step) {
-    const bx=Math.floor(px),by=Math.floor(py),bz=Math.floor(pz);
-    const bt=getBlockAt(bx,by,bz);
-    if(bt&&bt!=='water') {
-      hit={x:bx,y:by,z:bz,type:bt};
-      hitNormal.set(bx-(prevBx??bx),by-(prevBy??by),bz-(prevBz??bz)).normalize();
-      break;
-    }
-    prevBx=bx;prevBy=by;prevBz=bz;
-    px+=dir.x*step;py+=dir.y*step;pz+=dir.z*step;
+// Raycast
+function ray(org,dir,max=7){
+  let hit=null,norm=new THREE.Vector3(),px2=org.x,py=org.y,pz2=org.z;
+  let pbx=null,pby=null,pbz2=null;
+  const st=0.04;
+  for(let d=0;d<max;d+=st){
+    const bx=Math.floor(px2),by=Math.floor(py),bz=Math.floor(pz2);
+    const bt=getBlock(bx,by,bz);
+    if(bt&&bt!=='water'){hit={x:bx,y:by,z:bz,type:bt};norm.set(bx-(pbx??bx),by-(pby??by),bz-(pbz2??bz)).normalize();break;}
+    pbx=bx;pby=by;pbz2=bz;
+    px2+=dir.x*st;py+=dir.y*st;pz2+=dir.z*st;
   }
-  return {hit,normal:hitNormal};
+  return {hit,norm};
 }
 
-// ========== INIT GAME ==========
-function initThree() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x87CEEB);
-  scene.fog = new THREE.Fog(0x87CEEB, 40, 100);
+// Highlight box
+let hlBox;
+function initHL(){
+  const eg=new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02,1.02,1.02));
+  const em=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.7});
+  hlBox=new THREE.LineSegments(eg,em);
+  hlBox.visible=false;
+  scene.add(hlBox);
+}
 
-  camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 200);
-
-  renderer = new THREE.WebGLRenderer({canvas:document.getElementById('game-canvas'),antialias:false});
+function initThree(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x4EC3E8);
+  scene.fog=new THREE.Fog(0x4EC3E8,50,110);
+  camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.05,200);
+  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('gc'),antialias:false});
   renderer.setSize(innerWidth,innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 
-  // Lighting
-  const sun=new THREE.DirectionalLight(0xffffff,1.2);
-  sun.position.set(50,80,30);
+  // Sun
+  const sun=new THREE.DirectionalLight(0xfff5dd,1.4);
+  sun.position.set(60,100,40);
   sun.castShadow=true;
+  sun.shadow.mapSize.set(1024,1024);
   scene.add(sun);
-  scene.add(new THREE.AmbientLight(0x87CEEB,0.5));
+  // Sky ambient
+  scene.add(new THREE.HemisphereLight(0x87CEEB,0x4CAF50,0.6));
 
-  // Clouds
-  for(let i=0;i<20;i++) {
-    const cg=new THREE.BoxGeometry(8+Math.random()*10,2,6+Math.random()*8);
-    const cm=new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.85});
-    const cloud=new THREE.Mesh(cg,cm);
-    cloud.position.set((Math.random()-0.5)*200,70+(Math.random()*10),(Math.random()-0.5)*200);
-    scene.add(cloud);
+  // Clouds — chunky Minecraft-style
+  for(let i=0;i<25;i++){
+    const cg=new THREE.BoxGeometry(10+Math.random()*16,3,7+Math.random()*12);
+    const cm=new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.88});
+    const cl=new THREE.Mesh(cg,cm);
+    cl.position.set((Math.random()-.5)*400,72+Math.random()*12,(Math.random()-.5)*400);
+    scene.add(cl);
   }
 
-  clock = new THREE.Clock();
+  initHL();
+  clock=new THREE.Clock();
 }
 
-function startGame() {
-  const un = document.getElementById('cc-username').value.replace('@','').trim()||'Player';
-  state.character.username = un;
-
-  document.getElementById('char-creator').style.display='none';
-  document.getElementById('game-canvas').style.display='block';
-  document.getElementById('hud').style.display='block';
-  state.inGame=true;
-
-  initThree();
-  createPlayer();
-
-  // Pre-generate metro + surrounding chunks
-  let loaded=0;
-  const total=25;
-  for(let cx=-2;cx<=2;cx++) for(let cz2=-2;cz2<=2;cz2++) {
-    const k=chunkKey(cx,cz2);
-    worldBlocks.set(k,generateChunk(cx,cz2));
-    const mesh=buildChunkMesh(cx,cz2,worldBlocks.get(k));
-    scene.add(mesh);
-    chunkMeshes.set(k,mesh);
-    loaded++;
-    document.getElementById('loading-bar').style.width=(70+loaded/total*30)+'%';
-  }
-
-  buildHotbar();
-  buildHearts();
-  setupControls();
-  gameLoop();
-
-  showNotif('Bem-vindo ao DAILYWORLD, @'+state.character.username+'! 🌍');
-  setTimeout(()=>showNotif('Você está na Metrópole Central 🏙️'),3000);
+// ===== PLAYER =====
+function spawnPlayer(){
+  pVel=new THREE.Vector3();
+  onGround=false;
+  const sx=8,sz=70; // just outside metro
+  const sy=getH(sx,sz)+2.8;
+  pPos=new THREE.Vector3(sx,sy,sz);
+  camera.position.copy(pPos);
+  yaw=0;pitch=0;
 }
 
-// ========== CONTROLS ==========
-function setupControls() {
-  document.addEventListener('keydown',e=>{
-    if(!state.inGame) return;
-    keys[e.code]=true;
-    if(e.code==='KeyE'&&!state.paused) { state.invOpen=!state.invOpen; const inv=document.getElementById('inventory'); inv.classList.toggle('open',state.invOpen); if(state.invOpen) buildInventory(); if(document.pointerLockElement) document.exitPointerLock(); }
-    if(e.code==='Escape') { if(state.invOpen){state.invOpen=false;document.getElementById('inventory').classList.remove('open');} else togglePause(); }
-    if(e.code==='Space'&&onGround&&!state.paused&&!state.invOpen) { playerVelocity.y=8; onGround=false; }
-    if(e.code.startsWith('Digit')) { const s=parseInt(e.code.replace('Digit',''))-1; if(s>=0&&s<=8){state.selectedSlot=s;buildHotbar();} }
-    e.preventDefault();
-  });
-  document.addEventListener('keyup',e=>{ keys[e.code]=false; });
-
-  const canvas=document.getElementById('game-canvas');
-  canvas.addEventListener('click',()=>{ if(!state.paused&&!state.invOpen) canvas.requestPointerLock(); });
-
-  document.addEventListener('pointerlockchange',()=>{
-    if(!document.pointerLockElement&&state.inGame&&!state.paused&&!state.invOpen) { /* show cursor */ }
-  });
-
-  document.addEventListener('mousemove',e=>{
-    if(!document.pointerLockElement||state.paused||state.invOpen) return;
-    yaw -= e.movementX*0.002;
-    pitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, pitch-e.movementY*0.002));
-  });
-
-  canvas.addEventListener('mousedown',e=>{
-    if(!document.pointerLockElement||state.paused||state.invOpen) return;
-    mouseButtons[e.button]=true;
-    if(e.button===0) tryBreakBlock();
-    if(e.button===2) tryPlaceBlock();
-    e.preventDefault();
-  });
-  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+function dirFromCamera(){
+  const d=new THREE.Vector3();
+  camera.getWorldDirection(d);
+  return d;
 }
 
-function tryBreakBlock() {
-  const dir=getCameraDir();
-  const {hit}=raycast(camera.position,dir);
-  if(hit) {
-    const type=hit.type;
-    setBlockAt(hit.x,hit.y,hit.z,null);
-    addToInventory(type);
-    showNotif(`+1 ${BLOCKS[type]?.name||type} ${BLOCKS[type]?.icon||'📦'}`);
-  }
-}
-
-function tryPlaceBlock() {
-  const sel=state.hotbar[state.selectedSlot];
-  if(!sel||sel==='') return;
-  const dir=getCameraDir();
-  const {hit,normal}=raycast(camera.position,dir);
-  if(hit) {
-    const nx=hit.x+Math.round(normal.x),ny=hit.y+Math.round(normal.y),nz=hit.z+Math.round(normal.z);
-    if(!getBlockAt(nx,ny,nz)) {
-      setBlockAt(nx,ny,nz,sel==='water_bucket'?'water':sel);
-      if(useFromInventory(sel)) buildHotbar();
-    }
-  }
-}
-
-function getCameraDir() {
-  const dir=new THREE.Vector3();
-  camera.getWorldDirection(dir);
-  return dir;
-}
-
-function addToInventory(type) {
-  if(!state.inventory[type]) state.inventory[type]=0;
-  state.inventory[type]++;
-  // Auto-add to hotbar if empty slot
-  for(let i=0;i<9;i++) {
-    if(!state.hotbar[i]) { state.hotbar[i]=type; buildHotbar(); break; }
-  }
-}
-
-function useFromInventory(type) {
-  if(!state.inventory[type]||state.inventory[type]<=0) return false;
-  state.inventory[type]--;
-  if(state.inventory[type]===0) delete state.inventory[type];
-  return true;
-}
-
-// ========== PHYSICS ==========
-function updatePhysics(dt) {
-  if(state.paused||state.invOpen) return;
-
-  const speed=5;
-  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
-  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
-  const move=new THREE.Vector3();
-
-  if(keys['KeyW']||keys['ArrowUp']) move.add(forward);
-  if(keys['KeyS']||keys['ArrowDown']) move.sub(forward);
-  if(keys['KeyA']||keys['ArrowLeft']) move.sub(right);
-  if(keys['KeyD']||keys['ArrowRight']) move.add(right);
-  if(move.length()>0) move.normalize().multiplyScalar(speed*dt);
-
-  playerVelocity.y -= 20*dt;
-  playerBody.add(move);
-  playerBody.y += playerVelocity.y*dt;
-
-  // Ground collision
-  const footY=playerBody.y-playerHeight;
-  const under=getBlockAt(playerBody.x, footY-0.05, playerBody.z);
-  if(under&&under!=='water') {
-    const blockTop=Math.floor(footY-0.05)+1;
-    if(playerBody.y-playerHeight<blockTop) {
-      playerBody.y=blockTop+playerHeight;
-      playerVelocity.y=0;
-      onGround=true;
-    }
-  } else { onGround=false; }
-
-  // Don't fall through bottom
-  if(playerBody.y<2) { playerBody.y=2; playerVelocity.y=0; onGround=true; }
-
-  // Update camera
-  camera.position.copy(playerBody);
+// ===== PHYSICS =====
+const GRAV=22, JUMP=9, SPEED=5.5;
+function physics(dt){
+  if(S.paused||S.invOpen||S.tutOpen) return;
+  const fwd=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+  const rgt=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  const mv=new THREE.Vector3();
+  if(keys['KeyW']||keys['ArrowUp']) mv.add(fwd);
+  if(keys['KeyS']||keys['ArrowDown']) mv.sub(fwd);
+  if(keys['KeyA']||keys['ArrowLeft']) mv.sub(rgt);
+  if(keys['KeyD']||keys['ArrowRight']) mv.add(rgt);
+  if(keys['ShiftLeft']) mv.multiplyScalar(1.7);
+  if(mv.length()>0) mv.normalize().multiplyScalar(SPEED*dt);
+  pVel.y-=GRAV*dt;
+  pPos.add(mv);
+  pPos.y+=pVel.y*dt;
+  const fy=pPos.y-1.75;
+  const under=getBlock(pPos.x,fy-0.1,pPos.z);
+  if(under&&under!=='water'){
+    const top=Math.floor(fy-0.1)+1;
+    if(pPos.y-1.75<top){pPos.y=top+1.75;pVel.y=0;onGround=true;}
+  } else {onGround=false;}
+  if(pPos.y<1.5){pPos.y=1.5;pVel.y=0;onGround=true;}
+  camera.position.copy(pPos);
   camera.rotation.order='YXZ';
   camera.rotation.y=yaw;
   camera.rotation.x=pitch;
-
-  // Update coords
-  state.position={x:Math.round(playerBody.x),y:Math.round(playerBody.y),z:Math.round(playerBody.z)};
-  document.getElementById('coords').innerHTML=`X: ${state.position.x} | Y: ${state.position.y} | Z: ${state.position.z}<br><span style="color:#ff6b00">@${state.character.username}</span>`;
-
+  S.pos={x:Math.round(pPos.x),y:Math.round(pPos.y),z:Math.round(pPos.z)};
+  document.getElementById('info').innerHTML=`X: ${S.pos.x} | Y: ${S.pos.y} | Z: ${S.pos.z}<br><span class="username">@${S.char.username}</span>`;
   // Biome
-  const biome=getBiomeAt(playerBody.x,playerBody.z);
-  const biomeNames={'ocean':'Oceano','beach':'Praia','mountains':'Montanhas','desert':'Deserto','snowy':'Neve','plains':'Planície','forest':'Floresta'};
-  const bn=isMetro(playerBody.x,playerBody.z)?'🏙️ Metrópole Central':biomeNames[biome]||biome;
-  if(bn!==state.currentBiome) { state.currentBiome=bn; document.getElementById('biome-indicator').textContent=bn; }
+  const bnames={ocean:'🌊 Oceano',beach:'🏖️ Praia',mountains:'⛰️ Montanhas',plains:'🌾 Planície',snowy:'❄️ Neve',cherry:'🌸 Vale das Cerejas',forest:'🌿 Floresta'};
+  const bn=isMetro(pPos.x,pPos.z)?'🏙️ Metrópole Central':bnames[getBiome(pPos.x,pPos.z)]||'🌿 Floresta';
+  if(bn!==S.biome){S.biome=bn;document.getElementById('biome').textContent=bn;}
 }
 
-// ========== MINIMAP ==========
-function updateMinimap() {
-  const canvas=document.getElementById('minimap-canvas2');
-  const ctx=canvas.getContext('2d');
-  const W=120,H=120,scale=2;
-  ctx.clearRect(0,0,W,H);
-  const px=Math.round(playerBody.x),pz=Math.round(playerBody.z);
-  for(let dx=-W/2;dx<W/2;dx++) for(let dz=-H/2;dz<H/2;dz++) {
-    const wx=px+Math.round(dx/scale),wz=pz+Math.round(dz/scale);
-    const biome=getBiomeAt(wx,wz);
-    const colors={'ocean':'#2255cc','beach':'#F4C430','mountains':'#888','desert':'#F4A460','snowy':'#DDF','plains':'#7CFC00','forest':'#228B22'};
-    ctx.fillStyle=isMetro(wx,wz)?'#555':colors[biome]||'#228B22';
-    ctx.fillRect(W/2+dx,H/2+dz,1,1);
-  }
-  // Player dot
-  ctx.fillStyle='#ff6b00';
-  ctx.beginPath(); ctx.arc(W/2,H/2,3,0,Math.PI*2); ctx.fill();
-  // Direction
-  ctx.strokeStyle='#ff6b00'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(W/2,H/2);
-  ctx.lineTo(W/2-Math.sin(yaw)*8,H/2-Math.cos(yaw)*8);
-  ctx.stroke();
-}
-
-// ========== HUD ==========
-function buildHearts() {
-  const hDiv=document.getElementById('hearts');
-  hDiv.innerHTML='';
-  for(let i=0;i<state.maxHealth;i++) {
-    const h=document.createElement('div');
-    h.className='heart'+(i<state.health?'':' empty');
-    h.textContent='❤️';
-    hDiv.appendChild(h);
+// ===== BLOCK HIGHLIGHT =====
+let blockTipTimeout;
+function updateHL(){
+  if(S.paused||S.invOpen||S.tutOpen){hlBox.visible=false;return;}
+  const {hit}=ray(camera.position,dirFromCamera());
+  if(hit){
+    hlBox.position.set(hit.x+0.5,hit.y+0.5,hit.z+0.5);
+    hlBox.visible=true;
+    const tip=document.getElementById('block-tip');
+    tip.textContent=`${BLOCKS[hit.type]?.icon||'📦'} ${BLOCKS[hit.type]?.name||hit.type} · Clique esq. para quebrar`;
+    tip.style.opacity='1';
+    clearTimeout(blockTipTimeout);
+    blockTipTimeout=setTimeout(()=>tip.style.opacity='0',1200);
+  } else {
+    hlBox.visible=false;
   }
 }
 
-function buildHotbar() {
-  const hb=document.getElementById('hotbar');
-  hb.innerHTML='';
-  state.hotbar.forEach((type,i)=>{
-    const slot=document.createElement('div');
-    slot.className='hotbar-slot'+(i===state.selectedSlot?' active':'');
-    slot.innerHTML=type?`<div class="slot-icon">${BLOCKS[type]?.icon||'📦'}</div>
-      ${state.inventory[type]?`<div class="slot-count">${state.inventory[type]}</div>`:''}
-      <div class="slot-num">${i+1}</div>`:`<div class="slot-num">${i+1}</div>`;
-    slot.onclick=()=>{state.selectedSlot=i;buildHotbar();};
-    hb.appendChild(slot);
+// ===== MINIMAP =====
+const mmCtx=document.getElementById('mc').getContext('2d');
+let mmTimer=0;
+function drawMinimap(){
+  const W=130,H=130;
+  mmCtx.clearRect(0,0,W,H);
+  const px2=Math.round(pPos.x),pz2=Math.round(pPos.z),sc=1.8;
+  const bcolors={ocean:'#2255dd',beach:'#FFD966',mountains:'#9999AA',plains:'#88DD44',snowy:'#DDEEFF',cherry:'#FFAACC',forest:'#33AA33'};
+  for(let dx=-W/2;dx<W/2;dx++) for(let dz=-H/2;dz<H/2;dz++){
+    const wx=px2+Math.round(dx/sc),wz=pz2+Math.round(dz/sc);
+    mmCtx.fillStyle=isMetro(wx,wz)?'#667788':bcolors[getBiome(wx,wz)]||'#33AA33';
+    mmCtx.fillRect(W/2+dx,H/2+dz,1,1);
+  }
+  // You
+  mmCtx.fillStyle='#FF6B00';
+  mmCtx.beginPath();mmCtx.arc(W/2,H/2,4,0,Math.PI*2);mmCtx.fill();
+  mmCtx.strokeStyle='#FF6B00';mmCtx.lineWidth=2;
+  mmCtx.beginPath();mmCtx.moveTo(W/2,H/2);
+  mmCtx.lineTo(W/2-Math.sin(yaw)*10,H/2-Math.cos(yaw)*10);mmCtx.stroke();
+  // Border
+  mmCtx.strokeStyle='rgba(255,255,255,0.2)';mmCtx.lineWidth=1;
+  mmCtx.beginPath();mmCtx.arc(W/2,H/2,W/2-1,0,Math.PI*2);mmCtx.stroke();
+}
+
+// ===== INVENTORY =====
+function addInv(type){
+  S.inv[type]=(S.inv[type]||0)+1;
+  // Auto-hotbar
+  for(let i=0;i<9;i++){if(!S.hotbar[i]){S.hotbar[i]=type;buildHotbar();break;}}
+}
+function useInv(type){
+  if(!S.inv[type]||S.inv[type]<=0) return false;
+  S.inv[type]--;
+  if(!S.inv[type]) delete S.inv[type];
+  return true;
+}
+function buildInv(){
+  const g=document.getElementById('inv-grid');g.innerHTML='';
+  Object.entries(S.inv).forEach(([type,cnt])=>{
+    const sl=document.createElement('div');sl.className='is';
+    sl.innerHTML=`${BLOCKS[type]?.icon||'📦'}<div class="iq">${cnt}</div>`;
+    sl.onclick=()=>{
+      const e=S.hotbar.findIndex(s=>!s);
+      if(e>=0&&!S.hotbar.includes(type)){S.hotbar[e]=type;buildHotbar();}
+      S.invOpen=false;document.getElementById('inv').classList.remove('open');
+      document.getElementById('gc').requestPointerLock();
+    };
+    g.appendChild(sl);
+  });
+  for(let i=Object.keys(S.inv).length;i<32;i++){
+    const sl=document.createElement('div');sl.className='is';g.appendChild(sl);
+  }
+}
+
+// ===== HOTBAR =====
+function buildHotbar(){
+  const h=document.getElementById('hotbar');h.innerHTML='';
+  S.hotbar.forEach((t,i)=>{
+    const sl=document.createElement('div');
+    sl.className='hs'+(i===S.slot?' active':'');
+    sl.innerHTML=t?`<div class="si">${BLOCKS[t]?.icon||'📦'}</div>${S.inv[t]?`<div class="sc">${S.inv[t]}</div>`:''}<div class="sn">${i+1}</div>`:`<div class="sn">${i+1}</div>`;
+    sl.onclick=()=>{S.slot=i;buildHotbar();};
+    h.appendChild(sl);
   });
 }
 
-function buildInventory() {
-  const grid=document.getElementById('inv-grid');
-  grid.innerHTML='';
-  const items=Object.entries(state.inventory);
-  for(let i=0;i<32;i++) {
-    const slot=document.createElement('div');
-    slot.className='inv-slot';
-    if(items[i]) {
-      const [type,count]=items[i];
-      slot.innerHTML=`${BLOCKS[type]?.icon||'📦'}<div class="qty">${count}</div>`;
-      slot.onclick=()=>{
-        const emptySlot=state.hotbar.findIndex(s=>!s);
-        if(emptySlot>=0&&!state.hotbar.includes(type)){state.hotbar[emptySlot]=type;buildHotbar();}
-        state.invOpen=false;
-        document.getElementById('inventory').classList.remove('open');
-      };
-    }
-    grid.appendChild(slot);
+// ===== HEARTS =====
+function buildHearts(){
+  const h=document.getElementById('hearts');h.innerHTML='';
+  for(let i=0;i<S.maxHp;i++){
+    const d=document.createElement('div');
+    d.className='heart'+(i<S.hp?'':' empty');
+    d.textContent='❤️';
+    h.appendChild(d);
   }
 }
 
-function showNotif(msg) {
+function showNotif(msg,dur=3000){
   const n=document.getElementById('notif');
-  n.textContent=msg; n.style.opacity='1';
-  clearTimeout(n._t);
-  n._t=setTimeout(()=>n.style.opacity='0',3000);
+  n.textContent=msg;n.style.opacity='1';
+  clearTimeout(n._t);n._t=setTimeout(()=>n.style.opacity='0',dur);
 }
 
-function takeDamage(amt=1) {
-  state.health=Math.max(0,state.health-amt);
-  buildHearts();
-  document.getElementById('damage-flash').style.background='rgba(255,0,0,0.35)';
-  setTimeout(()=>document.getElementById('damage-flash').style.background='rgba(255,0,0,0)',200);
-  if(state.health===0) showNotif('💀 Você morreu! Respawnando...');
+// ===== CONTROLS =====
+function setupControls(){
+  document.addEventListener('keydown',e=>{
+    if(!S.inGame) return;
+    keys[e.code]=true;
+    if(e.code==='KeyE'&&!S.paused&&!S.tutOpen){
+      S.invOpen=!S.invOpen;
+      document.getElementById('inv').classList.toggle('open',S.invOpen);
+      if(S.invOpen){buildInv();if(document.pointerLockElement)document.exitPointerLock();}
+      else document.getElementById('gc').requestPointerLock();
+    }
+    if(e.code==='Escape'){
+      if(S.tutOpen){closeTutorial();return;}
+      if(S.invOpen){S.invOpen=false;document.getElementById('inv').classList.remove('open');document.getElementById('gc').requestPointerLock();return;}
+      togglePause();
+    }
+    if(e.code==='Space'&&onGround&&!S.paused&&!S.invOpen&&!S.tutOpen){pVel.y=JUMP;onGround=false;}
+    if(e.code.startsWith('Digit')){const s=+e.code.replace('Digit','')-1;if(s>=0&&s<=8){S.slot=s;buildHotbar();}}
+    if(!['F5','F11','F12'].includes(e.key)) e.preventDefault();
+  });
+  document.addEventListener('keyup',e=>{keys[e.code]=false;});
+  document.addEventListener('mousemove',e=>{
+    if(!document.pointerLockElement||S.paused||S.invOpen||S.tutOpen) return;
+    yaw-=e.movementX*0.0022;
+    pitch=Math.max(-Math.PI/2+0.05,Math.min(Math.PI/2-0.05,pitch-e.movementY*0.0022));
+  });
+  const gc=document.getElementById('gc');
+  gc.addEventListener('click',()=>{if(!S.paused&&!S.invOpen&&!S.tutOpen)gc.requestPointerLock();});
+  gc.addEventListener('mousedown',e=>{
+    if(!document.pointerLockElement||S.paused||S.invOpen||S.tutOpen) return;
+    if(e.button===0) breakBlock();
+    if(e.button===2) placeBlock();
+  });
+  gc.addEventListener('contextmenu',e=>e.preventDefault());
+  window.addEventListener('wheel',e=>{
+    S.slot=(S.slot+(e.deltaY>0?1:-1)+9)%9;
+    buildHotbar();
+  },{passive:true});
 }
 
-// ========== GAME LOOP ==========
-let lastChunkUpdate=0;
-let lastMinimapUpdate=0;
-function gameLoop() {
-  requestAnimationFrame(gameLoop);
+function breakBlock(){
+  const {hit}=ray(camera.position,dirFromCamera());
+  if(!hit) return;
+  setBlock(hit.x,hit.y,hit.z,null);
+  addInv(hit.type);
+  showNotif(`+1 ${BLOCKS[hit.type]?.icon||''} ${BLOCKS[hit.type]?.name||hit.type}`);
+}
+function placeBlock(){
+  const sel=S.hotbar[S.slot];
+  if(!sel) return;
+  const {hit,norm}=ray(camera.position,dirFromCamera());
+  if(!hit) return;
+  const nx=hit.x+Math.round(norm.x),ny=hit.y+Math.round(norm.y),nz=hit.z+Math.round(norm.z);
+  if(!getBlock(nx,ny,nz)&&useInv(sel)){setBlock(nx,ny,nz,sel);buildHotbar();}
+}
+
+// ===== PAUSE / TUTORIAL =====
+function togglePause(){S.paused=!S.paused;document.getElementById('pause').classList.toggle('open',S.paused);if(S.paused&&document.pointerLockElement)document.exitPointerLock();}
+function resume(){S.paused=false;document.getElementById('pause').classList.remove('open');document.getElementById('gc').requestPointerLock();}
+function showTutorial(){S.tutOpen=true;S.paused=false;document.getElementById('pause').classList.remove('open');document.getElementById('tutorial').classList.add('show');if(document.pointerLockElement)document.exitPointerLock();}
+function closeTutorial(){S.tutOpen=false;document.getElementById('tutorial').classList.remove('show');document.getElementById('gc').requestPointerLock();}
+function goCreator(){S.paused=false;S.inGame=false;document.getElementById('pause').classList.remove('open');document.getElementById('gc').style.display='none';document.getElementById('hud').style.display='none';document.getElementById('creator').style.display='flex';if(document.pointerLockElement)document.exitPointerLock();}
+
+window.addEventListener('resize',()=>{if(camera){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}if(renderer)renderer.setSize(innerWidth,innerHeight);});
+
+// ===== GAME LOOP =====
+let chunkTimer=0;
+function loop(){
+  requestAnimationFrame(loop);
   const dt=Math.min(clock.getDelta(),0.05);
-  if(state.paused||!state.inGame) { renderer.render(scene,camera); return; }
-  updatePhysics(dt);
-  // Chunk loading every 0.5s
-  lastChunkUpdate+=dt;
-  if(lastChunkUpdate>0.5) { loadChunksAround(playerBody.x,playerBody.z); lastChunkUpdate=0; }
-  // Minimap every 0.2s
-  lastMinimapUpdate+=dt;
-  if(lastMinimapUpdate>0.2) { updateMinimap(); lastMinimapUpdate=0; }
+  if(!S.inGame){if(renderer)renderer.render(scene,camera);return;}
+  physics(dt);
+  updateHL();
+  chunkTimer+=dt;
+  if(chunkTimer>0.6){loadAround(pPos.x,pPos.z);chunkTimer=0;}
+  mmTimer+=dt;
+  if(mmTimer>0.25){drawMinimap();mmTimer=0;}
   // Cloud drift
-  scene.children.forEach(obj=>{ if(obj.geometry&&obj.geometry.type==='BoxGeometry'&&obj.position.y>60) { obj.position.x+=dt*2; if(obj.position.x>150)obj.position.x=-150; } });
+  scene.children.forEach(o=>{if(o.isMesh&&o.position.y>60){o.position.x+=dt*1.5;if(o.position.x>250)o.position.x=-250;}});
   renderer.render(scene,camera);
 }
 
-// ========== PAUSE / MENUS ==========
-function togglePause() {
-  state.paused=!state.paused;
-  document.getElementById('pause-menu').classList.toggle('open',state.paused);
-  if(state.paused&&document.pointerLockElement) document.exitPointerLock();
-}
-function resumeGame() {
-  state.paused=false;
-  document.getElementById('pause-menu').classList.remove('open');
-  document.getElementById('game-canvas').requestPointerLock();
-}
-function showCharCreator() {
-  state.paused=false;
-  document.getElementById('pause-menu').classList.remove('open');
-  document.getElementById('char-creator').style.display='flex';
-  document.getElementById('game-canvas').style.display='none';
-  document.getElementById('hud').style.display='none';
-  state.inGame=false;
-  drawCharacter();
-}
-function toggleFullscreen() {
-  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
-  else document.exitFullscreen();
+// ===== START =====
+function startGame(){
+  const un=document.getElementById('cc-user').value.replace('@','').trim()||'Player';
+  S.char.username=un;
+  document.getElementById('creator').style.display='none';
+  document.getElementById('gc').style.display='block';
+  document.getElementById('hud').style.display='block';
+  S.inGame=true;
+
+  if(!scene) initThree();
+  spawnPlayer();
+
+  // Pre-gen island chunks
+  let n=0;const tot=36;
+  for(let cx=-3;cx<=3;cx++) for(let cz=-3;cz<=3;cz++){
+    const k=ck(cx,cz);
+    if(!worldData.has(k)) worldData.set(k,genChunk(cx,cz));
+    const m=buildMesh(cx,cz,worldData.get(k));
+    scene.add(m);meshMap.set(k,m);
+    n++;
+    document.getElementById('ld-bar').style.width=(70+n/tot*30)+'%';
+  }
+
+  buildHotbar();buildHearts();setupControls();
+  showNotif(`🌍 Bem-vindo ao DAILYWORLD, @${S.char.username}!`);
+  loop();
 }
 
-window.addEventListener('resize',()=>{
-  if(camera) { camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
-  if(renderer) renderer.setSize(innerWidth,innerHeight);
-});
-
-// ========== LOADING ==========
-function runLoading() {
+// ===== LOADING =====
+(function(){
+  const bar=document.getElementById('ld-bar'),txt=document.getElementById('ld-txt');
+  const msgs=['Moldando a ilha...','Plantando florestas...','Construindo a metrópole...','Gerando biomas...','Quase pronto...'];
   let p=0;
-  const bar=document.getElementById('loading-bar');
-  const txt=document.getElementById('loading-text');
-  const msgs=['Gerando biomas...','Construindo metrópole...','Plantando árvores...','Renderizando chunks...','Preparando mundo...'];
   const iv=setInterval(()=>{
-    p+=Math.random()*12+3;
-    if(p>70) p=70;
+    p+=Math.random()*11+3;if(p>68)p=68;
     bar.style.width=p+'%';
-    txt.textContent=msgs[Math.floor(p/15)]||msgs[4];
-    if(p>=68) { clearInterval(iv); finishLoading(); }
-  },80);
-}
-
-function finishLoading() {
-  setTimeout(()=>{
-    document.getElementById('loading-bar').style.width='100%';
-    document.getElementById('loading-text').textContent='Pronto! ✓';
-    setTimeout(()=>{
-      document.getElementById('loading-screen').style.opacity='0';
-      setTimeout(()=>{
-        document.getElementById('loading-screen').style.display='none';
-        document.getElementById('char-creator').style.display='flex';
-      },800);
-    },600);
-  },400);
-}
-
-runLoading();
+    txt.textContent=msgs[Math.min(Math.floor(p/14),msgs.length-1)];
+    if(p>=67){clearInterval(iv);
+      setTimeout(()=>{bar.style.width='100%';txt.textContent='✓ Pronto!';
+        setTimeout(()=>{
+          document.getElementById('loading').style.opacity='0';
+          document.getElementById('loading').style.transition='opacity .8s';
+          setTimeout(()=>{
+            document.getElementById('loading').style.display='none';
+            document.getElementById('creator').style.display='flex';
+            drawChar();
+          },800);
+        },500);
+      },300);
+    }
+  },70);
+})();
 </script>
 </body>
 </html>
