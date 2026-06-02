@@ -188,4 +188,123 @@ router.post('/:id/posts/:postId/vote', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// ═══════════════════════════════════════
+// RATEIO DE GASTOS
+// ═══════════════════════════════════════
+
+// GET /api/agenda/:id/rateio
+router.get('/:id/rateio', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const agenda = await db.prepare('SELECT * FROM agendas WHERE id=$1').get(req.params.id);
+    if (!agenda) return res.status(404).json({ error: 'Agenda não encontrada' });
+
+    const gastos = await db.prepare(`
+      SELECT ag.*, u.name as user_name, u.username, u.avatar_url
+      FROM agenda_gastos ag JOIN users u ON u.id = ag.user_id
+      WHERE ag.agenda_id = $1 ORDER BY ag.created_at ASC
+    `).all(req.params.id);
+
+    const participantes = await db.prepare(`
+      SELECT u.id, u.name, u.username, u.avatar_url
+      FROM agenda_rateio_participantes arp JOIN users u ON u.id = arp.user_id
+      WHERE arp.agenda_id = $1
+    `).all(req.params.id);
+
+    // Calcular rateio
+    const calculo = calcularRateio(gastos, participantes);
+
+    res.json({ gastos, participantes, calculo });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/agenda/:id/rateio/gasto — adicionar gasto
+router.post('/:id/rateio/gasto', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const { descricao, valor } = req.body;
+    if (!descricao || !valor) return res.status(400).json({ error: 'Descrição e valor obrigatórios' });
+    const id = uuidv4();
+    await db.prepare('INSERT INTO agenda_gastos (id,agenda_id,user_id,descricao,valor) VALUES ($1,$2,$3,$4,$5)')
+      .run(id, req.params.id, req.user.id, descricao.trim(), parseFloat(valor));
+    res.status(201).json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/agenda/:id/rateio/gasto/:gastoId
+router.delete('/:id/rateio/gasto/:gastoId', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const gasto = await db.prepare('SELECT * FROM agenda_gastos WHERE id=$1').get(req.params.gastoId);
+    if (!gasto) return res.status(404).json({ error: 'Gasto não encontrado' });
+    const agenda = await db.prepare('SELECT owner_id FROM agendas WHERE id=$1').get(req.params.id);
+    if (gasto.user_id !== req.user.id && agenda?.owner_id !== req.user.id) return res.status(403).json({ error: 'Sem permissão' });
+    await db.prepare('DELETE FROM agenda_gastos WHERE id=$1').run(req.params.gastoId);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/agenda/:id/rateio/participantes — definir quem participa do rateio
+router.put('/:id/rateio/participantes', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const { user_ids } = req.body; // array de user_ids
+    if (!Array.isArray(user_ids)) return res.status(400).json({ error: 'user_ids deve ser array' });
+    await db.prepare('DELETE FROM agenda_rateio_participantes WHERE agenda_id=$1').run(req.params.id);
+    for (const uid of user_ids) {
+      await db.prepare('INSERT INTO agenda_rateio_participantes (id,agenda_id,user_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING')
+        .run(uuidv4(), req.params.id, uid);
+    }
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+function calcularRateio(gastos, participantes) {
+  if (!participantes.length) return null;
+  const n = participantes.length;
+  const total = gastos.reduce((s, g) => s + parseFloat(g.valor), 0);
+  const quota = total / n;
+
+  // Quanto cada participante já gastou
+  const gastosPorPessoa = {};
+  participantes.forEach(p => { gastosPorPessoa[p.id] = 0; });
+  gastos.forEach(g => {
+    if (gastosPorPessoa[g.user_id] !== undefined) {
+      gastosPorPessoa[g.user_id] += parseFloat(g.valor);
+    }
+  });
+
+  // Saldo de cada um (positivo = deve receber, negativo = deve pagar)
+  const saldos = participantes.map(p => ({
+    ...p,
+    gasto: gastosPorPessoa[p.id] || 0,
+    quota: quota,
+    saldo: (gastosPorPessoa[p.id] || 0) - quota
+  }));
+
+  // Calcular transferências otimizadas
+  const pagadores = saldos.filter(s => s.saldo < -0.01).map(s => ({ ...s, restante: Math.abs(s.saldo) }));
+  const recebedores = saldos.filter(s => s.saldo > 0.01).map(s => ({ ...s, restante: s.saldo }));
+  const transferencias = [];
+
+  let i = 0, j = 0;
+  while (i < pagadores.length && j < recebedores.length) {
+    const valor = Math.min(pagadores[i].restante, recebedores[j].restante);
+    if (valor > 0.01) {
+      transferencias.push({
+        de: pagadores[i],
+        para: recebedores[j],
+        valor: Math.round(valor * 100) / 100
+      });
+    }
+    pagadores[i].restante -= valor;
+    recebedores[j].restante -= valor;
+    if (pagadores[i].restante < 0.01) i++;
+    if (recebedores[j].restante < 0.01) j++;
+  }
+
+  return { total, quota, n, saldos, transferencias };
+}
+
 module.exports = router;
