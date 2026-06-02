@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
 const { authMiddleware } = require('./authmiddleware');
 const { checkAndGrant } = require('./achievements');
+const { createNotification } = require('./notif_helper');
 
 const router = express.Router();
 
@@ -42,6 +43,15 @@ router.post('/:username', authMiddleware, async (req, res) => {
     // Conquistas
     await checkAndGrant(db, req.user.id, 'testimonial_given');
     await checkAndGrant(db, target.id, 'testimonial_received');
+    // Notificar quem recebeu o depoimento
+    const author = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
+    await createNotification(db, {
+      userId: target.id, fromUserId: req.user.id,
+      type: 'testimonial',
+      title: `${author.name} escreveu um depoimento para você! 💬`,
+      body: content.trim().substring(0, 80),
+      data: { author_id: req.user.id }
+    });
     const t = await db.prepare(`
       SELECT t.*, u.name as author_name, u.username as author_username, u.avatar_url as author_avatar
       FROM testimonials t JOIN users u ON u.id=t.author_id WHERE t.id=$1
