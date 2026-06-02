@@ -4896,6 +4896,7 @@ async function openAgendaModal(agendaId) {
             <div style="font-size:11px;opacity:.85;">🕐 ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
             ${agenda.description ? `<div style="font-size:11px;opacity:.8;margin-top:6px;border-top:1px solid rgba(255,255,255,.3);padding-top:6px;">${agenda.description}</div>` : ''}
             ${is_owner ? `<button class="btn btn-sm" style="margin-top:10px;width:100%;background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);font-size:12px;" onclick="openAgendaInvite('${agendaId}')">👥 Convidar</button>` : ''}
+          <button class="btn btn-sm" style="margin-top:6px;width:100%;background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);font-size:12px;" onclick="openRateio('${agendaId}')">💰 Rateio</button>
           </div>
 
           <!-- Confirmados -->
@@ -5379,5 +5380,173 @@ async function submitDQPhoto(qid) {
   </div>
   <div id="agenda-screen-body" style="max-width:760px;margin:0 auto;width:100%;padding:16px;"></div>
 </div>
+
+<!-- Modal Rateio -->
+<div id="modal-rateio" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-rateio')">
+  <div class="modal-box" style="max-width:560px;max-height:92vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title">💰 Rateio de Gastos</div>
+      <button class="modal-close" onclick="closeModal('modal-rateio')">×</button>
+    </div>
+    <div id="rateio-body" style="padding:16px;display:flex;flex-direction:column;gap:14px;">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════
+// RATEIO DE GASTOS
+// ═══════════════════════════════════════
+let rateioAgendaId = null;
+let rateioData = null;
+
+async function openRateio(agendaId) {
+  rateioAgendaId = agendaId;
+  openModal('modal-rateio');
+  await loadRateio();
+}
+
+async function loadRateio() {
+  const body = document.getElementById('rateio-body');
+  body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const data = await api('/api/agenda/' + rateioAgendaId + '/rateio');
+    rateioData = data;
+    const { gastos, participantes, calculo } = data;
+
+    // Buscar membros confirmados para seleção
+    const { agenda, members } = await api('/api/agenda/' + rateioAgendaId);
+    const confirmados = members.filter(m => m.status === 'accepted');
+    const partIds = participantes.map(p => p.id);
+
+    body.innerHTML = `
+      <!-- Adicionar gasto -->
+      <div style="background:var(--surface2);border-radius:12px;padding:14px;">
+        <div style="font-weight:800;font-size:14px;margin-bottom:10px;">➕ Adicionar gasto</div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+          <input type="text" id="gasto-desc" placeholder="O que foi? Ex: Carne, bebidas..." style="font-size:13px;">
+          <input type="number" id="gasto-valor" placeholder="R$" step="0.01" min="0" style="width:90px;font-size:13px;">
+        </div>
+        <button class="btn btn-primary btn-sm" style="width:100%;margin-top:8px;" onclick="adicionarGasto()">Registrar gasto</button>
+      </div>
+
+      <!-- Participantes do rateio -->
+      <div style="background:var(--surface2);border-radius:12px;padding:14px;">
+        <div style="font-weight:800;font-size:14px;margin-bottom:10px;">👥 Quem divide a conta?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${confirmados.map(m => `
+            <label style="display:flex;align-items:center;gap:6px;background:${partIds.includes(m.user_id)?'var(--accent)':'var(--surface)'};color:${partIds.includes(m.user_id)?'#fff':'var(--text)'};border:1.5px solid ${partIds.includes(m.user_id)?'var(--accent)':'var(--border)'};border-radius:20px;padding:4px 10px 4px 6px;cursor:pointer;font-size:12px;font-weight:600;" onclick="toggleParticipante('${m.user_id}')">
+              <img src="${m.avatar_url||avatarUrl(m.name)}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">
+              ${m.name.split(' ')[0]}
+            </label>`).join('')}
+        </div>
+      </div>
+
+      <!-- Lista de gastos -->
+      ${gastos.length ? `<div>
+        <div style="font-weight:800;font-size:14px;margin-bottom:8px;">🧾 Gastos registrados</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          ${gastos.map(g => `
+            <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:10px;padding:10px 12px;border:1px solid var(--border);">
+              <img src="${g.avatar_url||avatarUrl(g.user_name)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:13px;">${g.descricao}</div>
+                <div style="font-size:11px;color:var(--muted);">${g.user_name}</div>
+              </div>
+              <div style="font-weight:800;font-size:14px;color:var(--accent);">R$ ${parseFloat(g.valor).toFixed(2)}</div>
+              <button onclick="removerGasto('${g.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px;">🗑️</button>
+            </div>`).join('')}
+        </div>
+      </div>` : '<div style="text-align:center;color:var(--muted);font-size:13px;padding:10px;">Nenhum gasto registrado ainda.</div>'}
+
+      <!-- Resultado do rateio -->
+      ${calculo ? `
+        <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:14px;padding:16px;color:#fff;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:12px;">📊 Resultado</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+            <div style="background:rgba(255,255,255,.2);border-radius:10px;padding:10px;text-align:center;">
+              <div style="font-size:11px;opacity:.8;">Total gasto</div>
+              <div style="font-size:20px;font-weight:800;">R$ ${calculo.total.toFixed(2)}</div>
+            </div>
+            <div style="background:rgba(255,255,255,.2);border-radius:10px;padding:10px;text-align:center;">
+              <div style="font-size:11px;opacity:.8;">Por pessoa (${calculo.n})</div>
+              <div style="font-size:20px;font-weight:800;">R$ ${calculo.quota.toFixed(2)}</div>
+            </div>
+          </div>
+
+          <!-- Saldo de cada um -->
+          <div style="margin-bottom:14px;">
+            ${calculo.saldos.map(s => `
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <img src="${s.avatar_url||avatarUrl(s.name)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.5);">
+                <div style="flex:1;font-size:12px;font-weight:700;">${s.name.split(' ')[0]}</div>
+                <div style="font-size:11px;opacity:.8;">gastou R$ ${s.gasto.toFixed(2)}</div>
+                <div style="font-size:12px;font-weight:800;padding:2px 8px;border-radius:10px;background:${s.saldo >= 0 ? 'rgba(0,200,100,.35)' : 'rgba(255,50,50,.35)'};">
+                  ${s.saldo >= 0 ? '↑ recebe R$ ' + s.saldo.toFixed(2) : '↓ paga R$ ' + Math.abs(s.saldo).toFixed(2)}
+                </div>
+              </div>`).join('')}
+          </div>
+
+          <!-- Transferências -->
+          ${calculo.transferencias.length ? `
+            <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:12px;">
+              <div style="font-weight:800;font-size:13px;margin-bottom:8px;">💸 Como acertar:</div>
+              ${calculo.transferencias.map(t => `
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:13px;">
+                  <img src="${t.de.avatar_url||avatarUrl(t.de.name)}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">
+                  <span style="font-weight:700;">${t.de.name.split(' ')[0]}</span>
+                  <span style="opacity:.8;">paga</span>
+                  <span style="font-weight:800;">R$ ${t.valor.toFixed(2)}</span>
+                  <span style="opacity:.8;">para</span>
+                  <img src="${t.para.avatar_url||avatarUrl(t.para.name)}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">
+                  <span style="font-weight:700;">${t.para.name.split(' ')[0]}</span>
+                </div>`).join('')}
+            </div>` : '<div style="text-align:center;opacity:.8;font-size:13px;">✅ Todos estão quites!</div>'}
+        </div>
+      ` : participantes.length === 0 ? '<div style="text-align:center;color:var(--muted);font-size:13px;">Selecione os participantes acima para calcular.</div>' : ''}
+    `;
+  } catch(e) {
+    document.getElementById('rateio-body').innerHTML = `<p class="text-muted">${e.message}</p>`;
+  }
+}
+
+async function adicionarGasto() {
+  const desc = document.getElementById('gasto-desc')?.value.trim();
+  const valor = document.getElementById('gasto-valor')?.value;
+  if (!desc || !valor || parseFloat(valor) <= 0) { toast('Preencha descrição e valor', 'error'); return; }
+  try {
+    await api('/api/agenda/' + rateioAgendaId + '/rateio/gasto', {
+      method: 'POST',
+      body: JSON.stringify({ descricao: desc, valor: parseFloat(valor) })
+    });
+    toast('Gasto registrado! ✅', 'success');
+    await loadRateio();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function removerGasto(gastoId) {
+  if (!confirm('Remover este gasto?')) return;
+  try {
+    await api('/api/agenda/' + rateioAgendaId + '/rateio/gasto/' + gastoId, { method: 'DELETE' });
+    await loadRateio();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function toggleParticipante(userId) {
+  if (!rateioData) return;
+  const partIds = rateioData.participantes.map(p => p.id);
+  const novo = partIds.includes(userId) ? partIds.filter(id => id !== userId) : [...partIds, userId];
+  try {
+    await api('/api/agenda/' + rateioAgendaId + '/rateio/participantes', {
+      method: 'PUT',
+      body: JSON.stringify({ user_ids: novo })
+    });
+    await loadRateio();
+  } catch(e) { toast(e.message, 'error'); }
+}
+</script>
+
 </body>
 </html>
