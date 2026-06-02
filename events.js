@@ -3,82 +3,59 @@ const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
 const { authMiddleware } = require('./authmiddleware');
 const { createPhotoUpload, getUploadedUrl } = require('./cloudinary');
-const { getPedroComment } = require('./pedro');
+const { createNotification } = require('./notif_helper');
 
 const router = express.Router();
 
-// ─── LISTAR EVENTOS DO USUÁRIO ───────────────────────────────────────────────
+// GET /api/events — listar eventos do usuário
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     const events = await db.prepare(`
-      SELECT e.*, u.name as creator_name, u.username as creator_username,
-        u.avatar_url as creator_avatar,
-        (SELECT COUNT(*) FROM event_members em WHERE em.event_id=e.id AND em.status='accepted') as confirmed_count,
-        em2.status as my_status
+      SELECT e.*, u.name as creator_name,
+        em.status as my_status,
+        (SELECT COUNT(*) FROM event_members WHERE event_id=e.id AND status='accepted') as confirmed_count
       FROM events e
       JOIN users u ON u.id=e.owner_id
-      LEFT JOIN event_members em2 ON em2.event_id=e.id AND em2.user_id=$1
-      WHERE e.owner_id=$1 OR em2.user_id=$1
+      LEFT JOIN event_members em ON em.event_id=e.id AND em.user_id=$1
+      WHERE e.owner_id=$1 OR em.user_id=$1
       ORDER BY e.event_date ASC
     `).all(req.user.id);
     res.json({ events });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── CONVITES PENDENTES ──────────────────────────────────────────────────────
+// GET /api/events/invites/pending
 router.get('/invites/pending', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     const invites = await db.prepare(`
-      SELECT em.*, e.title, e.event_date, e.location,
-             u.name as creator_name, u.avatar_url as creator_avatar
-      FROM event_members em
-      JOIN events e ON e.id=em.event_id
+      SELECT e.*, em.status, u.name as creator_name
+      FROM events e
+      JOIN event_members em ON em.event_id=e.id
       JOIN users u ON u.id=e.owner_id
       WHERE em.user_id=$1 AND em.status='pending'
-      ORDER BY em.created_at DESC
+      ORDER BY e.event_date ASC
     `).all(req.user.id);
     res.json({ invites });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── CRIAR EVENTO ────────────────────────────────────────────────────────────
-router.post('/', authMiddleware, async (req, res) => {
-  try {
-    const db = getDB();
-    const { title, description, location, event_date, event_end_date } = req.body;
-    if (!title) return res.status(400).json({ error: 'Título obrigatório' });
-    if (!event_date) return res.status(400).json({ error: 'Data obrigatória' });
-    const id = uuidv4();
-    await db.prepare(
-      `INSERT INTO events (id,title,description,location,event_date,event_end_date,owner_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`
-    ).run(id, title.trim(), description||'', location||'', event_date, event_end_date||null, req.user.id);
-    // Criador entra automaticamente como confirmado
-    await db.prepare(
-      `INSERT INTO event_members (id,event_id,user_id,status) VALUES ($1,$2,$3,'accepted')`
-    ).run(uuidv4(), id, req.user.id);
-    const event = await db.prepare('SELECT * FROM events WHERE id=$1').get(id);
-    res.status(201).json({ event });
-  } catch(e) {
-    console.error('[POST /api/events]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ─── DETALHES DO EVENTO ──────────────────────────────────────────────────────
+// GET /api/events/:id
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     const event = await db.prepare(`
-      SELECT e.*, u.name as creator_name, u.username as creator_username,
-             u.avatar_url as creator_avatar, em2.status as my_status
+      SELECT e.*, u.name as creator_name, u.username as creator_username, u.avatar_url as creator_avatar,
+        em2.status as my_status
       FROM events e JOIN users u ON u.id=e.owner_id
       LEFT JOIN event_members em2 ON em2.event_id=e.id AND em2.user_id=$2
       WHERE e.id=$1
     `).get(req.params.id, req.user.id);
     if (!event) return res.status(404).json({ error: 'Evento não encontrado' });
+
+    const isMember = event.owner_id === req.user.id || event.my_status;
+    if (!isMember) return res.status(403).json({ error: 'Você não foi convidado para este evento' });
 
     const members = await db.prepare(`
       SELECT em.*, u.name, u.username, u.avatar_url
@@ -97,13 +74,50 @@ router.get('/:id', authMiddleware, async (req, res) => {
       p.reactions = await db.prepare(
         'SELECT emoji, COUNT(*) as count FROM event_post_reactions WHERE post_id=$1 GROUP BY emoji'
       ).all(p.id);
+      const pc = await db.prepare('SELECT content FROM pedro_comments WHERE post_id=$1').get(p.id);
+      p.pedro_comment = pc?.content || null;
     }
 
     res.json({ event, members, posts, is_owner: event.owner_id === req.user.id });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── CONVIDAR USUÁRIO ────────────────────────────────────────────────────────
+// POST /api/events — criar evento
+router.post('/', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const { title, description, location, event_date, event_end_date } = req.body;
+    if (!title || !event_date) return res.status(400).json({ error: 'Título e data obrigatórios' });
+    const id = uuidv4();
+    await db.prepare(`INSERT INTO events (id,title,description,location,event_date,event_end_date,owner_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)`)
+      .run(id, title.trim(), description||'', location||'', event_date, event_end_date||null, req.user.id);
+    // Dono entra automaticamente
+    await db.prepare('INSERT INTO event_members (id,event_id,user_id,status) VALUES ($1,$2,$3,$4)')
+      .run(uuidv4(), id, req.user.id, 'accepted');
+    const event = await db.prepare('SELECT * FROM events WHERE id=$1').get(id);
+    res.status(201).json({ event });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/events/:id/cover — foto de capa
+router.post('/:id/cover', authMiddleware, (req, res, next) => {
+  createPhotoUpload().single('photo')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      const db = getDB();
+      const event = await db.prepare('SELECT * FROM events WHERE id=$1').get(req.params.id);
+      if (!event) return res.status(404).json({ error: 'Evento não encontrado' });
+      if (event.owner_id !== req.user.id) return res.status(403).json({ error: 'Sem permissão' });
+      if (!req.file) return res.status(400).json({ error: 'Foto obrigatória' });
+      const cover_url = getUploadedUrl(req, req.file);
+      await db.prepare('UPDATE events SET cover_url=$1 WHERE id=$2').run(cover_url, req.params.id);
+      res.json({ cover_url });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+});
+
+// POST /api/events/:id/invite — convidar usuário
 router.post('/:id/invite', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
@@ -116,45 +130,45 @@ router.post('/:id/invite', authMiddleware, async (req, res) => {
     if (existing) return res.status(409).json({ error: 'Usuário já convidado' });
     await db.prepare('INSERT INTO event_members (id,event_id,user_id,status) VALUES ($1,$2,$3,$4)')
       .run(uuidv4(), req.params.id, user_id, 'pending');
+    // Notificação
+    const inviter = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
+    await createNotification(db, {
+      userId: user_id, fromUserId: req.user.id,
+      type: 'event_invite',
+      title: `${inviter.name} te convidou para um evento`,
+      body: event.title,
+      data: { event_id: req.params.id }
+    });
     res.status(201).json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── RESPONDER CONVITE ───────────────────────────────────────────────────────
+// PUT /api/events/:id/respond — aceitar ou recusar
 router.put('/:id/respond', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     const { status, reason } = req.body;
     if (!['accepted','declined'].includes(status)) return res.status(400).json({ error: 'Status inválido' });
+    const member = await db.prepare('SELECT * FROM event_members WHERE event_id=$1 AND user_id=$2').get(req.params.id, req.user.id);
+    if (!member) return res.status(404).json({ error: 'Convite não encontrado' });
     await db.prepare('UPDATE event_members SET status=$1, decline_reason=$2 WHERE event_id=$3 AND user_id=$4')
       .run(status, reason||null, req.params.id, req.user.id);
     res.json({ ok: true, status });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── FOTO DE CAPA ────────────────────────────────────────────────────────────
-router.post('/:id/cover', authMiddleware, (req, res) => {
-  createPhotoUpload().single('photo')(req, res, async (err) => {
-    if (err) return res.status(400).json({ error: err.message });
-    try {
-      const db = getDB();
-      if (!req.file) return res.status(400).json({ error: 'Foto obrigatória' });
-      const cover_url = getUploadedUrl(req, req.file);
-      await db.prepare('UPDATE events SET cover_url=$1 WHERE id=$2').run(cover_url, req.params.id);
-      res.json({ cover_url });
-    } catch(e) { res.status(500).json({ error: e.message }); }
-  });
-});
-
-// ─── POSTS DO EVENTO ─────────────────────────────────────────────────────────
+// POST /api/events/:id/posts — postar texto/enquete
 router.post('/:id/posts', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    const { content, post_type='text' } = req.body;
+    const member = await db.prepare("SELECT * FROM event_members WHERE event_id=$1 AND user_id=$2 AND status='accepted'").get(req.params.id, req.user.id);
+    const event = await db.prepare('SELECT owner_id FROM events WHERE id=$1').get(req.params.id);
+    if (!member && event?.owner_id !== req.user.id) return res.status(403).json({ error: 'Só participantes confirmados podem postar' });
+    const { content, post_type='text', poll_data } = req.body;
     if (!content) return res.status(400).json({ error: 'Conteúdo vazio' });
     const id = uuidv4();
-    await db.prepare('INSERT INTO event_posts (id,event_id,user_id,content,post_type) VALUES ($1,$2,$3,$4,$5)')
-      .run(id, req.params.id, req.user.id, content.trim(), post_type);
+    await db.prepare('INSERT INTO event_posts (id,event_id,user_id,content,post_type,poll_data) VALUES ($1,$2,$3,$4,$5,$6)')
+      .run(id, req.params.id, req.user.id, content, post_type, poll_data ? JSON.stringify(poll_data) : null);
     const post = await db.prepare(`
       SELECT ep.*, u.name as author_name, u.username as author_username, u.avatar_url as author_avatar
       FROM event_posts ep JOIN users u ON u.id=ep.user_id WHERE ep.id=$1
@@ -163,18 +177,22 @@ router.post('/:id/posts', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/:id/posts/photo', authMiddleware, (req, res) => {
+// POST /api/events/:id/posts/photo
+router.post('/:id/posts/photo', authMiddleware, (req, res, next) => {
   createPhotoUpload().single('photo')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: 'Foto obrigatória' });
     try {
       const db = getDB();
-      if (!req.file) return res.status(400).json({ error: 'Foto obrigatória' });
+      const member = await db.prepare("SELECT * FROM event_members WHERE event_id=$1 AND user_id=$2 AND status='accepted'").get(req.params.id, req.user.id);
+      const event = await db.prepare('SELECT owner_id FROM events WHERE id=$1').get(req.params.id);
+      if (!member && event?.owner_id !== req.user.id) return res.status(403).json({ error: 'Só participantes confirmados podem postar' });
       const image_url = getUploadedUrl(req, req.file);
       const id = uuidv4();
       await db.prepare('INSERT INTO event_posts (id,event_id,user_id,content,image_url,post_type) VALUES ($1,$2,$3,$4,$5,$6)')
         .run(id, req.params.id, req.user.id, req.body.caption||'', image_url, 'photo');
       const post = await db.prepare(`
-        SELECT ep.*, u.name as author_name, u.username as author_username, u.avatar_url as author_avatar
+        SELECT ep.*, u.name as author_name, u.avatar_url as author_avatar
         FROM event_posts ep JOIN users u ON u.id=ep.user_id WHERE ep.id=$1
       `).get(id);
       res.status(201).json({ post });
@@ -182,13 +200,14 @@ router.post('/:id/posts/photo', authMiddleware, (req, res) => {
   });
 });
 
+// POST /api/events/:id/posts/:postId/react
 router.post('/:id/posts/:postId/react', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     const { emoji } = req.body;
-    const ex = await db.prepare('SELECT id FROM event_post_reactions WHERE post_id=$1 AND user_id=$2 AND emoji=$3').get(req.params.postId, req.user.id, emoji);
-    if (ex) {
-      await db.prepare('DELETE FROM event_post_reactions WHERE post_id=$1 AND user_id=$2 AND emoji=$3').run(req.params.postId, req.user.id, emoji);
+    const existing = await db.prepare('SELECT id FROM event_post_reactions WHERE post_id=$1 AND user_id=$2 AND emoji=$3').get(req.params.postId, req.user.id, emoji);
+    if (existing) {
+      await db.prepare('DELETE FROM event_post_reactions WHERE id=$1').run(existing.id);
     } else {
       await db.prepare('INSERT INTO event_post_reactions (id,post_id,user_id,emoji) VALUES ($1,$2,$3,$4)').run(uuidv4(), req.params.postId, req.user.id, emoji);
     }
@@ -197,31 +216,20 @@ router.post('/:id/posts/:postId/react', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-router.get('/:id/posts/:postId/comments', authMiddleware, async (req, res) => {
+// POST /api/events/:id/posts/:postId/vote
+router.post('/:id/posts/:postId/vote', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    const comments = await db.prepare(`
-      SELECT cc.*, u.name, u.username, u.avatar_url
-      FROM event_post_comments cc JOIN users u ON u.id=cc.user_id
-      WHERE cc.post_id=$1 ORDER BY cc.created_at ASC
-    `).all(req.params.postId);
-    res.json({ comments });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-router.post('/:id/posts/:postId/comments', authMiddleware, async (req, res) => {
-  try {
-    const db = getDB();
-    const { content } = req.body;
-    if (!content) return res.status(400).json({ error: 'Comentário vazio' });
-    const id = uuidv4();
-    await db.prepare('INSERT INTO event_post_comments (id,post_id,event_id,user_id,content) VALUES ($1,$2,$3,$4,$5)')
-      .run(id, req.params.postId, req.params.id, req.user.id, content);
-    const c = await db.prepare(`
-      SELECT cc.*, u.name, u.username, u.avatar_url
-      FROM event_post_comments cc JOIN users u ON u.id=cc.user_id WHERE cc.id=$1
-    `).get(id);
-    res.status(201).json({ comment: c });
+    const { option_index } = req.body;
+    const post = await db.prepare('SELECT * FROM event_posts WHERE id=$1').get(req.params.postId);
+    if (!post || post.post_type !== 'poll') return res.status(400).json({ error: 'Não é uma enquete' });
+    const pd = typeof post.poll_data === 'string' ? JSON.parse(post.poll_data) : post.poll_data;
+    const alreadyVoted = pd.options.some(o => o.voter_ids?.includes(req.user.id));
+    if (alreadyVoted) return res.status(400).json({ error: 'Já votou' });
+    pd.options[option_index].votes = (pd.options[option_index].votes || 0) + 1;
+    pd.options[option_index].voter_ids = [...(pd.options[option_index].voter_ids || []), req.user.id];
+    await db.prepare('UPDATE event_posts SET poll_data=$1 WHERE id=$2').run(JSON.stringify(pd), req.params.postId);
+    res.json({ poll_data: pd });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
