@@ -4829,14 +4829,23 @@ async function loadAgenda() {
   } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
 }
 
+function closeAgendaScreen() {
+  const sc = document.getElementById('screen-agenda');
+  if (sc) sc.style.display = 'none';
+}
+
 async function openAgendaModal(agendaId) {
   currentAgendaId = agendaId;
-  openModal('modal-agenda');
-  const body = document.getElementById('agenda-modal-body');
+  const sc = document.getElementById('screen-agenda');
+  const body = document.getElementById('agenda-screen-body');
+  if (!sc || !body) return;
+  sc.style.display = 'flex';
+  sc.style.flexDirection = 'column';
+  sc.scrollTop = 0;
   body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
   try {
     const { agenda, members, posts, is_owner } = await api('/api/agenda/' + agendaId);
-    document.getElementById('agenda-modal-title').textContent = agenda.title;
+    document.getElementById('agenda-screen-title').textContent = agenda.title;
     const d = new Date(agenda.event_date);
     const confirmed = members.filter(m => m.status === 'accepted');
     const pending = members.filter(m => m.status === 'pending');
@@ -4943,7 +4952,7 @@ async function openAgendaModal(agendaId) {
         </div>
       </div>`;
   } catch(e) {
-    body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
+    if(body) body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
   }
 }
 
@@ -5361,5 +5370,14 @@ async function submitDQPhoto(qid) {
 }
 </script>
 
+
+<!-- ─── TELA AGENDA ─── -->
+<div id="screen-agenda" style="display:none;position:fixed;inset:0;z-index:650;flex-direction:column;background:var(--surface2);overflow-y:auto;">
+  <div style="background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
+    <button onclick="closeAgendaScreen()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--text);line-height:1;padding:0 8px 0 0;">‹</button>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;" id="agenda-screen-title">Agenda</div>
+  </div>
+  <div id="agenda-screen-body" style="max-width:760px;margin:0 auto;width:100%;padding:16px;"></div>
+</div>
 </body>
 </html>
