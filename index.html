@@ -809,6 +809,15 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <button class="btn btn-ghost" onclick="forcePedroFriendship()" style="color:var(--accent2);border-color:var(--accent2);">🐱 Pedro: amigar com todos</button>
       </div>
 
+      <!-- CONQUISTAS ADM -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;">🏆 Conquistas</div>
+        <button class="btn btn-primary btn-sm" onclick="openCreateAchievement()">+ Nova conquista</button>
+      </div>
+      <div id="admin-achievements" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:24px;">
+        <div class="page-loader"><div class="loader"></div></div>
+      </div>
+
       <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;">Perguntas do Dia</div>
       <div id="admin-questions" style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px;"></div>
 
@@ -1220,9 +1229,9 @@ async function api(path, opts={}){
   if(!res.ok) throw new Error(data.error||'Erro');
   return data;
 }
-async function apiForm(path, fd){
+async function apiForm(path, fd, method='POST'){
   const t=tok();
-  const res=await fetch(path,{method:'POST',headers:t?{Authorization:`Bearer ${t}`}:{},body:fd});
+  const res=await fetch(path,{method,headers:t?{Authorization:`Bearer ${t}`}:{},body:fd});
   const data=await res.json().catch(()=>({}));
   if(!res.ok) throw new Error(data.error||'Erro');
   return data;
@@ -2103,6 +2112,7 @@ async function react(postId,emoji,el){
 // ADMIN
 // ═══════════════════════════════════
 async function loadAdmin(){
+  loadAdminAchievements();
   try{
     const{total_users,total_posts,today_posts,total_friends,total_communities}=await api('/api/admin/stats');
     document.getElementById('admin-stats').innerHTML=`
@@ -4179,6 +4189,193 @@ async function sendCommunityInvite(userId, btn) {
 // Iniciar polling após login
 const _origLoadApp = typeof loadApp !== 'undefined' ? loadApp : null;
 // Polling iniciado no bootApp
+</script>
+
+
+<!-- Modal Criar/Editar Conquista -->
+<div id="modal-achievement" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-achievement')">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title" id="ach-modal-title">🏆 Nova Conquista</div>
+      <button class="modal-close" onclick="closeModal('modal-achievement')">×</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:12px;">
+
+      <!-- Foto/Ícone -->
+      <div style="display:flex;gap:14px;align-items:center;">
+        <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
+          <div id="ach-icon-preview" style="width:80px;height:80px;border-radius:14px;background:var(--surface2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;">🏆</div>
+          <label for="ach-photo-file" style="position:absolute;bottom:0;right:0;background:var(--accent);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;">📷</label>
+          <input type="file" id="ach-photo-file" accept="image/*" style="display:none;" onchange="previewAchPhoto(this)">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12px;font-weight:700;color:var(--muted);">EMOJI / ÍCONE</label>
+          <input type="text" id="ach-icon" placeholder="🏆" maxlength="4" style="font-size:24px;text-align:center;padding:6px;margin-top:4px;" oninput="document.getElementById('ach-icon-preview').textContent=this.value||'🏆'">
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size:12px;font-weight:700;">NOME</label>
+        <input type="text" id="ach-name" placeholder="Ex: Primeiro Passo" maxlength="60">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;">DESCRIÇÃO</label>
+        <textarea id="ach-desc" placeholder="Como ganhar essa conquista?" rows="2" style="resize:none;"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:12px;font-weight:700;">PONTOS</label>
+          <input type="number" id="ach-points" placeholder="100" min="0" max="9999">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;">CATEGORIA</label>
+          <select id="ach-category">
+            <option value="geral">Geral</option>
+            <option value="social">Social</option>
+            <option value="conteudo">Conteúdo</option>
+            <option value="exploracao">Exploração</option>
+            <option value="especial">Especial</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;">TIPO DE GATILHO</label>
+        <select id="ach-trigger">
+          <option value="manual">Manual (admin concede)</option>
+          <option value="posts">Posts publicados</option>
+          <option value="photos">Fotos publicadas</option>
+          <option value="friends">Amigos feitos</option>
+          <option value="reactions_received">Reações recebidas</option>
+          <option value="community_created">Comunidade criada</option>
+          <option value="daily_mandou">Daily Mandou participado</option>
+        </select>
+      </div>
+      <input type="hidden" id="ach-edit-id">
+      <button class="btn btn-primary" style="width:100%;" id="ach-save-btn" onclick="saveAchievement()">💾 Salvar conquista</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// CONQUISTAS — PAINEL ADM
+// ═══════════════════════════════════════
+
+async function loadAdminAchievements() {
+  const el = document.getElementById('admin-achievements');
+  if (!el) return;
+  try {
+    const { achievements } = await api('/api/achievements');
+    if (!achievements.length) {
+      el.innerHTML = '<p class="text-muted" style="grid-column:1/-1;padding:20px;text-align:center;">Nenhuma conquista criada ainda.</p>';
+      return;
+    }
+    el.innerHTML = achievements.map(a => `
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px;position:relative;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${a.image_url
+            ? `<img src="${a.image_url}" style="width:44px;height:44px;border-radius:10px;object-fit:cover;">`
+            : `<div style="font-size:32px;width:44px;text-align:center;">${a.icon||'🏆'}</div>`}
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.name}</div>
+            <div style="font-size:11px;color:var(--muted);">${a.category} · ${a.points} pts</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.4;">${a.description||''}</div>
+        <div style="font-size:11px;color:var(--muted);">🔧 ${a.trigger_type}</div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <button class="btn btn-ghost btn-xs" style="flex:1;" onclick="openEditAchievement(${JSON.stringify(a).replace(/"/g,'&quot;')})">✏️ Editar</button>
+          <button class="btn btn-xs" style="flex:1;background:var(--danger,#ef4444);color:#fff;" onclick="deleteAchievement('${a.id}','${a.name.replace(/'/g,"\'")}')">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
+}
+
+function previewAchPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('ach-icon-preview');
+    prev.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function openCreateAchievement() {
+  document.getElementById('ach-modal-title').textContent = '🏆 Nova Conquista';
+  document.getElementById('ach-edit-id').value = '';
+  document.getElementById('ach-name').value = '';
+  document.getElementById('ach-desc').value = '';
+  document.getElementById('ach-icon').value = '🏆';
+  document.getElementById('ach-icon-preview').innerHTML = '🏆';
+  document.getElementById('ach-points').value = '100';
+  document.getElementById('ach-category').value = 'geral';
+  document.getElementById('ach-trigger').value = 'manual';
+  document.getElementById('ach-photo-file').value = '';
+  openModal('modal-achievement');
+}
+
+function openEditAchievement(a) {
+  document.getElementById('ach-modal-title').textContent = '✏️ Editar Conquista';
+  document.getElementById('ach-edit-id').value = a.id;
+  document.getElementById('ach-name').value = a.name || '';
+  document.getElementById('ach-desc').value = a.description || '';
+  document.getElementById('ach-icon').value = a.icon || '🏆';
+  document.getElementById('ach-icon-preview').innerHTML = a.image_url
+    ? `<img src="${a.image_url}" style="width:100%;height:100%;object-fit:cover;">`
+    : (a.icon || '🏆');
+  document.getElementById('ach-points').value = a.points || 100;
+  document.getElementById('ach-category').value = a.category || 'geral';
+  document.getElementById('ach-trigger').value = a.trigger_type || 'manual';
+  document.getElementById('ach-photo-file').value = '';
+  openModal('modal-achievement');
+}
+
+async function saveAchievement() {
+  const name = document.getElementById('ach-name').value.trim();
+  if (!name) { toast('Nome obrigatório', 'error'); return; }
+
+  const btn = document.getElementById('ach-save-btn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  try {
+    const editId = document.getElementById('ach-edit-id').value;
+    const fd = new FormData();
+    fd.append('name', name);
+    fd.append('description', document.getElementById('ach-desc').value || '');
+    fd.append('icon', document.getElementById('ach-icon').value || '🏆');
+    fd.append('points', document.getElementById('ach-points').value || '100');
+    fd.append('category', document.getElementById('ach-category').value || 'geral');
+    fd.append('trigger_type', document.getElementById('ach-trigger').value || 'manual');
+    fd.append('slug', name.toLowerCase().replace(/[^a-z0-9]/g,'-'));
+
+    const photoFile = document.getElementById('ach-photo-file').files[0];
+    if (photoFile) fd.append('image', photoFile);
+
+    const url = editId ? `/api/achievements/${editId}` : '/api/achievements';
+    const method = editId ? 'PUT' : 'POST';
+    const data = await apiForm(url.replace('PUT',''), fd, method);
+
+    toast(editId ? 'Conquista atualizada! ✅' : 'Conquista criada! 🏆', 'success');
+    closeModal('modal-achievement');
+    loadAdminAchievements();
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Salvar conquista';
+  }
+}
+
+async function deleteAchievement(id, name) {
+  if (!confirm(`Desativar a conquista "${name}"?`)) return;
+  try {
+    await api(`/api/achievements/${id}`, { method: 'DELETE' });
+    toast('Conquista desativada.', 'success');
+    loadAdminAchievements();
+  } catch(e) { toast(e.message, 'error'); }
+}
 </script>
 
 </body>
