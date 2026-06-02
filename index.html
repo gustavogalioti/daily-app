@@ -148,7 +148,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .photo-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
 .photo-card img{width:100%;display:block;background:var(--surface2);}
 .photo-card-body{padding:10px 12px;}
-.photo-card-author{display:flex;align-items:center;gap:8px;}
+.photo-card-author{display:flex;align-items:center;gap:6px;overflow:hidden;}
 .reactions-row{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
 .reaction-chip{display:flex;align-items:center;gap:4px;background:var(--surface2);border:1.5px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;transition:all .15s;font-weight:500;}
 .reaction-chip:hover,.reaction-chip.mine{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
@@ -1587,9 +1587,11 @@ function renderCard(p){
     return`<div class="photo-card">
       <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')">
       <div class="photo-card-body">
-        <div class="photo-card-author">
-          <img class="avatar" src="${av}" width="32" height="32" style="cursor:pointer;border-radius:50%;object-fit:cover;flex-shrink:0;" onclick="openUserProfile('${p.author?.username}')">
-          <span style="font-size:13px;font-weight:700;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onclick="openUserProfile('${p.author?.username}')">${p.author?.name||'Anônimo'}</span>${dmBadge}
+        <div class="photo-card-author" style="cursor:pointer;gap:6px;" onclick="openUserProfile('${p.author?.username}')">
+          <img src="${av}" width="28" height="28" style="border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--border);">
+          <span style="font-size:12px;font-weight:700;color:var(--text);">${p.author?.name?.split(' ')[0]||'Anônimo'}</span>
+          <span style="font-size:11px;color:var(--muted);">@${p.author?.username||''}</span>
+          ${dmBadge}
         </div>
         ${p.caption?`<p style="font-size:12px;color:var(--muted);margin-top:5px;">${p.caption}</p>`:''}
         <div class="reactions-row">${reactions}${addEmojis}</div>
@@ -1633,16 +1635,22 @@ async function loadDailyQuestion(){
     const{question,period,my_response,word_cloud,total_responses}=await api('/api/daily-questions/current');
     const pl={manha:'☀️ Manhã',almoco:'🍽️ Almoço',tarde:'🌤️ Tarde',noite:'🌙 Noite'};
     if(!question){c.innerHTML=`<div class="dq-card"><p class="text-muted">Nenhuma pergunta ativa agora. Volte mais tarde!</p></div>`;return;}
-    const wc=word_cloud?.length?`<div style="margin-top:18px;"><div class="text-muted" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;font-size:11px;">☁️ Nuvem de palavras — ${total_responses} respostas</div><div class="word-cloud">${word_cloud.map(w=>`<span class="word-pill" style="font-size:${Math.max(11,Math.min(20,11+w.count*2))}px;">${w.word}</span>`).join('')}</div></div>`:'';
     c.innerHTML=`<div class="dq-card">
       <div class="dq-period-pill">${pl[period]||period}</div>
       <div class="dq-question">${question.question}</div>
       ${my_response?`<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 16px;font-size:14px;color:var(--green);">✅ Você já respondeu: <em>"${my_response.content}"</em></div>`:
       `<textarea id="dq-ans" placeholder="Sua resposta..." style="min-height:80px;"></textarea>
       <button class="btn btn-primary" onclick="submitDQ('${question.id}')">Responder</button>`}
-      ${wc}
-      ${total_responses>=3?`<button class="btn btn-ghost btn-sm" onclick="loadDailyQuestion()" style="margin-top:8px;">🔄 Atualizar nuvem</button>`:''}
+      ${total_responses>0?`
+      <div style="margin-top:18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;">☁️ ${total_responses} respostas</div>
+          <button class="btn btn-ghost btn-xs" onclick="loadDailyQuestion()">🔄</button>
+        </div>
+        <canvas id="dq-wordcloud" style="width:100%;border-radius:14px;background:var(--surface2);display:block;"></canvas>
+      </div>`:''}
     </div>`;
+    if(word_cloud?.length) setTimeout(()=>drawWordCloud(word_cloud,'dq-wordcloud'),50);
   }catch(e){c.innerHTML=`<p class="text-muted">${e.message}</p>`;}
 }
 
@@ -5145,6 +5153,97 @@ async function resetPendingFriendships() {
     await api('/api/admin/reset-pending-friendships', { method: 'POST' });
     toast('Pedidos pendentes zerados! Os próximos funcionarão com notificação. ✅', 'success');
   } catch(e) { toast(e.message, 'error'); }
+}
+</script>
+
+
+<script>
+// ═══════════════════════════════════════
+// NUVEM DE PALAVRAS — CANVAS
+// ═══════════════════════════════════════
+function drawWordCloud(words, canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  // Cores vibrantes
+  const colors = ['#ff6b35','#ff9a6c','#e84393','#7c3aed','#2563eb','#059669','#d97706','#dc2626'];
+
+  // Ordenar por contagem
+  const sorted = [...words].sort((a,b) => b.count - a.count);
+  const maxCount = sorted[0]?.count || 1;
+  const minCount = sorted[sorted.length-1]?.count || 1;
+
+  // Tamanho do canvas responsivo
+  const W = canvas.parentElement.offsetWidth || 300;
+  const H = Math.max(180, Math.min(260, W * 0.55));
+  canvas.width = W * 2;   // retina
+  canvas.height = H * 2;
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2); // retina
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2;
+  const cy = H / 2;
+  const placed = [];
+
+  // Verificar colisão com retângulos já postos
+  function overlaps(nx, ny, nw, nh) {
+    const pad = 4;
+    for (const r of placed) {
+      if (nx - nw/2 - pad < r.x + r.w/2 &&
+          nx + nw/2 + pad > r.x - r.w/2 &&
+          ny - nh/2 - pad < r.y + r.h/2 &&
+          ny + nh/2 + pad > r.y - r.h/2) return true;
+    }
+    return false;
+  }
+
+  // Posicionar em espiral
+  function placeWord(word, fontSize, color, angle) {
+    ctx.font = `${angle ? 'italic' : ''} bold ${fontSize}px 'Syne', sans-serif`;
+    const tw = ctx.measureText(word).width;
+    const th = fontSize * 1.2;
+
+    let step = 0;
+    let a = Math.random() * Math.PI * 2;
+    while (step < 800) {
+      const r = step * 0.55;
+      const x = cx + r * Math.cos(a);
+      const y = cy + r * Math.sin(a);
+      a += 0.4;
+      step++;
+
+      // Manter dentro dos limites
+      const margin = Math.max(tw, th) / 2 + 4;
+      if (x < margin || x > W - margin || y < margin || y > H - margin) continue;
+
+      if (!overlaps(x, y, tw, th)) {
+        placed.push({ x, y, w: tw, h: th });
+
+        ctx.save();
+        ctx.translate(x, y);
+        if (angle) ctx.rotate(angle);
+        ctx.font = `bold ${fontSize}px 'Syne', sans-serif`;
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(word, 0, 0);
+        ctx.restore();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  sorted.forEach((item, i) => {
+    const t = (item.count - minCount) / Math.max(maxCount - minCount, 1);
+    const fontSize = Math.round(12 + t * 26); // 12px a 38px
+    const color = colors[i % colors.length];
+    const angle = (i % 5 === 1) ? -Math.PI/6 : (i % 5 === 3) ? Math.PI/6 : 0;
+    placeWord(item.word, fontSize, color, angle);
+  });
 }
 </script>
 
