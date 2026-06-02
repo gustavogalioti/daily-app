@@ -4058,7 +4058,8 @@ function renderNotifItem(n) {
     </div>`;
   }
 
-  return `<div class="notif-item ${n.read ? '' : 'unread'}" id="nitem-${n.id}">
+  const isUnread = !n.read || n.read === 0 || n.read === '0';
+  return `<div class="notif-item ${isUnread ? 'unread' : ''}" id="nitem-${n.id}">
     ${avatar}
     <div class="notif-item-content">
       <div class="notif-item-title" style="${n.from_username?'cursor:pointer;':''}" onclick="${n.from_username?`openUserProfile('${n.from_username}');closeNotifPanel()`:''}">${n.title}</div>
@@ -4127,8 +4128,8 @@ async function declineInviteFromNotif(inviteId, notifId) {
 // Polling de notificações a cada 30s
 async function pollNotifBadge() {
   try {
-    const { unread } = await api('/api/user-notifications');
-    updateNotifBadge(unread);
+    const data = await api('/api/user-notifications');
+    updateNotifBadge(data.unread || 0);
   } catch(e) {}
 }
 
