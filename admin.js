@@ -163,4 +163,40 @@ router.post('/pedro-friendship', authMiddleware, adminOnly, async (req, res) => 
   res.json({ ok: true, friendships_created: count });
 });
 
+
+// GET /api/admin/agora-banner — buscar mensagem atual
+router.get('/agora-banner', async (req, res) => {
+  try {
+    const db = getDB();
+    const banner = await db.prepare("SELECT * FROM agora_banners WHERE active=1 ORDER BY created_at DESC LIMIT 1").get();
+    res.json({ banner: banner || null });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/admin/agora-banner — publicar mensagem
+router.post('/agora-banner', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const db = getDB();
+    const { message } = req.body;
+    if (!message?.trim()) return res.status(400).json({ error: 'Mensagem obrigatória' });
+    // Desativar banner anterior
+    await db.prepare("UPDATE agora_banners SET active=0").run();
+    // Criar novo
+    const { v4: uuidv4 } = require('uuid');
+    const author = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
+    await db.prepare('INSERT INTO agora_banners (id,message,author,active) VALUES ($1,$2,$3,1)')
+      .run(uuidv4(), message.trim(), author?.name || 'ADM');
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/admin/agora-banner — remover mensagem
+router.delete('/agora-banner', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const db = getDB();
+    await db.prepare("UPDATE agora_banners SET active=0").run();
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
