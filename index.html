@@ -1293,6 +1293,9 @@ function bootApp(){
   checkNotif();
   setInterval(checkNotif,10000);
   loadFriendRequests();
+  // Iniciar notificações do usuário imediatamente
+  pollNotifBadge();
+  setInterval(pollNotifBadge, 20000);
   checkEventInvitesBoot();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
   setTimeout(registerPush,4000);
@@ -1679,11 +1682,14 @@ async function searchUsers(){
   if(q.length<2){document.getElementById('search-results').innerHTML='';return;}
   try{
     const{users}=await api(`/api/users/search?q=${encodeURIComponent(q)}`);
-    document.getElementById('search-results').innerHTML=users.length?users.map(u=>`<div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:var(--surface2);">
-      <img class="avatar" src="${u.avatar_url||avatarUrl(u.name)}" width="40" height="40">
-      <div style="flex:1;"><div style="font-weight:700;">${u.name}</div><div class="text-muted">@${u.username}</div></div>
-      <button class="btn btn-ghost btn-sm" onclick="openFriendReqModal('${u.id}','${u.name.replace(/'/g,"\\'")}','${u.username}','${u.avatar_url||avatarUrl(u.name)}')">+ Adicionar</button>
-    </div>`).join(''):`<p class="text-muted">Nenhum resultado.</p>`;
+    document.getElementById('search-results').innerHTML=users.length?users.map(u=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;background:var(--surface2);cursor:pointer;" onclick="closeModal('modal-search-user');openUserProfile('${u.username}')">
+      <img class="avatar" src="${u.avatar_url||avatarUrl(u.name)}" width="44" height="44">
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:14px;">${u.name}</div>
+        <div class="text-muted" style="font-size:12px;">@${u.username}${u.city ? \` · 📍 ${u.city}\` : ''}</div>
+      </div>
+      <span style="color:var(--accent);font-size:20px;">›</span>
+    </div>`).join(''):`<p class="text-muted" style="padding:12px;">Nenhum resultado.</p>`;
   }catch(e){}
 }
 
@@ -4172,11 +4178,7 @@ async function sendCommunityInvite(userId, btn) {
 
 // Iniciar polling após login
 const _origLoadApp = typeof loadApp !== 'undefined' ? loadApp : null;
-document.addEventListener('DOMContentLoaded', () => {
-  // Polling começa quando usuário estiver logado
-  setInterval(() => { if (currentUser) pollNotifBadge(); }, 30000);
-  setTimeout(() => { if (currentUser) pollNotifBadge(); }, 2000);
-});
+// Polling iniciado no bootApp
 </script>
 
 </body>
