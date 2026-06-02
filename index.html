@@ -655,9 +655,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
     <!-- ─── CONQUISTAS ─── -->
     <div id="tab-achievements" class="tab-content">
-      <div class="page-header"><div class="page-header-left"><span class="page-icon">🏆</span><div class="section-title">Conquistas & Ranking</div></div>
-        <div id="ach-admin-btn" style="display:none;"><button class="btn btn-primary btn-sm" onclick="openCreateAchievement()">➕ Nova conquista</button></div>
-      </div>
+      <div class="page-header"><div class="page-header-left"><span class="page-icon">🏆</span><div class="section-title">Conquistas & Ranking</div></div></div>
       <div class="filter-pills">
         <span class="pill active" onclick="showAchSection('earned',this)">Minhas</span>
         <span class="pill" onclick="showAchSection('all',this)">Todas</span>
@@ -828,37 +826,340 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 <!-- ═══ MODALS ═══ -->
 <!-- Post -->
-
+<div class="modal-overlay" id="modal-post">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title" id="post-modal-title">Nova publicação</span><button class="modal-close" onclick="closeModal('modal-post')">✕</button></div>
+    <div class="modal-body">
+      <div class="post-type-sw" id="post-type-sw">
+        <button class="pt-btn active" onclick="setPostType('photo')">📷 Foto</button>
+        <button class="pt-btn" onclick="setPostType('text')">✍️ Texto</button>
+      </div>
+      <div id="photo-section">
+        <img class="photo-preview-img" id="photo-preview">
+        <label class="drop-zone" for="photo-file" id="drop-label">
+          <div style="font-size:28px;margin-bottom:8px;">📷</div>
+          <div style="font-size:14px;color:var(--muted);">Abrir câmera ou escolher foto</div>
+        </label>
+        <input type="file" id="photo-file" accept="image/*" capture="environment" style="display:none;" onchange="onPhotoSelected(event)">
+        <input type="text" id="photo-caption" placeholder="Descrição da foto (opcional)">
+      </div>
+      <div id="text-section" class="hidden">
+        <textarea id="post-text" placeholder="O que você está pensando?" style="min-height:110px;"></textarea>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
+          <input type="checkbox" id="post-anon" style="width:auto;">
+          <span style="color:var(--muted);">Postar como anônimo</span>
+        </label>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="submitPost()" id="btn-submit">Publicar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Search User -->
-
+<div class="modal-overlay" id="modal-search-user">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Buscar pessoas</span><button class="modal-close" onclick="closeModal('modal-search-user')">✕</button></div>
+    <div class="modal-body">
+      <input type="text" id="search-input" placeholder="Nome ou @usuário..." oninput="searchUsers()">
+      <div id="search-results" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </div>
+</div>
 
 <!-- Friend Request -->
-
+<div class="modal-overlay" id="modal-friend-req">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Adicionar amigo</span><button class="modal-close" onclick="closeModal('modal-friend-req')">✕</button></div>
+    <div class="modal-body">
+      <div id="friend-req-user" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:12px;"></div>
+      <p style="font-size:13px;color:var(--muted);font-style:italic;">"o que dizer de <span id="friend-req-name"></span> que mal conheço e já considero pakas..."</p>
+      <textarea id="friend-req-msg" placeholder="Escreva uma mensagem para enviar junto..." style="min-height:90px;"></textarea>
+      <button class="btn btn-primary" style="width:100%;" onclick="sendFriendRequest()">Enviar solicitação 🤝</button>
+    </div>
+  </div>
+</div>
 
 <!-- Create Community -->
-
+<div class="modal-overlay" id="modal-create-comm">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Criar comunidade</span><button class="modal-close" onclick="closeModal('modal-create-comm')">✕</button></div>
+    <div class="modal-body">
+      <div><label>Nome</label><input type="text" id="cn-name" placeholder="Ex: Amantes de café"></div>
+      <div><label>Descrição</label><textarea id="cn-desc" placeholder="Do que se trata essa comunidade?"></textarea></div>
+      <div class="form-row">
+        <div><label>Tipo</label><select id="cn-type"><option value="interest">Interesse / Hobby</option><option value="local">Local / Regional</option></select></div>
+        <div><label>Privacidade</label><select id="cn-open"><option value="1">Aberta — qualquer um entra</option><option value="0">Fechada — precisa de aprovação</option></select></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="createCommunity()">Criar comunidade 🏗️</button>
+    </div>
+  </div>
+</div>
 
 <!-- Edit Profile -->
-
+<div class="modal-overlay" id="modal-edit-profile">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Editar perfil</span><button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button></div>
+    <div class="modal-body">
+      <div><label>Nome</label><input type="text" id="ep-name"></div>
+      <div><label>Bio</label><textarea id="ep-bio" style="min-height:70px;"></textarea></div>
+      <div><label>O que você faz</label><input type="text" id="ep-occ"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:4px 0;">Profissional</div>
+      <div><label>Título profissional</label><input type="text" id="ep-ptitle" placeholder="Ex: Designer UX Sênior"></div>
+      <div><label>Link (portfólio, site)</label><input type="url" id="ep-purl" placeholder="https://"></div>
+      <div><label>Sobre o trabalho</label><textarea id="ep-pdesc" style="min-height:70px;" placeholder="O que você faz, vende, oferece..."></textarea></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="saveProfile()">Salvar ✅</button>
+    </div>
+  </div>
+</div>
 
 <!-- Post Detail -->
-
+<div class="modal-overlay" id="modal-post-detail">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-hdr"><span class="modal-title">Post</span><button class="modal-close" onclick="closeModal('modal-post-detail')">✕</button></div>
+    <div class="modal-body" id="post-detail-body"></div>
+  </div>
+</div>
 
 
 <!-- Community Forum -->
-
+<div class="modal-overlay" id="modal-community" style="align-items:stretch;padding:0;">
+  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
+    <div class="modal-hdr" style="flex-shrink:0;">
+      <span class="modal-title" id="comm-forum-title">Comunidade</span>
+      <button class="modal-close" onclick="closeModal('modal-community')">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px;">
+      <div class="comm-forum-layout" id="comm-forum-layout">
+        <div class="page-loader"><div class="loader"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 
 <!-- Badge Selector Modal -->
+<div class="modal-overlay" id="modal-badges">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">🏅 Escolher badges em destaque</span>
+      <button class="modal-close" onclick="closeModal('modal-badges')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom:14px;">Escolha até 5 conquistas para exibir no seu perfil. Clique para selecionar/desselecionar.</p>
+      <div id="badge-selector-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;max-height:400px;overflow-y:auto;"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="saveBadges()">Salvar badges ✅</button>
+    </div>
+  </div>
+</div>
 
+<!-- Modal: Adicionar Ponto de Conquista -->
+<div class="modal-overlay" id="modal-add-point" style="z-index:10000;">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-hdr">
+      <span class="modal-title">🏆 Adicionar ponto de conquista</span>
+      <button class="modal-close" onclick="closeModal('modal-add-point')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="pt-btn active" id="pt-ponto" onclick="setPointModalType('ponto',this)">📍 Ponto</button>
+        <button class="pt-btn" id="pt-roteiro" onclick="setPointModalType('roteiro',this)">🗺️ Roteiro</button>
+      </div>
 
+      <!-- PONTO -->
+      <div id="pm-ponto" style="display:flex;flex-direction:column;gap:10px;">
+        <div><label>Título do local</label><input type="text" id="pm-title" placeholder="Ex: Torre Eiffel, Ponte Torta, Museu X..."></div>
+        <div><label>Descrição / Instrução para o usuário</label><textarea id="pm-desc" placeholder="Ex: Poste uma selfie em frente ao museu!" style="min-height:70px;"></textarea></div>
+        <div class="form-row">
+          <div><label>Ícone</label>
+            <select id="pm-icon">
+              <option value="🏆">🏆 Conquista</option>
+              <option value="📸">📸 Foto</option>
+              <option value="🏛️">🏛️ Cultura</option>
+              <option value="🍽️">🍽️ Gastronomia</option>
+              <option value="🌿">🌿 Natureza</option>
+              <option value="⚽">⚽ Esporte</option>
+              <option value="🛍️">🛍️ Compras</option>
+              <option value="🎭">🎭 Arte</option>
+              <option value="🏖️">🏖️ Praia</option>
+              <option value="⭐">⭐ Especial</option>
+            </select>
+          </div>
+          <div><label>Categoria</label>
+            <select id="pm-category">
+              <option value="cultura">Cultura</option>
+              <option value="gastronomia">Gastronomia</option>
+              <option value="natureza">Natureza</option>
+              <option value="esporte">Esporte</option>
+              <option value="turismo">Turismo</option>
+              <option value="marca">Marca / Parceiro</option>
+              <option value="especial">Especial</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div><label>Pontos ao fazer check-in</label><input type="number" id="pm-points" value="100" min="10" max="2000"></div>
+          <div><label>Raio de check-in (metros)</label><input type="number" id="pm-radius" value="100" min="20" max="1000"></div>
+        </div>
+        <div><label>Roteiro (opcional)</label>
+          <select id="pm-route"><option value="">Nenhum roteiro</option></select>
+        </div>
+        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:14px;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;">📍 Localização do ponto</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Clique no botão abaixo para usar sua localização atual, ou preencha as coordenadas manualmente.</div>
+          <button class="btn btn-ghost btn-sm" onclick="useMyLocationForPoint()" style="margin-bottom:10px;">📍 Usar minha localização atual</button>
+          <div class="form-row">
+            <div><label>Latitude</label><input type="number" id="pm-lat" placeholder="-23.1841" step="0.000001"></div>
+            <div><label>Longitude</label><input type="number" id="pm-lng" placeholder="-46.8825" step="0.000001"></div>
+          </div>
+          <div id="pm-loc-status" class="text-muted" style="font-size:12px;margin-top:6px;"></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="saveMapPoint()">Criar ponto de conquista 🏆</button>
+      </div>
 
+      <!-- ROTEIRO -->
+      <div id="pm-roteiro" style="display:none;flex-direction:column;gap:10px;">
+        <div><label>Nome do roteiro</label><input type="text" id="rr-title" placeholder="Ex: Roteiro Cultural de Jundiaí"></div>
+        <div><label>Descrição</label><textarea id="rr-desc" placeholder="Conheça os pontos históricos de..." style="min-height:70px;"></textarea></div>
+        <div class="form-row">
+          <div><label>Cidade</label><input type="text" id="rr-city" placeholder="Jundiaí"></div>
+          <div><label>Estado</label><input type="text" id="rr-state" placeholder="SP" maxlength="2"></div>
+        </div>
+        <div class="form-row">
+          <div><label>Ícone</label>
+            <select id="rr-icon">
+              <option value="🗺️">🗺️ Roteiro</option>
+              <option value="🏛️">🏛️ Cultura</option>
+              <option value="🍽️">🍽️ Gastronomia</option>
+              <option value="🌿">🌿 Natureza</option>
+              <option value="⚽">⚽ Esporte</option>
+            </select>
+          </div>
+          <div><label>Categoria</label>
+            <select id="rr-category">
+              <option value="cultura">Cultura</option>
+              <option value="gastronomia">Gastronomia</option>
+              <option value="natureza">Natureza</option>
+              <option value="turismo">Turismo</option>
+              <option value="esporte">Esporte</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="saveRoute()">Criar roteiro 🗺️</button>
+      </div>
+    </div>
+  </div>
+</div>
 
+<!-- Modal: Check-in -->
+<div class="modal-overlay" id="modal-checkin" style="z-index:10000;">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title" id="checkin-modal-title">Check-in</span>
+      <button class="modal-close" onclick="closeModal('modal-checkin')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="checkin-body">
+        <div style="text-align:center;padding:20px 0;">
+          <div style="font-size:48px;" id="checkin-icon">🏆</div>
+          <div style="font-family:Syne;font-size:20px;font-weight:800;margin:8px 0;" id="checkin-title"></div>
+          <div style="font-size:14px;color:var(--muted);margin-bottom:16px;" id="checkin-desc"></div>
+          <div style="background:var(--surface2);border-radius:12px;padding:12px;margin-bottom:16px;">
+            <div class="text-muted" style="font-size:12px;margin-bottom:4px;">Pontos ao fazer check-in</div>
+            <div style="font-family:'DM Mono';font-size:28px;font-weight:700;color:var(--gold);" id="checkin-pts"></div>
+          </div>
+          <div id="checkin-dist-info" style="font-size:13px;color:var(--muted);margin-bottom:16px;"></div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Tire uma foto para registrar sua visita e compartilhar com todos! 📸</p>
+          <label class="drop-zone" for="checkin-photo" style="padding:20px;margin-bottom:12px;display:block;">
+            <div style="font-size:28px;">📷</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:6px;">Abrir câmera</div>
+          </label>
+          <input type="file" id="checkin-photo" accept="image/*" capture="environment" style="display:none;" onchange="onCheckinPhotoSelected(event)">
+          <img id="checkin-preview" style="width:100%;border-radius:12px;margin-bottom:12px;display:none;">
+          <button class="btn btn-primary" style="width:100%;font-size:16px;padding:14px;" onclick="doCheckin()" id="btn-do-checkin">
+            📍 Fazer check-in
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
+<!-- Modal: Criar Evento -->
+<div class="modal-overlay" id="modal-create-event">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">📅 Criar evento</span><button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
+    <div class="modal-body">
+      <!-- Foto do evento -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:4px;">
+        <div style="position:relative;width:100%;height:140px;background:var(--surface2);border-radius:12px;overflow:hidden;border:2px dashed var(--border);">
+          <img id="ev-photo-preview" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+          <label for="ev-photo-file" id="ev-photo-label" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:6px;color:var(--muted);">
+            <span style="font-size:28px;">🖼️</span>
+            <span style="font-size:13px;font-weight:600;">Adicionar capa do evento</span>
+          </label>
+          <input type="file" id="ev-photo-file" accept="image/*" style="display:none;" onchange="previewEventPhoto(this)">
+        </div>
+      </div>
+      <div><label>Título do evento</label><input type="text" id="ev-title" placeholder="Ex: Churrasco de aniversário"></div>
+      <div><label>Descrição</label><textarea id="ev-desc" placeholder="Conte mais sobre o evento..." style="min-height:80px;"></textarea></div>
+      <div><label>Local</label><input type="text" id="ev-location" placeholder="Ex: Minha casa, Parque da Cidade..."></div>
+      <div class="form-row">
+        <div><label>Data e hora de início</label><input type="datetime-local" id="ev-start"></div>
+        <div><label>Data e hora de fim</label><input type="datetime-local" id="ev-end"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" id="ev-submit-btn" onclick="createEvent()">Criar evento 🎉</button>
+    </div>
+  </div>
+</div>
 
+<!-- Modal: Evento (página interna) -->
+<div class="modal-overlay" id="modal-event" style="align-items:stretch;padding:0;">
+  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
+    <div class="modal-hdr" style="flex-shrink:0;">
+      <span class="modal-title" id="event-modal-title">Evento</span>
+      <button class="modal-close" onclick="closeModal('modal-event')">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;">
+      <div id="event-modal-body" style="padding:16px;"></div>
+    </div>
+  </div>
+</div>
 
+<!-- Modal: Recusar convite -->
+<div class="modal-overlay" id="modal-decline-event">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">😔 Não vai poder ir?</span><button class="modal-close" onclick="closeModal('modal-decline-event')">✕</button></div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom:12px;">Conta o motivo para quem te convidou. Vai fazer diferença!</p>
+      <textarea id="decline-reason" placeholder="Ex: Tenho outro compromisso nesse dia..." style="min-height:80px;"></textarea>
+      <button class="btn btn-primary" style="width:100%;" onclick="confirmDecline()">Enviar resposta</button>
+    </div>
+  </div>
+</div>
 
+<!-- Modal: Convidar para evento -->
+<div class="modal-overlay" id="modal-invite-event">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">👥 Convidar pessoas</span><button class="modal-close" onclick="closeModal('modal-invite-event')">✕</button></div>
+    <div class="modal-body">
+      <input type="text" id="invite-search-input" placeholder="Buscar por nome ou @usuário..." oninput="debouncedEventSearch()">
+      <div id="invite-search-results" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ver perfil de usuário -->
+<div class="modal-overlay" id="modal-user-profile">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">Perfil</span>
+      <button class="modal-close" onclick="closeModal('modal-user-profile')">✕</button>
+    </div>
+    <div class="modal-body" id="user-profile-body">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -919,9 +1220,9 @@ async function api(path, opts={}){
   if(!res.ok) throw new Error(data.error||'Erro');
   return data;
 }
-async function apiForm(path, fd, method='POST'){
+async function apiForm(path, fd){
   const t=tok();
-  const res=await fetch(path,{method,headers:t?{Authorization:`Bearer ${t}`}:{},body:fd});
+  const res=await fetch(path,{method:'POST',headers:t?{Authorization:`Bearer ${t}`}:{},body:fd});
   const data=await res.json().catch(()=>({}));
   if(!res.ok) throw new Error(data.error||'Erro');
   return data;
@@ -1320,7 +1621,7 @@ async function loadFriends(){
       <img class="avatar" src="${f.avatar_url||avatarUrl(f.name)}" width="60" height="60" style="margin:0 auto 10px;">
       <div style="font-weight:700;font-size:14px;">${f.name}</div>
       <div class="text-muted">@${f.username}</div>
-      ${f.bio?'<div style="font-size:12px;color:var(--muted);margin-top:5px;">'+f.bio+'</div>':''}
+      ${f.bio?`<div style="font-size:12px;color:var(--muted);margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${f.bio}</div>`:''}
       <div style="margin-top:8px;font-size:12px;color:var(--accent);font-weight:600;">Ver perfil →</div>
     </div>`).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Ainda sem amigos. Busque pessoas!</p>`;
   }catch(e){}
@@ -1511,118 +1812,19 @@ async function createCommunity(){
 async function loadAchievements(){
   const g=document.getElementById('ach-earned-grid');
   g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  // Mostrar botão admin se for admin
-  if (currentUser?.is_admin) document.getElementById('ach-admin-btn').style.display='block';
   try{
     const{earned,locked}=await api('/api/achievements/me');
-    const isAdmin = currentUser?.is_admin;
     document.getElementById('ach-earned-grid').innerHTML=earned.length?earned.map(a=>`<div class="ach-card earned">
-      ${a.image_url?`<img src="${a.image_url}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin:0 auto 8px;">`:
-        `<div class="ach-icon">${a.icon}</div>`}
-      <div class="ach-name">${a.name}</div>
+      <div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div>
       <div class="ach-desc">${a.description}</div>
       <div class="ach-pts">✅ +${a.points} pts · ${timeAgo(a.earned_at)}</div>
     </div>`).join(''):`<p class="text-muted" style="grid-column:1/-1;padding:40px;text-align:center;">Nenhuma conquista ainda. Comece a usar o Daily!</p>`;
-
-    const allList=[...earned.map(a=>({...a,_e:true})),...locked.map(a=>({...a,_e:false}))];
-    document.getElementById('ach-all-grid').innerHTML=allList.map(a=>`<div class="ach-card ${a._e?'earned':'locked'}" style="position:relative;">
-      ${a.image_url?`<img src="${a.image_url}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin:0 auto 8px;">`:
-        `<div class="ach-icon">${a.icon}</div>`}
-      <div class="ach-name">${a.name}</div>
+    document.getElementById('ach-all-grid').innerHTML=[...earned.map(a=>({...a,_e:true})),...locked.map(a=>({...a,_e:false}))].map(a=>`<div class="ach-card ${a._e?'earned':'locked'}">
+      <div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div>
       <div class="ach-desc">${a.description}</div>
       <div class="ach-pts">${a._e?`✅ +${a.points} pts`:`🔒 ${a.points} pts`}</div>
-      <div class="text-muted" style="font-size:11px;margin-top:4px;">📂 ${a.category||'geral'}</div>
-      ${isAdmin?`<div style="display:flex;gap:4px;margin-top:8px;justify-content:center;">
-        <button class="btn btn-sm" style="font-size:11px;background:var(--surface2);" onclick="openEditAchievement(${JSON.stringify(a).replace(/"/g,'&quot;')})">✏️</button>
-        <button class="btn btn-sm" style="font-size:11px;background:#fee2e2;color:#dc2626;" onclick="deleteAchievement('${a.id}','${a.name.replace(/'/g,"\\'")}')">🗑️</button>
-      </div>`:''}
     </div>`).join('');
   }catch(e){}
-}
-
-function previewAchievementImg(input) {
-  const file = input.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('ach-img-preview').src = e.target.result;
-    document.getElementById('ach-img-preview').style.display = 'block';
-    document.getElementById('ach-img-placeholder').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-}
-
-function openCreateAchievement() {
-  document.getElementById('ach-edit-id').value = '';
-  document.getElementById('ach-modal-title').textContent = '🏆 Nova conquista';
-  document.getElementById('ach-submit-btn').textContent = 'Criar conquista 🏆';
-  ['ach-name','ach-desc','ach-icon'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  document.getElementById('ach-points').value = '100';
-  document.getElementById('ach-category').value = 'geral';
-  document.getElementById('ach-img-preview').style.display = 'none';
-  document.getElementById('ach-img-placeholder').style.display = 'flex';
-  document.getElementById('ach-img-file').value = '';
-  document.getElementById('ach-icon-preview').textContent = '🏆';
-  openModal('modal-create-achievement');
-}
-
-function openEditAchievement(a) {
-  document.getElementById('ach-edit-id').value = a.id;
-  document.getElementById('ach-modal-title').textContent = '✏️ Editar conquista';
-  document.getElementById('ach-submit-btn').textContent = 'Salvar alterações ✅';
-  document.getElementById('ach-name').value = a.name || '';
-  document.getElementById('ach-desc').value = a.description || '';
-  document.getElementById('ach-icon').value = a.icon || '';
-  document.getElementById('ach-points').value = a.points || 100;
-  document.getElementById('ach-category').value = a.category || 'geral';
-  document.getElementById('ach-icon-preview').textContent = a.icon || '🏆';
-  if (a.image_url) {
-    document.getElementById('ach-img-preview').src = a.image_url;
-    document.getElementById('ach-img-preview').style.display = 'block';
-    document.getElementById('ach-img-placeholder').style.display = 'none';
-  } else {
-    document.getElementById('ach-img-preview').style.display = 'none';
-    document.getElementById('ach-img-placeholder').style.display = 'flex';
-  }
-  document.getElementById('ach-img-file').value = '';
-  openModal('modal-create-achievement');
-}
-
-async function saveAchievement() {
-  const editId = document.getElementById('ach-edit-id').value;
-  const name = document.getElementById('ach-name').value.trim();
-  if (!name) { toast('Nome obrigatório', 'error'); return; }
-  const btn = document.getElementById('ach-submit-btn');
-  btn.disabled = true; btn.textContent = editId ? 'Salvando...' : 'Criando...';
-  try {
-    const fd = new FormData();
-    fd.append('name', name);
-    fd.append('description', document.getElementById('ach-desc').value || '');
-    fd.append('icon', document.getElementById('ach-icon').value || '🏆');
-    fd.append('points', document.getElementById('ach-points').value || '100');
-    fd.append('category', document.getElementById('ach-category').value || 'geral');
-    const imgFile = document.getElementById('ach-img-file').files[0];
-    if (imgFile) fd.append('image', imgFile);
-    const url = editId ? `/api/achievements/${editId}` : '/api/achievements';
-    const method = editId ? 'PUT' : 'POST';
-    await apiForm(url, fd, method);
-    toast(editId ? 'Conquista atualizada! ✅' : 'Conquista criada! 🏆', 'success');
-    closeModal('modal-create-achievement');
-    loadAchievements();
-  } catch(e) {
-    toast(e.message || 'Erro ao salvar', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = editId ? 'Salvar alterações ✅' : 'Criar conquista 🏆';
-  }
-}
-
-async function deleteAchievement(id, name) {
-  if (!confirm(`Apagar a conquista "${name}"?`)) return;
-  try {
-    await api(`/api/achievements/${id}`, { method: 'DELETE' });
-    toast('Conquista apagada!', 'success');
-    loadAchievements();
-  } catch(e) { toast(e.message, 'error'); }
 }
 
 async function loadRanking(){
@@ -1768,8 +1970,8 @@ async function loadTestimonials(){
     </div>
     ${testimonials.length?testimonials.map(t=>`<div class="testimonial-card">
       <div style="display:flex;align-items:center;gap:10px;">
-        <img class="avatar" src="${t.author_avatar||avatarUrl(t.author_name)}" width="36" height="36" data-username="${t.author_username}" style="cursor:pointer;">
-        <div><div style="font-weight:700;font-size:14px;cursor:pointer;" data-username="${t.author_username}">${t.author_name}</div><div class="text-muted">@${t.author_username} · ${timeAgo(t.created_at)}</div></div>
+        <img class="avatar" src="${t.author_avatar||avatarUrl(t.author_name)}" width="36" height="36">
+        <div><div style="font-weight:700;font-size:14px;">${t.author_name}</div><div class="text-muted">@${t.author_username} · ${timeAgo(t.created_at)}</div></div>
       </div>
       <blockquote>${t.content}</blockquote>
     </div>`).join(''):'<p class="text-muted" style="padding:16px;">Nenhum depoimento ainda.</p>'}`;
@@ -2633,10 +2835,13 @@ function cancelPointPlacement() {
 }
 
 async function openAddPointModalWithCoords(lat, lng) {
+  document.getElementById('pm-lat').value = lat.toFixed(6);
+  document.getElementById('pm-lng').value = lng.toFixed(6);
+  document.getElementById('pm-loc-status').textContent = '✅ Local selecionado: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
   await openAddPointModal(lat, lng);
 }
 
-async function openAddPointModal(presetLat, presetLng) {
+async function openAddPointModal() {
   // Carregar roteiros para o select
   try {
     const { routes } = await api('/api/map-points/routes/all');
@@ -2649,19 +2854,10 @@ async function openAddPointModal(presetLat, presetLng) {
   document.getElementById('pm-desc').value = '';
   document.getElementById('pm-points').value = '100';
   document.getElementById('pm-radius').value = '100';
-  // Se vieram coords do clique no mapa, usa elas; senão usa localização atual
-  if (presetLat && presetLng) {
-    document.getElementById('pm-lat').value = presetLat.toFixed(6);
-    document.getElementById('pm-lng').value = presetLng.toFixed(6);
-    document.getElementById('pm-loc-status').textContent = `✅ Local selecionado: ${presetLat.toFixed(5)}, ${presetLng.toFixed(5)}`;
-  } else {
-    document.getElementById('pm-lat').value = myLat || '';
-    document.getElementById('pm-lng').value = myLng || '';
-    if (myLat && myLng) {
-      document.getElementById('pm-loc-status').textContent = `📍 Usando sua localização atual: ${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
-    } else {
-      document.getElementById('pm-loc-status').textContent = '📍 Nenhum local definido';
-    }
+  document.getElementById('pm-lat').value = myLat || '';
+  document.getElementById('pm-lng').value = myLng || '';
+  if (myLat && myLng) {
+    document.getElementById('pm-loc-status').textContent = `📍 Usando sua localização atual: ${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
   }
   setPointModalType('ponto', document.getElementById('pt-ponto'));
   openModal('modal-add-point');
@@ -2737,43 +2933,10 @@ async function loadMapPointsList() {
           <div class="text-muted">${p.description||''}</div>
           <div style="font-size:12px;margin-top:4px;"><span style="color:var(--gold);font-weight:700;">+${p.points} pts</span> · 📍 raio ${p.checkin_radius}m · 👥 ${p.checkin_count||0} check-ins</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
-          ${!p.checked_in ? `<button class="btn btn-primary btn-sm" onclick="openCheckinModal('${p.id}')">Check-in</button>` : ''}
-          ${(p.created_by === currentUser?.id || currentUser?.is_admin) ? `
-            <button class="btn btn-sm" style="background:var(--surface2);font-size:11px;" onclick="editMapPoint('${p.id}','${p.title.replace(/'/g,"\\'")}','${(p.description||'').replace(/'/g,"\\'")}',${p.points},${p.checkin_radius},'${p.icon||'🏆'}')">✏️ Editar</button>
-            <button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;font-size:11px;" onclick="deleteMapPoint('${p.id}','${p.title.replace(/'/g,"\\'")}')">🗑️ Apagar</button>
-          ` : ''}
-        </div>
+        ${!p.checked_in ? `<button class="btn btn-primary btn-sm" onclick="openCheckinModal('${p.id}')">Check-in</button>` : ''}
       </div>
     `).join('') : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum ponto de conquista no mapa ainda.</p>';
   } catch(e) {}
-}
-
-async function deleteMapPoint(id, title) {
-  if (!confirm(`Apagar o ponto "${title}"? Essa ação não pode ser desfeita.`)) return;
-  try {
-    await api(`/api/map-points/${id}`, { method: 'DELETE' });
-    toast('Ponto apagado!', 'success');
-    loadMapPoints();
-    loadMapPointsList();
-  } catch(e) { toast(e.message, 'error'); }
-}
-
-async function editMapPoint(id, title, desc, points, radius, icon) {
-  const newTitle = prompt('Título do ponto:', title);
-  if (newTitle === null) return;
-  const newDesc = prompt('Descrição:', desc);
-  if (newDesc === null) return;
-  const newPoints = prompt('Pontos ao fazer check-in:', points);
-  if (newPoints === null) return;
-  try {
-    await api(`/api/map-points/${id}`, { method: 'PUT', body: JSON.stringify({
-      title: newTitle, description: newDesc, points: parseInt(newPoints)
-    })});
-    toast('Ponto atualizado! ✅', 'success');
-    loadMapPoints();
-    loadMapPointsList();
-  } catch(e) { toast(e.message, 'error'); }
 }
 
 async function loadRoutesList() {
@@ -2833,6 +2996,16 @@ let pendingDeclineEventId = null;
 let inviteTargetEventId = null;
 let allEvents = [];
 
+async function loadEvents() {
+  const el = document.getElementById('events-list');
+  el.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { events } = await api('/api/events');
+    allEvents = events;
+    checkEventInvites(events);
+    renderEventsList(events, 'upcoming');
+  } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
+}
 
 function checkEventInvites(events) {
   const pending = events.filter(e => e.my_status === 'pending');
@@ -2873,7 +3046,6 @@ function renderEventsList(events, section) {
     return section === 'upcoming' ? d >= now : d < now;
   }).filter(e => e.my_status !== 'pending');
   const el = document.getElementById('events-list');
-  if (!el) return;
   el.innerHTML = filtered.length ? filtered.map(e => {
     const d = new Date(e.event_date);
     const statusLabel = { accepted:'✅ Confirmado', declined:'❌ Recusado', pending:'⏳ Pendente' };
@@ -2905,22 +3077,14 @@ function showEventSection(sec, btn) {
 }
 
 function openCreateEventModal() {
-  try {
-    const fields = ['ev-title','ev-desc','ev-location'];
-    fields.forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-    const now = new Date(); now.setMinutes(0,0,0);
-    const startEl = document.getElementById('ev-start');
-    const endEl = document.getElementById('ev-end');
-    if(startEl) startEl.value = now.toISOString().slice(0,16);
-    if(endEl) { const e = new Date(now.getTime() + 3*3600000); endEl.value = e.toISOString().slice(0,16); }
-    const prev = document.getElementById('ev-photo-preview');
-    const lbl = document.getElementById('ev-photo-label');
-    const fi = document.getElementById('ev-photo-file');
-    if(prev) prev.style.display = 'none';
-    if(lbl) lbl.style.display = 'flex';
-    if(fi) fi.value = '';
-    openModal('modal-create-event');
-  } catch(e) { toast('Erro ao abrir form: '+e.message, 'error'); }
+  document.getElementById('ev-title').value = '';
+  document.getElementById('ev-desc').value = '';
+  document.getElementById('ev-location').value = '';
+  const now = new Date(); now.setMinutes(0,0,0);
+  document.getElementById('ev-start').value = now.toISOString().slice(0,16);
+  const end = new Date(now.getTime() + 3*3600000);
+  document.getElementById('ev-end').value = end.toISOString().slice(0,16);
+  openModal('modal-create-event');
 }
 
 function previewEventPhoto(input) {
@@ -2937,30 +3101,49 @@ function previewEventPhoto(input) {
 }
 
 async function createEvent() {
-  const title = document.getElementById('ev-title')?.value.trim();
+  const title = document.getElementById('ev-title').value.trim();
+  const event_date = document.getElementById('ev-start').value;
   if (!title) { toast('Título obrigatório', 'error'); return; }
-  const errEl = document.getElementById('ev-error-msg');
-  if (errEl) errEl.style.display = 'none';
+  if (!event_date) { toast('Data de início obrigatória', 'error'); return; }
+  const btn = document.getElementById('ev-submit-btn');
+  btn.disabled = true; btn.textContent = 'Criando...';
   try {
-    const event_date_val = document.getElementById('ev-start')?.value;
-    await api('/api/events', { method:'POST', body: JSON.stringify({
+    // 1. Criar evento
+    const { event } = await api('/api/events', { method:'POST', body: JSON.stringify({
       title,
-      description: document.getElementById('ev-desc')?.value || '',
-      location: document.getElementById('ev-location')?.value || '',
-      event_date: event_date_val ? new Date(event_date_val).toISOString() : new Date(Date.now() + 86400000).toISOString(),
-      event_end_date: null,
+      description: document.getElementById('ev-desc').value || '',
+      location: document.getElementById('ev-location').value || '',
+      event_date: new Date(event_date).toISOString(),
+      event_end_date: document.getElementById('ev-end').value ? new Date(document.getElementById('ev-end').value).toISOString() : null,
     })});
+
+    // 2. Upload da foto de capa se tiver
+    const photoFile = document.getElementById('ev-photo-file').files[0];
+    if (photoFile) {
+      try {
+        const fd = new FormData();
+        fd.append('photo', photoFile);
+        await apiForm(`/api/events/${event.id}/cover`, fd);
+      } catch(e) { /* não bloqueia se foto falhar */ }
+    }
+
     toast('Evento criado! 🎉', 'success');
     closeModal('modal-create-event');
-    ['ev-title','ev-desc','ev-location','ev-start','ev-end'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-    const prev=document.getElementById('ev-photo-preview'); if(prev) prev.style.display='none';
-    const lbl=document.getElementById('ev-photo-label'); if(lbl) lbl.style.display='flex';
-    const fi=document.getElementById('ev-photo-file'); if(fi) fi.value='';
-    loadProfileEvents();
+    // Reset form
+    document.getElementById('ev-title').value = '';
+    document.getElementById('ev-desc').value = '';
+    document.getElementById('ev-location').value = '';
+    document.getElementById('ev-start').value = '';
+    document.getElementById('ev-end').value = '';
+    document.getElementById('ev-photo-preview').style.display = 'none';
+    document.getElementById('ev-photo-label').style.display = 'flex';
+    document.getElementById('ev-photo-file').value = '';
+    loadEvents();
+    setTimeout(() => openEventModal(event.id), 300);
   } catch(e) {
-    const msg = e.message || 'Erro desconhecido';
-    toast(msg, 'error');
-    if (errEl) { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; }
+    toast(e.message || 'Erro ao criar evento', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Criar evento 🎉';
   }
 }
 
@@ -2992,7 +3175,7 @@ async function openEventModal(eventId) {
         const total = pd.options.reduce((s,o) => s+(o.votes||0), 0);
         const alreadyVoted = pd.options.some(o => o.voter_ids?.includes(currentUser?.id));
         return `<div class="forum-card">
-          <div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32" data-username="${p.author_username}" style="cursor:pointer;"><div><div style="font-weight:700;font-size:14px;cursor:pointer;" data-username="${p.author_username}">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
+          <div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32"><div><div style="font-weight:700;font-size:14px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
           <div class="poll-container"><div style="font-weight:700;margin-bottom:10px;">📊 ${pd.question}</div>
           ${pd.options.map((o,i) => { const pct=total?Math.round((o.votes||0)/total*100):0; const clickFn=alreadyVoted?'':'voteEventPoll(\''+eventId+'\',\''+p.id+'\','+i+')'; return '<div class="poll-option" onclick="'+clickFn+'">'+'<div class="poll-bar-wrap"><div class="poll-bar" style="width:'+pct+'%"></div><span class="poll-bar-text">'+o.text+'</span></div>'+'<span class="poll-pct">'+pct+'%</span></div>'; }).join('')}
           <div class="text-muted" style="font-size:12px;margin-top:6px;">${total} votos</div></div>
@@ -3000,13 +3183,13 @@ async function openEventModal(eventId) {
         </div>`;
       }
       if (p.post_type === 'photo' && p.image_url) {
-        return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32" data-username="${p.author_username}" style="cursor:pointer;"><div><div style="font-weight:700;font-size:14px;cursor:pointer;" data-username="${p.author_username}">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
+        return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32"><div><div style="font-weight:700;font-size:14px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
           <img class="forum-card-img" src="${p.image_url}"><div class="forum-card-text">${p.content||''}</div>
           <div class="reactions-row">${reactions}${addR}</div>${pedro}
           <div style="margin-top:8px;font-size:12px;color:var(--muted);">💬 ${p.comment_count} comentários</div>
         </div>`;
       }
-      return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32" data-username="${p.author_username}" style="cursor:pointer;"><div><div style="font-weight:700;font-size:14px;cursor:pointer;" data-username="${p.author_username}">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
+      return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32"><div><div style="font-weight:700;font-size:14px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
         <div class="forum-card-text">${p.content}</div>
         <div class="reactions-row" style="margin-top:8px;">${reactions}${addR}</div>${pedro}
       </div>`;
@@ -3271,12 +3454,6 @@ document.addEventListener('click', function(e) {
   if (moreMenuOpen && !document.getElementById('more-menu').contains(e.target) && !document.getElementById('btn-more').contains(e.target)) {
     closeMoreMenu();
   }
-  // Delegador global: qualquer elemento com data-username abre o perfil
-  const el = e.target.closest('[data-username]');
-  if (el && el.dataset.username) {
-    e.stopPropagation();
-    openUserProfile(el.dataset.username);
-  }
 });
 
 
@@ -3297,6 +3474,8 @@ async function openFullUserProfile(username) {
     switchTab('profile', document.querySelector('[data-tab=profile]'));
     return;
   }
+  const modal = document.getElementById('modal-user-profile');
+  if(!modal) { toast('Modal não encontrado', 'error'); return; }
   openModal('modal-user-profile');
   const body = document.getElementById('user-profile-body');
   if(body) body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
@@ -3306,69 +3485,43 @@ async function openFullUserProfile(username) {
     const fs = user.friendship_status;
     let actionBtn = '';
     if (fs === 'friends') {
-      actionBtn = '<span style="color:var(--green);font-weight:700;font-size:13px;">✅ Amigos</span>';
+      actionBtn = '<span style="color:var(--green);font-weight:600;">✅ Amigos</span>';
     } else if (fs === 'pending_sent') {
-      actionBtn = '<span style="color:var(--muted);font-size:13px;">⏳ Enviada</span>';
+      actionBtn = '<span style="color:var(--muted);">⏳ Solicitação enviada</span>';
     } else {
-      actionBtn = `<button class="btn btn-primary btn-sm" onclick="sendFriendReqDirect('${user.id}','${(user.name||'').replace(/'/g,'')}')">+ Adicionar</button>`;
+      actionBtn = '<button class="btn btn-primary btn-sm" onclick="sendFriendReqDirect(\''+user.id+'\',\''+user.name.replace(/[^a-zA-Z0-9 ]/g,'')+'\')" >+ Adicionar amigo</button>';
     }
-    const badges = (user.featured_badges||[]).map(b =>
-      `<div style="background:var(--surface2);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">${b.icon} ${b.name}</div>`
-    ).join('');
-    body.innerHTML = `
-      <div style="background:linear-gradient(135deg,var(--accent),#c2500a);height:90px;border-radius:12px 12px 0 0;margin:-20px -20px 0;"></div>
-      <div style="padding:0 16px 16px;">
-        <div style="display:flex;align-items:flex-end;gap:14px;margin-top:-36px;margin-bottom:10px;">
-          <img src="${av}" style="width:72px;height:72px;border-radius:50%;border:3px solid var(--surface);object-fit:cover;flex-shrink:0;">
-          <div style="flex:1;padding-bottom:4px;">
-            <div style="font-family:Syne;font-size:17px;font-weight:800;">${user.name}</div>
-            <div class="text-muted">@${user.username}</div>
-          </div>
-          <div style="padding-bottom:4px;">${actionBtn}</div>
-        </div>
-        ${user.bio ? `<div style="font-size:13px;margin-bottom:8px;">${user.bio}</div>` : ''}
-        <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--muted);margin-bottom:10px;">
-          ${user.occupation ? `<span>💼 ${user.occupation}</span>` : ''}
-          ${user.city ? `<span>📍 ${user.city}${user.state?', '+user.state:''}</span>` : ''}
-        </div>
-        ${badges ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">${badges}</div>` : ''}
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
-          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:10px;">
-            <div style="font-family:Syne;font-size:16px;font-weight:800;color:var(--accent);">${user.stats?.posts||0}</div>
-            <div class="text-muted" style="font-size:10px;">Posts</div>
-          </div>
-          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:10px;">
-            <div style="font-family:Syne;font-size:16px;font-weight:800;color:var(--accent);">${user.stats?.friends_count||0}</div>
-            <div class="text-muted" style="font-size:10px;">Amigos</div>
-          </div>
-          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:10px;">
-            <div style="font-family:Syne;font-size:16px;font-weight:800;color:var(--gold);">${user.points||0}</div>
-            <div class="text-muted" style="font-size:10px;">Pontos</div>
-          </div>
-          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:10px;">
-            <div style="font-family:Syne;font-size:16px;font-weight:800;color:var(--accent);">${user.stats?.active_days||0}</div>
-            <div class="text-muted" style="font-size:10px;">Dias</div>
-          </div>
-        </div>
-        <div style="display:flex;border-bottom:1.5px solid var(--border);margin-bottom:12px;overflow-x:auto;gap:0;">
-          <button id="vtab-posts" style="flex-shrink:0;padding:9px 12px;border:none;background:transparent;font-weight:700;font-size:12px;cursor:pointer;border-bottom:2.5px solid var(--accent);color:var(--accent);" onclick="loadVisitorSection('posts','${username}',this)">📋 Posts</button>
-          <button id="vtab-linha" style="flex-shrink:0;padding:9px 12px;border:none;background:transparent;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('linha','${username}',this)">📅 Linha</button>
-          <button id="vtab-conquistas" style="flex-shrink:0;padding:9px 12px;border:none;background:transparent;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('conquistas','${username}',this)">🏆</button>
-          <button id="vtab-depoimentos" style="flex-shrink:0;padding:9px 12px;border:none;background:transparent;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('depoimentos','${username}',this)">💬 Depoi.</button>
-          <button id="vtab-amigos" style="flex-shrink:0;padding:9px 12px;border:none;background:transparent;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('amigos','${username}',this)">👥 Amigos</button>
-        </div>
-        <div id="visitor-section-content" data-username="${username}"></div>
-      </div>`;
-    loadVisitorSection('posts', username, document.getElementById('vtab-posts'));
+    // Perfil completo com tabs
+    if(body) body.innerHTML =
+      '<div style="text-align:center;padding:16px 0 12px;">'
+      + '<img class="avatar" src="'+av+'" width="80" height="80" style="border:3px solid var(--accent);margin-bottom:10px;">'
+      + '<div style="font-family:Syne;font-size:18px;font-weight:800;">'+user.name+'</div>'
+      + '<div class="text-muted">@'+user.username+'</div>'
+      + (user.bio ? '<div style="font-size:13px;color:var(--text2);margin-top:6px;padding:0 10px;">'+user.bio+'</div>' : '')
+      + (user.city ? '<div class="text-muted" style="font-size:12px;margin-top:4px;">📍 '+user.city+(user.state?', '+user.state:'')+'</div>' : '')
+      + '<div style="margin-top:10px;">'+actionBtn+'</div></div>'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">'
+      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--accent);">'+(user.stats?.posts||0)+'</div><div class="text-muted" style="font-size:11px;">Posts</div></div>'
+      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--accent);">'+(user.stats?.friends_count||0)+'</div><div class="text-muted" style="font-size:11px;">Amigos</div></div>'
+      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--gold);">'+(user.points||0)+'</div><div class="text-muted" style="font-size:11px;">Pontos</div></div>'
+      + '</div>'
+      + '<div style="display:flex;border-bottom:1.5px solid var(--border);margin-bottom:12px;gap:0;">'
+      + '<button style="flex:1;padding:10px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;border-bottom:2.5px solid var(--accent);color:var(--accent);" onclick="loadVisitorSection(\'posts\',\''+username+'\',this)">Posts</button>'
+      + '<button style="flex:1;padding:10px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection(\'conquistas\',\''+username+'\',this)">🏆</button>'
+      + '<button style="flex:1;padding:10px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection(\'depoimentos\',\''+username+'\',this)">💬 Depoi.</button>'
+      + '</div>'
+      + '<div id="visitor-section-content"><div class="page-loader"><div class="loader"></div></div></div>';
+    // Carregar posts automaticamente
+    loadVisitorSection('posts', username, document.querySelector('#user-profile-body button'));
   } catch(e) {
-    if(body) body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
+    if(body) body.innerHTML = '<p class="text-muted" style="padding:20px;text-align:center;">'+e.message+'</p>';
   }
 }
 
 async function loadVisitorSection(sec, username, btn) {
-  document.querySelectorAll('#user-profile-body button[id^="vtab-"]').forEach(b => {
-    b.style.borderBottom='none'; b.style.color='var(--muted)';
-  });
+  // Atualizar tab ativa
+  const btns = document.querySelectorAll('#user-profile-body button[onclick*="loadVisitorSection"]');
+  btns.forEach(b => { b.style.borderBottom='none'; b.style.color='var(--muted)'; });
   if(btn) { btn.style.borderBottom='2.5px solid var(--accent)'; btn.style.color='var(--accent)'; }
   const el = document.getElementById('visitor-section-content');
   if(!el) return;
@@ -3376,79 +3529,46 @@ async function loadVisitorSection(sec, username, btn) {
   try {
     if (sec === 'posts') {
       const { user } = await api('/api/users/' + username);
-      const r = await api('/api/posts?user_id='+user.id+'&limit=20');
-      el.innerHTML = r.posts?.length
-        ? '<div style="display:flex;flex-direction:column;gap:10px;">' + r.posts.map(p =>
+      const posts = await api('/api/posts?user_id='+user.id+'&limit=20');
+      el.innerHTML = posts.posts?.length
+        ? '<div style="display:flex;flex-direction:column;gap:10px;">' + posts.posts.map(p =>
             '<div style="background:var(--surface2);border-radius:10px;padding:12px;">'
-            + (p.image_url ? `<img src="${p.image_url}" style="width:100%;border-radius:8px;margin-bottom:8px;">` : '')
-            + `<div style="font-size:13px;">${p.caption||p.content||''}</div>`
-            + `<div class="text-muted" style="font-size:11px;margin-top:4px;">${timeAgo(p.created_at)}</div>`
+            + (p.image_url ? '<img src="'+p.image_url+'" style="width:100%;border-radius:8px;margin-bottom:8px;">' : '')
+            + '<div style="font-size:13px;">'+( p.caption||p.content||'')+'</div>'
+            + '<div class="text-muted" style="font-size:11px;margin-top:4px;">'+timeAgo(p.created_at)+'</div>'
             + '</div>'
           ).join('') + '</div>'
         : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum post ainda.</p>';
-
-    } else if (sec === 'linha') {
-      const { user } = await api('/api/users/' + username);
-      const r = await api('/api/posts?user_id='+user.id+'&limit=50');
-      const posts = r.posts || [];
-      if (!posts.length) { el.innerHTML = '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum post.</p>'; return; }
-      const byDate = {};
-      posts.forEach(p => { const d = new Date(p.created_at).toLocaleDateString('pt-BR'); if(!byDate[d]) byDate[d]=[]; byDate[d].push(p); });
-      el.innerHTML = '<div style="display:flex;flex-direction:column;gap:14px;">' +
-        Object.entries(byDate).map(([date,ps]) =>
-          `<div><div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">📅 ${date}</div>`
-          + '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">'
-          + ps.map(p =>
-              '<div style="flex-shrink:0;width:110px;background:var(--surface2);border-radius:8px;overflow:hidden;">'
-              + (p.image_url ? `<img src="${p.image_url}" style="width:110px;height:80px;object-fit:cover;">` : `<div style="width:110px;height:80px;display:flex;align-items:center;justify-content:center;padding:6px;font-size:11px;color:var(--text2);">${(p.caption||p.content||'').slice(0,50)}</div>`)
-              + `<div style="padding:3px 6px;font-size:10px;color:var(--muted);">${new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div>`
-            ).join('')
-          + '</div></div>'
-        ).join('') + '</div>';
-
     } else if (sec === 'conquistas') {
       const data = await api('/api/achievements/user/' + username);
       el.innerHTML = data.earned?.length
         ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' + data.earned.map(a =>
             '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;">'
-            + (a.image_url ? `<img src="${a.image_url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;margin:0 auto 4px;display:block;">` : `<div style="font-size:28px;">${a.icon}</div>`)
-            + `<div style="font-size:11px;font-weight:700;margin-top:4px;">${a.name}</div>`
-            + `<div style="font-size:10px;color:var(--gold);">+${a.points} pts</div>`
+            + '<div style="font-size:28px;">'+a.icon+'</div>'
+            + '<div style="font-size:11px;font-weight:700;margin-top:4px;">'+a.name+'</div>'
             + '</div>'
           ).join('') + '</div>'
-        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhuma conquista.</p>';
-
+        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhuma conquista ainda.</p>';
     } else if (sec === 'depoimentos') {
-      const data = await api('/api/testimonials/' + username);
+      const { user } = await api('/api/users/' + username);
+      const data = await api('/api/testimonials/' + user.id);
       const list = data.testimonials?.length
         ? data.testimonials.map(t =>
-            '<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;gap:10px;">'
-            + `<img src="${t.author_avatar||avatarUrl(t.author_name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" data-username="${t.author_username}">`
-            + '<div><div style="font-weight:700;font-size:13px;cursor:pointer;" data-username="'+t.author_username+'">'+t.author_name+'</div>'
-            + `<div style="font-size:13px;font-style:italic;margin-top:4px;">${t.content}</div>`
-            + `<div class="text-muted" style="font-size:11px;margin-top:4px;">${timeAgo(t.created_at)}</div></div>`
+            '<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">'
+            + '<div style="font-weight:700;font-size:13px;">'+t.author_name+'</div>'
+            + '<div style="font-size:13px;color:var(--text2);margin-top:4px;font-style:italic;">'+t.content+'</div>'
             + '</div>'
           ).join('')
         : '<p class="text-muted" style="padding:16px;text-align:center;">Nenhum depoimento ainda.</p>';
-      el.innerHTML =
-        `<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;">
-          <div style="font-weight:700;font-size:14px;margin-bottom:8px;">✍️ Deixar um depoimento</div>
-          <textarea id="visitor-testimonial-text" placeholder="O que você pensa sobre esta pessoa?" style="width:100%;min-height:80px;"></textarea>
-          <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="sendTestimonialToUser('${username}')">Enviar 💬</button>
-        </div>` + list;
-
-    } else if (sec === 'amigos') {
-      const { user } = await api('/api/users/' + username);
-      const r = await api('/api/friends/' + user.id);
-      el.innerHTML = r.friends?.length
-        ? '<div style="display:flex;flex-direction:column;gap:8px;">' + r.friends.map(f =>
-            `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px;cursor:pointer;" data-username="${f.username}">`
-            + `<img src="${f.avatar_url||avatarUrl(f.name)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`
-            + `<div><div style="font-weight:700;font-size:14px;">${f.name}</div><div class="text-muted" style="font-size:12px;">@${f.username}</div></div></div>`
-          ).join('') + '</div>'
-        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum amigo ainda.</p>';
+      // Formulário para escrever depoimento
+      el.dataset.username = username;
+      el.innerHTML = '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;">'
+        + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">✍️ Deixar depoimento</div>'
+        + '<textarea id="visitor-testimonial-text" placeholder="Escreva algo sobre '+user.name+'..." style="min-height:80px;width:100%;"></textarea>'
+        + '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="sendTestimonialToUser(\''+user.id+'\')">Enviar depoimento</button>'
+        + '</div>' + list;
     }
-  } catch(e) { el.innerHTML = `<p class="text-muted" style="padding:16px;">${e.message}</p>`; }
+  } catch(e) { el.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
 }
 
 async function sendFriendReqDirect(userId, name) {
@@ -3653,15 +3773,16 @@ async function loadAgoraFeed() {
 }
 
 // Depoimento em outro usuário
-async function sendTestimonialToUser(targetUsername) {
+async function sendTestimonialToUser(targetUserId) {
   const content = document.getElementById('visitor-testimonial-text')?.value?.trim();
   if(!content){ toast('Escreva o depoimento', 'error'); return; }
-  if(content.length < 10){ toast('Depoimento muito curto (mínimo 10 caracteres)', 'error'); return; }
   try {
-    await api('/api/testimonials/' + targetUsername, { method:'POST', body: JSON.stringify({ content }) });
+    await api('/api/testimonials/'+targetUserId, { method:'POST', body: JSON.stringify({ content }) });
     toast('Depoimento enviado! 💬', 'success');
     document.getElementById('visitor-testimonial-text').value = '';
-    loadVisitorSection('depoimentos', targetUsername, null);
+    // Recarregar depoimentos
+    const username = document.getElementById('visitor-section-content')?.dataset?.username;
+    if(username) loadVisitorSection('depoimentos', username, null);
   } catch(e) { toast(e.message, 'error'); }
 }
 
@@ -4053,347 +4174,10 @@ async function sendCommunityInvite(userId, btn) {
 const _origLoadApp = typeof loadApp !== 'undefined' ? loadApp : null;
 document.addEventListener('DOMContentLoaded', () => {
   // Polling começa quando usuário estiver logado
-  setInterval(() => { if (currentUser) pollNotifBadge(); }, 10000);
-  setTimeout(() => { if (currentUser) pollNotifBadge(); }, 1000);
+  setInterval(() => { if (currentUser) pollNotifBadge(); }, 30000);
+  setTimeout(() => { if (currentUser) pollNotifBadge(); }, 2000);
 });
 </script>
 
-
-<!-- Modais -->
-<div class="modal-overlay" id="modal-post">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title" id="post-modal-title">Nova publicação</span><button class="modal-close" onclick="closeModal('modal-post')">✕</button></div>
-    <div class="modal-body">
-      <div class="post-type-sw" id="post-type-sw">
-        <button class="pt-btn active" onclick="setPostType('photo')">📷 Foto</button>
-        <button class="pt-btn" onclick="setPostType('text')">✍️ Texto</button>
-      </div>
-      <div id="photo-section">
-        <img class="photo-preview-img" id="photo-preview">
-        <label class="drop-zone" for="photo-file" id="drop-label">
-          <div style="font-size:28px;margin-bottom:8px;">📷</div>
-          <div style="font-size:14px;color:var(--muted);">Abrir câmera ou escolher foto</div>
-        </label>
-        <input type="file" id="photo-file" accept="image/*" capture="environment" style="display:none;" onchange="onPhotoSelected(event)">
-        <input type="text" id="photo-caption" placeholder="Descrição da foto (opcional)">
-      </div>
-      <div id="text-section" class="hidden">
-        <textarea id="post-text" placeholder="O que você está pensando?" style="min-height:110px;"></textarea>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
-          <input type="checkbox" id="post-anon" style="width:auto;">
-          <span style="color:var(--muted);">Postar como anônimo</span>
-        </label>
-      </div>
-      <button class="btn btn-primary" style="width:100%;" onclick="submitPost()" id="btn-submit">Publicar</button>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-search-user">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">Buscar pessoas</span><button class="modal-close" onclick="closeModal('modal-search-user')">✕</button></div>
-    <div class="modal-body">
-      <input type="text" id="search-input" placeholder="Nome ou @usuário..." oninput="searchUsers()">
-      <div id="search-results" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-friend-req">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">Adicionar amigo</span><button class="modal-close" onclick="closeModal('modal-friend-req')">✕</button></div>
-    <div class="modal-body">
-      <div id="friend-req-user" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:12px;"></div>
-      <p style="font-size:13px;color:var(--muted);font-style:italic;">"o que dizer de <span id="friend-req-name"></span> que mal conheço e já considero pakas..."</p>
-      <textarea id="friend-req-msg" placeholder="Escreva uma mensagem para enviar junto..." style="min-height:90px;"></textarea>
-      <button class="btn btn-primary" style="width:100%;" onclick="sendFriendRequest()">Enviar solicitação 🤝</button>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-create-comm">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">Criar comunidade</span><button class="modal-close" onclick="closeModal('modal-create-comm')">✕</button></div>
-    <div class="modal-body">
-      <div><label>Nome</label><input type="text" id="cn-name" placeholder="Ex: Amantes de café"></div>
-      <div><label>Descrição</label><textarea id="cn-desc" placeholder="Do que se trata essa comunidade?"></textarea></div>
-      <div class="form-row">
-        <div><label>Tipo</label><select id="cn-type"><option value="interest">Interesse / Hobby</option><option value="local">Local / Regional</option></select></div>
-        <div><label>Privacidade</label><select id="cn-open"><option value="1">Aberta — qualquer um entra</option><option value="0">Fechada — precisa de aprovação</option></select></div>
-      </div>
-      <button class="btn btn-primary" style="width:100%;" onclick="createCommunity()">Criar comunidade 🏗️</button>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-edit-profile">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">Editar perfil</span><button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button></div>
-    <div class="modal-body">
-      <div><label>Nome</label><input type="text" id="ep-name"></div>
-      <div><label>Bio</label><textarea id="ep-bio" style="min-height:70px;"></textarea></div>
-      <div><label>O que você faz</label><input type="text" id="ep-occ"></div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:4px 0;">Profissional</div>
-      <div><label>Título profissional</label><input type="text" id="ep-ptitle" placeholder="Ex: Designer UX Sênior"></div>
-      <div><label>Link (portfólio, site)</label><input type="url" id="ep-purl" placeholder="https://"></div>
-      <div><label>Sobre o trabalho</label><textarea id="ep-pdesc" style="min-height:70px;" placeholder="O que você faz, vende, oferece..."></textarea></div>
-      <button class="btn btn-primary" style="width:100%;" onclick="saveProfile()">Salvar ✅</button>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-post-detail">
-  <div class="modal" style="max-width:600px;">
-    <div class="modal-hdr"><span class="modal-title">Post</span><button class="modal-close" onclick="closeModal('modal-post-detail')">✕</button></div>
-    <div class="modal-body" id="post-detail-body"></div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-community" style="align-items:stretch;padding:0;">
-  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
-    <div class="modal-hdr" style="flex-shrink:0;">
-      <span class="modal-title" id="comm-forum-title">Comunidade</span>
-      <button class="modal-close" onclick="closeModal('modal-community')">✕</button>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:16px;">
-      <div class="comm-forum-layout" id="comm-forum-layout">
-        <div class="page-loader"><div class="loader"></div></div>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-badges">
-  <div class="modal">
-    <div class="modal-hdr">
-      <span class="modal-title">🏅 Escolher badges em destaque</span>
-      <button class="modal-close" onclick="closeModal('modal-badges')">✕</button>
-    </div>
-    <div class="modal-body">
-      <p class="text-muted" style="margin-bottom:14px;">Escolha até 5 conquistas para exibir no seu perfil. Clique para selecionar/desselecionar.</p>
-      <div id="badge-selector-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;max-height:400px;overflow-y:auto;"></div>
-      <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="saveBadges()">Salvar badges ✅</button>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-add-point" style="z-index:10000;">
-  <div class="modal" style="max-width:580px;">
-    <div class="modal-hdr">
-      <span class="modal-title">🏆 Adicionar ponto de conquista</span>
-      <button class="modal-close" onclick="closeModal('modal-add-point')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button class="pt-btn active" id="pt-ponto" onclick="setPointModalType('ponto',this)">📍 Ponto</button>
-        <button class="pt-btn" id="pt-roteiro" onclick="setPointModalType('roteiro',this)">🗺️ Roteiro</button>
-      </div>
-
-      <!-- PONTO -->
-      <div id="pm-ponto" style="display:flex;flex-direction:column;gap:10px;">
-        <div><label>Título do local</label><input type="text" id="pm-title" placeholder="Ex: Torre Eiffel, Ponte Torta, Museu X..."></div>
-        <div><label>Descrição / Instrução para o usuário</label><textarea id="pm-desc" placeholder="Ex: Poste uma selfie em frente ao museu!" style="min-height:70px;"></textarea></div>
-        <div class="form-row">
-          <div><label>Ícone</label>
-            <select id="pm-icon">
-              <option value="🏆">🏆 Conquista</option>
-              <option value="📸">📸 Foto</option>
-              <option value="🏛️">🏛️ Cultura</option>
-              <option value="🍽️">🍽️ Gastronomia</option>
-              <option value="🌿">🌿 Natureza</option>
-              <option value="⚽">⚽ Esporte</option>
-              <option value="🛍️">🛍️ Compras</option>
-              <option value="🎭">🎭 Arte</option>
-              <option value="🏖️">🏖️ Praia</option>
-              <option value="⭐">⭐ Especial</option>
-            </select>
-          </div>
-          <div><label>Categoria</label>
-            <select id="pm-category">
-              <option value="cultura">Cultura</option>
-              <option value="gastronomia">Gastronomia</option>
-              <option value="natureza">Natureza</option>
-              <option value="esporte">Esporte</option>
-              <option value="turismo">Turismo</option>
-              <option value="marca">Marca / Parceiro</option>
-              <option value="especial">Especial</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div><label>Pontos ao fazer check-in</label><input type="number" id="pm-points" value="100" min="10" max="2000"></div>
-          <div><label>Raio de check-in (metros)</label><input type="number" id="pm-radius" value="100" min="20" max="1000"></div>
-        </div>
-        <div><label>Roteiro (opcional)</label>
-          <select id="pm-route"><option value="">Nenhum roteiro</option></select>
-        </div>
-        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:14px;">
-          <div style="font-weight:700;font-size:13px;margin-bottom:8px;">📍 Localização do ponto</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Clique no botão abaixo para usar sua localização atual, ou preencha as coordenadas manualmente.</div>
-          <button class="btn btn-ghost btn-sm" onclick="useMyLocationForPoint()" style="margin-bottom:10px;">📍 Usar minha localização atual</button>
-          <div class="form-row">
-            <div><label>Latitude</label><input type="number" id="pm-lat" placeholder="-23.1841" step="0.000001"></div>
-            <div><label>Longitude</label><input type="number" id="pm-lng" placeholder="-46.8825" step="0.000001"></div>
-          </div>
-          <div id="pm-loc-status" class="text-muted" style="font-size:12px;margin-top:6px;"></div>
-        </div>
-        <button class="btn btn-primary" style="width:100%;" onclick="saveMapPoint()">Criar ponto de conquista 🏆</button>
-      </div>
-
-      <!-- ROTEIRO -->
-      <div id="pm-roteiro" style="display:none;flex-direction:column;gap:10px;">
-        <div><label>Nome do roteiro</label><input type="text" id="rr-title" placeholder="Ex: Roteiro Cultural de Jundiaí"></div>
-        <div><label>Descrição</label><textarea id="rr-desc" placeholder="Conheça os pontos históricos de..." style="min-height:70px;"></textarea></div>
-        <div class="form-row">
-          <div><label>Cidade</label><input type="text" id="rr-city" placeholder="Jundiaí"></div>
-          <div><label>Estado</label><input type="text" id="rr-state" placeholder="SP" maxlength="2"></div>
-        </div>
-        <div class="form-row">
-          <div><label>Ícone</label>
-            <select id="rr-icon">
-              <option value="🗺️">🗺️ Roteiro</option>
-              <option value="🏛️">🏛️ Cultura</option>
-              <option value="🍽️">🍽️ Gastronomia</option>
-              <option value="🌿">🌿 Natureza</option>
-              <option value="⚽">⚽ Esporte</option>
-            </select>
-          </div>
-          <div><label>Categoria</label>
-            <select id="rr-category">
-              <option value="cultura">Cultura</option>
-              <option value="gastronomia">Gastronomia</option>
-              <option value="natureza">Natureza</option>
-              <option value="turismo">Turismo</option>
-              <option value="esporte">Esporte</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn btn-primary" style="width:100%;" onclick="saveRoute()">Criar roteiro 🗺️</button>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-checkin" style="z-index:10000;">
-  <div class="modal">
-    <div class="modal-hdr">
-      <span class="modal-title" id="checkin-modal-title">Check-in</span>
-      <button class="modal-close" onclick="closeModal('modal-checkin')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="checkin-body">
-        <div style="text-align:center;padding:20px 0;">
-          <div style="font-size:48px;" id="checkin-icon">🏆</div>
-          <div style="font-family:Syne;font-size:20px;font-weight:800;margin:8px 0;" id="checkin-title"></div>
-          <div style="font-size:14px;color:var(--muted);margin-bottom:16px;" id="checkin-desc"></div>
-          <div style="background:var(--surface2);border-radius:12px;padding:12px;margin-bottom:16px;">
-            <div class="text-muted" style="font-size:12px;margin-bottom:4px;">Pontos ao fazer check-in</div>
-            <div style="font-family:'DM Mono';font-size:28px;font-weight:700;color:var(--gold);" id="checkin-pts"></div>
-          </div>
-          <div id="checkin-dist-info" style="font-size:13px;color:var(--muted);margin-bottom:16px;"></div>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Tire uma foto para registrar sua visita e compartilhar com todos! 📸</p>
-          <label class="drop-zone" for="checkin-photo" style="padding:20px;margin-bottom:12px;display:block;">
-            <div style="font-size:28px;">📷</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:6px;">Abrir câmera</div>
-          </label>
-          <input type="file" id="checkin-photo" accept="image/*" capture="environment" style="display:none;" onchange="onCheckinPhotoSelected(event)">
-          <img id="checkin-preview" style="width:100%;border-radius:12px;margin-bottom:12px;display:none;">
-          <button class="btn btn-primary" style="width:100%;font-size:16px;padding:14px;" onclick="doCheckin()" id="btn-do-checkin">
-            📍 Fazer check-in
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-create-event">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">📅 Criar evento</span><button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
-    <div class="modal-body">
-      <div><label>Nome do evento *</label><input type="text" id="ev-title" placeholder="Ex: Churrasco de aniversário"></div>
-      <div><label>Descrição</label><textarea id="ev-desc" placeholder="Conte mais sobre o evento..." style="min-height:80px;"></textarea></div>
-      <div><label>Local</label><input type="text" id="ev-location" placeholder="Ex: Minha casa, Parque..."></div>
-      <div><label>Data e hora (opcional)</label><input type="datetime-local" id="ev-start"></div>
-      <button class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="createEvent()">Criar evento 🎉</button>
-      <div id="ev-error-msg" style="display:none;margin-top:10px;padding:10px;background:#fee2e2;color:#dc2626;border-radius:8px;font-size:13px;font-weight:600;"></div>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-event" style="align-items:stretch;padding:0;">
-  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
-    <div class="modal-hdr" style="flex-shrink:0;">
-      <span class="modal-title" id="event-modal-title">Evento</span>
-      <button class="modal-close" onclick="closeModal('modal-event')">✕</button>
-    </div>
-    <div style="flex:1;overflow-y:auto;">
-      <div id="event-modal-body" style="padding:16px;"></div>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-decline-event">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">😔 Não vai poder ir?</span><button class="modal-close" onclick="closeModal('modal-decline-event')">✕</button></div>
-    <div class="modal-body">
-      <p class="text-muted" style="margin-bottom:12px;">Conta o motivo para quem te convidou. Vai fazer diferença!</p>
-      <textarea id="decline-reason" placeholder="Ex: Tenho outro compromisso nesse dia..." style="min-height:80px;"></textarea>
-      <button class="btn btn-primary" style="width:100%;" onclick="confirmDecline()">Enviar resposta</button>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-invite-event">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">👥 Convidar pessoas</span><button class="modal-close" onclick="closeModal('modal-invite-event')">✕</button></div>
-    <div class="modal-body">
-      <input type="text" id="invite-search-input" placeholder="Buscar por nome ou @usuário..." oninput="debouncedEventSearch()">
-      <div id="invite-search-results" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-user-profile">
-  <div class="modal" style="max-height:92vh;display:flex;flex-direction:column;">
-    <div class="modal-hdr" style="flex-shrink:0;">
-      <span class="modal-title">Perfil</span>
-      <button class="modal-close" onclick="closeModal('modal-user-profile')">✕</button>
-    </div>
-    <div class="modal-body" id="user-profile-body" style="flex:1;overflow-y:auto;padding:20px;">
-      <div class="page-loader"><div class="loader"></div></div>
-    </div>
-  </div>
-</div>
-<!-- MODAL CRIAR/EDITAR CONQUISTA -->
-<div class="modal-overlay" id="modal-create-achievement">
-  <div class="modal">
-    <div class="modal-hdr">
-      <span class="modal-title" id="ach-modal-title">🏆 Nova conquista</span>
-      <button class="modal-close" onclick="closeModal('modal-create-achievement')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="ach-edit-id">
-      <!-- Imagem da medalha -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px;">
-        <div style="position:relative;width:120px;height:120px;">
-          <div id="ach-img-placeholder" style="width:120px;height:120px;background:var(--surface2);border-radius:50%;border:3px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="document.getElementById('ach-img-file').click()">
-            <div style="text-align:center;color:var(--muted);">
-              <div style="font-size:32px;" id="ach-icon-preview">🏆</div>
-              <div style="font-size:11px;margin-top:4px;">Imagem</div>
-            </div>
-          </div>
-          <img id="ach-img-preview" src="" style="width:120px;height:120px;border-radius:50%;object-fit:cover;display:none;position:absolute;top:0;left:0;">
-          <label for="ach-img-file" style="position:absolute;bottom:0;right:0;background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;">📷</label>
-        </div>
-        <input type="file" id="ach-img-file" accept="image/*" style="display:none;" onchange="previewAchievementImg(this)">
-        <div style="font-size:12px;color:var(--muted);">Ou use um emoji como ícone:</div>
-        <input type="text" id="ach-icon" placeholder="Ex: 🏅 🌟 🎯" style="width:100%;text-align:center;font-size:22px;" maxlength="4" oninput="document.getElementById('ach-icon-preview').textContent=this.value||'🏆'">
-      </div>
-      <div><label>Nome da conquista *</label><input type="text" id="ach-name" placeholder="Ex: Primeiro post"></div>
-      <div><label>Descrição</label><textarea id="ach-desc" placeholder="Como conquistar..." style="min-height:70px;"></textarea></div>
-      <div class="form-row">
-        <div><label>Pontos</label><input type="number" id="ach-points" value="100" min="1" max="9999"></div>
-        <div><label>Categoria</label>
-          <select id="ach-category">
-            <option value="geral">Geral</option>
-            <option value="social">Social</option>
-            <option value="conteudo">Conteúdo</option>
-            <option value="exploracao">Exploração</option>
-            <option value="conquista">Conquista</option>
-            <option value="especial">Especial</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn btn-primary" style="width:100%;margin-top:8px;" id="ach-submit-btn" onclick="saveAchievement()">Criar conquista 🏆</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
