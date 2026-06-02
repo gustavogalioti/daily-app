@@ -221,6 +221,15 @@ async function initPG() {
   ];
   for (const m of migrations) { try { await pool.query(m); } catch(e) { /* migration já existe */ } }
   // Criar índices para notificações (não bloqueante)
+  // Garantir tabela user_notifications (segurança extra)
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS user_notifications (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, from_user_id TEXT,
+      type TEXT NOT NULL, title TEXT NOT NULL, body TEXT,
+      data JSONB DEFAULT '{}', read INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
+  } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_user_notif_user ON user_notifications(user_id, read, created_at DESC)'); } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_comm_invites ON community_invites(invitee_id, status)'); } catch(_) {}
 
