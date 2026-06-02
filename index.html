@@ -744,7 +744,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <div class="profile-tab active" onclick="showProfileSec('timeline',this)" style="flex-shrink:0;">📅 Linha</div>
         <div class="profile-tab" onclick="showProfileSec('amigos',this)" style="flex-shrink:0;">👥 Amigos</div>
         <div class="profile-tab" onclick="showProfileSec('comunidades',this)" style="flex-shrink:0;">🏘️ Comunidades</div>
-        <div class="profile-tab" onclick="showProfileSec('eventos',this)" style="flex-shrink:0;">📅 Eventos</div>
+
         <div class="profile-tab" onclick="showProfileSec('depoimentos',this)" style="flex-shrink:0;">💬 Depoi.</div>
         <div class="profile-tab" onclick="showProfileSec('conquistas',this)" style="flex-shrink:0;">🏆</div>
         <div class="profile-tab" onclick="showProfileSec('profissional',this)" style="flex-shrink:0;">💼</div>
@@ -764,13 +764,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div id="ps-amigos" class="hidden">
         <div id="profile-friends-grid" class="friends-grid" style="margin-top:4px;"></div>
       </div>
-      <div id="ps-eventos" class="hidden">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div style="font-family:Syne;font-weight:700;font-size:15px;">Meus Eventos</div>
-          <button class="btn btn-primary btn-sm" onclick="openCreateEventModal()">+ Criar evento</button>
-        </div>
-        <div id="profile-events-list" style="display:flex;flex-direction:column;gap:10px;"></div>
-      </div>
+      
       <div id="ps-depoimentos" class="hidden"><div id="testimonials-wrap"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="ps-conquistas" class="hidden"><div class="ach-grid" id="profile-ach-grid"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="ps-profissional" class="hidden"><div class="card" style="padding:24px;" id="prof-section"><div class="page-loader"><div class="loader"></div></div></div></div>
@@ -1110,68 +1104,16 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 </div>
 
 <!-- Modal: Criar Evento -->
-<div class="modal-overlay" id="modal-create-event">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">📅 Criar evento</span><button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
-    <div class="modal-body">
-      <!-- Foto do evento -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:4px;">
-        <div style="position:relative;width:100%;height:140px;background:var(--surface2);border-radius:12px;overflow:hidden;border:2px dashed var(--border);">
-          <img id="ev-photo-preview" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
-          <label for="ev-photo-file" id="ev-photo-label" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:6px;color:var(--muted);">
-            <span style="font-size:28px;">🖼️</span>
-            <span style="font-size:13px;font-weight:600;">Adicionar capa do evento</span>
-          </label>
-          <input type="file" id="ev-photo-file" accept="image/*" style="display:none;" onchange="previewEventPhoto(this)">
-        </div>
-      </div>
-      <div><label>Título do evento</label><input type="text" id="ev-title" placeholder="Ex: Churrasco de aniversário"></div>
-      <div><label>Descrição</label><textarea id="ev-desc" placeholder="Conte mais sobre o evento..." style="min-height:80px;"></textarea></div>
-      <div><label>Local</label><input type="text" id="ev-location" placeholder="Ex: Minha casa, Parque da Cidade..."></div>
-      <div class="form-row">
-        <div><label>Data e hora de início</label><input type="datetime-local" id="ev-start"></div>
-        <div><label>Data e hora de fim</label><input type="datetime-local" id="ev-end"></div>
-      </div>
-      <button class="btn btn-primary" style="width:100%;" id="ev-submit-btn" onclick="createEvent()">Criar evento 🎉</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Modal: Evento (página interna) -->
-<div class="modal-overlay" id="modal-event" style="align-items:stretch;padding:0;">
-  <div class="modal" style="max-width:100%;width:100%;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
-    <div class="modal-hdr" style="flex-shrink:0;">
-      <span class="modal-title" id="event-modal-title">Evento</span>
-      <button class="modal-close" onclick="closeModal('modal-event')">✕</button>
-    </div>
-    <div style="flex:1;overflow-y:auto;">
-      <div id="event-modal-body" style="padding:16px;"></div>
-    </div>
-  </div>
-</div>
+
 
 <!-- Modal: Recusar convite -->
-<div class="modal-overlay" id="modal-decline-event">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">😔 Não vai poder ir?</span><button class="modal-close" onclick="closeModal('modal-decline-event')">✕</button></div>
-    <div class="modal-body">
-      <p class="text-muted" style="margin-bottom:12px;">Conta o motivo para quem te convidou. Vai fazer diferença!</p>
-      <textarea id="decline-reason" placeholder="Ex: Tenho outro compromisso nesse dia..." style="min-height:80px;"></textarea>
-      <button class="btn btn-primary" style="width:100%;" onclick="confirmDecline()">Enviar resposta</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Modal: Convidar para evento -->
-<div class="modal-overlay" id="modal-invite-event">
-  <div class="modal">
-    <div class="modal-hdr"><span class="modal-title">👥 Convidar pessoas</span><button class="modal-close" onclick="closeModal('modal-invite-event')">✕</button></div>
-    <div class="modal-body">
-      <input type="text" id="invite-search-input" placeholder="Buscar por nome ou @usuário..." oninput="debouncedEventSearch()">
-      <div id="invite-search-results" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
-    </div>
-  </div>
-</div>
+
 
 <!-- Modal: Ver perfil de usuário -->
 <div class="modal-overlay" id="modal-user-profile">
@@ -3501,117 +3443,163 @@ document.addEventListener('click', function(e) {
 
 async function openUserProfile(username) {
   if(!username) return;
-  // Se é o próprio usuário
   if(username === currentUser?.username) {
     switchTab('profile', document.querySelector('[data-tab=profile]'));
     return;
   }
-  // Abrir perfil completo do usuário (mesma tela do perfil)
-  openFullUserProfile(username);
+  // Tela cheia
+  showVisitorProfile(username);
 }
 
-async function openFullUserProfile(username) {
-  if(!username) return;
-  if(username === currentUser?.username) {
-    switchTab('profile', document.querySelector('[data-tab=profile]'));
-    return;
-  }
-  const modal = document.getElementById('modal-user-profile');
-  if(!modal) { toast('Modal não encontrado', 'error'); return; }
-  openModal('modal-user-profile');
-  const body = document.getElementById('user-profile-body');
-  if(body) body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+function closeVisitorProfile() {
+  const sc = document.getElementById('screen-visitor');
+  if (sc) sc.style.display = 'none';
+}
+
+async function showVisitorProfile(username) {
+  if (!username) return;
+  const sc = document.getElementById('screen-visitor');
+  const body = document.getElementById('visitor-screen-body');
+  const nameEl = document.getElementById('visitor-screen-name');
+  if (!sc || !body) return;
+  sc.style.display = 'flex';
+  sc.style.flexDirection = 'column';
+  sc.scrollTop = 0;
+  body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
   try {
     const { user } = await api('/api/users/' + username);
+    if (nameEl) nameEl.textContent = user.name.split(' ')[0];
     const av = user.avatar_url || avatarUrl(user.name);
     const fs = user.friendship_status;
     let actionBtn = '';
     if (fs === 'friends') {
-      actionBtn = '<span style="color:var(--green);font-weight:600;">✅ Amigos</span>';
+      actionBtn = '<span style="color:var(--green);font-weight:700;font-size:14px;">✅ Amigos</span>';
     } else if (fs === 'pending_sent') {
-      actionBtn = '<span style="color:var(--muted);">⏳ Solicitação enviada</span>';
-    } else {
-      actionBtn = '<button class="btn btn-primary btn-sm" onclick="sendFriendReqDirect(\''+user.id+'\',\''+user.name.replace(/[^a-zA-Z0-9 ]/g,'')+'\')" >+ Adicionar amigo</button>';
+      actionBtn = '<span style="color:var(--muted);font-size:13px;">⏳ Solicitação enviada</span>';
+    } else if (user.id !== currentUser?.id) {
+      actionBtn = '<button class="btn btn-primary btn-sm" onclick="sendFriendReqDirect(\''+user.id+'\',\''+user.name.replace(/[^a-zA-Z0-9 ]/g,'')+'\',\''+user.username+'\',\''+av+'\')">+ Adicionar amigo</button>';
     }
-    // Perfil completo com tabs
-    if(body) body.innerHTML =
-      '<div style="text-align:center;padding:16px 0 12px;">'
-      + '<img class="avatar" src="'+av+'" width="80" height="80" style="border:3px solid var(--accent);margin-bottom:10px;">'
-      + '<div style="font-family:Syne;font-size:18px;font-weight:800;">'+user.name+'</div>'
-      + '<div class="text-muted">@'+user.username+'</div>'
-      + (user.bio ? '<div style="font-size:13px;color:var(--text2);margin-top:6px;padding:0 10px;">'+user.bio+'</div>' : '')
-      + (user.city ? '<div class="text-muted" style="font-size:12px;margin-top:4px;">📍 '+user.city+(user.state?', '+user.state:'')+'</div>' : '')
-      + '<div style="margin-top:10px;">'+actionBtn+'</div></div>'
-      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">'
-      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--accent);">'+(user.stats?.posts||0)+'</div><div class="text-muted" style="font-size:11px;">Posts</div></div>'
-      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--accent);">'+(user.stats?.friends_count||0)+'</div><div class="text-muted" style="font-size:11px;">Amigos</div></div>'
-      + '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;"><div style="font-family:Syne;font-size:18px;font-weight:800;color:var(--gold);">'+(user.points||0)+'</div><div class="text-muted" style="font-size:11px;">Pontos</div></div>'
-      + '</div>'
-      + '<div style="display:flex;border-bottom:1.5px solid var(--border);margin-bottom:12px;gap:0;">'
-      + '<button style="flex:1;padding:10px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;border-bottom:2.5px solid var(--accent);color:var(--accent);" onclick="loadVisitorSection(\'posts\',\''+username+'\',this)">Posts</button>'
-      + '<button style="flex:1;padding:10px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection(\'conquistas\',\''+username+'\',this)">🏆</button>'
-      + '<button style="flex:1;padding:10px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection(\'depoimentos\',\''+username+'\',this)">💬 Depoi.</button>'
-      + '</div>'
-      + '<div id="visitor-section-content"><div class="page-loader"><div class="loader"></div></div></div>';
-    // Carregar posts automaticamente
-    loadVisitorSection('posts', username, document.querySelector('#user-profile-body button'));
+
+    body.innerHTML = `
+      <!-- Card principal igual ao perfil próprio -->
+      <div style="background:var(--surface);border-radius:0 0 20px 20px;padding:24px 20px 20px;text-align:center;margin-bottom:10px;">
+        <img class="avatar" src="${av}" width="90" height="90" style="border:3px solid var(--accent);margin-bottom:12px;">
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;line-height:1.2;">${user.name}</div>
+        <div class="text-muted" style="margin-top:2px;">@${user.username}</div>
+        ${user.bio ? `<div style="font-size:13px;color:var(--text2);margin-top:8px;">${user.bio}</div>` : ''}
+        ${user.occupation ? `<div class="text-muted" style="font-size:12px;margin-top:4px;">💼 ${user.occupation}</div>` : ''}
+        ${user.city ? `<div class="text-muted" style="font-size:12px;margin-top:2px;">📍 ${user.city}${user.state?', '+user.state:''}</div>` : ''}
+        <div style="margin-top:14px;">${actionBtn}</div>
+      </div>
+
+      <!-- Contadores -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 12px;margin-bottom:10px;">
+        <div style="background:var(--surface);border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);">${user.stats?.posts||0}</div>
+          <div class="text-muted" style="font-size:10px;">Posts</div>
+        </div>
+        <div style="background:var(--surface);border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);">${user.stats?.friends_count||0}</div>
+          <div class="text-muted" style="font-size:10px;">Amigos</div>
+        </div>
+        <div style="background:var(--surface);border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--gold);">${user.points||0}</div>
+          <div class="text-muted" style="font-size:10px;">Pontos</div>
+        </div>
+        <div style="background:var(--surface);border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);">${user.stats?.active_days||0}</div>
+          <div class="text-muted" style="font-size:10px;">Dias</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div style="background:var(--surface);border-radius:16px;margin:0 12px;overflow:hidden;">
+        <div style="display:flex;border-bottom:1.5px solid var(--border);" id="visitor-tabs">
+          <button class="vtab active" style="flex:1;padding:12px 8px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--accent);border-bottom:2.5px solid var(--accent);" onclick="loadVisitorSection('posts','${username}',this)">Posts</button>
+          <button class="vtab" style="flex:1;padding:12px 8px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('amigos','${username}',this)">Amigos</button>
+          <button class="vtab" style="flex:1;padding:12px 8px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('conquistas','${username}',this)">🏆</button>
+          <button class="vtab" style="flex:1;padding:12px 8px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('depoimentos','${username}',this)">💬</button>
+        </div>
+        <div id="visitor-section-content" style="padding:14px;min-height:200px;"><div class="page-loader"><div class="loader"></div></div></div>
+      </div>
+      <div style="height:40px;"></div>
+    `;
+    loadVisitorSection('posts', username, document.querySelector('#visitor-tabs .vtab'));
   } catch(e) {
-    if(body) body.innerHTML = '<p class="text-muted" style="padding:20px;text-align:center;">'+e.message+'</p>';
+    if(body) body.innerHTML = '<p class="text-muted" style="padding:30px;text-align:center;">'+e.message+'</p>';
   }
 }
 
+
 async function loadVisitorSection(sec, username, btn) {
   // Atualizar tab ativa
-  const btns = document.querySelectorAll('#user-profile-body button[onclick*="loadVisitorSection"]');
-  btns.forEach(b => { b.style.borderBottom='none'; b.style.color='var(--muted)'; });
-  if(btn) { btn.style.borderBottom='2.5px solid var(--accent)'; btn.style.color='var(--accent)'; }
+  document.querySelectorAll('#visitor-tabs .vtab').forEach(b => {
+    b.style.borderBottom = 'none'; b.style.color = 'var(--muted)';
+  });
+  if (btn) { btn.style.borderBottom = '2.5px solid var(--accent)'; btn.style.color = 'var(--accent)'; }
   const el = document.getElementById('visitor-section-content');
-  if(!el) return;
+  if (!el) return;
   el.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
   try {
     if (sec === 'posts') {
       const { user } = await api('/api/users/' + username);
-      const posts = await api('/api/posts?user_id='+user.id+'&limit=20');
-      el.innerHTML = posts.posts?.length
-        ? '<div style="display:flex;flex-direction:column;gap:10px;">' + posts.posts.map(p =>
-            '<div style="background:var(--surface2);border-radius:10px;padding:12px;">'
-            + (p.image_url ? '<img src="'+p.image_url+'" style="width:100%;border-radius:8px;margin-bottom:8px;">' : '')
-            + '<div style="font-size:13px;">'+( p.caption||p.content||'')+'</div>'
-            + '<div class="text-muted" style="font-size:11px;margin-top:4px;">'+timeAgo(p.created_at)+'</div>'
+      const { posts } = await api('/api/posts?user_id='+user.id+'&limit=20');
+      el.innerHTML = posts?.length
+        ? '<div style="display:flex;flex-direction:column;gap:10px;">' + posts.map(p =>
+            '<div style="background:var(--surface2);border-radius:12px;padding:12px;">'
+            + (p.image_url ? '<img src="'+p.image_url+'" style="width:100%;border-radius:8px;margin-bottom:8px;max-height:260px;object-fit:cover;">' : '')
+            + '<div style="font-size:14px;">'+(p.caption||p.content||'')+'</div>'
+            + '<div class="text-muted" style="font-size:11px;margin-top:6px;">'+timeAgo(p.created_at)+'</div>'
             + '</div>'
           ).join('') + '</div>'
         : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum post ainda.</p>';
+
+    } else if (sec === 'amigos') {
+      const { friends } = await api('/api/friends?user_id=' + username);
+      el.innerHTML = friends?.length
+        ? '<div style="display:flex;flex-direction:column;gap:8px;">' + friends.map(f =>
+            `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface2);border-radius:10px;cursor:pointer;" onclick="showVisitorProfile('${f.username}')">
+              <img class="avatar" src="${f.avatar_url||avatarUrl(f.name)}" width="40" height="40">
+              <div><div style="font-weight:700;font-size:13px;">${f.name}</div><div class="text-muted" style="font-size:11px;">@${f.username}</div></div>
+            </div>`
+          ).join('') + '</div>'
+        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum amigo ainda.</p>';
+
     } else if (sec === 'conquistas') {
       const data = await api('/api/achievements/user/' + username);
       el.innerHTML = data.earned?.length
         ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' + data.earned.map(a =>
             '<div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;">'
-            + '<div style="font-size:28px;">'+a.icon+'</div>'
-            + '<div style="font-size:11px;font-weight:700;margin-top:4px;">'+a.name+'</div>'
+            + (a.image_url ? '<img src="'+a.image_url+'" style="width:44px;height:44px;border-radius:8px;margin-bottom:6px;">'
+              : '<div style="font-size:28px;margin-bottom:4px;">'+(a.icon||'🏆')+'</div>')
+            + '<div style="font-size:11px;font-weight:700;line-height:1.2;">'+a.name+'</div>'
+            + '<div style="font-size:10px;color:var(--accent);">+'+a.points+' pts</div>'
             + '</div>'
           ).join('') + '</div>'
         : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhuma conquista ainda.</p>';
+
     } else if (sec === 'depoimentos') {
-      const { user } = await api('/api/users/' + username);
-      const data = await api('/api/testimonials/' + user.id);
-      const list = data.testimonials?.length
-        ? data.testimonials.map(t =>
-            '<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">'
-            + '<div style="font-weight:700;font-size:13px;">'+t.author_name+'</div>'
-            + '<div style="font-size:13px;color:var(--text2);margin-top:4px;font-style:italic;">'+t.content+'</div>'
-            + '</div>'
-          ).join('')
-        : '<p class="text-muted" style="padding:16px;text-align:center;">Nenhum depoimento ainda.</p>';
-      // Formulário para escrever depoimento
-      el.dataset.username = username;
-      el.innerHTML = '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;">'
-        + '<div style="font-weight:700;font-size:14px;margin-bottom:8px;">✍️ Deixar depoimento</div>'
-        + '<textarea id="visitor-testimonial-text" placeholder="Escreva algo sobre '+user.name+'..." style="min-height:80px;width:100%;"></textarea>'
-        + '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="sendTestimonialToUser(\''+user.id+'\')">Enviar depoimento</button>'
-        + '</div>' + list;
+      const data = await api('/api/testimonials/' + username);
+      el.innerHTML = data.testimonials?.length
+        ? '<div style="display:flex;flex-direction:column;gap:10px;">' + data.testimonials.map(t =>
+            `<div style="background:var(--surface2);border-radius:12px;padding:12px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <img class="avatar" src="${t.author_avatar||avatarUrl(t.author_name)}" width="32" height="32" style="cursor:pointer;" onclick="showVisitorProfile('${t.author_username}')">
+                <div>
+                  <div style="font-weight:700;font-size:13px;cursor:pointer;" onclick="showVisitorProfile('${t.author_username}')">${t.author_name}</div>
+                  <div class="text-muted" style="font-size:11px;">${timeAgo(t.created_at)}</div>
+                </div>
+              </div>
+              <div style="font-size:14px;line-height:1.5;">${t.content}</div>
+            </div>`
+          ).join('') + '</div>'
+        : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum depoimento ainda.</p>';
     }
-  } catch(e) { el.innerHTML = '<p class="text-muted">'+e.message+'</p>'; }
+  } catch(e) {
+    el.innerHTML = '<p class="text-muted" style="padding:20px;text-align:center;">'+e.message+'</p>';
+  }
 }
+
 
 async function sendFriendReqDirect(userId, name) {
   try {
@@ -4502,5 +4490,14 @@ function showOnboardBanners() {
 }
 </script>
 
+
+  <!-- ─── TELA PERFIL VISITANTE ─── -->
+  <div id="screen-visitor" style="display:none;position:fixed;inset:0;z-index:250;flex-direction:column;background:var(--surface2);overflow-y:auto;">
+    <div style="background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
+      <button onclick="closeVisitorProfile()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--text);line-height:1;padding:0 8px 0 0;">‹</button>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;" id="visitor-screen-name">Perfil</div>
+    </div>
+    <div id="visitor-screen-body" style="max-width:600px;margin:0 auto;width:100%;"></div>
+  </div>
 </body>
 </html>
