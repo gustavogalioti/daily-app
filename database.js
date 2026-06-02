@@ -255,6 +255,28 @@ async function initPG() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`);
   } catch(_) {}
+  // Migrations daily_questions
+  try { await pool.query('ALTER TABLE daily_questions ADD COLUMN IF NOT EXISTS options JSONB'); } catch(_) {}
+  try { await pool.query('ALTER TABLE daily_questions ADD COLUMN IF NOT EXISTS photo_mode INTEGER DEFAULT 0'); } catch(_) {}
+  // Seed perguntas fixas Daily
+  try {
+    const existing = await pool.query("SELECT COUNT(*) as c FROM daily_questions");
+    if (parseInt(existing.rows[0].c) < 4) {
+      const { v4: uuidv4 } = require('uuid');
+      const questions = [
+        { id: 'dq-manha', period: 'manha', question: 'Como você está começando o dia hoje?', options: null, photo_mode: 0 },
+        { id: 'dq-almoco', period: 'almoco', question: 'Já almoçou? O que comeu? Posta uma foto do prato! 📸', options: null, photo_mode: 1 },
+        { id: 'dq-tarde', period: 'tarde', question: 'Você tomou água hoje? 💧', options: JSON.stringify(['Sim! 💧', 'Não ainda']), photo_mode: 0 },
+        { id: 'dq-noite', period: 'noite', question: 'Como foi seu dia?', options: JSON.stringify(['Ótimo 😁', 'Normal 😐', 'Difícil 😔']), photo_mode: 0 },
+      ];
+      for (const q of questions) {
+        await pool.query(
+          'INSERT INTO daily_questions (id,period,question,options,photo_mode,active) VALUES ($1,$2,$3,$4,$5,1) ON CONFLICT (id) DO UPDATE SET question=$3,options=$4,photo_mode=$5,active=1',
+          [q.id, q.period, q.question, q.options, q.photo_mode]
+        );
+      }
+    }
+  } catch(e) { console.error('seed dq:', e.message); }
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_user_notif_user ON user_notifications(user_id, read, created_at DESC)'); } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_comm_invites ON community_invites(invitee_id, status)'); } catch(_) {}
 
