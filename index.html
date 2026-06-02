@@ -4829,23 +4829,14 @@ async function loadAgenda() {
   } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
 }
 
-function closeAgendaScreen() {
-  const sc = document.getElementById('screen-agenda');
-  if (sc) sc.style.display = 'none';
-}
-
 async function openAgendaModal(agendaId) {
   currentAgendaId = agendaId;
-  const sc = document.getElementById('screen-agenda');
-  const body = document.getElementById('agenda-screen-body');
-  if (!sc || !body) return;
-  sc.style.display = 'flex';
-  sc.style.flexDirection = 'column';
-  sc.scrollTop = 0;
+  openModal('modal-agenda');
+  const body = document.getElementById('agenda-modal-body');
   body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
   try {
     const { agenda, members, posts, is_owner } = await api('/api/agenda/' + agendaId);
-    document.getElementById('agenda-screen-title').textContent = agenda.title;
+    document.getElementById('agenda-modal-title').textContent = agenda.title;
     const d = new Date(agenda.event_date);
     const confirmed = members.filter(m => m.status === 'accepted');
     const pending = members.filter(m => m.status === 'pending');
@@ -4882,48 +4873,74 @@ async function openAgendaModal(agendaId) {
     const canPost = is_owner || confirmed.find(m => m.user_id === currentUser?.id);
 
     body.innerHTML = `
-      <!-- Header -->
-      <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:14px;padding:18px;color:#fff;margin-bottom:14px;">
-        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">${agenda.title}</div>
-        <div style="opacity:.9;font-size:13px;margin-top:6px;">📅 ${d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
-        ${agenda.description ? `<div style="opacity:.9;font-size:13px;margin-top:6px;">${agenda.description}</div>` : ''}
-        ${is_owner ? `<button class="btn btn-sm" style="margin-top:10px;background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);" onclick="openAgendaInvite('${agendaId}')">👥 Convidar</button>` : ''}
-      </div>
+      <!-- Layout estilo Orkut: sidebar esquerda + conteúdo central -->
+      <div style="display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:start;">
 
-      <!-- Membros -->
-      ${confirmed.length || pending.length ? `<div class="card" style="padding:12px;margin-bottom:12px;">
-        <div style="font-weight:700;font-size:13px;margin-bottom:8px;">👥 ${confirmed.length} confirmado${confirmed.length!==1?'s':''} ${is_owner && pending.length ? '· '+pending.length+' pendente'+(pending.length!==1?'s':'') : ''}</div>
-        <div style="display:flex;gap:-4px;">
-          ${confirmed.slice(0,8).map(m => `<img class="avatar" src="${m.avatar_url||avatarUrl(m.name)}" width="32" height="32" style="border:2px solid var(--surface);margin-right:-6px;cursor:pointer;" title="${m.name}" onclick="openUserProfile('${m.username}')">`).join('')}
-        </div>
-      </div>` : ''}
+        <!-- ── SIDEBAR ── -->
+        <div style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
 
-      <!-- Publicar -->
-      ${canPost ? `<div class="card" style="padding:14px;margin-bottom:14px;">
-        <div class="post-type-tabs" style="margin-bottom:10px;">
-          <button class="ptype-btn active" onclick="setAgendaPostType('text',this)">📝 Texto</button>
-          <button class="ptype-btn" onclick="setAgendaPostType('photo',this)">📷 Foto</button>
-          <button class="ptype-btn" onclick="setAgendaPostType('poll',this)">📊 Enquete</button>
-        </div>
-        <div id="apt-text"><textarea id="agenda-post-text" placeholder="Compartilhe algo com o grupo..." style="min-height:70px;"></textarea></div>
-        <div id="apt-photo" style="display:none;">
-          <img id="agenda-photo-prev" style="width:100%;border-radius:10px;margin-bottom:8px;display:none;">
-          <label class="drop-zone" for="agenda-photo-file" style="padding:14px;">📷 Escolher foto</label>
-          <input type="file" id="agenda-photo-file" accept="image/*" style="display:none;" onchange="onAgendaPhotoSel(event)">
-          <input type="text" id="agenda-photo-cap" placeholder="Legenda (opcional)" style="margin-top:8px;">
-        </div>
-        <div id="apt-poll" style="display:none;flex-direction:column;gap:8px;">
-          <input type="text" id="apoll-q" placeholder="Pergunta da enquete...">
-          <input type="text" id="apoll-o1" placeholder="Opção 1">
-          <input type="text" id="apoll-o2" placeholder="Opção 2">
-          <input type="text" id="apoll-o3" placeholder="Opção 3 (opcional)">
-        </div>
-        <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="submitAgendaPost('${agendaId}')">Publicar</button>
-      </div>` : ''}
+          <!-- Foto do evento / banner laranja -->
+          <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:14px;padding:16px;color:#fff;text-align:center;">
+            <div style="font-size:32px;margin-bottom:8px;">📆</div>
+            <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;line-height:1.3;">${agenda.title}</div>
+            <div style="font-size:11px;opacity:.85;margin-top:6px;">📅 ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</div>
+            <div style="font-size:11px;opacity:.85;">🕐 ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+            ${agenda.description ? `<div style="font-size:11px;opacity:.8;margin-top:6px;border-top:1px solid rgba(255,255,255,.3);padding-top:6px;">${agenda.description}</div>` : ''}
+            ${is_owner ? `<button class="btn btn-sm" style="margin-top:10px;width:100%;background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);font-size:12px;" onclick="openAgendaInvite('${agendaId}')">👥 Convidar</button>` : ''}
+          </div>
 
-      <!-- Posts -->
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        ${posts.length ? posts.map(renderPost).join('') : '<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma publicação ainda.</p></div>'}
+          <!-- Confirmados -->
+          ${confirmed.length ? `<div style="background:var(--surface);border-radius:12px;padding:12px;border:1px solid var(--border);">
+            <div style="font-weight:800;font-size:12px;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">✅ ${confirmed.length} confirmado${confirmed.length!==1?'s':''}</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+              ${confirmed.slice(0,9).map(m => `<div style="text-align:center;cursor:pointer;" onclick="openUserProfile('${m.username}')">
+                <img src="${m.avatar_url||avatarUrl(m.name)}" style="width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;border:2px solid var(--border);">
+                <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name.split(' ')[0]}</div>
+              </div>`).join('')}
+            </div>
+          </div>` : ''}
+
+          <!-- Pendentes (só dono vê) -->
+          ${is_owner && pending.length ? `<div style="background:var(--surface);border-radius:12px;padding:12px;border:1px solid var(--border);">
+            <div style="font-weight:800;font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">⏳ ${pending.length} pendente${pending.length!==1?'s':''}</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+              ${pending.slice(0,6).map(m => `<div style="text-align:center;opacity:.6;">
+                <img src="${m.avatar_url||avatarUrl(m.name)}" style="width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;border:2px dashed var(--border);">
+                <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name.split(' ')[0]}</div>
+              </div>`).join('')}
+            </div>
+          </div>` : ''}
+        </div>
+
+        <!-- ── CONTEÚDO CENTRAL ── -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+
+          <!-- Publicar -->
+          ${canPost ? `<div class="card" style="padding:14px;">
+            <div class="post-type-tabs" style="margin-bottom:10px;">
+              <button class="ptype-btn active" onclick="setAgendaPostType('text',this)">📝 Texto</button>
+              <button class="ptype-btn" onclick="setAgendaPostType('photo',this)">📷 Foto</button>
+              <button class="ptype-btn" onclick="setAgendaPostType('poll',this)">📊 Enquete</button>
+            </div>
+            <div id="apt-text"><textarea id="agenda-post-text" placeholder="Compartilhe algo com o grupo..." style="min-height:70px;"></textarea></div>
+            <div id="apt-photo" style="display:none;">
+              <img id="agenda-photo-prev" style="width:100%;border-radius:10px;margin-bottom:8px;display:none;">
+              <label class="drop-zone" for="agenda-photo-file" style="padding:14px;">📷 Escolher foto</label>
+              <input type="file" id="agenda-photo-file" accept="image/*" style="display:none;" onchange="onAgendaPhotoSel(event)">
+              <input type="text" id="agenda-photo-cap" placeholder="Legenda (opcional)" style="margin-top:8px;">
+            </div>
+            <div id="apt-poll" style="display:none;flex-direction:column;gap:8px;">
+              <input type="text" id="apoll-q" placeholder="Pergunta da enquete...">
+              <input type="text" id="apoll-o1" placeholder="Opção 1">
+              <input type="text" id="apoll-o2" placeholder="Opção 2">
+              <input type="text" id="apoll-o3" placeholder="Opção 3 (opcional)">
+            </div>
+            <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="submitAgendaPost('${agendaId}')">Publicar</button>
+          </div>` : ''}
+
+          <!-- Posts / Discussões -->
+          ${posts.length ? posts.map(renderPost).join('') : '<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma publicação ainda. Seja o primeiro! 💬</p></div>'}
+        </div>
       </div>`;
   } catch(e) {
     body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
@@ -5343,16 +5360,6 @@ async function submitDQPhoto(qid) {
   } catch(e) { toast(e.message, 'error'); }
 }
 </script>
-
-
-<!-- ─── TELA AGENDA (tela cheia igual ao perfil) ─── -->
-<div id="screen-agenda" style="display:none;position:fixed;inset:0;z-index:650;flex-direction:column;background:var(--surface2);overflow-y:auto;">
-  <div style="background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
-    <button onclick="closeAgendaScreen()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--text);line-height:1;padding:0 8px 0 0;">‹</button>
-    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;" id="agenda-screen-title">Agenda</div>
-  </div>
-  <div id="agenda-screen-body" style="max-width:600px;margin:0 auto;width:100%;padding:16px;"></div>
-</div>
 
 </body>
 </html>
