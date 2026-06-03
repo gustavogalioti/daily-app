@@ -6374,8 +6374,17 @@ async function checkDQPeriodChange() {
       <div class="modal-title">⚔️ Desafiar amigo — Cat Runner</div>
       <button class="modal-close" onclick="closeModal('modal-cat-challenge')">×</button>
     </div>
-    <div style="padding:16px;display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;background:var(--surface);" id="cat-challenge-friends">
-      <div class="page-loader"><div class="loader"></div></div>
+    <div style="padding:16px;background:var(--surface);">
+      <!-- Busca de usuário -->
+      <div style="position:relative;margin-bottom:12px;">
+        <input type="text" id="cat-challenge-search" placeholder="Buscar por nome ou @usuário..."
+          style="width:100%;font-size:14px;padding-right:36px;"
+          oninput="searchCatChallengeUser(this.value)">
+        <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);">🔍</span>
+      </div>
+      <div id="cat-challenge-friends" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;">
+        <div class="page-loader"><div class="loader"></div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -6513,6 +6522,27 @@ class CatRunner {
         {name:'NOVA YORK',emoji:'🗽',color:'#2C3E50'},
         {name:'ÍNDIA',emoji:'🕌',color:'#E67E22'},
         {name:'TELETUBBIES',emoji:'📺',color:'#E91E63'},
+        {name:'Batata frita é salada 🍟',emoji:'🥗',color:'#E67E22'},
+        {name:'Bacon é a resposta para a paz mundial 🥓',emoji:'☮️',color:'#C0392B'},
+        {name:'Vivemos uma simulação?',emoji:'🤖',color:'#8E44AD'},
+        {name:'Quem é seu herói?',emoji:'🦸',color:'#2980B9'},
+        {name:'Você é uma máquina de vencer 💪',emoji:'🏆',color:'#F39C12'},
+        {name:'O que você precisa para mudar o mundo?',emoji:'🌍',color:'#27AE60'},
+        {name:'Batata frita c/ cheddar e bacon OU isca de frango?',emoji:'🍗',color:'#E74C3C'},
+        {name:'Barbecue ou molho ranch?',emoji:'🫙',color:'#8B4513'},
+        {name:'BOLACHA ou BISCOITO!?',emoji:'🍪',color:'#D35400'},
+        {name:'Quem é você na fila do pão?',emoji:'🍞',color:'#F39C12'},
+        {name:'Pizza de frango com catupiry é heresia?',emoji:'🍕',color:'#E74C3C'},
+        {name:'Refrigerante na garrafa ou na latinha?',emoji:'🥤',color:'#2980B9'},
+        {name:'Você já tomou conta de uma planta?',emoji:'🌱',color:'#27AE60'},
+        {name:'Saudade de infância x saudade de férias?',emoji:'🧒',color:'#8E44AD'},
+        {name:'Filme ou série?',emoji:'🎬',color:'#2C3E50'},
+        {name:'Gato ou cachorro... ou os dois?',emoji:'🐾',color:'#E67E22'},
+        {name:'Fome às 3 da manhã: culpa ou tradição?',emoji:'🌙',color:'#1a1a6e'},
+        {name:'Você acredita em destino?',emoji:'✨',color:'#8E44AD'},
+        {name:'Se pudesse ser invisível por 1 dia...',emoji:'👻',color:'#7F8C8D'},
+        {name:'Qual seria a trilha sonora da sua vida?',emoji:'🎵',color:'#E91E63'},
+        {name:'O universo é infinito. Processe isso.',emoji:'🔭',color:'#1a1a6e'},
       ];
       const lm = lms[Math.floor(Math.random()*lms.length)];
       this.landmarks.push({...lm, x:this.W+10, alpha:1, timer:120});
@@ -6863,19 +6893,56 @@ async function openCatRanking() {
   }
 }
 
+let _catChallengeAll = [];
+
 async function openCatChallenge() {
   openModal('modal-cat-challenge');
-  const list=document.getElementById('cat-challenge-friends');
-  list.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  const list = document.getElementById('cat-challenge-friends');
+  const search = document.getElementById('cat-challenge-search');
+  if(search) search.value = '';
+  list.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
   try {
-    const data=await api('/api/friends/list'); const friends=data.friends||data||[];
-    list.innerHTML=friends.map(f=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface2);border-radius:10px;">
-        <img src="${f.avatar_url||avatarUrl(f.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
-        <div style="flex:1;font-weight:700;font-size:13px;">${f.name}<div style="font-size:11px;color:var(--muted);">@${f.username}</div></div>
-        <button class="btn btn-primary btn-xs" onclick="sendCatChallenge('${f.id}','${f.name.split(' ')[0]}',this)">⚔️ Desafiar</button>
-      </div>`).join('')||'<p class="text-muted">Adicione amigos para desafiar!</p>';
-  } catch(e) {}
+    // Buscar amigos + todos os usuários para poder desafiar qualquer um
+    const data = await api('/api/friends/list');
+    const friends = data.friends || data || [];
+    _catChallengeAll = friends;
+    renderCatChallengeList(friends);
+  } catch(e) {
+    list.innerHTML = '<p class="text-muted" style="text-align:center;padding:12px;">Erro ao carregar usuários.</p>';
+  }
+}
+
+let _catSearchTimer = null;
+function searchCatChallengeUser(q) {
+  clearTimeout(_catSearchTimer);
+  _catSearchTimer = setTimeout(async () => {
+    const list = document.getElementById('cat-challenge-friends');
+    if (!q || q.length < 2) {
+      renderCatChallengeList(_catChallengeAll); return;
+    }
+    list.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+    try {
+      const { users } = await api('/api/users/search?q=' + encodeURIComponent(q));
+      renderCatChallengeList(users);
+    } catch(e) { renderCatChallengeList([]); }
+  }, 350);
+}
+
+function renderCatChallengeList(users) {
+  const list = document.getElementById('cat-challenge-friends');
+  if (!users.length) {
+    list.innerHTML = '<p class="text-muted" style="text-align:center;padding:12px;">Nenhum usuário encontrado.</p>';
+    return;
+  }
+  list.innerHTML = users.map(f => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface2);border-radius:10px;">
+      <img src="${f.avatar_url||avatarUrl(f.name||f.username)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name||f.username}</div>
+        <div style="font-size:11px;color:var(--muted);">@${f.username}</div>
+      </div>
+      <button class="btn btn-primary btn-xs" onclick="sendCatChallenge('${f.id}','${(f.name||f.username).split(' ')[0]}',this)">⚔️ Desafiar</button>
+    </div>`).join('');
 }
 
 async function sendCatChallenge(userId, name, btn) {
