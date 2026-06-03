@@ -89,6 +89,18 @@ async function initPG() {
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
       best_score INTEGER DEFAULT 0, updated_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS agora_chat_messages (
+      id SERIAL PRIMARY KEY, user_id TEXT NOT NULL,
+      content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS agora_chat_presence (
+      user_id TEXT PRIMARY KEY, expires_at TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS agora_chat_adm (
+      id TEXT PRIMARY KEY, message TEXT, active INTEGER DEFAULT 1,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS agora_banners (
       id TEXT PRIMARY KEY, message TEXT NOT NULL, author TEXT,
       active INTEGER DEFAULT 1, created_at TIMESTAMPTZ DEFAULT NOW()
