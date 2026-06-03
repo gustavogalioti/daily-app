@@ -84,6 +84,11 @@ async function initPG() {
       id TEXT PRIMARY KEY, from_user_id TEXT NOT NULL, to_user_id TEXT NOT NULL,
       action TEXT DEFAULT 'wave', created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS catrunner_scores (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
+      best_score INTEGER DEFAULT 0, updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS agora_banners (
       id TEXT PRIMARY KEY, message TEXT NOT NULL, author TEXT,
       active INTEGER DEFAULT 1, created_at TIMESTAMPTZ DEFAULT NOW()
