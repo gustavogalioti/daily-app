@@ -2084,9 +2084,9 @@ async function loadProfile(){
           <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:pointer;" onclick="showProfileSec('comunidades',null)">
               <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;">🏘️ Comunidades</div>
-              <span style="font-size:10px;color:var(--accent);">ver →</span>
+              <div style="font-size:10px;color:var(--accent);">ver →</div>
             </div>
-            <div id="profile-comm-mini" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
+            <div id="profile-comm-mini" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
               <div class="loader" style="width:20px;height:20px;grid-column:1/-1;margin:auto;"></div>
             </div>
           </div>
@@ -6033,10 +6033,10 @@ async function loadProfileCommMini() {
       return;
     }
     el.innerHTML = communities.slice(0,6).map(c => `
-      <div style="cursor:pointer;padding:4px;text-align:center;" onclick="showProfileSec('comunidades',null)">
+      <div style="text-align:center;cursor:pointer;" onclick="showProfileSec('comunidades',null)">
         ${c.image_url
-          ? `<img src="${c.image_url}" style="width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;">`
-          : `<div style="width:100%;aspect-ratio:1;border-radius:8px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:14px;">🏘️</div>`}
+          ? `<img src="${c.image_url}" style="width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;border:1.5px solid var(--border);">`
+          : `<div style="width:100%;aspect-ratio:1;border-radius:8px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:16px;">🏘️</div>`}
         <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name}</div>
       </div>`).join('');
   } catch(e) { el.innerHTML = ''; }
