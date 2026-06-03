@@ -13,10 +13,10 @@ router.get('/messages', optionalAuth, async(req,res)=>{
     let msgs;
     if(after){
       msgs=await db.prepare(`SELECT cm.*,u.name,u.username,u.avatar_url FROM agora_chat_messages cm
-        JOIN users u ON u.id=cm.user_id WHERE cm.id>$1 ORDER BY cm.id ASC LIMIT 50`).all(after);
+        JOIN users u ON u.id=cm.user_id WHERE cm.created_at>$1 ORDER BY cm.created_at ASC LIMIT 50`).all(after);
     } else {
       msgs=await db.prepare(`SELECT cm.*,u.name,u.username,u.avatar_url FROM agora_chat_messages cm
-        JOIN users u ON u.id=cm.user_id ORDER BY cm.id DESC LIMIT $1`).all(limit);
+        JOIN users u ON u.id=cm.user_id ORDER BY cm.created_at DESC LIMIT $1`).all(limit);
       msgs.reverse();
     }
     res.json({messages:msgs});
