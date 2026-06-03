@@ -2002,22 +2002,23 @@ async function loadProfile(){
     const av=user.avatar_url||avatarUrl(user.name);
     const badges=user.featured_badges?.map(b=>`<div class="profile-badge-chip">${b.icon} ${b.name}</div>`).join('')||'';
     w.innerHTML=`
-      <div style="display:grid;grid-template-columns:160px 1fr;gap:14px;align-items:start;">
+      <div style="display:grid;grid-template-columns:150px 1fr 150px;gap:10px;align-items:start;">
 
-        <!-- SIDEBAR do perfil -->
+        <!-- ── COLUNA ESQUERDA: foto + stats + poke ── -->
         <div style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
 
-          <!-- Avatar + nome -->
-          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;text-align:center;">
+          <!-- Avatar + nome + botões -->
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:14px;text-align:center;">
             <div class="profile-avatar-wrap" style="margin:0 auto 10px;width:80px;height:80px;">
               <img class="profile-avatar" src="${av}" style="width:80px;height:80px;">
               <label class="avatar-edit-btn" for="avatar-input" title="Trocar foto">📷</label>
               <input type="file" id="avatar-input" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
             </div>
-            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;line-height:1.2;">${user.name}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px;">@${user.username}</div>
-            ${user.occupation?`<div style="font-size:11px;color:var(--muted);margin-top:4px;">💼 ${user.occupation}</div>`:''}
-            ${user.city?`<div style="font-size:11px;color:var(--muted);margin-top:2px;">📍 ${user.city}${user.state?', '+user.state:''}</div>`:''}
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;line-height:1.2;">${user.name}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">@${user.username}</div>
+            ${user.occupation?`<div style="font-size:10px;color:var(--muted);margin-top:3px;">💼 ${user.occupation}</div>`:''}
+            ${user.city?`<div style="font-size:10px;color:var(--muted);margin-top:2px;">📍 ${user.city}${user.state?', '+user.state:''}</div>`:''}
+            ${user.bio?`<div style="font-size:11px;color:var(--text2);margin-top:6px;font-style:italic;line-height:1.4;">"${user.bio}"</div>`:''}
             <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px;">
               <button class="btn btn-primary btn-sm" style="width:100%;font-size:11px;" onclick="openEditProfile()">✏️ Editar perfil</button>
               <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openBadgeSelector()">🏅 Badges</button>
@@ -2026,51 +2027,83 @@ async function loadProfile(){
 
           <!-- Stats -->
           <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
-            <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;flex-direction:column;gap:7px;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--muted);">Posts</span>
-                <span style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);">${user.stats?.posts||0}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="showProfileSec('amigos',null)">
-                <span style="font-size:12px;color:var(--muted);">Amigos</span>
-                <span style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);">${user.stats?.friends_count||0}</span>
+                <span style="font-size:11px;color:var(--muted);">Posts</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.posts||0}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--muted);">⚡ Daily</span>
-                <span style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);">${user.stats?.daily_mandou||0}</span>
+                <span style="font-size:11px;color:var(--muted);">⚡ Daily</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.daily_mandou||0}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--gold);">Pontos</span>
-                <span style="font-family:'Syne',sans-serif;font-weight:800;color:var(--gold);">${user.points||0}</span>
+                <span style="font-size:11px;color:var(--gold);">Pontos</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--gold);">${user.points||0}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--muted);">Dias ativos</span>
-                <span style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);">${user.stats?.active_days||0}</span>
+                <span style="font-size:11px;color:var(--muted);">Dias</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.active_days||0}</span>
               </div>
+            </div>
+          </div>
+
+          <!-- DailyPoke mini -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:10px;text-align:center;cursor:pointer;" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'))">
+            <div id="profile-poke-mini" style="font-size:28px;">🎭</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px;">DailyPoke</div>
+          </div>
+        </div>
+
+        <!-- ── COLUNA CENTRAL: conteúdo / timeline ── -->
+        <div>
+          <!-- 3 botões de navegação rápida -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;">
+            <button class="btn btn-primary btn-sm" onclick="showProfileSec('timeline',this)" style="font-size:11px;">📅 Linha</button>
+            <button class="btn btn-ghost btn-sm" onclick="showProfileSec('depoimentos',this)" style="font-size:11px;">💬 Depoi.</button>
+            <button class="btn btn-ghost btn-sm" onclick="showProfileSec('agenda',this)" style="font-size:11px;">📆 Agenda</button>
+          </div>
+          <div id="profile-tabs-row-wrap"></div>
+        </div>
+
+        <!-- ── COLUNA DIREITA: amigos + conquistas ── -->
+        <div style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
+
+          <!-- Amigos (6 miniaturas) -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:pointer;" onclick="showProfileSec('amigos',null)">
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;">👥 Amigos</div>
+              <div style="font-size:10px;color:var(--accent);">${user.stats?.friends_count||0} →</div>
+            </div>
+            <div id="profile-friends-mini" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+              <div class="loader" style="width:20px;height:20px;grid-column:1/-1;margin:auto;"></div>
+            </div>
+          </div>
+
+          <!-- Conquistas (6 miniaturas) -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:pointer;" onclick="showProfileSec('conquistas',null)">
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;">🏆 Conquistas</div>
+              <span style="font-size:10px;color:var(--accent);">ver →</span>
+            </div>
+            <div id="profile-ach-mini" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+              <div class="loader" style="width:20px;height:20px;grid-column:1/-1;margin:auto;"></div>
             </div>
           </div>
 
           <!-- Badges -->
           ${badges ? `<div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
-            <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Badges</div>
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🏅 Badges</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;">${badges}</div>
           </div>` : ''}
-
-          <!-- DailyPoke mini -->
-          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;text-align:center;cursor:pointer;" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'))">
-            <div id="profile-poke-mini" style="font-size:32px;">🎭</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px;">Meu DailyPoke</div>
-          </div>
-        </div>
-
-        <!-- CONTEÚDO CENTRAL do perfil -->
-        <div>
-          ${user.bio?`<div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;margin-bottom:12px;font-size:14px;color:var(--text2);line-height:1.6;">"${user.bio}"</div>`:''}
-          <div id="profile-tabs-row-wrap"></div>
         </div>
       </div>`;
-    document.getElementById('profile-tabs-row').classList.remove('hidden');
+    // Mover tabs para o container central
+    const tabsRow = document.getElementById('profile-tabs-row');
+    const wrap = document.getElementById('profile-tabs-row-wrap');
+    if (tabsRow && wrap) { wrap.appendChild(tabsRow); tabsRow.classList.remove('hidden'); }
     loadTimeline();
+    loadProfileFriendsMini();
+    loadProfileAchMini();
   }catch(e){w.innerHTML='<p class="text-muted">Erro ao carregar perfil.</p>';}
 }
 
@@ -5883,6 +5916,46 @@ async function pokeBack(userId) {
     toast('Poke de volta! 👋', 'success');
     loadPokesReceived();
   } catch(e) { toast(e.message,'error'); }
+}
+</script>
+
+
+<script>
+async function loadProfileFriendsMini() {
+  const el = document.getElementById('profile-friends-mini');
+  if (!el) return;
+  try {
+    const { user } = await api(`/api/users/${currentUser.username}`);
+    const { friends } = await api(`/api/friends/${user.id}`);
+    if (!friends.length) {
+      el.innerHTML = '<p class="text-muted" style="font-size:10px;grid-column:1/-1;text-align:center;padding:6px;">Nenhum amigo ainda</p>';
+      return;
+    }
+    el.innerHTML = friends.slice(0,6).map(f => `
+      <div style="text-align:center;cursor:pointer;" onclick="showProfileSec('amigos',null)">
+        <img src="${f.avatar_url||avatarUrl(f.name)}" style="width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;border:1.5px solid var(--border);">
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name.split(' ')[0]}</div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = ''; }
+}
+
+async function loadProfileAchMini() {
+  const el = document.getElementById('profile-ach-mini');
+  if (!el) return;
+  try {
+    const { earned } = await api('/api/achievements/me');
+    if (!earned.length) {
+      el.innerHTML = '<p class="text-muted" style="font-size:10px;grid-column:1/-1;text-align:center;padding:6px;">Nenhuma ainda</p>';
+      return;
+    }
+    el.innerHTML = earned.slice(0,6).map(a => `
+      <div style="text-align:center;cursor:pointer;" onclick="showProfileSec('conquistas',null)" title="${a.name}">
+        ${a.image_url
+          ? `<img src="${a.image_url}" style="width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;">`
+          : `<div style="width:100%;aspect-ratio:1;border-radius:8px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:18px;">${a.icon||'🏆'}</div>`}
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.name}</div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = ''; }
 }
 </script>
 
