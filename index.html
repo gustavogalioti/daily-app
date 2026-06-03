@@ -5765,243 +5765,277 @@ async function toggleParticipante(userId) {
 </div>
 <script>
 // buildPokeSVG
-function buildPokeSVG(config) {
+function buildPokeSVG(cfg = {}) {
   const {
-    skinColor = '#F5CBA7',
-    hairColor = '#5C3317',
-    hairStyle = 'medium',
-    eyeColor = '#2ECC71',
-    shirtColor = '#E74C3C',
-    pantsColor = '#2980B9',
+    gender = 'male',
+    skinColor = '#FDBCB4',
+    hairColor = '#4A2C17',
+    hairStyle = 'side',
+    eyeColor = '#3B82F6',
+    topColor = '#E74C3C',
+    bottomColor = '#3B82F6',
     shoeColor = '#2C3E50',
     expression = 'happy',
-    accessory = 'none',
-    shirtDesign = 'plain',
-  } = config || {};
+    held = 'none',
+  } = cfg;
 
-  function dk(c, a=40) {
-    const n=parseInt(c.replace('#',''),16);
-    return '#'+[n>>16,n>>8&255,n&255].map(x=>Math.max(0,x-a).toString(16).padStart(2,'0')).join('');
-  }
-  function lt(c, a=40) {
-    const n=parseInt(c.replace('#',''),16);
-    return '#'+[n>>16,n>>8&255,n&255].map(x=>Math.min(255,x+a).toString(16).padStart(2,'0')).join('');
-  }
+  const sk = skinColor;
+  const skDk = shade(sk, -28);
+  const skLt = shade(sk, +22);
+  const tDk = shade(topColor, -35);
+  const tLt = shade(topColor, +30);
+  const bDk = shade(bottomColor, -30);
+  const O = '#1a1a1a'; // outline
 
-  const stroke = '#1a1a1a';
-  const sw = 2.5; // stroke width base
-  const skinDk = dk(skinColor, 30);
-  const skinLt = lt(skinColor, 20);
-
-  // HAIR STYLES
-  const hairs = {
-    short: `
-      <ellipse cx="100" cy="62" rx="44" ry="20" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}"/>
-      <rect x="56" y="62" width="88" height="14" fill="${hairColor}"/>
-      <path d="M56 62 Q56 58 64 56 Q100 48 136 56 Q144 58 144 62" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round"/>`,
-    medium: `
-      <ellipse cx="100" cy="60" rx="46" ry="22" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}"/>
-      <rect x="54" y="62" width="92" height="16" fill="${hairColor}"/>
-      <path d="M54 62 Q48 90 52 118" stroke="${hairColor}" stroke-width="12" fill="none" stroke-linecap="round"/>
-      <path d="M146 62 Q152 90 148 118" stroke="${hairColor}" stroke-width="12" fill="none" stroke-linecap="round"/>
-      <path d="M56 60 Q100 44 144 60" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round"/>`,
-    long: `
-      <ellipse cx="100" cy="60" rx="46" ry="22" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}"/>
-      <rect x="54" y="62" width="92" height="16" fill="${hairColor}"/>
-      <path d="M54 62 Q44 100 48 158" stroke="${hairColor}" stroke-width="14" fill="none" stroke-linecap="round"/>
-      <path d="M146 62 Q156 100 152 158" stroke="${hairColor}" stroke-width="14" fill="none" stroke-linecap="round"/>
-      <path d="M56 60 Q80 42 100 40 Q120 42 144 60" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}"/>`,
-    curly: `
-      <circle cx="62" cy="66" r="18" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}"/>
-      <circle cx="138" cy="66" r="18" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}"/>
-      <circle cx="78" cy="50" r="20" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}"/>
-      <circle cx="122" cy="50" r="20" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}"/>
-      <circle cx="100" cy="44" r="22" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}"/>
-      <rect x="58" y="66" width="84" height="16" fill="${hairColor}"/>`,
-    ponytail: `
-      <ellipse cx="100" cy="60" rx="46" ry="22" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}"/>
-      <rect x="54" y="62" width="92" height="16" fill="${hairColor}"/>
-      <path d="M140 58 Q164 88 156 130 Q150 158 138 174" stroke="${hairColor}" stroke-width="16" fill="none" stroke-linecap="round"/>
-      <path d="M140 56 Q166 86 158 132" stroke="${dk(hairColor,20)}" stroke-width="4" fill="none" stroke-linecap="round" opacity=".5"/>
-      <path d="M56 60 Q100 42 144 60" fill="${hairColor}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round"/>`,
-    bald: ``,
-  };
-
-  // EXPRESSIONS
-  const mouths = {
-    happy:    `<path d="M82 148 Q100 166 118 148" stroke="${stroke}" stroke-width="3" fill="${lt('#c0392b',30)}" stroke-linecap="round"/>
-               <path d="M86 150 Q100 158 114 150" fill="white" opacity=".6"/>`,
-    love:     `<path d="M82 148 Q100 166 118 148" stroke="${stroke}" stroke-width="3" fill="${lt('#c0392b',30)}" stroke-linecap="round"/>`,
-    cool:     `<path d="M84 152 Q100 162 116 152" stroke="${stroke}" stroke-width="3" fill="none" stroke-linecap="round"/>`,
-    sad:      `<path d="M84 162 Q100 148 116 162" stroke="${stroke}" stroke-width="3" fill="none" stroke-linecap="round"/>`,
-    surprised:`<ellipse cx="100" cy="156" rx="10" ry="12" fill="white" stroke="${stroke}" stroke-width="2.5"/>`,
-    wink:     `<path d="M82 148 Q100 166 118 148" stroke="${stroke}" stroke-width="3" fill="${lt('#c0392b',30)}" stroke-linecap="round"/>`,
-  };
-
-  // EYEBROWS
-  const brows = {
-    happy:    `<path d="M70 96 Q82 88 94 94" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>
-               <path d="M106 94 Q118 88 130 96" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
-    cool:     `<path d="M68 92 Q82 84 96 90" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>
-               <path d="M104 90 Q118 84 132 92" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>`,
-    sad:      `<path d="M70 98 Q82 90 94 96" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>
-               <path d="M106 96 Q118 90 130 98" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
-    surprised:`<path d="M70 90 Q82 82 94 88" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>
-               <path d="M106 88 Q118 82 130 90" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
-    love:     `<path d="M70 96 Q82 88 94 94" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>
-               <path d="M106 94 Q118 88 130 96" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
-    wink:     `<path d="M70 96 Q82 88 94 94" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>
-               <path d="M108 92 Q118 96 128 92" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
-  };
-
-  // EYES — cartoon style, colored iris, black pupil, white shine
-  const eyeBase = (cx, cy, closed=false) => closed
-    ? `<path d="M${cx-12} ${cy} Q${cx} ${cy-10} ${cx+12} ${cy}" stroke="${stroke}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
-    : `<ellipse cx="${cx}" cy="${cy}" rx="14" ry="16" fill="white" stroke="${stroke}" stroke-width="2.5"/>
-       <ellipse cx="${cx}" cy="${cy+2}" rx="9" ry="10" fill="${eyeColor}"/>
-       <ellipse cx="${cx}" cy="${cy+2}" rx="5" ry="6" fill="#1a1a1a"/>
-       <ellipse cx="${cx-4}" cy="${cy-4}" rx="3" ry="2.5" fill="white"/>
-       <ellipse cx="${cx+4}" cy="${cy+5}" rx="1.5" ry="1" fill="white" opacity=".6"/>`;
-
-  const loveEye = (cx, cy) =>
-    `<text x="${cx-12}" y="${cy+8}" font-size="22" fill="#E91E63">♥</text>`;
-
-  let eyes;
-  if (expression === 'love') {
-    eyes = loveEye(64, 110) + loveEye(88, 110);
-  } else if (expression === 'wink') {
-    eyes = eyeBase(78, 116) + eyeBase(122, 116, true);
-  } else if (expression === 'cool') {
-    eyes = `<rect x="56" y="104" width="40" height="18" rx="9" fill="#1a1a1a" stroke="${stroke}" stroke-width="2"/>
-            <rect x="104" y="104" width="40" height="18" rx="9" fill="#1a1a1a" stroke="${stroke}" stroke-width="2"/>
-            <line x1="96" y1="113" x2="104" y2="113" stroke="${stroke}" stroke-width="3"/>
-            <ellipse cx="66" cy="109" rx="6" ry="4" fill="white" opacity=".3"/>
-            <ellipse cx="114" cy="109" rx="6" ry="4" fill="white" opacity=".3"/>`;
-  } else {
-    eyes = eyeBase(78, 116) + eyeBase(122, 116);
+  function shade(hex, amt) {
+    hex = hex.replace('#','');
+    const n = parseInt(hex,16);
+    return '#'+[n>>16,n>>8&255,n&255]
+      .map(c=>Math.min(255,Math.max(0,c+amt)).toString(16).padStart(2,'0')).join('');
   }
 
-  // ACCESSORIES
-  const accessories = {
+  // ── HAIR ──────────────────────────────────────────
+  const hairDefs = {
+    // Male styles
+    side: `<path d="M52 88 Q52 44 100 38 Q148 44 148 88 Q140 72 128 68 Q100 62 72 68 Z" fill="${hairColor}"/>
+           <path d="M52 88 Q54 78 66 74 Q66 64 80 60 Q100 56 118 60 Q136 64 134 74 Q146 78 148 88 Q140 68 100 62 Q60 68 52 88 Z" fill="${shade(hairColor,20)}" opacity=".4"/>
+           <path d="M52 82 Q50 70 58 62 Q72 48 100 44 Q128 48 142 62 Q150 70 148 82" fill="${hairColor}" stroke="${O}" stroke-width="2"/>`,
+
+    spiky: `<path d="M52 90 L60 60 L72 78 L84 48 L96 72 L100 42 L104 72 L116 48 L128 78 L140 60 L148 90" fill="${hairColor}" stroke="${O}" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M52 90 Q52 78 62 72 Q100 64 138 72 Q148 78 148 90" fill="${hairColor}"/>`,
+
+    buzz:  `<path d="M52 90 Q52 48 100 42 Q148 48 148 90 Q140 76 100 72 Q60 76 52 90 Z" fill="${hairColor}" stroke="${O}" stroke-width="2"/>`,
+
+    // Female styles
+    long_straight: `<path d="M52 90 Q52 44 100 38 Q148 44 148 90 L152 200 Q140 210 128 200 L128 120 Q116 112 100 110 Q84 112 72 120 L72 200 Q60 210 48 200 Z" fill="${hairColor}" stroke="${O}" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M56 96 L56 196" stroke="${shade(hairColor,20)}" stroke-width="2.5" opacity=".4" stroke-linecap="round"/>
+                    <path d="M144 96 L144 196" stroke="${shade(hairColor,20)}" stroke-width="2.5" opacity=".4" stroke-linecap="round"/>`,
+
+    bun:   `<path d="M56 90 Q56 48 100 42 Q144 48 144 90 Q138 72 100 68 Q62 72 56 90 Z" fill="${hairColor}" stroke="${O}" stroke-width="2"/>
+            <circle cx="100" cy="44" r="18" fill="${hairColor}" stroke="${O}" stroke-width="2"/>
+            <circle cx="100" cy="44" r="10" fill="${shade(hairColor,15)}"/>
+            <path d="M88 42 Q100 38 112 42" stroke="${shade(hairColor,25)}" stroke-width="2" fill="none" opacity=".5"/>`,
+
+    curly: `<circle cx="62" cy="74" r="18" fill="${hairColor}" stroke="${O}" stroke-width="1.8"/>
+            <circle cx="80" cy="58" r="18" fill="${hairColor}" stroke="${O}" stroke-width="1.8"/>
+            <circle cx="100" cy="52" r="20" fill="${hairColor}" stroke="${O}" stroke-width="1.8"/>
+            <circle cx="120" cy="58" r="18" fill="${hairColor}" stroke="${O}" stroke-width="1.8"/>
+            <circle cx="138" cy="74" r="18" fill="${hairColor}" stroke="${O}" stroke-width="1.8"/>
+            <path d="M58 90 Q58 80 66 76 Q100 68 134 76 Q142 80 142 90" fill="${hairColor}"/>`,
+
+    ponytail: `<path d="M56 90 Q56 48 100 42 Q144 48 144 90 Q138 72 100 68 Q62 72 56 90 Z" fill="${hairColor}" stroke="${O}" stroke-width="2"/>
+               <path d="M136 64 Q160 90 154 140 Q148 168 138 182" stroke="${hairColor}" stroke-width="16" fill="none" stroke-linecap="round"/>
+               <path d="M140 66 Q162 92 156 142" stroke="${shade(hairColor,18)}" stroke-width="4" fill="none" opacity=".4" stroke-linecap="round"/>`,
+  };
+
+  // Pick hair based on gender default
+  const hair = hairDefs[hairStyle] || (gender==='female' ? hairDefs.long_straight : hairDefs.side);
+
+  // ── EXPRESSION ──────────────────────────────────
+  const mouth = {
+    happy:    `<path d="M84 152 Q100 168 116 152" fill="${shade('#c0392b',25)}" stroke="${O}" stroke-width="2.5" stroke-linecap="round"/>
+               <path d="M88 153 Q100 162 112 153" fill="white" opacity=".5"/>`,
+    big_smile:`<path d="M78 148 Q100 172 122 148" fill="${shade('#c0392b',25)}" stroke="${O}" stroke-width="2.5" stroke-linecap="round"/>
+               <path d="M82 150 Q100 165 118 150" fill="white" opacity=".6"/>
+               <path d="M82 158 Q100 168 118 158" fill="${shade('#c0392b',40)}" opacity=".3"/>`,
+    cool:     `<path d="M86 155 Q100 163 114 155" stroke="${O}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    sad:      `<path d="M86 163 Q100 150 114 163" stroke="${O}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    surprised:`<ellipse cx="100" cy="157" rx="9" ry="11" fill="white" stroke="${O}" stroke-width="2"/>`,
+  }[expression] || `<path d="M84 152 Q100 168 116 152" fill="${shade('#c0392b',25)}" stroke="${O}" stroke-width="2.5" stroke-linecap="round"/>`;
+
+  const brow = expression === 'sad'
+    ? `<path d="M72 96 Q82 104 92 100" stroke="${hairColor}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+       <path d="M108 100 Q118 104 128 96" stroke="${hairColor}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
+    : expression === 'surprised'
+    ? `<path d="M72 90 Q82 82 92 88" stroke="${hairColor}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+       <path d="M108 88 Q118 82 128 90" stroke="${hairColor}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
+    : `<path d="M72 96 Q82 88 92 94" stroke="${hairColor}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+       <path d="M108 94 Q118 88 128 96" stroke="${hairColor}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+
+  const eyeSVG = (cx, cy, closed=false) => closed
+    ? `<path d="M${cx-12} ${cy} Q${cx} ${cy-8} ${cx+12} ${cy}" stroke="${O}" stroke-width="3" fill="none"/>`
+    : `<ellipse cx="${cx}" cy="${cy}" rx="13" ry="15" fill="white" stroke="${O}" stroke-width="2.2"/>
+       <ellipse cx="${cx}" cy="${cy+1}" rx="8.5" ry="9.5" fill="${eyeColor}"/>
+       <ellipse cx="${cx}" cy="${cy+1}" rx="5" ry="5.5" fill="${O}"/>
+       <ellipse cx="${cx-3}" cy="${cy-4}" rx="2.5" ry="2" fill="white"/>
+       <ellipse cx="${cx+4}" cy="${cy+5}" rx="1.2" ry="0.9" fill="white" opacity=".7"/>`;
+
+  const eyes = expression === 'cool'
+    ? `<rect x="58" y="102" width="36" height="16" rx="8" fill="${O}"/>
+       <rect x="106" y="102" width="36" height="16" rx="8" fill="${O}"/>
+       <line x1="94" y1="110" x2="106" y2="110" stroke="${O}" stroke-width="2.5"/>
+       <ellipse cx="68" cy="107" rx="5" ry="3.5" fill="white" opacity=".25"/>
+       <ellipse cx="116" cy="107" rx="5" ry="3.5" fill="white" opacity=".25"/>`
+    : eyeSVG(78, 115) + eyeSVG(122, 115);
+
+  // ── BODY ────────────────────────────────────────
+  // Female: dress/skirt; Male: shirt+pants
+  const body = gender === 'female' ? `
+    <!-- DRESS top -->
+    <path d="M50 178 Q50 162 68 158 Q84 154 100 152 Q116 154 132 158 Q150 162 150 178 L158 260 Q150 270 142 260 L138 240 Q120 252 100 252 Q80 252 62 240 L58 260 Q50 270 42 260 Z" fill="${topColor}" stroke="${O}" stroke-width="2.5"/>
+    <!-- dress waist detail -->
+    <path d="M55 205 Q100 216 145 205" stroke="${tDk}" stroke-width="2" fill="none" opacity=".5"/>
+    <!-- dress highlight -->
+    <path d="M62 170 Q70 164 78 168" stroke="white" stroke-width="2" fill="none" opacity=".3"/>
+    <!-- SKIRT flare -->
+    <path d="M42 240 Q32 290 44 310 Q72 318 100 318 Q128 318 156 310 Q168 290 158 240 Q136 252 100 256 Q64 252 42 240 Z" fill="${topColor}" stroke="${O}" stroke-width="2.5"/>
+    <path d="M45 265 Q100 278 155 265" stroke="${tDk}" stroke-width="2" fill="none" opacity=".4"/>
+    <!-- Shoes -->
+    <ellipse cx="76" cy="316" rx="20" ry="9" fill="${shoeColor}" stroke="${O}" stroke-width="2"/>
+    <ellipse cx="124" cy="316" rx="20" ry="9" fill="${shoeColor}" stroke="${O}" stroke-width="2"/>
+    <rect x="58" y="306" width="36" height="14" rx="7" fill="${shade(shoeColor,20)}" stroke="${O}" stroke-width="1.8"/>
+    <rect x="106" y="306" width="36" height="14" rx="7" fill="${shade(shoeColor,20)}" stroke="${O}" stroke-width="1.8"/>
+  ` : `
+    <!-- SHIRT -->
+    <path d="M50 178 Q50 162 68 158 Q84 154 100 152 Q116 154 132 158 Q150 162 150 178 L150 242 Q124 252 100 252 Q76 252 50 242 Z" fill="${topColor}" stroke="${O}" stroke-width="2.5"/>
+    <path d="M78 152 L100 176 L122 152" fill="white" stroke="${O}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M62 165 Q72 160 82 165" stroke="white" stroke-width="2" fill="none" opacity=".3"/>
+    <!-- PANTS -->
+    <rect x="52" y="242" width="42" height="68" rx="10" fill="${bottomColor}" stroke="${O}" stroke-width="2.5"/>
+    <rect x="106" y="242" width="42" height="68" rx="10" fill="${bottomColor}" stroke="${O}" stroke-width="2.5"/>
+    <path d="M56 246 Q60 300 60 308" stroke="${bDk}" stroke-width="2" fill="none" opacity=".35"/>
+    <path d="M108 246 Q112 300 112 308" stroke="${bDk}" stroke-width="2" fill="none" opacity=".35"/>
+    <!-- BELT -->
+    <rect x="50" y="238" width="100" height="12" rx="6" fill="${shade(bottomColor,-15)}" stroke="${O}" stroke-width="2"/>
+    <rect x="90" y="236" width="20" height="16" rx="3" fill="#D4A017" stroke="${O}" stroke-width="2"/>
+    <!-- Shoes -->
+    <ellipse cx="73" cy="315" rx="22" ry="9" fill="${shoeColor}" stroke="${O}" stroke-width="2"/>
+    <ellipse cx="127" cy="315" rx="22" ry="9" fill="${shoeColor}" stroke="${O}" stroke-width="2"/>
+    <rect x="53" y="304" width="40" height="16" rx="8" fill="${shade(shoeColor,22)}" stroke="${O}" stroke-width="2"/>
+    <rect x="107" y="304" width="40" height="16" rx="8" fill="${shade(shoeColor,22)}" stroke="${O}" stroke-width="2"/>
+    <path d="M57 306 Q68 302 90 306" stroke="white" stroke-width="1.5" fill="none" opacity=".25"/>
+    <path d="M111 306 Q122 302 144 306" stroke="white" stroke-width="1.5" fill="none" opacity=".25"/>
+  `;
+
+  // ── ARMS ────────────────────────────────────────
+  const armR_x = held !== 'none' ? 168 : 182;
+  const arms = `
+    <!-- Left arm -->
+    <path d="M50 182 Q24 200 22 244" stroke="${topColor}" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <path d="M38 182 Q14 200 12 244" stroke="${O}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M62 182 Q36 200 34 244" stroke="${O}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="22" cy="246" r="14" fill="${sk}" stroke="${O}" stroke-width="2.2"/>
+    <ellipse cx="16" cy="240" rx="4" ry="3" fill="white" opacity=".2"/>
+    <!-- Right arm -->
+    <path d="M150 182 Q${armR_x} 200 ${armR_x-2} 244" stroke="${topColor}" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <path d="M138 182 Q${armR_x-12} 200 ${armR_x-14} 244" stroke="${O}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M162 182 Q${armR_x+12} 200 ${armR_x+10} 244" stroke="${O}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="${armR_x}" cy="246" r="14" fill="${sk}" stroke="${O}" stroke-width="2.2"/>
+  `;
+
+  // ── HELD ITEM ──────────────────────────────────
+  const heldItems = {
     none: ``,
-    hat: `
-      <ellipse cx="100" cy="58" rx="54" ry="10" fill="#C0392B" stroke="${stroke}" stroke-width="2.5"/>
-      <rect x="54" y="18" width="92" height="44" rx="14" fill="#E74C3C" stroke="${stroke}" stroke-width="2.5"/>
-      <rect x="70" y="22" width="8" height="36" rx="4" fill="${lt('#E74C3C',30)}" opacity=".4"/>`,
-    glasses: `
-      <circle cx="78" cy="116" r="18" fill="none" stroke="${stroke}" stroke-width="4"/>
-      <circle cx="122" cy="116" r="18" fill="none" stroke="${stroke}" stroke-width="4"/>
-      <line x1="96" y1="116" x2="104" y2="116" stroke="${stroke}" stroke-width="4"/>
-      <line x1="58" y1="110" x2="44" y2="104" stroke="${stroke}" stroke-width="3.5"/>
-      <line x1="142" y1="110" x2="156" y2="104" stroke="${stroke}" stroke-width="3.5"/>`,
-    crown: `
-      <path d="M46 58 L60 28 L76 48 L100 14 L124 48 L140 28 L154 58 Z" fill="#F1C40F" stroke="${stroke}" stroke-width="2.5"/>
-      <ellipse cx="100" cy="60" rx="54" ry="8" fill="#E67E22" stroke="${stroke}" stroke-width="2"/>
-      <circle cx="100" cy="18" r="7" fill="#E74C3C"/>
-      <circle cx="60" cy="34" r="6" fill="#E74C3C"/>
-      <circle cx="140" cy="34" r="6" fill="#E74C3C"/>`,
-    flower: `
-      <circle cx="148" cy="52" r="10" fill="#EC4899" stroke="${stroke}" stroke-width="2"/>
-      <circle cx="162" cy="40" r="9" fill="#F472B6" stroke="${stroke}" stroke-width="2"/>
-      <circle cx="156" cy="66" r="8" fill="#BE185D" stroke="${stroke}" stroke-width="2"/>
-      <circle cx="156" cy="52" r="7" fill="#FDE68A" stroke="${stroke}" stroke-width="2"/>`,
+    notebook: `
+      <rect x="152" y="222" width="52" height="40" rx="4" fill="#2C3E50" stroke="${O}" stroke-width="2"/>
+      <rect x="154" y="224" width="48" height="36" rx="3" fill="#3498DB"/>
+      <rect x="156" y="226" width="44" height="32" rx="2" fill="#1a2332" opacity=".8"/>
+      <path d="M158 236 L198 236" stroke="#3498DB" stroke-width="1.5" opacity=".6"/>
+      <path d="M158 242 L198 242" stroke="#3498DB" stroke-width="1.5" opacity=".6"/>
+      <path d="M158 248 L185 248" stroke="#3498DB" stroke-width="1.5" opacity=".6"/>
+      <circle cx="176" cy="232" r="3" fill="#3498DB"/>`,
+    phone: `
+      <rect x="164" y="218" width="26" height="44" rx="5" fill="#1a1a2e" stroke="${O}" stroke-width="2"/>
+      <rect x="166" y="222" width="22" height="36" rx="3" fill="#16213e"/>
+      <rect x="167" y="223" width="20" height="34" rx="2" fill="#0f3460"/>
+      <path d="M169 231 L185 231" stroke="#4FC3F7" stroke-width="1.5" opacity=".7"/>
+      <path d="M169 236 L185 236" stroke="#4FC3F7" stroke-width="1.5" opacity=".7"/>
+      <path d="M169 241 L180 241" stroke="#4FC3F7" stroke-width="1.5" opacity=".7"/>
+      <circle cx="177" cy="252" r="3" fill="#333" stroke="#555" stroke-width="1"/>`,
+    tablet: `
+      <rect x="148" y="210" width="52" height="68" rx="6" fill="#2C3E50" stroke="${O}" stroke-width="2"/>
+      <rect x="151" y="214" width="46" height="60" rx="4" fill="#34495E"/>
+      <rect x="153" y="216" width="42" height="56" rx="3" fill="#1ABC9C" opacity=".3"/>
+      <path d="M155 228 L193 228" stroke="white" stroke-width="1.5" opacity=".5"/>
+      <path d="M155 236 L193 236" stroke="white" stroke-width="1.5" opacity=".5"/>
+      <path d="M155 244 L180 244" stroke="white" stroke-width="1.5" opacity=".5"/>`,
+    skate: `
+      <rect x="140" y="240" width="72" height="16" rx="8" fill="#E67E22" stroke="${O}" stroke-width="2"/>
+      <rect x="144" y="242" width="64" height="12" rx="6" fill="${shade('#E67E22',15)}"/>
+      <circle cx="158" cy="256" r="6" fill="#2C3E50" stroke="${O}" stroke-width="1.5"/>
+      <circle cx="188" cy="256" r="6" fill="#2C3E50" stroke="${O}" stroke-width="1.5"/>
+      <circle cx="158" cy="256" r="3" fill="#7F8C8D"/>
+      <circle cx="188" cy="256" r="3" fill="#7F8C8D"/>
+      <path d="M148 244 Q176 240 208 244" stroke="white" stroke-width="1.5" fill="none" opacity=".4"/>`,
+    coffee: `
+      <rect x="164" y="220" width="28" height="32" rx="6" fill="white" stroke="${O}" stroke-width="2"/>
+      <rect x="166" y="226" width="24" height="22" rx="4" fill="#6F4E37"/>
+      <path d="M192" y="228" a "6 6 0 0 1 6 6" stroke="${O}" stroke-width="2" fill="none"/>
+      <path d="M192 228 Q200 230 198 238 Q196 244 192 244" stroke="${O}" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M170 222 Q172 218 174 222" stroke="#666" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="M176 222 Q178 216 180 222" stroke="#666" stroke-width="1.5" fill="none" stroke-linecap="round"/>`,
+    fish: `
+      <ellipse cx="182" cy="238" rx="22" ry="18" fill="#87CEEB" stroke="${O}" stroke-width="2"/>
+      <ellipse cx="182" cy="238" rx="20" ry="16" fill="#B0E0FF"/>
+      <ellipse cx="174" cy="244" rx="6" ry="4" fill="#FF6B6B" stroke="${O}" stroke-width="1.5"/>
+      <ellipse cx="174" cy="244" rx="4" ry="2.5" fill="#FF8E8E"/>
+      <circle cx="170" cy="242" r="2" fill="${O}"/>
+      <circle cx="170.8" cy="241.2" r=".7" fill="white"/>
+      <path d="M200 228 L214 218 L214 248 Z" fill="#4FC3F7" stroke="${O}" stroke-width="1.5"/>
+      <path d="M185 232 Q192 238 185 244" stroke="${shade('#87CEEB',-20)}" stroke-width="1.5" fill="none"/>`,
+    book: `
+      <rect x="150" y="218" width="42" height="52" rx="4" fill="#E74C3C" stroke="${O}" stroke-width="2"/>
+      <rect x="152" y="220" width="38" height="48" rx="3" fill="#C0392B"/>
+      <rect x="154" y="222" width="34" height="44" rx="2" fill="#FDFEFE"/>
+      <path d="M156 230 L186 230" stroke="#BDC3C7" stroke-width="1.5"/>
+      <path d="M156 236 L186 236" stroke="#BDC3C7" stroke-width="1.5"/>
+      <path d="M156 242 L186 242" stroke="#BDC3C7" stroke-width="1.5"/>
+      <path d="M156 248 L178 248" stroke="#BDC3C7" stroke-width="1.5"/>
+      <rect x="152" y="220" width="4" height="48" rx="2" fill="#E74C3C"/>`,
   };
 
-  const shirtDesigns = {
-    plain: ``,
-    heart: `<text x="88" y="238" font-size="20" fill="white" opacity=".9" stroke="white" stroke-width=".5">♥</text>`,
-    star:  `<text x="88" y="238" font-size="20" fill="white" opacity=".9">★</text>`,
-    question:`<text x="92" y="238" font-size="20" fill="white" opacity=".9" font-weight="bold">?</text>`,
-    smile: `<text x="86" y="238" font-size="20" fill="#FDE68A">☺</text>`,
-  };
+  // ── HEAD ────────────────────────────────────────
+  const headShape = gender === 'female'
+    ? `<ellipse cx="100" cy="108" rx="50" ry="56" fill="${sk}" stroke="${O}" stroke-width="2.5"/>`
+    : `<path d="M50 108 Q50 56 100 50 Q150 56 150 108 Q150 140 138 154 Q120 168 100 168 Q80 168 62 154 Q50 140 50 108 Z" fill="${sk}" stroke="${O}" stroke-width="2.5"/>`;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 340" width="110" height="187">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 340" width="120" height="204">
+  <defs>
+    <radialGradient id="pg" cx="38%" cy="32%" r="62%">
+      <stop offset="0%" stop-color="${skLt}"/>
+      <stop offset="100%" stop-color="${skDk}"/>
+    </radialGradient>
+  </defs>
 
   <!-- SHADOW -->
-  <ellipse cx="100" cy="334" rx="40" ry="7" fill="rgba(0,0,0,.18)"/>
+  <ellipse cx="100" cy="336" rx="42" ry="7" fill="rgba(0,0,0,.16)"/>
 
-  <!-- SHOES -->
-  <ellipse cx="72" cy="318" rx="24" ry="10" fill="${shoeColor}" stroke="${stroke}" stroke-width="2"/>
-  <ellipse cx="128" cy="318" rx="24" ry="10" fill="${shoeColor}" stroke="${stroke}" stroke-width="2"/>
-  <rect x="50" y="306" width="44" height="18" rx="8" fill="${lt(shoeColor,30)}" stroke="${stroke}" stroke-width="2"/>
-  <rect x="106" y="306" width="44" height="18" rx="8" fill="${lt(shoeColor,30)}" stroke="${stroke}" stroke-width="2"/>
-  <path d="M54 308 Q66 304 90 308" stroke="white" stroke-width="1.5" fill="none" opacity=".3"/>
-  <path d="M110 308 Q122 304 146 308" stroke="white" stroke-width="1.5" fill="none" opacity=".3"/>
-
-  <!-- LEGS / PANTS -->
-  <rect x="56" y="248" width="36" height="66" rx="10" fill="${pantsColor}" stroke="${stroke}" stroke-width="2.5"/>
-  <rect x="108" y="248" width="36" height="66" rx="10" fill="${pantsColor}" stroke="${stroke}" stroke-width="2.5"/>
-  <path d="M60 252 Q64 300 64 310" stroke="${dk(pantsColor,20)}" stroke-width="2.5" fill="none" opacity=".4"/>
-  <path d="M112 252 Q116 300 116 310" stroke="${dk(pantsColor,20)}" stroke-width="2.5" fill="none" opacity=".4"/>
-
-  <!-- BELT -->
-  <rect x="46" y="240" width="108" height="14" rx="7" fill="${dk(pantsColor,10)}" stroke="${stroke}" stroke-width="2"/>
-  <rect x="88" y="238" width="24" height="18" rx="4" fill="#D4A017" stroke="${stroke}" stroke-width="2"/>
-
-  <!-- SHIRT / BODY -->
-  <rect x="44" y="168" width="112" height="80" rx="18" fill="${shirtColor}" stroke="${stroke}" stroke-width="2.5"/>
-  <!-- shirt highlight -->
-  <path d="M56 178 Q68 172 80 178" stroke="white" stroke-width="2" fill="none" opacity=".3"/>
-  <!-- inner shirt / collar -->
-  <path d="M85 168 L100 188 L115 168" fill="white" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>
-  ${shirtDesigns[shirtDesign] || ''}
-
-  <!-- COLLAR -->
-  <path d="M72 168 Q86 160 100 156 Q114 160 128 168" fill="${lt(shirtColor,30)}" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"/>
-
-  <!-- ARMS -->
-  <path d="M44 180 Q18 196 16 238" stroke="${shirtColor}" stroke-width="26" fill="none" stroke-linecap="round"/>
-  <path d="M44 180 Q18 196 16 238" stroke="${stroke}" stroke-width="26" fill="none" stroke-linecap="round" opacity=".12"/>
-  <path d="M156 180 Q182 196 184 238" stroke="${shirtColor}" stroke-width="26" fill="none" stroke-linecap="round"/>
-  <path d="M156 180 Q182 196 184 238" stroke="${stroke}" stroke-width="26" fill="none" stroke-linecap="round" opacity=".12"/>
-
-  <!-- ARM OUTLINES -->
-  <path d="M31 179 Q8 197 4 239" stroke="${stroke}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <path d="M57 179 Q32 197 28 239" stroke="${stroke}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <path d="M143 179 Q168 197 172 239" stroke="${stroke}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <path d="M169 179 Q192 197 196 239" stroke="${stroke}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-
-  <!-- HANDS -->
-  <circle cx="16" cy="242" r="16" fill="${skinColor}" stroke="${stroke}" stroke-width="2.5"/>
-  <circle cx="184" cy="242" r="16" fill="${skinColor}" stroke="${stroke}" stroke-width="2.5"/>
-  <ellipse cx="10" cy="235" rx="5" ry="3.5" fill="white" opacity=".2"/>
+  ${body}
+  ${arms}
+  ${heldItems[held] || ''}
 
   <!-- NECK -->
-  <rect x="84" y="152" width="32" height="20" rx="8" fill="${skinColor}" stroke="${stroke}" stroke-width="2"/>
+  <rect x="86" y="150" width="28" height="18" rx="8" fill="${sk}" stroke="${O}" stroke-width="2"/>
 
-  <!-- HEAD — cartoon proportions (big but not Funko) -->
-  <ellipse cx="100" cy="110" rx="52" ry="58" fill="${skinColor}" stroke="${stroke}" stroke-width="2.5"/>
-
-  <!-- HEAD HIGHLIGHT -->
-  <ellipse cx="78" cy="82" rx="18" ry="12" fill="white" opacity=".18"/>
+  <!-- HEAD -->
+  ${headShape}
+  <!-- head highlight -->
+  <ellipse cx="78" cy="78" rx="16" ry="11" fill="white" opacity=".16"/>
 
   <!-- EARS -->
-  <ellipse cx="48" cy="118" rx="10" ry="12" fill="${skinColor}" stroke="${stroke}" stroke-width="2"/>
-  <ellipse cx="152" cy="118" rx="10" ry="12" fill="${skinColor}" stroke="${stroke}" stroke-width="2"/>
-  <ellipse cx="48" cy="118" rx="6" ry="8" fill="${skinDk}"/>
-  <ellipse cx="152" cy="118" rx="6" ry="8" fill="${skinDk}"/>
+  <ellipse cx="50" cy="116" rx="9" ry="11" fill="${sk}" stroke="${O}" stroke-width="2"/>
+  <ellipse cx="150" cy="116" rx="9" ry="11" fill="${sk}" stroke="${O}" stroke-width="2"/>
+  <ellipse cx="50" cy="116" rx="5" ry="6.5" fill="${skDk}" opacity=".4"/>
+  <ellipse cx="150" cy="116" rx="5" ry="6.5" fill="${skDk}" opacity=".4"/>
 
   <!-- CHEEKS -->
-  <ellipse cx="56" cy="132" rx="12" ry="8" fill="#FFB6C1" opacity=".6"/>
-  <ellipse cx="144" cy="132" rx="12" ry="8" fill="#FFB6C1" opacity=".6"/>
+  <ellipse cx="62" cy="130" rx="11" ry="7.5" fill="#FFB6C1" opacity=".65"/>
+  <ellipse cx="138" cy="130" rx="11" ry="7.5" fill="#FFB6C1" opacity=".65"/>
 
-  <!-- HAIR -->
-  ${hairs[hairStyle] || hairs.medium}
+  <!-- HAIR (on top of head) -->
+  ${hair}
 
   <!-- EYEBROWS -->
-  ${brows[expression] || brows.happy}
+  ${brow}
 
   <!-- EYES -->
   ${eyes}
 
-  <!-- NOSE — simple cute -->
-  <path d="M97 134 Q100 140 103 134" stroke="${skinDk}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- NOSE -->
+  <path d="M97 135 Q100 141 103 135" stroke="${skDk}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
 
   <!-- MOUTH -->
-  ${mouths[expression] || mouths.happy}
-
-  <!-- ACCESSORY -->
-  ${accessories[accessory] || ''}
+  ${mouth}
 </svg>`;
 }
 
@@ -6009,7 +6043,7 @@ function buildPokeSVG(config) {
 // ═══════════════════════════════════════
 // DAILYPOKE UI
 // ═══════════════════════════════════════
-const POKE_DEFAULTS = {skinColor:'#FDBCB4',hairColor:'#4A3728',hairStyle:'medium',eyeColor:'#3B82F6',shirtColor:'#FF6B35',pantsColor:'#1E40AF',shoeColor:'#1F2937',expression:'happy',accessory:'none',shirtDesign:'plain'};
+const POKE_DEFAULTS = {gender:'male',skinColor:'#F5CBA7',hairColor:'#4A2C17',hairStyle:'side',eyeColor:'#3B82F6',topColor:'#E74C3C',bottomColor:'#3B82F6',shoeColor:'#1F2937',expression:'happy',held:'none'};
 let myPokeConfig = null;
 let editorCfg = null;
 
@@ -6086,17 +6120,19 @@ function openPokeEditor() {
     + `<input type="color" value="${editorCfg[field]||'#FF6B35'}" style="width:24px;height:24px;border:none;border-radius:50%;cursor:pointer;padding:0;" onchange="updatePokeField('${field}',this.value)">`;
   }
 
+  const hairOpts = editorCfg.gender === 'female' ? ['long_straight','bun','curly','ponytail'] : ['side','spiky','buzz'];
   document.getElementById('modal-poke-editor').querySelector('#poke-editor-options').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Expressão</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('expression',['happy','love','cool','sad','surprised','wink'])}</div></div>
-      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Cabelo</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('hairStyle',['short','medium','long','curly','ponytail','bald'])}</div></div>
-      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Cor do cabelo</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('hairColor','#4A3728,#1F2937,#C0392B,#F1C40F,#E8B89A,#fff,#7c3aed,#E74C3C')}</div></div>
-      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Tom de pele</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('skinColor','#FDBCB4,#F5CBA7,#D4A27F,#A0704B,#7D4A2B,#4A2C17')}</div></div>
-      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Cor dos olhos</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('eyeColor','#3B82F6,#059669,#92400E,#1F2937,#7C3AED,#DC2626')}</div></div>
-      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Camisa</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('shirtColor')}</div></div>
-      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Design camisa</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('shirtDesign',['plain','heart','star','question','smile'])}</div></div>
-      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Calça</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('pantsColor','#1E40AF,#1F2937,#DC2626,#059669,#92400E,#6B7280')}</div></div>
-      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">Acessório</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('accessory',['none','hat','glasses','crown','flower'])}</div></div>
+    <div style="display:flex;flex-direction:column;gap:10px;padding-right:4px;">
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">👤 Gênero</div><div style="display:flex;gap:4px;">${optBtns('gender',['male','female'])}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">😊 Expressão</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('expression',['happy','big_smile','cool','sad','surprised'])}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">💇 Cabelo</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('hairStyle',hairOpts)}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">🎨 Cor do cabelo</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('hairColor','#4A2C17,#1a1a1a,#8B4513,#D4A017,#E8B89A,#cccccc,#C0392B,#7c3aed')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">🌍 Tom de pele</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('skinColor','#FDBCB4,#F5CBA7,#D4A27F,#C68642,#8D5524,#4A2C17')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">👁️ Olhos</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('eyeColor','#3B82F6,#2ECC71,#8B4513,#1a1a1a,#7C3AED,#E74C3C,#5F9EA0,#808080')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">👕 Roupa</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('topColor','#E74C3C,#3B82F6,#2ECC71,#F59E0B,#7C3AED,#EC4899,#1F2937,#ffffff')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">👖 ${editorCfg.gender==='female'?'Saia':'Calça'}</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('bottomColor','#1E40AF,#1F2937,#6B7280,#8B4513,#2ECC71,#7C3AED,#E74C3C,#F59E0B')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">👟 Sapatos</div><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${colorOpts('shoeColor','#1F2937,#ffffff,#8B4513,#E74C3C,#3B82F6,#2ECC71,#F59E0B,#6B7280')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">🎒 Na mão</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${optBtns('held',['none','notebook','phone','tablet','skate','coffee','fish','book'])}</div></div>
     </div>`;
   document.getElementById('poke-editor-preview').innerHTML = buildPokeSVG(editorCfg);
   openModal('modal-poke-editor');
@@ -6105,6 +6141,13 @@ function openPokeEditor() {
 function updatePokeField(field, value) {
   if (!editorCfg) editorCfg = {...POKE_DEFAULTS};
   editorCfg[field] = value;
+  // Se mudou gênero, resetar cabelo para o padrão do gênero
+  if (field === 'gender') {
+    editorCfg.hairStyle = value === 'female' ? 'long_straight' : 'side';
+    // Remontar editor para atualizar opções de cabelo
+    setTimeout(() => { openPokeEditor(); }, 50);
+    return;
+  }
   const prev = document.getElementById('poke-editor-preview');
   if (prev) prev.innerHTML = buildPokeSVG(editorCfg);
   // Atualizar botão selecionado
