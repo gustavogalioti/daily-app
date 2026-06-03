@@ -760,6 +760,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <!-- Sub-nav Jogos -->
       <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">
         <button class="btn btn-primary btn-sm" onclick="showJogoSection('dailypoke',this)" id="btn-jogo-dp">🎭 DailyPoke</button>
+        <button class="btn btn-ghost btn-sm" onclick="showJogoSection('catrunner',this)">🐱 Cat Runner</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('outros',this)" style="opacity:.5;">🌾 Em breve</button>
       </div>
 
@@ -796,6 +797,44 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       </div>
 
       <!-- Outros jogos (em breve) -->
+      <!-- CAT RUNNER GAME -->
+      <div id="jogo-catrunner" style="display:none;">
+        <div style="max-width:680px;margin:0 auto;">
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;">🐱 Cat Runner</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="openCatRanking()">🏆 Ranking</button>
+              <button class="btn btn-primary btn-sm" onclick="openCatChallenge()">⚔️ Desafiar amigo</button>
+            </div>
+          </div>
+
+          <!-- Game canvas container -->
+          <div style="position:relative;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+            <canvas id="catCanvas" width="640" height="220" style="display:block;width:100%;cursor:pointer;"></canvas>
+            <!-- Overlay start -->
+            <div id="cat-overlay" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);">
+              <div style="font-size:48px;margin-bottom:8px;">🐱</div>
+              <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:#fff;margin-bottom:4px;">Cat Runner</div>
+              <div style="color:rgba(255,255,255,.8);font-size:14px;margin-bottom:18px;">Pressione ESPAÇO ou toque para pular</div>
+              <button class="btn btn-primary" onclick="startCatGame()" style="font-size:16px;padding:12px 32px;">▶ Jogar</button>
+            </div>
+          </div>
+
+          <!-- Score bar -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 14px;background:var(--surface);border-radius:12px;border:1.5px solid var(--border);">
+            <div style="font-size:13px;"><span style="color:var(--muted);">Pontuação: </span><span id="cat-score-display" style="font-weight:800;font-size:18px;color:var(--accent);">0</span></div>
+            <div style="font-size:13px;"><span style="color:var(--muted);">Recorde: </span><span id="cat-best-display" style="font-weight:800;font-size:18px;color:#F59E0B;">0</span></div>
+          </div>
+
+          <!-- Ranking panel (hidden) -->
+          <div id="cat-ranking-panel" style="display:none;margin-top:12px;background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:16px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:12px;">🏆 Ranking Global</div>
+            <div id="cat-ranking-list">Carregando...</div>
+          </div>
+        </div>
+      </div>
+
       <div id="jogo-outros" style="display:none;">
         <div class="jogos-soon">
           <div class="jogos-badge">Em breve</div>
@@ -4385,7 +4424,7 @@ function renderNotifItem(n) {
     friend_request: '🤝', friend_accepted: '🎉',
     reaction: '❤️', comment: '💬',
     community_invite: '🏘️', community_invite_accepted: '✅',
-    agenda_invite: '📆', testimonial: '💬', friend_accepted: '🎉'
+    agenda_invite: '📆', testimonial: '💬', friend_accepted: '🎉', game_challenge: '🎮'
   };
   const icon = icons[n.type] || '🔔';
   const avatar = n.from_avatar
@@ -4412,6 +4451,12 @@ function renderNotifItem(n) {
     actions = `<div class="notif-actions">
       <button class="btn btn-primary btn-xs" onclick="acceptAgendaInviteNotif('${d.agenda_id}','${n.id}')">✅ Aceitar</button>
       <button class="btn btn-ghost btn-xs" onclick="declineAgendaInviteNotif('${d.agenda_id}','${n.id}')">Recusar</button>
+    </div>`;
+  }
+  if (n.type === 'game_challenge' && !n.read) {
+    const d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
+    actions = `<div class="notif-actions">
+      <button class="btn btn-primary btn-xs" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'));showJogoSection('catrunner');closeNotifPanel();">🎮 Jogar agora!</button>
     </div>`;
   }
   if (n.type === 'testimonial' && !n.read) {
@@ -6046,9 +6091,14 @@ let myPokeConfig = null;
 let editorCfg = null;
 
 function showJogoSection(sec, btn) {
-  document.getElementById('jogo-dailypoke').style.display = sec==='dailypoke'?'block':'none';
-  document.getElementById('jogo-outros').style.display = sec==='outros'?'block':'none';
-  if (sec === 'dailypoke') loadDailyPoke();
+  ['dailypoke','catrunner','outros'].forEach(s=>{
+    const el=document.getElementById('jogo-'+s);
+    if(el) el.style.display='none';
+  });
+  const target=document.getElementById('jogo-'+sec);
+  if(target) target.style.display='block';
+  if(sec==='dailypoke') loadDailyPoke();
+  if(sec==='catrunner') initCatGame();
 }
 
 async function loadDailyPoke() {
@@ -6316,5 +6366,477 @@ async function checkDQPeriodChange() {
 }
 </script>
 
+
+<!-- Modal Cat Runner Challenge -->
+<div class="modal-overlay" id="modal-cat-challenge" onclick="if(event.target===this)closeModal('modal-cat-challenge')">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">⚔️ Desafiar amigo — Cat Runner</div>
+      <button class="modal-close" onclick="closeModal('modal-cat-challenge')">×</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;" id="cat-challenge-friends">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// CAT RUNNER — Game Engine
+// ═══════════════════════════════════════
+let catGame = null;
+
+function initCatGame() {
+  if (catGame) return; // já inicializado
+  catGame = new CatRunner('catCanvas');
+  catGame.init();
+  // carregar recorde do servidor
+  api('/api/catrunner/score').then(d=>{
+    if(d.best) document.getElementById('cat-best-display').textContent = d.best;
+  }).catch(()=>{});
+}
+
+class CatRunner {
+  constructor(canvasId) {
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext('2d');
+    this.W = this.canvas.width;
+    this.H = this.canvas.height;
+    this.reset();
+    this.challengeId = null;
+  }
+
+  reset() {
+    this.score = 0;
+    this.best = parseInt(document.getElementById('cat-best-display').textContent)||0;
+    this.speed = 4;
+    this.gameRunning = false;
+    this.gameover = false;
+    this.frame = 0;
+    this.groundY = this.H - 40;
+    // Cat
+    this.cat = { x:80, y:this.groundY-40, w:32, h:40, vy:0, jumping:false, frame:0 };
+    // Obstacles & collectibles
+    this.obstacles = [];
+    this.landmarks = [];
+    this.particles = [];
+    // Background
+    this.bgX = 0;
+    this.bgLayer = 0; // 0=day, 1=city, 2=night, 3=paris, etc
+    this.clouds = [{x:200,y:40},{x:450,y:60},{x:550,y:30}];
+    this.nextObstacle = 80;
+    this.nextLandmark = 300;
+    this.bgScrollX = 0;
+  }
+
+  init() {
+    // Input
+    const jump = ()=>{ if(this.gameRunning) this.jump(); };
+    document.addEventListener('keydown', e=>{ if(e.code==='Space'||e.code==='ArrowUp'){ e.preventDefault(); jump(); } });
+    this.canvas.addEventListener('click', jump);
+    this.canvas.addEventListener('touchstart', e=>{ e.preventDefault(); jump(); }, {passive:false});
+  }
+
+  jump() {
+    if(!this.cat.jumping) {
+      this.cat.vy = -14;
+      this.cat.jumping = true;
+      this.addParticles(this.cat.x+16, this.cat.y+40, '#FFD700', 4);
+    }
+  }
+
+  addParticles(x,y,color,n=6) {
+    for(let i=0;i<n;i++) {
+      this.particles.push({x,y,vx:(Math.random()-0.5)*4,vy:-Math.random()*3,life:20,color});
+    }
+  }
+
+  start() {
+    this.reset();
+    this.gameRunning=true;
+    document.getElementById('cat-overlay').style.display='none';
+    document.getElementById('cat-ranking-panel').style.display='none';
+    this.loop();
+  }
+
+  loop() {
+    if(!this.gameRunning) return;
+    this.update();
+    this.draw();
+    requestAnimationFrame(()=>this.loop());
+  }
+
+  update() {
+    this.frame++;
+    this.score++;
+    this.speed = 4 + Math.floor(this.score/200)*0.5;
+
+    // Cat physics
+    this.cat.vy += 0.7; // gravity
+    this.cat.y += this.cat.vy;
+    if(this.cat.y >= this.groundY-40) {
+      this.cat.y = this.groundY-40;
+      this.cat.vy = 0;
+      this.cat.jumping = false;
+    }
+    this.cat.frame = Math.floor(this.frame/8)%2;
+
+    // Clouds
+    this.clouds.forEach(cl=>{ cl.x-=this.speed*0.3; if(cl.x<-80) cl.x=this.W+50; });
+
+    // Background scroll
+    this.bgScrollX = (this.bgScrollX + this.speed*0.4) % this.W;
+
+    // Spawn obstacles
+    this.nextObstacle--;
+    if(this.nextObstacle<=0) {
+      const types = ['eagle','poison','dog'];
+      const type = types[Math.floor(Math.random()*types.length)];
+      const isFlying = type==='eagle';
+      this.obstacles.push({
+        x:this.W+10, type,
+        y: isFlying ? this.groundY-80-Math.random()*30 : this.groundY-32,
+        w:32, h:32, frame:0
+      });
+      this.nextObstacle = 90 + Math.floor(Math.random()*80);
+    }
+
+    // Spawn landmarks
+    this.nextLandmark--;
+    if(this.nextLandmark<=0) {
+      const lms = [
+        {name:'RIO DE JANEIRO',emoji:'⛪',color:'#27AE60'},
+        {name:'SÃO PAULO',emoji:'🌊',color:'#2980B9'},
+        {name:'MINAS GERAIS',emoji:'🧀',color:'#F39C12'},
+        {name:'RIO GRANDE DO SUL',emoji:'🥩',color:'#C0392B'},
+        {name:'PARIS',emoji:'🗼',color:'#8E44AD'},
+        {name:'NOVA YORK',emoji:'🗽',color:'#2C3E50'},
+        {name:'ÍNDIA',emoji:'🕌',color:'#E67E22'},
+        {name:'TELETUBBIES',emoji:'📺',color:'#E91E63'},
+      ];
+      const lm = lms[Math.floor(Math.random()*lms.length)];
+      this.landmarks.push({...lm, x:this.W+10, alpha:1, timer:120});
+      this.nextLandmark = 400+Math.floor(Math.random()*200);
+    }
+
+    // Move obstacles
+    this.obstacles.forEach(o=>{ o.x-=this.speed; o.frame=Math.floor(this.frame/6)%2; });
+    this.obstacles = this.obstacles.filter(o=>o.x>-50);
+
+    // Move landmarks
+    this.landmarks.forEach(l=>{ l.x-=this.speed*0.5; l.timer--; if(l.timer<30) l.alpha=l.timer/30; });
+    this.landmarks = this.landmarks.filter(l=>l.timer>0);
+
+    // Particles
+    this.particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.life--; });
+    this.particles = this.particles.filter(p=>p.life>0);
+
+    // Cleopatra special (rare event)
+    if(this.frame%1000===0) this.spawnCleopatra();
+
+    // Collision
+    for(const o of this.obstacles) {
+      if(this.rectsOverlap(this.cat,o,8)) { this.die(); return; }
+    }
+
+    // Update UI
+    document.getElementById('cat-score-display').textContent = this.score;
+  }
+
+  rectsOverlap(a,b,margin=0) {
+    return a.x+margin<b.x+b.w-margin && a.x+a.w-margin>b.x+margin &&
+           a.y+margin<b.y+b.h-margin && a.y+a.h-margin>b.y+margin;
+  }
+
+  spawnCleopatra() {
+    this.cleopatra = {x:this.W+10, active:true, timer:200};
+  }
+
+  die() {
+    this.gameRunning = false;
+    this.gameover = true;
+    this.addParticles(this.cat.x+16,this.cat.y+20,'#E74C3C',12);
+    if(this.score>this.best) this.best=this.score;
+    // Save score
+    api('/api/catrunner/score',{method:'POST',body:JSON.stringify({score:this.score})}).catch(()=>{});
+    document.getElementById('cat-best-display').textContent=this.best;
+    setTimeout(()=>this.showGameOver(),600);
+  }
+
+  showGameOver() {
+    // Draw one more frame then show ranking
+    this.draw();
+    openCatRanking();
+  }
+
+  draw() {
+    const ctx=this.ctx, W=this.W, H=this.H, g=this.groundY;
+
+    // ── BACKGROUND ──
+    const bgColors = [
+      ['#87CEEB','#98FB98'], // day/green
+      ['#FF8C00','#DEB887'], // sunset/desert
+      ['#1a1a3e','#2C3E50'], // night/city
+      ['#87CEEB','#E8D5C4'], // paris dawn
+    ];
+    const bgIdx = Math.floor(this.score/800)%bgColors.length;
+    const [sky,ground] = bgColors[bgIdx];
+
+    // Sky gradient
+    const skyGrad=ctx.createLinearGradient(0,0,0,g);
+    skyGrad.addColorStop(0,sky);
+    skyGrad.addColorStop(1,lighten(sky,20));
+    ctx.fillStyle=skyGrad; ctx.fillRect(0,0,W,g);
+
+    // Ground
+    const grGrad=ctx.createLinearGradient(0,g,0,H);
+    grGrad.addColorStop(0,ground);
+    grGrad.addColorStop(1,darken(ground,30));
+    ctx.fillStyle=grGrad; ctx.fillRect(0,g,W,H-g);
+
+    // Ground line
+    ctx.fillStyle=darken(ground,40);
+    ctx.fillRect(0,g,W,3);
+
+    // Clouds
+    ctx.fillStyle='rgba(255,255,255,0.8)';
+    this.clouds.forEach(cl=>{
+      ctx.beginPath();
+      ctx.arc(cl.x,cl.y,20,0,Math.PI*2);
+      ctx.arc(cl.x+22,cl.y-8,16,0,Math.PI*2);
+      ctx.arc(cl.x+44,cl.y,18,0,Math.PI*2);
+      ctx.fill();
+    });
+
+    // ── CAT (pixel art) ──
+    this.drawCat(this.cat.x, this.cat.y, this.cat.frame);
+
+    // ── OBSTACLES ──
+    this.obstacles.forEach(o=>this.drawObstacle(o));
+
+    // ── CLEOPATRA HELPER ──
+    if(this.cleopatra?.active) {
+      this.cleopatra.x-=3;
+      this.cleopatra.timer--;
+      if(this.cleopatra.timer<=0||this.cleopatra.x<-60) this.cleopatra=null;
+      else this.drawCleopatra(this.cleopatra.x, g-64);
+    }
+
+    // ── LANDMARKS ──
+    this.landmarks.forEach(l=>{
+      ctx.save();
+      ctx.globalAlpha=l.alpha;
+      // big emoji
+      ctx.font='48px serif';
+      ctx.textAlign='center';
+      ctx.fillText(l.emoji, l.x, g-20);
+      // label
+      ctx.font='bold 14px Syne,sans-serif';
+      ctx.fillStyle=l.color;
+      ctx.shadowColor='#000'; ctx.shadowBlur=4;
+      ctx.fillText(l.name, l.x, g-75);
+      ctx.shadowBlur=0;
+      ctx.restore();
+    });
+
+    // ── PARTICLES ──
+    this.particles.forEach(p=>{
+      ctx.globalAlpha=p.life/20;
+      ctx.fillStyle=p.color;
+      ctx.fillRect(p.x-2,p.y-2,4,4);
+    });
+    ctx.globalAlpha=1;
+
+    // ── SCORE HUD ──
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    ctx.fillRect(W-110,8,102,28);
+    ctx.fillStyle='#fff';
+    ctx.font='bold 16px monospace';
+    ctx.textAlign='right';
+    ctx.fillText(String(this.score).padStart(6,'0'), W-14, 27);
+    ctx.textAlign='left';
+
+    // ── GAMEOVER OVERLAY ──
+    if(this.gameover && !this.gameRunning) {
+      ctx.fillStyle='rgba(0,0,0,0.5)';
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#fff';
+      ctx.font='bold 28px Syne,sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('😿 Game Over!', W/2, H/2-20);
+      ctx.font='16px sans-serif';
+      ctx.fillStyle='#FFD700';
+      ctx.fillText('Pontuação: '+this.score+(this.score>=(this.best)?' 🏆 Novo Recorde!':''), W/2, H/2+14);
+      ctx.textAlign='left';
+    }
+  }
+
+  // ── DRAW CAT (pixel art, 8x10 grid @ 4px) ──
+  drawCat(x,y,frame) {
+    const ctx=this.ctx, P=4;
+    const draw=(col,row,w,h,fill)=>{
+      ctx.fillStyle=fill;
+      ctx.fillRect(x+col*P,y+row*P,w*P,h*P);
+    };
+    // Body — orange tabby cat
+    const B='#FF8C42', Bd='#E0681E', Bl='#FFB067', W2='#fff', BK='#2C2C2C';
+    // Head
+    draw(1,0,6,5,B);
+    draw(2,0,4,1,Bd); // forehead stripe
+    // ears
+    draw(0,0,2,2,B); draw(0,0,1,1,Bd);
+    draw(6,0,2,2,B); draw(7,0,1,1,Bd);
+    // eyes (blink on frame 1)
+    if(frame===0){
+      draw(2,2,1,1,'#5DADE2'); draw(2,2,1,1,'#5DADE2');
+      draw(5,2,1,1,'#5DADE2');
+      draw(2,2,1,1,BK); draw(5,2,1,1,BK); // pupils
+      draw(2,2,1,1,'#5DADE2'); draw(5,2,1,1,'#5DADE2');
+      ctx.fillStyle='#5DADE2'; ctx.fillRect(x+2*P,y+2*P,P,P);
+      ctx.fillStyle='#5DADE2'; ctx.fillRect(x+5*P,y+2*P,P,P);
+      ctx.fillStyle=BK; ctx.fillRect(x+2*P+2,y+2*P+2,P-2,P-2);
+      ctx.fillStyle=BK; ctx.fillRect(x+5*P+2,y+2*P+2,P-2,P-2);
+    } else {
+      // closed eye line
+      ctx.fillStyle=Bd;
+      ctx.fillRect(x+2*P,y+2*P+P/2,P,2); ctx.fillRect(x+5*P,y+2*P+P/2,P,2);
+    }
+    // nose + mouth
+    draw(3,3,2,1,'#FFB6C1');
+    ctx.fillStyle=Bd; ctx.fillRect(x+3*P,y+4*P,2,2); ctx.fillRect(x+5*P,y+4*P,2,2);
+    // whiskers
+    ctx.strokeStyle=W2; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x+2*P,y+3*P); ctx.lineTo(x-P,y+3*P); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+6*P,y+3*P); ctx.lineTo(x+9*P,y+3*P); ctx.stroke();
+    // Body
+    draw(1,5,6,4,B);
+    draw(2,5,4,1,Bl); // chest stripe
+    // Legs (animated)
+    if(frame===0) { draw(1,9,2,1,B); draw(5,9,2,1,B); }
+    else          { draw(1,8,2,2,B); draw(5,8,2,2,B); }
+    // Tail
+    ctx.strokeStyle=B; ctx.lineWidth=P;
+    ctx.beginPath();
+    ctx.moveTo(x+7*P,y+7*P);
+    ctx.quadraticCurveTo(x+10*P,y+6*P,x+10*P,y+4*P);
+    ctx.stroke();
+    ctx.strokeStyle=Bd; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(x+7*P,y+7*P);
+    ctx.quadraticCurveTo(x+10*P,y+6*P,x+10*P,y+4*P);
+    ctx.stroke();
+  }
+
+  drawObstacle(o) {
+    const ctx=this.ctx, P=4, x=o.x, y=o.y, f=o.frame;
+    if(o.type==='eagle') {
+      // Eagle — flies, brown, wingspan
+      ctx.fillStyle='#8B4513';
+      ctx.fillRect(x,y+8,32,12); // body
+      ctx.fillStyle='#A0522D';
+      // wings flap
+      if(f===0) { ctx.fillRect(x-12,y,16,10); ctx.fillRect(x+28,y,16,10); }
+      else       { ctx.fillRect(x-10,y+6,16,8); ctx.fillRect(x+26,y+6,16,8); }
+      ctx.fillStyle='#FFD700';
+      ctx.fillRect(x+22,y+10,8,6); // beak
+      ctx.fillStyle='#1a1a1a'; ctx.fillRect(x+20,y+8,4,4); // eye
+    } else if(o.type==='poison') {
+      // Poison bottle — green glowing
+      ctx.fillStyle='#27AE60'; ctx.fillRect(x+8,y,16,8); // cap
+      ctx.fillStyle='#1E8449'; ctx.fillRect(x+4,y+8,24,22); // bottle
+      ctx.fillStyle='rgba(0,255,0,0.3)'; ctx.fillRect(x+6,y+10,10,18); // glow
+      ctx.fillStyle='#fff'; ctx.font='bold 12px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('☠️',x+16,y+26); ctx.textAlign='left';
+    } else {
+      // Dog — tan/brown pixel dog
+      ctx.fillStyle='#C68642';
+      ctx.fillRect(x,y+4,28,16); // body
+      ctx.fillRect(x+20,y,14,14); // head
+      ctx.fillStyle='#A0522D';
+      ctx.fillRect(x+28,y,8,4); // ear
+      // legs
+      if(f===0) { ctx.fillRect(x+2,y+18,6,10); ctx.fillRect(x+18,y+18,6,10); }
+      else       { ctx.fillRect(x+4,y+18,6,10); ctx.fillRect(x+16,y+18,6,10); }
+      // tail
+      ctx.fillRect(x-4,y+2,8,8);
+      ctx.fillStyle='#1a1a1a'; ctx.fillRect(x+28,y+4,4,4); // nose
+    }
+  }
+
+  drawCleopatra(x,y) {
+    const ctx=this.ctx;
+    // Cleopatra helper icon
+    ctx.fillStyle='#F5C842';
+    ctx.fillRect(x+8,y,24,8); // crown
+    ctx.fillStyle='#F5CBA7';
+    ctx.fillRect(x+4,y+8,28,24); // face/body
+    ctx.fillStyle='#1a1a1a';
+    ctx.fillRect(x+8,y+14,6,6); ctx.fillRect(x+22,y+14,6,6); // eyes
+    ctx.fillStyle='#2980B9';
+    ctx.fillRect(x+4,y+8,28,4); // headdress
+    // flash indicator
+    ctx.font='20px serif';
+    ctx.fillText('✨',x+14,y-6);
+  }
+}
+
+function startCatGame() {
+  if(!catGame) catGame=new CatRunner('catCanvas');
+  catGame.gameover=false;
+  catGame.start();
+}
+
+async function openCatRanking() {
+  const panel=document.getElementById('cat-ranking-panel');
+  const list=document.getElementById('cat-ranking-list');
+  panel.style.display='block';
+  list.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const {ranking}=await api('/api/catrunner/ranking');
+    const me=currentUser?.id;
+    list.innerHTML=ranking.slice(0,20).map((r,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;${r.user_id===me?'background:var(--accent-light);border-radius:8px;':''}">
+        <div style="font-weight:800;font-size:14px;width:24px;color:${i<3?'#F59E0B':'var(--muted)'};">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+        <img src="${r.avatar_url||avatarUrl(r.name)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+        <div style="flex:1;font-weight:600;font-size:13px;">${r.name}</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);">${r.best_score}</div>
+      </div>`).join('')||'<p class="text-muted" style="text-align:center;">Ninguém jogou ainda!</p>';
+  } catch(e) { list.innerHTML='<p class="text-muted">Erro ao carregar.</p>'; }
+  // Show restart button if game over
+  if(catGame?.gameover) {
+    list.innerHTML+=`<div style="text-align:center;margin-top:14px;">
+      <button class="btn btn-primary" onclick="startCatGame()">▶ Jogar de novo</button>
+    </div>`;
+  }
+}
+
+async function openCatChallenge() {
+  openModal('modal-cat-challenge');
+  const list=document.getElementById('cat-challenge-friends');
+  list.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const {friends}=await api('/api/friends/list');
+    list.innerHTML=friends.map(f=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface2);border-radius:10px;">
+        <img src="${f.avatar_url||avatarUrl(f.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+        <div style="flex:1;font-weight:700;font-size:13px;">${f.name}<div style="font-size:11px;color:var(--muted);">@${f.username}</div></div>
+        <button class="btn btn-primary btn-xs" onclick="sendCatChallenge('${f.id}','${f.name.split(' ')[0]}',this)">⚔️ Desafiar</button>
+      </div>`).join('')||'<p class="text-muted">Adicione amigos para desafiar!</p>';
+  } catch(e) {}
+}
+
+async function sendCatChallenge(userId, name, btn) {
+  btn.disabled=true; btn.textContent='...';
+  try {
+    await api('/api/catrunner/challenge',{method:'POST',body:JSON.stringify({to_user_id:userId})});
+    btn.textContent='✅ Enviado!';
+    toast(`Desafio enviado para ${name}! 🎮`, 'success');
+  } catch(e) { toast(e.message,'error'); btn.disabled=false; btn.textContent='⚔️ Desafiar'; }
+}
+
+function lighten(hex,a){const n=parseInt(hex.replace('#',''),16);return '#'+[n>>16,(n>>8)&255,n&255].map(v=>Math.min(255,v+a).toString(16).padStart(2,'0')).join('');}
+function darken(hex,a){const n=parseInt(hex.replace('#',''),16);return '#'+[n>>16,(n>>8)&255,n&255].map(v=>Math.max(0,v-a).toString(16).padStart(2,'0')).join('');}
+
+</script>
 </body>
 </html>
