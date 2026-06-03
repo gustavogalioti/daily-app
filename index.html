@@ -7023,7 +7023,7 @@ function darken(hex,a){const n=parseInt(hex.replace('#',''),16);return '#'+[n>>1
 // CHAT AO VIVO — ÁGORA
 // ═══════════════════════════════════════
 let chatPollingInterval = null;
-let chatLastId = 0;
+let chatLastTs = null;
 let chatWordData = {};
 let chatOnlineInterval = null;
 
@@ -7074,7 +7074,7 @@ async function loadChatHistory() {
     const {messages} = await api('/api/agora-chat/messages?limit=50');
     box.innerHTML = '';
     messages.forEach(m => appendChatMessage(m));
-    chatLastId = messages.at(-1)?.id || 0;
+    chatLastTs = messages.at(-1)?.created_at || null;
     scrollChatBottom();
     updateChatWordCloud(messages.map(m=>m.content).join(' '));
   } catch(e) { box.innerHTML='<p class="text-muted" style="text-align:center;">Nenhuma mensagem ainda. Diz oi! 👋</p>'; }
@@ -7082,10 +7082,10 @@ async function loadChatHistory() {
 
 async function pollNewChatMessages() {
   try {
-    const {messages} = await api('/api/agora-chat/messages?after='+chatLastId);
+    const {messages} = await api('/api/agora-chat/messages'+(chatLastTs?'?after='+encodeURIComponent(chatLastTs):''));
     if(!messages.length) return;
     messages.forEach(m => appendChatMessage(m));
-    chatLastId = messages.at(-1)?.id || chatLastId;
+    chatLastTs = messages.at(-1)?.created_at || chatLastTs;
     scrollChatBottom();
     // Atualizar nuvem incrementalmente
     messages.forEach(m => {
