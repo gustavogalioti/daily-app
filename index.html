@@ -823,7 +823,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
         <div class="profile-tab" onclick="showProfileSec('depoimentos',this)" style="flex-shrink:0;">💬 Depoi.</div>
         <div class="profile-tab" onclick="showProfileSec('conquistas',this)" style="flex-shrink:0;">🏆</div>
-        <div class="profile-tab" onclick="showProfileSec('profissional',this)" style="flex-shrink:0;">💼</div>
+
         <div class="profile-tab" onclick="showProfileSec('agenda',this)" style="flex-shrink:0;">📆 Agenda</div>
       </div>
       <div id="ps-timeline"><div id="timeline-container"><div class="page-loader"><div class="loader"></div></div></div></div>
@@ -2047,6 +2047,13 @@ async function loadProfile(){
             </div>
           </div>
 
+          <!-- Profissional -->
+          <div id="profile-prof-sidebar" style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;display:none;">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;color:var(--muted);">💼 Profissional</div>
+            <div id="profile-prof-content" style="font-size:11px;color:var(--text2);line-height:1.5;"></div>
+            <button class="btn btn-ghost btn-xs" style="margin-top:8px;width:100%;" onclick="showProfileSec('profissional',null)">Editar →</button>
+          </div>
+
           <!-- DailyPoke mini -->
           <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:10px;text-align:center;cursor:pointer;" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'))">
             <div id="profile-poke-mini" style="font-size:28px;">🎭</div>
@@ -2056,12 +2063,6 @@ async function loadProfile(){
 
         <!-- ── COLUNA CENTRAL: conteúdo / timeline ── -->
         <div>
-          <!-- 3 botões de navegação rápida -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;">
-            <button class="btn btn-primary btn-sm" onclick="showProfileSec('timeline',this)" style="font-size:11px;">📅 Linha</button>
-            <button class="btn btn-ghost btn-sm" onclick="showProfileSec('depoimentos',this)" style="font-size:11px;">💬 Depoi.</button>
-            <button class="btn btn-ghost btn-sm" onclick="showProfileSec('agenda',this)" style="font-size:11px;">📆 Agenda</button>
-          </div>
           <div id="profile-tabs-row-wrap"></div>
         </div>
 
@@ -2079,13 +2080,13 @@ async function loadProfile(){
             </div>
           </div>
 
-          <!-- Conquistas (6 miniaturas) -->
+          <!-- Comunidades (6 miniaturas) -->
           <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:pointer;" onclick="showProfileSec('conquistas',null)">
-              <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;">🏆 Conquistas</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:pointer;" onclick="showProfileSec('comunidades',null)">
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;">🏘️ Comunidades</div>
               <span style="font-size:10px;color:var(--accent);">ver →</span>
             </div>
-            <div id="profile-ach-mini" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+            <div id="profile-comm-mini" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
               <div class="loader" style="width:20px;height:20px;grid-column:1/-1;margin:auto;"></div>
             </div>
           </div>
@@ -2111,7 +2112,8 @@ async function loadProfile(){
     }
     loadTimeline();
     loadProfileFriendsMini();
-    loadProfileAchMini();
+    loadProfileCommMini();
+    loadProfileProfSidebar(user);
   }catch(e){w.innerHTML='<p class="text-muted">Erro ao carregar perfil.</p>';}
 }
 
@@ -6016,6 +6018,42 @@ async function loadProfileAchMini() {
         <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.name}</div>
       </div>`).join('');
   } catch(e) { el.innerHTML = ''; }
+}
+</script>
+
+
+<script>
+async function loadProfileCommMini() {
+  const el = document.getElementById('profile-comm-mini');
+  if (!el) return;
+  try {
+    const { communities } = await api('/api/communities?mine=1&limit=6');
+    if (!communities.length) {
+      el.innerHTML = '<p class="text-muted" style="font-size:10px;grid-column:1/-1;text-align:center;padding:6px;">Nenhuma ainda</p>';
+      return;
+    }
+    el.innerHTML = communities.slice(0,6).map(c => `
+      <div style="cursor:pointer;padding:4px;text-align:center;" onclick="showProfileSec('comunidades',null)">
+        ${c.image_url
+          ? `<img src="${c.image_url}" style="width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;">`
+          : `<div style="width:100%;aspect-ratio:1;border-radius:8px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:14px;">🏘️</div>`}
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name}</div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = ''; }
+}
+
+function loadProfileProfSidebar(user) {
+  const el = document.getElementById('profile-prof-sidebar');
+  const content = document.getElementById('profile-prof-content');
+  if (!el || !content) return;
+  const lines = [];
+  if (user.professional_title) lines.push(`<div style="font-weight:700;font-size:12px;">${user.professional_title}</div>`);
+  if (user.professional_url) lines.push(`<a href="${user.professional_url}" target="_blank" style="color:var(--accent);font-size:11px;word-break:break-all;">${user.professional_url}</a>`);
+  if (user.professional_desc) lines.push(`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${user.professional_desc}</div>`);
+  if (lines.length) {
+    content.innerHTML = lines.join('');
+    el.style.display = 'block';
+  }
 }
 </script>
 
