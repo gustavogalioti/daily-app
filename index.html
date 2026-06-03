@@ -3789,7 +3789,7 @@ async function showVisitorProfile(username) {
           <!-- Amigos -->
           <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
             <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">👥 Amigos</div>
-            <div id="visitor-friends-mini" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+            <div id="visitor-friends-mini" style="display:grid;grid-template-columns:repeat(3,40px);gap:6px;overflow:hidden;justify-content:start;">
               <div class="loader" style="width:16px;height:16px;grid-column:1/-1;margin:auto;"></div>
             </div>
           </div>
@@ -3797,7 +3797,7 @@ async function showVisitorProfile(username) {
           <!-- Conquistas -->
           <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
             <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🏆 Conquistas</div>
-            <div id="visitor-ach-mini" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+            <div id="visitor-ach-mini" style="display:grid;grid-template-columns:repeat(3,40px);gap:6px;overflow:hidden;justify-content:start;">
               <div class="loader" style="width:16px;height:16px;grid-column:1/-1;margin:auto;"></div>
             </div>
           </div>
@@ -3820,9 +3820,9 @@ async function loadVisitorFriendsMini(userId, username) {
     const { friends } = await api('/api/friends/' + userId);
     if (!friends.length) { el.innerHTML = '<p class="text-muted" style="font-size:10px;grid-column:1/-1;text-align:center;padding:4px;">Nenhum</p>'; return; }
     el.innerHTML = friends.slice(0,6).map(f => `
-      <div style="text-align:center;cursor:pointer;" onclick="showVisitorProfile('${f.username}')">
-        <img src="${f.avatar_url||avatarUrl(f.name)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:1.5px solid var(--border);">
-        <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name.split(' ')[0]}</div>
+      <div style="text-align:center;cursor:pointer;width:40px;" onclick="showVisitorProfile('${f.username}')">
+        <img src="${f.avatar_url||avatarUrl(f.name)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:1.5px solid var(--border);display:block;">
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40px;">${f.name.split(' ')[0]}</div>
       </div>`).join('');
   } catch(e) {}
 }
@@ -3834,11 +3834,11 @@ async function loadVisitorAchMini(username) {
     const data = await api('/api/achievements/user/' + username);
     if (!data.earned?.length) { el.innerHTML = '<p class="text-muted" style="font-size:10px;grid-column:1/-1;text-align:center;padding:4px;">Nenhuma</p>'; return; }
     el.innerHTML = data.earned.slice(0,6).map(a => `
-      <div style="text-align:center;" title="${a.name}">
+      <div style="text-align:center;width:40px;" title="${a.name}">
         ${a.image_url
-          ? `<img src="${a.image_url}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;">`
+          ? `<img src="${a.image_url}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;display:block;">`
           : `<div style="width:40px;height:40px;border-radius:8px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:18px;">${a.icon||'🏆'}</div>`}
-        <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.name}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40px;">${a.name}</div>
       </div>`).join('');
   } catch(e) {}
 }
