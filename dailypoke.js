@@ -90,4 +90,14 @@ router.get('/received', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// GET /api/dailypoke/user/:id — ver poke de outro usuário
+router.get('/user/:id', async (req, res) => {
+  try {
+    const db = getDB();
+    const poke = await db.prepare('SELECT * FROM dailypokes WHERE user_id=$1').get(req.params.id);
+    res.json({ config: poke?.config || null });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
