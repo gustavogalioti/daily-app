@@ -5697,115 +5697,222 @@ function buildPokeSVG(config) {
     skinColor = '#F5CBA7',
     hairColor = '#2C1810',
     hairStyle = 'medium',
-    eyeColor = '#000000',
+    eyeColor = '#1a1a1a',
     shirtColor = '#3B82F6',
-    pantsColor = '#1E40AF',
+    pantsColor = '#374151',
     shoeColor = '#1F2937',
     expression = 'happy',
     accessory = 'none',
     shirtDesign = 'plain',
   } = config || {};
 
-  // Funko: cabeça ~45% do total, olhos grandes e pretos com brilho branco
-  const heads = {
-    // Sobrancelhas por expressão
-    happy:     { brows: `<path d="M52 68 Q62 63 72 68" stroke="${hairColor}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M88 68 Q98 63 108 68" stroke="${hairColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`, mouth: `<path d="M68 108 Q80 120 92 108" stroke="#8B4513" stroke-width="3" fill="none" stroke-linecap="round"/>` },
-    love:      { brows: `<path d="M52 68 Q62 63 72 68" stroke="${hairColor}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M88 68 Q98 63 108 68" stroke="${hairColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`, mouth: `<path d="M68 108 Q80 120 92 108" stroke="#8B4513" stroke-width="3" fill="none" stroke-linecap="round"/>` },
-    cool:      { brows: `<path d="M50 65 Q62 60 74 65" stroke="${hairColor}" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M86 65 Q98 60 110 65" stroke="${hairColor}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`, mouth: `<path d="M68 110 Q80 117 92 110" stroke="#8B4513" stroke-width="2.5" fill="none" stroke-linecap="round"/>` },
-    sad:       { brows: `<path d="M52 72 Q62 65 72 70" stroke="${hairColor}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M88 70 Q98 65 108 72" stroke="${hairColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`, mouth: `<path d="M68 115 Q80 106 92 115" stroke="#8B4513" stroke-width="3" fill="none" stroke-linecap="round"/>` },
-    surprised: { brows: `<path d="M52 62 Q62 56 72 62" stroke="${hairColor}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M88 62 Q98 56 108 62" stroke="${hairColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`, mouth: `<ellipse cx="80" cy="114" rx="8" ry="10" fill="#8B4513"/>` },
-    wink:      { brows: `<path d="M52 68 Q62 63 72 68" stroke="${hairColor}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M88 68 Q98 63 108 68" stroke="${hairColor}" stroke-width="3" fill="none" stroke-linecap="round"/>`, mouth: `<path d="M68 108 Q80 120 92 108" stroke="#8B4513" stroke-width="3" fill="none" stroke-linecap="round"/>` },
-  };
+  // Skin highlight and shadow
+  const skinLight = skinColor;
+  const skinShadow = shadeColor(skinColor, -25);
 
+  function shadeColor(col, amt) {
+    const num = parseInt(col.replace('#',''), 16);
+    const r = Math.min(255, Math.max(0, (num >> 16) + amt));
+    const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amt));
+    const b = Math.min(255, Math.max(0, (num & 0xff) + amt));
+    return '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }
+
+  const shirtShadow = shadeColor(shirtColor, -40);
+  const pantsShadow = shadeColor(pantsColor, -30);
+  const shirtLight  = shadeColor(shirtColor, +30);
+
+  // Hair styles
   const hairs = {
-    short:    `<ellipse cx="80" cy="42" rx="42" ry="18" fill="${hairColor}"/><rect x="38" y="42" width="84" height="14" fill="${hairColor}"/>`,
-    medium:   `<ellipse cx="80" cy="40" rx="44" ry="20" fill="${hairColor}"/><rect x="36" y="40" width="88" height="18" fill="${hairColor}"/><rect x="36" y="55" width="10" height="30" rx="5" fill="${hairColor}"/><rect x="114" y="55" width="10" height="30" rx="5" fill="${hairColor}"/>`,
-    long:     `<ellipse cx="80" cy="40" rx="44" ry="20" fill="${hairColor}"/><rect x="36" y="40" width="88" height="18" fill="${hairColor}"/><path d="M36 55 Q30 90 34 130" stroke="${hairColor}" stroke-width="14" fill="none" stroke-linecap="round"/><path d="M124 55 Q130 90 126 130" stroke="${hairColor}" stroke-width="14" fill="none" stroke-linecap="round"/>`,
-    curly:    `<ellipse cx="80" cy="38" rx="46" ry="22" fill="${hairColor}"/><circle cx="38" cy="52" r="12" fill="${hairColor}"/><circle cx="122" cy="52" r="12" fill="${hairColor}"/><circle cx="52" cy="28" r="14" fill="${hairColor}"/><circle cx="108" cy="28" r="14" fill="${hairColor}"/><circle cx="80" cy="22" r="16" fill="${hairColor}"/>`,
-    ponytail: `<ellipse cx="80" cy="40" rx="44" ry="20" fill="${hairColor}"/><rect x="36" y="40" width="88" height="18" fill="${hairColor}"/><path d="M120 48 Q145 75 135 110 Q128 130 118 145" stroke="${hairColor}" stroke-width="14" fill="none" stroke-linecap="round"/>`,
+    short:    `<ellipse cx="100" cy="52" rx="55" ry="22" fill="${hairColor}"/>
+               <rect x="45" y="52" width="110" height="18" rx="4" fill="${hairColor}"/>`,
+    medium:   `<ellipse cx="100" cy="50" rx="57" ry="25" fill="${hairColor}"/>
+               <rect x="43" y="50" width="114" height="22" fill="${hairColor}"/>
+               <rect x="43" y="68" width="14" height="40" rx="7" fill="${hairColor}"/>
+               <rect x="143" y="68" width="14" height="40" rx="7" fill="${hairColor}"/>`,
+    long:     `<ellipse cx="100" cy="48" rx="57" ry="26" fill="${hairColor}"/>
+               <rect x="43" y="48" width="114" height="22" fill="${hairColor}"/>
+               <path d="M43 68 Q32 110 36 165" stroke="${hairColor}" stroke-width="18" fill="none" stroke-linecap="round"/>
+               <path d="M157 68 Q168 110 164 165" stroke="${hairColor}" stroke-width="18" fill="none" stroke-linecap="round"/>`,
+    curly:    `<ellipse cx="100" cy="46" rx="58" ry="28" fill="${hairColor}"/>
+               <circle cx="46" cy="62" r="16" fill="${hairColor}"/>
+               <circle cx="154" cy="62" r="16" fill="${hairColor}"/>
+               <circle cx="62" cy="34" r="18" fill="${hairColor}"/>
+               <circle cx="138" cy="34" r="18" fill="${hairColor}"/>
+               <circle cx="100" cy="26" r="20" fill="${hairColor}"/>`,
+    ponytail: `<ellipse cx="100" cy="48" rx="57" ry="26" fill="${hairColor}"/>
+               <rect x="43" y="48" width="114" height="22" fill="${hairColor}"/>
+               <path d="M154 58 Q178 90 168 138 Q162 165 150 182" stroke="${hairColor}" stroke-width="18" fill="none" stroke-linecap="round"/>`,
     bald:     ``,
   };
 
+  // Expressions
+  const mouths = {
+    happy:    `<path d="M78 148 Q100 168 122 148" stroke="${skinShadow}" stroke-width="4" fill="none" stroke-linecap="round"/>
+               <path d="M82 148 Q100 162 118 148" fill="#c0392b" opacity=".7"/>`,
+    love:     `<path d="M78 148 Q100 168 122 148" stroke="${skinShadow}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+    cool:     `<path d="M80 152 Q100 162 120 152" stroke="${skinShadow}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`,
+    sad:      `<path d="M80 162 Q100 148 120 162" stroke="${skinShadow}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+    surprised:`<ellipse cx="100" cy="156" rx="10" ry="13" fill="${skinShadow}" opacity=".6"/>`,
+    wink:     `<path d="M78 148 Q100 168 122 148" stroke="${skinShadow}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+  };
+
+  const brows = {
+    happy:    `<path d="M65 92 Q78 84 91 90" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>
+               <path d="M109 90 Q122 84 135 92" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>`,
+    love:     `<path d="M65 92 Q78 84 91 90" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>
+               <path d="M109 90 Q122 84 135 92" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>`,
+    cool:     `<path d="M63 88 Q78 80 93 86" stroke="${hairColor}" stroke-width="6" fill="none" stroke-linecap="round"/>
+               <path d="M107 86 Q122 80 137 88" stroke="${hairColor}" stroke-width="6" fill="none" stroke-linecap="round"/>`,
+    sad:      `<path d="M65 90 Q78 98 91 92" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>
+               <path d="M109 92 Q122 98 135 90" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>`,
+    surprised:`<path d="M65 86 Q78 78 91 84" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>
+               <path d="M109 84 Q122 78 135 86" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>`,
+    wink:     `<path d="M65 92 Q78 84 91 90" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>
+               <path d="M109 90 Q122 84 135 92" stroke="${hairColor}" stroke-width="5" fill="none" stroke-linecap="round"/>`,
+  };
+
+  // Eyes — huge Funko black eyes with white shine
+  const eyes = expression === 'cool'
+    ? `<rect x="60" y="104" width="32" height="16" rx="8" fill="#111"/>
+       <rect x="108" y="104" width="32" height="16" rx="8" fill="#111"/>
+       <ellipse cx="67" cy="109" rx="5" ry="4" fill="white" opacity=".55"/>
+       <ellipse cx="115" cy="109" rx="5" ry="4" fill="white" opacity=".55"/>`
+    : expression === 'wink'
+    ? `<ellipse cx="78" cy="116" rx="16" ry="19" fill="#111"/>
+       <ellipse cx="70" cy="109" rx="5" ry="4" fill="white" opacity=".55"/>
+       <path d="M106 116 Q122 104 138 116" stroke="#111" stroke-width="6" fill="none" stroke-linecap="round"/>`
+    : expression === 'love'
+    ? `<text x="58" y="128" font-size="36" fill="#E91E63">♥</text>
+       <text x="102" y="128" font-size="36" fill="#E91E63">♥</text>`
+    : `<ellipse cx="78" cy="116" rx="16" ry="19" fill="#111"/>
+       <ellipse cx="122" cy="116" rx="16" ry="19" fill="#111"/>
+       <ellipse cx="70" cy="108" rx="5" ry="4" fill="white" opacity=".6"/>
+       <ellipse cx="114" cy="108" rx="5" ry="4" fill="white" opacity=".6"/>`;
+
+  // Accessories
   const accessories = {
     none:    ``,
-    hat:     `<ellipse cx="80" cy="42" rx="50" ry="10" fill="#DC2626"/><rect x="44" y="10" width="72" height="35" rx="12" fill="#B91C1C"/>`,
-    glasses: `<circle cx="63" cy="90" r="13" fill="none" stroke="#1F2937" stroke-width="4"/><circle cx="97" cy="90" r="13" fill="none" stroke="#1F2937" stroke-width="4"/><line x1="76" y1="90" x2="84" y2="90" stroke="#1F2937" stroke-width="4"/>`,
-    crown:   `<path d="M40 42 L52 20 L66 36 L80 12 L94 36 L108 20 L120 42 Z" fill="#F59E0B"/><ellipse cx="80" cy="43" rx="40" ry="8" fill="#D97706"/>`,
-    flower:  `<circle cx="118" cy="46" r="8" fill="#EC4899"/><circle cx="130" cy="36" r="7" fill="#F472B6"/><circle cx="125" cy="54" r="6" fill="#BE185D"/><circle cx="124" cy="46" r="5" fill="#FDE68A"/>`,
+    hat:     `<ellipse cx="100" cy="52" rx="62" ry="12" fill="#B91C1C"/>
+              <rect x="52" y="14" width="96" height="42" rx="16" fill="#DC2626"/>
+              <ellipse cx="100" cy="56" rx="62" ry="10" fill="#991B1B" opacity=".4"/>`,
+    glasses: `<circle cx="78" cy="116" r="22" fill="none" stroke="#1a1a1a" stroke-width="5"/>
+              <circle cx="122" cy="116" r="22" fill="none" stroke="#1a1a1a" stroke-width="5"/>
+              <line x1="100" y1="116" x2="100" y2="116" stroke="#1a1a1a" stroke-width="5"/>
+              <line x1="56" y1="110" x2="46" y2="106" stroke="#1a1a1a" stroke-width="4"/>
+              <line x1="144" y1="110" x2="154" y2="106" stroke="#1a1a1a" stroke-width="4"/>`,
+    crown:   `<path d="M46 56 L62 24 L80 44 L100 12 L120 44 L138 24 L154 56 Z" fill="#F59E0B"/>
+              <ellipse cx="100" cy="58" rx="54" ry="10" fill="#D97706"/>
+              <circle cx="100" cy="16" r="6" fill="#EF4444"/>
+              <circle cx="62" cy="30" r="5" fill="#EF4444"/>
+              <circle cx="138" cy="30" r="5" fill="#EF4444"/>`,
+    flower:  `<circle cx="150" cy="56" r="11" fill="#EC4899"/>
+              <circle cx="164" cy="44" r="9" fill="#F472B6"/>
+              <circle cx="158" cy="68" r="8" fill="#BE185D"/>
+              <circle cx="158" cy="56" r="7" fill="#FDE68A"/>`,
   };
 
   const shirtDesigns = {
-    plain: '',
-    heart:    `<text x="68" y="198" font-size="18" fill="white" opacity=".85">♥</text>`,
-    star:     `<text x="68" y="198" font-size="18" fill="white" opacity=".85">★</text>`,
-    question: `<text x="73" y="198" font-size="18" fill="white" opacity=".85" font-weight="bold">?</text>`,
-    smile:    `<text x="67" y="198" font-size="18" fill="#FDE68A" opacity=".9">☺</text>`,
+    plain:    ``,
+    heart:    `<text x="88" y="266" font-size="22" fill="white" opacity=".85">♥</text>`,
+    star:     `<text x="88" y="266" font-size="22" fill="white" opacity=".85">★</text>`,
+    question: `<text x="92" y="266" font-size="22" fill="white" opacity=".85">?</text>`,
+    smile:    `<text x="86" y="266" font-size="22" fill="#FDE68A" opacity=".9">☺</text>`,
   };
 
-  const exp = heads[expression] || heads.happy;
-  const eyeShape = expression === 'cool'
-    ? `<rect x="47" y="81" width="26" height="16" rx="8" fill="#111" opacity=".9"/><rect x="87" y="81" width="26" height="16" rx="8" fill="#111" opacity=".9"/><ellipse cx="55" cy="86" rx="4" ry="3" fill="white" opacity=".5"/><ellipse cx="95" cy="86" rx="4" ry="3" fill="white" opacity=".5"/>`
-    : expression === 'wink'
-    ? `<ellipse cx="63" cy="89" rx="13" ry="15" fill="#111"/><ellipse cx="57" cy="84" rx="4" ry="3.5" fill="white" opacity=".5"/><path d="M85 89 Q97 80 109 89" stroke="#111" stroke-width="4" fill="none" stroke-linecap="round"/>`
-    : expression === 'love'
-    ? `<text x="47" y="102" font-size="26" fill="#E91E63">♥</text><text x="83" y="102" font-size="26" fill="#E91E63">♥</text>`
-    : `<ellipse cx="63" cy="89" rx="13" ry="15" fill="#111"/><ellipse cx="97" cy="89" rx="13" ry="15" fill="#111"/><ellipse cx="57" cy="83" rx="4" ry="3.5" fill="white" opacity=".5"/><ellipse cx="91" cy="83" rx="4" ry="3.5" fill="white" opacity=".5"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 380" width="120" height="228">
+  <defs>
+    <radialGradient id="sg" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="${skinLight}"/>
+      <stop offset="100%" stop-color="${skinShadow}"/>
+    </radialGradient>
+    <radialGradient id="sg2" cx="40%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="${skinLight}"/>
+      <stop offset="100%" stop-color="${skinShadow}"/>
+    </radialGradient>
+    <radialGradient id="shirtg" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="${shirtLight}"/>
+      <stop offset="100%" stop-color="${shirtShadow}"/>
+    </radialGradient>
+    <radialGradient id="pantsg" cx="40%" cy="25%" r="70%">
+      <stop offset="0%" stop-color="${pantsColor}"/>
+      <stop offset="100%" stop-color="${pantsShadow}"/>
+    </radialGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.25)"/>
+    </filter>
+  </defs>
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 300" width="100" height="188">
-  <!-- Sombra -->
-  <ellipse cx="80" cy="296" rx="34" ry="6" fill="rgba(0,0,0,.18)"/>
+  <!-- Ground shadow -->
+  <ellipse cx="100" cy="374" rx="48" ry="8" fill="rgba(0,0,0,.18)"/>
 
-  <!-- Pés / Base plana estilo Funko -->
-  <ellipse cx="60" cy="286" rx="18" ry="9" fill="${shoeColor}"/>
-  <ellipse cx="100" cy="286" rx="18" ry="9" fill="${shoeColor}"/>
-  <rect x="42" y="277" width="36" height="14" rx="6" fill="${shoeColor}"/>
-  <rect x="82" y="277" width="36" height="14" rx="6" fill="${shoeColor}"/>
+  <!-- SHOES — flat oval Funko style -->
+  <ellipse cx="72" cy="363" rx="28" ry="12" fill="${shoeColor}"/>
+  <ellipse cx="128" cy="363" rx="28" ry="12" fill="${shoeColor}"/>
+  <rect x="54" y="351" width="42" height="18" rx="8" fill="${shadeColor(shoeColor,+20)}"/>
+  <rect x="104" y="351" width="42" height="18" rx="8" fill="${shadeColor(shoeColor,+20)}"/>
+  <!-- shoe shine -->
+  <ellipse cx="66" cy="355" rx="8" ry="4" fill="white" opacity=".12"/>
+  <ellipse cx="116" cy="355" rx="8" ry="4" fill="white" opacity=".12"/>
 
-  <!-- Pernas -->
-  <rect x="48" y="240" width="26" height="42" rx="8" fill="${pantsColor}"/>
-  <rect x="86" y="240" width="26" height="42" rx="8" fill="${pantsColor}"/>
+  <!-- LEGS -->
+  <rect x="58" y="300" width="34" height="58" rx="12" fill="url(#pantsg)"/>
+  <rect x="108" y="300" width="34" height="58" rx="12" fill="url(#pantsg)"/>
+  <!-- leg highlight -->
+  <rect x="63" y="305" width="10" height="30" rx="5" fill="white" opacity=".1"/>
+  <rect x="113" y="305" width="10" height="30" rx="5" fill="white" opacity=".1"/>
 
-  <!-- Cintura / cinto -->
-  <rect x="38" y="232" width="84" height="12" rx="6" fill="${pantsColor}"/>
+  <!-- BELT -->
+  <rect x="48" y="293" width="104" height="14" rx="7" fill="${shadeColor(pantsColor,+15)}"/>
+  <rect x="90" y="290" width="20" height="20" rx="4" fill="#D97706"/>
 
-  <!-- Corpo -->
-  <rect x="34" y="165" width="92" height="74" rx="16" fill="${shirtColor}"/>
+  <!-- BODY / SHIRT -->
+  <rect x="38" y="210" width="124" height="90" rx="22" fill="url(#shirtg)" filter="url(#shadow)"/>
+  <!-- shirt collar shadow -->
+  <ellipse cx="100" cy="210" rx="30" ry="8" fill="${shirtShadow}" opacity=".4"/>
+  <!-- shirt design -->
   ${shirtDesigns[shirtDesign] || ''}
+  <!-- shirt highlight -->
+  <ellipse cx="72" cy="230" rx="18" ry="10" fill="white" opacity=".1"/>
 
-  <!-- Braços estilo Funko (curvados para fora) -->
-  <path d="M34 178 Q12 190 16 220" stroke="${shirtColor}" stroke-width="20" fill="none" stroke-linecap="round"/>
-  <path d="M126 178 Q148 190 144 220" stroke="${shirtColor}" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <!-- ARMS — thick curved Funko style -->
+  <path d="M38 228 Q8 248 12 292" stroke="${shirtColor}" stroke-width="30" fill="none" stroke-linecap="round"/>
+  <path d="M38 228 Q8 248 12 292" stroke="${shirtLight}" stroke-width="10" fill="none" stroke-linecap="round" opacity=".2"/>
+  <path d="M162 228 Q192 248 188 292" stroke="${shirtColor}" stroke-width="30" fill="none" stroke-linecap="round"/>
 
-  <!-- Mãos arredondadas -->
-  <circle cx="16" cy="224" r="13" fill="${skinColor}"/>
-  <circle cx="144" cy="224" r="13" fill="${skinColor}"/>
+  <!-- HANDS — round -->
+  <circle cx="12" cy="295" r="18" fill="url(#sg2)"/>
+  <circle cx="188" cy="295" r="18" fill="url(#sg2)"/>
+  <ellipse cx="6" cy="288" rx="5" ry="4" fill="white" opacity=".2"/>
 
-  <!-- Pescoço curto estilo Funko -->
-  <rect x="64" y="150" width="32" height="18" rx="8" fill="${skinColor}"/>
+  <!-- NECK -->
+  <rect x="82" y="194" width="36" height="22" rx="10" fill="url(#sg)"/>
 
-  <!-- CABEÇA GRANDE — característica Funko -->
-  <ellipse cx="80" cy="90" rx="46" ry="52" fill="${skinColor}"/>
+  <!-- BIG HEAD — key Funko feature -->
+  <ellipse cx="100" cy="120" rx="62" ry="72" fill="url(#sg)" filter="url(#shadow)"/>
+  <!-- head highlight -->
+  <ellipse cx="76" cy="84" rx="22" ry="16" fill="white" opacity=".15"/>
 
-  <!-- Bochechas -->
-  <ellipse cx="38" cy="105" rx="10" ry="7" fill="#FFB6C1" opacity=".5"/>
-  <ellipse cx="122" cy="105" rx="10" ry="7" fill="#FFB6C1" opacity=".5"/>
+  <!-- CHEEKS -->
+  <ellipse cx="44" cy="138" rx="14" ry="10" fill="#FFB6C1" opacity=".55"/>
+  <ellipse cx="156" cy="138" rx="14" ry="10" fill="#FFB6C1" opacity=".55"/>
 
-  <!-- Nariz pequeno triângulo Funko -->
-  <path d="M77 102 L80 110 L83 102 Z" fill="${skinColor}" stroke="#d4956a" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- NOSE — small triangle Funko style -->
+  <path d="M96 136 L100 148 L104 136 Z" fill="${skinShadow}" opacity=".5"/>
 
-  <!-- Cabelo -->
+  <!-- HAIR (behind head elements) -->
   ${hairs[hairStyle] || hairs.medium}
 
-  <!-- Sobrancelhas -->
-  ${exp.brows}
+  <!-- EYEBROWS -->
+  ${brows[expression] || brows.happy}
 
-  <!-- Olhos grandes estilo Funko -->
-  ${eyeShape}
+  <!-- EYES — huge black with white shine -->
+  ${eyes}
 
-  <!-- Boca -->
-  ${exp.mouth}
+  <!-- MOUTH -->
+  ${mouths[expression] || mouths.happy}
 
-  <!-- Acessório -->
+  <!-- ACCESSORY -->
   ${accessories[accessory] || ''}
 </svg>`;
 }
