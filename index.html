@@ -6369,12 +6369,12 @@ async function checkDQPeriodChange() {
 
 <!-- Modal Cat Runner Challenge -->
 <div class="modal-overlay" id="modal-cat-challenge" onclick="if(event.target===this)closeModal('modal-cat-challenge')">
-  <div class="modal-box" style="max-width:400px;">
-    <div class="modal-header">
+  <div class="modal-box" style="max-width:400px;background:var(--surface);border:1.5px solid var(--border);">
+    <div class="modal-header" style="background:var(--surface);border-bottom:1px solid var(--border);">
       <div class="modal-title">⚔️ Desafiar amigo — Cat Runner</div>
       <button class="modal-close" onclick="closeModal('modal-cat-challenge')">×</button>
     </div>
-    <div style="padding:16px;display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;" id="cat-challenge-friends">
+    <div style="padding:16px;display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;background:var(--surface);" id="cat-challenge-friends">
       <div class="page-loader"><div class="loader"></div></div>
     </div>
   </div>
@@ -6671,60 +6671,88 @@ class CatRunner {
     }
   }
 
-  // ── DRAW CAT (pixel art, 8x10 grid @ 4px) ──
+  // ── DRAW CAT (pixel art full body like dog) ──
   drawCat(x,y,frame) {
-    const ctx=this.ctx, P=4;
-    const draw=(col,row,w,h,fill)=>{
-      ctx.fillStyle=fill;
-      ctx.fillRect(x+col*P,y+row*P,w*P,h*P);
-    };
-    // Body — orange tabby cat
-    const B='#FF8C42', Bd='#E0681E', Bl='#FFB067', W2='#fff', BK='#2C2C2C';
-    // Head
-    draw(1,0,6,5,B);
-    draw(2,0,4,1,Bd); // forehead stripe
-    // ears
-    draw(0,0,2,2,B); draw(0,0,1,1,Bd);
-    draw(6,0,2,2,B); draw(7,0,1,1,Bd);
-    // eyes (blink on frame 1)
+    const ctx=this.ctx, P=4, BK='#2C2C2C';
+    const O='#FF8C42', Od='#C0622A', Ol='#FFB67A', W2='#FFFFFF';
+    const draw=(dx,dy,w,h,fill)=>{ctx.fillStyle=fill;ctx.fillRect(x+dx*P,y+dy*P,w*P,h*P);};
+
+    // TAIL (behind body)
+    ctx.strokeStyle=O; ctx.lineWidth=P*0.9;
+    ctx.beginPath();
+    ctx.moveTo(x+P*0.5, y+P*5);
+    ctx.quadraticCurveTo(x-P*1.5, y+P*3, x-P*1.5, y+P*1);
+    ctx.stroke();
+    // tail tip
+    ctx.fillStyle=Od; ctx.beginPath();
+    ctx.arc(x-P*1.5, y+P, P*0.8, 0, Math.PI*2); ctx.fill();
+
+    // BODY
+    draw(1,4,6,4,O);
+    draw(2,4,4,1,Ol); // back highlight
+    draw(1,4,1,4,Od); draw(6,4,1,4,Od); // sides shade
+
+    // BELLY (lighter stripe)
+    draw(2,5,4,2,Ol);
+
+    // FRONT LEGS (animated)
     if(frame===0){
-      draw(2,2,1,1,'#5DADE2'); draw(2,2,1,1,'#5DADE2');
-      draw(5,2,1,1,'#5DADE2');
-      draw(2,2,1,1,BK); draw(5,2,1,1,BK); // pupils
-      draw(2,2,1,1,'#5DADE2'); draw(5,2,1,1,'#5DADE2');
-      ctx.fillStyle='#5DADE2'; ctx.fillRect(x+2*P,y+2*P,P,P);
-      ctx.fillStyle='#5DADE2'; ctx.fillRect(x+5*P,y+2*P,P,P);
-      ctx.fillStyle=BK; ctx.fillRect(x+2*P+2,y+2*P+2,P-2,P-2);
-      ctx.fillStyle=BK; ctx.fillRect(x+5*P+2,y+2*P+2,P-2,P-2);
+      draw(1,8,2,2,O); draw(5,8,2,2,O); // legs down
+      draw(1,9,2,1,Od); draw(5,9,2,1,Od);
     } else {
-      // closed eye line
-      ctx.fillStyle=Bd;
-      ctx.fillRect(x+2*P,y+2*P+P/2,P,2); ctx.fillRect(x+5*P,y+2*P+P/2,P,2);
+      draw(1,7,2,3,O); draw(5,8,2,2,O); // stride
+      draw(1,9,2,1,Od); draw(5,9,2,1,Od);
     }
-    // nose + mouth
-    draw(3,3,2,1,'#FFB6C1');
-    ctx.fillStyle=Bd; ctx.fillRect(x+3*P,y+4*P,2,2); ctx.fillRect(x+5*P,y+4*P,2,2);
-    // whiskers
+    // paws
+    draw(1,10,3,1,Od); draw(5,10,2,1,Od);
+
+    // NECK
+    draw(4,2,3,2,O);
+    draw(5,2,1,2,Ol);
+
+    // HEAD (big, round-ish)
+    draw(2,0,7,4,O);
+    draw(3,0,5,1,Ol); // top highlight
+
+    // EARS (pointy cat ears!)
+    draw(2,0,2,2,O); draw(2,0,1,1,Od); // left ear outer
+    draw(3,0,1,1,'#FFB6C1'); // left ear inner
+    draw(7,0,2,2,O); draw(8,0,1,1,Od); // right ear
+    draw(7,0,1,1,'#FFB6C1'); // right ear inner
+
+    // EYES
+    if(frame===0){
+      ctx.fillStyle='#5DADE2'; ctx.fillRect(x+P*3,y+P*1.5,P*1.2,P*1.2);
+      ctx.fillStyle='#5DADE2'; ctx.fillRect(x+P*6,y+P*1.5,P*1.2,P*1.2);
+      ctx.fillStyle=BK; ctx.fillRect(x+P*3.3,y+P*1.7,P*0.7,P*0.7);
+      ctx.fillStyle=BK; ctx.fillRect(x+P*6.3,y+P*1.7,P*0.7,P*0.7);
+      ctx.fillStyle=W2; ctx.fillRect(x+P*3.1,y+P*1.5,P*0.4,P*0.4); // shine
+      ctx.fillStyle=W2; ctx.fillRect(x+P*6.1,y+P*1.5,P*0.4,P*0.4);
+    } else {
+      // blink
+      ctx.fillStyle=BK;
+      ctx.fillRect(x+P*3,y+P*2,P*1.2,P*0.3);
+      ctx.fillRect(x+P*6,y+P*2,P*1.2,P*0.3);
+    }
+
+    // NOSE
+    ctx.fillStyle='#FFB6C1'; ctx.fillRect(x+P*4.5,y+P*2.8,P*0.7,P*0.5);
+    // MOUTH
+    ctx.strokeStyle=Od; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(x+P*4.5,y+P*3.2); ctx.lineTo(x+P*3.8,y+P*3.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+P*4.5,y+P*3.2); ctx.lineTo(x+P*5.2,y+P*3.5); ctx.stroke();
+
+    // WHISKERS
     ctx.strokeStyle=W2; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(x+2*P,y+3*P); ctx.lineTo(x-P,y+3*P); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x+6*P,y+3*P); ctx.lineTo(x+9*P,y+3*P); ctx.stroke();
-    // Body
-    draw(1,5,6,4,B);
-    draw(2,5,4,1,Bl); // chest stripe
-    // Legs (animated)
-    if(frame===0) { draw(1,9,2,1,B); draw(5,9,2,1,B); }
-    else          { draw(1,8,2,2,B); draw(5,8,2,2,B); }
-    // Tail
-    ctx.strokeStyle=B; ctx.lineWidth=P;
-    ctx.beginPath();
-    ctx.moveTo(x+7*P,y+7*P);
-    ctx.quadraticCurveTo(x+10*P,y+6*P,x+10*P,y+4*P);
-    ctx.stroke();
-    ctx.strokeStyle=Bd; ctx.lineWidth=2;
-    ctx.beginPath();
-    ctx.moveTo(x+7*P,y+7*P);
-    ctx.quadraticCurveTo(x+10*P,y+6*P,x+10*P,y+4*P);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+P*3,y+P*2.8); ctx.lineTo(x+P*0.5,y+P*2.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+P*3,y+P*3); ctx.lineTo(x+P*0.5,y+P*3.2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+P*7,y+P*2.8); ctx.lineTo(x+P*9.5,y+P*2.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+P*7,y+P*3); ctx.lineTo(x+P*9.5,y+P*3.2); ctx.stroke();
+
+    // STRIPES on body
+    ctx.fillStyle=Od+'99';
+    ctx.fillRect(x+P*2,y+P*5,P*0.5,P*2);
+    ctx.fillRect(x+P*4,y+P*4.5,P*0.5,P*2.5);
   }
 
   drawObstacle(o) {
@@ -6794,13 +6822,38 @@ async function openCatRanking() {
   try {
     const {ranking}=await api('/api/catrunner/ranking');
     const me=currentUser?.id;
-    list.innerHTML=ranking.slice(0,20).map((r,i)=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:8px;${r.user_id===me?'background:var(--accent-light);border-radius:8px;':''}">
-        <div style="font-weight:800;font-size:14px;width:24px;color:${i<3?'#F59E0B':'var(--muted)'};">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+    // Pódio top 3
+    const podium = ranking.slice(0,3);
+    const rest = ranking.slice(3,50);
+    let html='';
+    if(podium.length){
+      html+=`<div style="display:flex;justify-content:center;align-items:flex-end;gap:8px;margin-bottom:16px;padding:16px;background:linear-gradient(135deg,#F59E0B22,#FF6B3522);border-radius:14px;">`;
+      const order=[1,0,2]; // silver, gold, bronze positions
+      const heights=['80px','100px','64px'];
+      const medals=['🥈','🥇','🥉'];
+      order.forEach((idx,pos)=>{
+        if(!podium[idx]) return;
+        const r=podium[idx];
+        html+=`<div style="text-align:center;flex:1;">
+          <img src="${r.avatar_url||avatarUrl(r.name)}" style="width:${idx===0?52:40}px;height:${idx===0?52:40}px;border-radius:50%;object-fit:cover;border:3px solid ${idx===0?'#F59E0B':idx===1?'#9CA3AF':'#CD7F32'};">
+          <div style="font-size:${idx===0?20:16}px;margin:4px 0;">${medals[pos]}</div>
+          <div style="font-size:11px;font-weight:700;">${r.name.split(' ')[0]}</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${r.best_score}</div>
+          <div style="background:${idx===0?'#F59E0B':idx===1?'#9CA3AF':'#CD7F32'};height:${heights[pos]};width:100%;border-radius:8px 8px 0 0;margin-top:6px;"></div>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+    // Lista completa
+    html+=ranking.map((r,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;${r.user_id===me?'background:var(--accent-light);':''}${i<3?'display:none;':''}" class="${i<3?'podium-item':''}">
+        <div style="font-weight:800;font-size:13px;width:22px;text-align:center;color:${i<3?'#F59E0B':'var(--muted)'};">${i+1}</div>
         <img src="${r.avatar_url||avatarUrl(r.name)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
-        <div style="flex:1;font-weight:600;font-size:13px;">${r.name}</div>
+        <div style="flex:1;font-weight:600;font-size:13px;">${r.name}<span style="font-size:11px;color:var(--muted);margin-left:4px;">@${r.username}</span></div>
         <div style="font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);">${r.best_score}</div>
-      </div>`).join('')||'<p class="text-muted" style="text-align:center;">Ninguém jogou ainda!</p>';
+      </div>`).filter((_,i)=>i>=3).join('')||'';
+    if(!ranking.length) html='<p class="text-muted" style="text-align:center;padding:20px;">Ninguém jogou ainda! Seja o primeiro 🏆</p>';
+    list.innerHTML=html;
   } catch(e) { list.innerHTML='<p class="text-muted">Erro ao carregar.</p>'; }
   // Show restart button if game over
   if(catGame?.gameover) {
@@ -6815,7 +6868,7 @@ async function openCatChallenge() {
   const list=document.getElementById('cat-challenge-friends');
   list.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
   try {
-    const {friends}=await api('/api/friends/list');
+    const data=await api('/api/friends/list'); const friends=data.friends||data||[];
     list.innerHTML=friends.map(f=>`
       <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface2);border-radius:10px;">
         <img src="${f.avatar_url||avatarUrl(f.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
