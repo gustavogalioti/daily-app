@@ -2047,15 +2047,8 @@ async function loadProfile(){
             </div>
           </div>
 
-          <!-- Profissional (dinâmico) -->
-          ${(user.professional_title||user.professional_url||user.professional_desc) ? `
-          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
-            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;color:var(--muted);">💼 Profissional</div>
-            ${user.professional_title?`<div style="font-weight:700;font-size:12px;">${user.professional_title}</div>`:''}
-            ${user.professional_url?`<a href="${user.professional_url}" target="_blank" style="color:var(--accent);font-size:11px;word-break:break-all;display:block;margin-top:2px;">${user.professional_url}</a>`:''}
-            ${user.professional_desc?`<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4;">${user.professional_desc}</div>`:''}
-            <button class="btn btn-ghost btn-xs" style="margin-top:8px;width:100%;" onclick="showProfileSec('profissional',null)">Editar →</button>
-          </div>` : ''}
+          <!-- Botão Profissional sempre visível abaixo dos badges -->
+          <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;text-align:left;" onclick="showProfileSec('profissional',null)">💼 Profissional</button>
 
           <!-- DailyPoke mini -->
           <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:10px;text-align:center;cursor:pointer;" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'))">
@@ -6038,8 +6031,8 @@ async function loadProfileCommMini() {
     el.innerHTML = communities.slice(0,6).map(c => `
       <div style="text-align:center;cursor:pointer;" onclick="showProfileSec('comunidades',null)">
         ${c.image_url
-          ? `<img src="${c.image_url}" style="width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;border:1.5px solid var(--border);">`
-          : `<div style="width:100%;aspect-ratio:1;border-radius:8px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:16px;">🏘️</div>`}
+          ? `<img src="${c.image_url}" style="width:100%;height:0;padding-bottom:100%;border-radius:8px;object-fit:cover;border:1.5px solid var(--border);display:block;">`
+          : `<div style="width:100%;padding-bottom:100%;border-radius:8px;background:var(--accent-light);position:relative;"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;">🏘️</span></div>`}
         <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name}</div>
       </div>`).join('');
   } catch(e) { el.innerHTML = ''; }
