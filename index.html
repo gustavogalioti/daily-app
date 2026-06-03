@@ -3714,72 +3714,142 @@ async function showVisitorProfile(username) {
     if (nameEl) nameEl.textContent = user.name.split(' ')[0];
     const av = user.avatar_url || avatarUrl(user.name);
     const fs = user.friendship_status;
+
     let actionBtn = '';
     if (fs === 'friends') {
-      actionBtn = '<span style="color:var(--green);font-weight:700;font-size:14px;">✅ Amigos</span>';
+      actionBtn = '<span style="color:var(--green);font-weight:700;font-size:13px;">✅ Amigos</span>';
     } else if (fs === 'pending_sent') {
-      actionBtn = '<span style="color:var(--muted);font-size:13px;">⏳ Solicitação enviada</span>';
+      actionBtn = '<span style="color:var(--muted);font-size:12px;">⏳ Solicitação enviada</span>';
     } else if (user.id !== currentUser?.id) {
-      actionBtn = '<button class="btn btn-primary btn-sm" onclick="sendFriendReqDirect(\''+user.id+'\',\''+user.name.replace(/[^a-zA-Z0-9 ]/g,'')+'\',\''+user.username+'\',\''+av+'\')">+ Adicionar amigo</button>';
+      actionBtn = `<button class="btn btn-primary btn-sm" style="width:100%;font-size:11px;" onclick="sendFriendReqDirect('${user.id}','${user.name.replace(/'/g,'')}','${user.username}','${av}')">+ Adicionar amigo</button>`;
     }
 
+    // Poke do visitante
+    const pokeData = await api('/api/dailypoke/user/' + user.id).catch(() => null);
+    const pokeSVG = pokeData?.config ? buildPokeSVG(typeof pokeData.config==='string'?JSON.parse(pokeData.config):pokeData.config).replace('width="120" height="228"','width="60" height="114"') : '🎭';
+
     body.innerHTML = `
-      <!-- Card principal igual ao perfil próprio -->
-      <div style="background:var(--surface);border-radius:0 0 20px 20px;padding:24px 20px 20px;text-align:center;margin-bottom:10px;">
-        <img class="avatar" src="${av}" width="90" height="90" style="border:3px solid var(--accent);margin-bottom:12px;">
-        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;line-height:1.2;">${user.name}</div>
-        <div class="text-muted" style="margin-top:2px;">@${user.username}</div>
-        ${user.bio ? `<div style="font-size:13px;color:var(--text2);margin-top:8px;">${user.bio}</div>` : ''}
-        ${user.occupation ? `<div class="text-muted" style="font-size:12px;margin-top:4px;">💼 ${user.occupation}</div>` : ''}
-        ${user.city ? `<div class="text-muted" style="font-size:12px;margin-top:2px;">📍 ${user.city}${user.state?', '+user.state:''}</div>` : ''}
-        <div style="margin-top:14px;">${actionBtn}</div>
-      </div>
+      <div style="display:grid;grid-template-columns:150px 1fr 150px;gap:10px;align-items:start;padding:16px;">
 
-      <!-- Contadores -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 12px;margin-bottom:10px;">
-        <div style="background:var(--surface);border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);">${user.stats?.posts||0}</div>
-          <div class="text-muted" style="font-size:10px;">Posts</div>
-        </div>
-        <div style="background:var(--surface);border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);">${user.stats?.friends_count||0}</div>
-          <div class="text-muted" style="font-size:10px;">Amigos</div>
-        </div>
-        <div style="background:var(--surface);border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--gold);">${user.points||0}</div>
-          <div class="text-muted" style="font-size:10px;">Pontos</div>
-        </div>
-        <div style="background:var(--surface);border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);">${user.stats?.active_days||0}</div>
-          <div class="text-muted" style="font-size:10px;">Dias</div>
-        </div>
-      </div>
+        <!-- COLUNA ESQUERDA -->
+        <div style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
+          <!-- Avatar + info -->
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:14px;text-align:center;">
+            <img src="${av}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);margin-bottom:10px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;line-height:1.2;">${user.name}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">@${user.username}</div>
+            ${user.occupation?`<div style="font-size:10px;color:var(--muted);margin-top:3px;">💼 ${user.occupation}</div>`:''}
+            ${user.city?`<div style="font-size:10px;color:var(--muted);margin-top:2px;">📍 ${user.city}${user.state?', '+user.state:''}</div>`:''}
+            ${user.bio?`<div style="font-size:11px;color:var(--text2);margin-top:6px;font-style:italic;line-height:1.4;">"${user.bio}"</div>`:''}
+            <div style="margin-top:10px;">${actionBtn}</div>
+          </div>
 
-      <!-- Tabs -->
-      <div style="background:var(--surface);border-radius:16px;margin:0 12px;overflow:hidden;">
-        <div style="display:flex;border-bottom:1.5px solid var(--border);" id="visitor-tabs">
-          <button class="vtab active" style="flex:1;padding:12px 8px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--accent);border-bottom:2.5px solid var(--accent);" onclick="loadVisitorSection('posts','${username}',this)">Posts</button>
-          <button class="vtab" style="flex:1;padding:12px 8px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('amigos','${username}',this)">Amigos</button>
-          <button class="vtab" style="flex:1;padding:12px 8px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('conquistas','${username}',this)">🏆</button>
-          <button class="vtab" style="flex:1;padding:12px 8px;border:none;background:transparent;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);" onclick="loadVisitorSection('depoimentos','${username}',this)">💬</button>
+          <!-- Stats -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:11px;color:var(--muted);">Posts</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.posts||0}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:11px;color:var(--muted);">Amigos</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.friends_count||0}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:11px;color:var(--gold);">Pontos</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--gold);">${user.points||0}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:11px;color:var(--muted);">Dias</span>
+                <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.active_days||0}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- DailyPoke do usuário -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:10px;text-align:center;">
+            <div>${pokeSVG}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px;">DailyPoke</div>
+          </div>
         </div>
-        <div id="visitor-section-content" style="padding:14px;min-height:200px;"><div class="page-loader"><div class="loader"></div></div></div>
+
+        <!-- COLUNA CENTRAL: tabs + conteúdo -->
+        <div>
+          <div style="background:var(--surface);border-radius:12px;border:1.5px solid var(--border);display:flex;margin-bottom:12px;overflow:hidden;" id="visitor-tabs-v2">
+            <button class="vtab2 active" style="flex:1;padding:10px 6px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:12px;cursor:pointer;" onclick="loadVisitorSection('posts','${username}',this)">📅 Posts</button>
+            <button class="vtab2" style="flex:1;padding:10px 6px;border:none;background:transparent;color:var(--muted);font-weight:700;font-size:12px;cursor:pointer;" onclick="loadVisitorSection('depoimentos','${username}',this)">💬 Depoi.</button>
+            <button class="vtab2" style="flex:1;padding:10px 6px;border:none;background:transparent;color:var(--muted);font-weight:700;font-size:12px;cursor:pointer;" onclick="loadVisitorSection('agenda','${username}',this)">📆 Agenda</button>
+          </div>
+          <div id="visitor-section-content" style="min-height:200px;"><div class="page-loader"><div class="loader"></div></div></div>
+        </div>
+
+        <!-- COLUNA DIREITA: amigos + comunidades -->
+        <div style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
+
+          <!-- Amigos -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">👥 Amigos</div>
+            <div id="visitor-friends-mini" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+              <div class="loader" style="width:16px;height:16px;grid-column:1/-1;margin:auto;"></div>
+            </div>
+          </div>
+
+          <!-- Conquistas -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🏆 Conquistas</div>
+            <div id="visitor-ach-mini" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+              <div class="loader" style="width:16px;height:16px;grid-column:1/-1;margin:auto;"></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div style="height:40px;"></div>
     `;
-    loadVisitorSection('posts', username, document.querySelector('#visitor-tabs .vtab'));
+
+    loadVisitorSection('posts', username, document.querySelector('#visitor-tabs-v2 .vtab2'));
+    loadVisitorFriendsMini(user.id, username);
+    loadVisitorAchMini(username);
   } catch(e) {
     if(body) body.innerHTML = '<p class="text-muted" style="padding:30px;text-align:center;">'+e.message+'</p>';
   }
 }
 
+async function loadVisitorFriendsMini(userId, username) {
+  const el = document.getElementById('visitor-friends-mini');
+  if (!el) return;
+  try {
+    const { friends } = await api('/api/friends/' + userId);
+    if (!friends.length) { el.innerHTML = '<p class="text-muted" style="font-size:10px;grid-column:1/-1;text-align:center;padding:4px;">Nenhum</p>'; return; }
+    el.innerHTML = friends.slice(0,6).map(f => `
+      <div style="text-align:center;cursor:pointer;" onclick="showVisitorProfile('${f.username}')">
+        <img src="${f.avatar_url||avatarUrl(f.name)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:1.5px solid var(--border);">
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name.split(' ')[0]}</div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function loadVisitorAchMini(username) {
+  const el = document.getElementById('visitor-ach-mini');
+  if (!el) return;
+  try {
+    const data = await api('/api/achievements/user/' + username);
+    if (!data.earned?.length) { el.innerHTML = '<p class="text-muted" style="font-size:10px;grid-column:1/-1;text-align:center;padding:4px;">Nenhuma</p>'; return; }
+    el.innerHTML = data.earned.slice(0,6).map(a => `
+      <div style="text-align:center;" title="${a.name}">
+        ${a.image_url
+          ? `<img src="${a.image_url}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;">`
+          : `<div style="width:40px;height:40px;border-radius:8px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:18px;">${a.icon||'🏆'}</div>`}
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.name}</div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
 
 async function loadVisitorSection(sec, username, btn) {
   // Atualizar tab ativa
-  document.querySelectorAll('#visitor-tabs .vtab').forEach(b => {
-    b.style.borderBottom = 'none'; b.style.color = 'var(--muted)';
+  document.querySelectorAll('#visitor-tabs-v2 .vtab2').forEach(b => {
+    b.style.background = 'transparent'; b.style.color = 'var(--muted)';
   });
-  if (btn) { btn.style.borderBottom = '2.5px solid var(--accent)'; btn.style.color = 'var(--accent)'; }
+  if (btn) { btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; }
   const el = document.getElementById('visitor-section-content');
   if (!el) return;
   el.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
