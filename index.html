@@ -600,14 +600,14 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         </div>
         <!-- Compose regional -->
         <div id="regional-compose" style="display:none;background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;margin-bottom:10px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-            <span style="font-size:11px;font-weight:800;color:var(--accent);background:var(--accent-light);padding:3px 10px;border-radius:20px;">📍 <span id="regional-city-label">Sua cidade</span></span>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+            <span style="font-size:11px;font-weight:800;color:var(--accent);background:var(--accent-light);padding:4px 12px;border-radius:20px;">📍 <span id="regional-city-label">Sua cidade</span></span>
           </div>
           <!-- Tabs post type -->
           <div style="display:flex;gap:6px;margin-bottom:10px;">
-            <button class="btn btn-primary btn-xs" id="rp-tab-text" onclick="setRegionalTab('text',this)">📝 Texto</button>
-            <button class="btn btn-ghost btn-xs" id="rp-tab-photo" onclick="setRegionalTab('photo',this)">📷 Foto</button>
-            <button class="btn btn-ghost btn-xs" id="rp-tab-poll" onclick="setRegionalTab('poll',this)">📊 Enquete</button>
+            <button class="btn btn-primary btn-sm" id="rp-tab-text" onclick="setRegionalTab('text',this)" style="flex:1;">📝 Texto</button>
+            <button class="btn btn-ghost btn-sm" id="rp-tab-photo" onclick="setRegionalTab('photo',this)" style="flex:1;">📷 Foto</button>
+            <button class="btn btn-ghost btn-sm" id="rp-tab-poll" onclick="setRegionalTab('poll',this)" style="flex:1;">📊 Enquete</button>
           </div>
           <!-- Texto -->
           <div id="rp-text">
@@ -7397,10 +7397,10 @@ async function loadRegionalFeed() {
   try {
     const { posts } = await api(`/api/posts/regional?lat=${regionalLat}&lng=${regionalLng}&radius=30`);
     if (!posts.length) {
-      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;">
+      grid.innerHTML = `<div style="text-align:center;padding:40px;width:100%;">
         <div style="font-size:40px;margin-bottom:8px;">📍</div>
-        <div style="font-weight:700;">Nenhum post na sua área ainda</div>
-        <div style="color:var(--muted);font-size:13px;margin-top:4px;">Seja o primeiro a publicar em ${regionalCity||'sua cidade'}!</div>
+        <div style="font-weight:700;font-size:16px;">Nenhum post na sua área ainda</div>
+        <div style="color:var(--muted);font-size:13px;margin-top:6px;">Seja o primeiro a publicar em ${regionalCity||'sua cidade'}!</div>
       </div>`;
       return;
     }
