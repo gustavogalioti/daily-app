@@ -37,7 +37,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const { route_id } = req.query;
     let sql = `SELECT mp.*, u.name as creator_name,
       (SELECT COUNT(*) FROM user_checkins WHERE point_id=mp.id) as checkin_count
-      FROM map_points mp JOIN users u ON u.id=mp.created_by WHERE mp.active=true`;
+      FROM map_points mp JOIN users u ON u.id=mp.created_by WHERE mp.active=1`;
     const p = [];
     if (route_id) { sql += ` AND mp.route_id=$1`; p.push(route_id); }
     sql += ` ORDER BY mp.created_at DESC`;
@@ -61,7 +61,7 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!title || !lat || !lng) return res.status(400).json({ error: 'título, lat e lng obrigatórios' });
     const id = uuidv4();
     await db.prepare(`INSERT INTO map_points (id,title,description,lat,lng,points,checkin_radius,route_id,icon,category,created_by,active)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true)`)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,1)`)
       .run(id, title.trim(), description||'', parseFloat(lat), parseFloat(lng), parseInt(points), parseInt(checkin_radius), route_id||null, icon, category, req.user.id);
     const point = await db.prepare('SELECT * FROM map_points WHERE id=$1').get(id);
     res.status(201).json({ point });
@@ -74,9 +74,9 @@ router.get('/routes/all', optionalAuth, async (req, res) => {
     const db = getDB();
     const routes = await db.prepare(`
       SELECT mr.*, u.name as creator_name,
-        (SELECT COUNT(*) FROM map_points WHERE route_id=mr.id AND active=true) as points_count
+        (SELECT COUNT(*) FROM map_points WHERE route_id=mr.id AND active=1) as points_count
       FROM map_routes mr JOIN users u ON u.id=mr.created_by
-      WHERE mr.active=true ORDER BY mr.created_at DESC
+      WHERE mr.active=1 ORDER BY mr.created_at DESC
     `).all();
     if (req.user) {
       for (const r of routes) {
@@ -102,7 +102,7 @@ router.post('/routes', authMiddleware, async (req, res) => {
     if (!title) return res.status(400).json({ error: 'Título obrigatório' });
     const id = uuidv4();
     await db.prepare(`INSERT INTO map_routes (id,title,description,city,state,country,icon,category,created_by,active)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true)`)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,1)`)
       .run(id, title.trim(), description||'', city||'', state||'', country, icon, category, req.user.id);
     res.status(201).json({ route: await db.prepare('SELECT * FROM map_routes WHERE id=$1').get(id) });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -130,7 +130,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     if (!await canManagePoint(db, req.user.id, req.params.id)) return res.status(403).json({ error: 'Sem permissão' });
-    await db.prepare('UPDATE map_points SET active=false WHERE id=$1').run(req.params.id);
+    await db.prepare('UPDATE map_points SET active=0 WHERE id=$1').run(req.params.id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -141,7 +141,7 @@ router.post('/:id/checkin', authMiddleware, (req, res, next) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
       const db = getDB();
-      const point = await db.prepare('SELECT * FROM map_points WHERE id=$1 AND active=true').get(req.params.id);
+      const point = await db.prepare('SELECT * FROM map_points WHERE id=$1 AND active=1').get(req.params.id);
       if (!point) return res.status(404).json({ error: 'Ponto não encontrado' });
 
       // Verifica se já fez check-in
