@@ -326,6 +326,9 @@ async function initPG() {
       }
     }
   } catch(e) { console.error('seed dq:', e.message); }
+
+    try { await pool.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION'); } catch(_) {}
+    try { await pool.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION'); } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_user_notif_user ON user_notifications(user_id, read, created_at DESC)'); } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_comm_invites ON community_invites(invitee_id, status)'); } catch(_) {}
 
