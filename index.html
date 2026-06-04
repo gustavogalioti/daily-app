@@ -7205,5 +7205,17 @@ function openEditAchievement(a) {
 }
 </script>
 
+
+<script>
+async function seedAchievements() {
+  const btn = event.target;
+  btn.disabled=true; btn.textContent='...';
+  try {
+    const r = await api('/api/admin/seed-achievements', {method:'POST'});
+    toast(`${r.added} conquistas inseridas! ✅`,'success');
+    btn.textContent=`✅ ${r.added} inseridas`;
+  } catch(e) { toast(e.message,'error'); btn.disabled=false; btn.textContent='▶ Executar'; }
+}
+</script>
 </body>
 </html>
