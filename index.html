@@ -631,6 +631,9 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
             <button class="btn btn-primary btn-sm" onclick="submitRegionalPost()">Publicar →</button>
           </div>
         </div>
+        <!-- Feed Regional (container próprio, 1 coluna) -->
+        <div id="regional-feed-container" style="display:flex;flex-direction:column;gap:10px;"></div>
+
         <!-- Nuvem de palavras regional -->
         <div id="regional-wordcloud-wrap" style="display:none;background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;margin-bottom:10px;">
           <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">☁️ Nuvem da cidade</div>
@@ -7363,9 +7366,9 @@ async function submitRegionalPost() {
       const cap = document.getElementById('rp-photo-cap')?.value || '';
       const fd = new FormData();
       fd.append('photo', file); fd.append('caption', cap);
-      fd.append('type', 'photo'); fd.append('tab', 'regional');
+      fd.append('tab', 'regional');
       fd.append('lat', regionalLat); fd.append('lng', regionalLng);
-      await apiForm('/api/posts', fd);
+      await apiForm('/api/posts/photo', fd);
     } else if (regionalPostType === 'poll') {
       const q = document.getElementById('rp-poll-q')?.value.trim();
       const o1 = document.getElementById('rp-poll-o1')?.value.trim();
@@ -7391,7 +7394,7 @@ async function submitRegionalPost() {
 
 async function loadRegionalFeed() {
   if (!regionalLat || !regionalLng) return;
-  const grid = document.getElementById('global-grid');
+  const grid = document.getElementById('regional-feed-container');
   if (!grid) return;
   grid.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
   try {
