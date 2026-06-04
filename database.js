@@ -91,9 +91,21 @@ async function initPG() {
     );
 
     CREATE TABLE IF NOT EXISTS agora_chat_messages (
-      id SERIAL PRIMARY KEY, user_id TEXT NOT NULL,
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT, user_id TEXT NOT NULL,
       content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    -- Migrar coluna id se ainda for SERIAL
+    DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.columns
+        WHERE table_name='agora_chat_messages' AND column_name='id' AND data_type='integer') THEN
+        -- Dropar e recriar com tipo correto
+        DROP TABLE agora_chat_messages;
+        CREATE TABLE agora_chat_messages (
+          id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+          content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+      END IF;
+    END $$;
     CREATE TABLE IF NOT EXISTS agora_chat_presence (
       user_id TEXT PRIMARY KEY, expires_at TIMESTAMPTZ
     );
