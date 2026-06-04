@@ -209,5 +209,44 @@ router.get('/ranking', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// Seed novas conquistas
+async function seedNewAchievements(db) {
+  const toAdd = [
+    {slug:'esquema_piramide',name:'Esquema de Pirâmide',desc:'Indique a rede para um amigo e ele abrir conta',icon:'🔺',points:400,cat:'social',trigger:'invite',req_type:'count',req_val:1},
+    {slug:'bicho_estimacao',name:'Eu e meu amigão',desc:'Poste uma foto com seu bicho de estimação',icon:'🐾',points:80,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'bicho'},
+    {slug:'melancia',name:'Querendo chamar atenção',desc:'Poste uma foto segurando uma melancia',icon:'🍉',points:100,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'melancia'},
+    {slug:'no_trampo',name:'No trampo',desc:'Poste uma foto no seu trabalho',icon:'💼',points:60,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'trabalho'},
+    {slug:'falsiane',name:'Falsiane',desc:'Poste uma selfie dando um sorriso falso',icon:'😁',points:70,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'selfie'},
+    {slug:'parças',name:'Com os parças',desc:'Poste uma foto com seu grupo de amigos',icon:'👯',points:90,cat:'social',trigger:'photo_tag',req_type:'tag',req_val:'amigos'},
+    {slug:'disney',name:'Vivendo na Disney',desc:'Poste uma foto fantasiado',icon:'🏰',points:120,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'fantasia'},
+    {slug:'sextou',name:'Sextou!',desc:'Poste uma foto da sua sexta à noite (sex 18h-23h59)',icon:'🎉',points:100,cat:'time',trigger:'photo_time',req_type:'weekday',req_val:'5_18_23'},
+    {slug:'segundou',name:'Segundou',desc:'Poste uma foto da semana começando (seg 5h-9h)',icon:'🌅',points:80,cat:'time',trigger:'photo_time',req_type:'weekday',req_val:'1_5_9'},
+    {slug:'esg',name:'Orgulho do ESG',desc:'Poste uma foto abraçando uma árvore',icon:'🌳',points:80,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'arvore'},
+    {slug:'queda_livre',name:'Queda Livre',desc:'Poste uma foto pulando de paraquedas',icon:'🪂',points:200,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'paraquedas'},
+    {slug:'bucefalo',name:'Meu Bucéfalo',desc:'Poste uma foto com um cavalo (pergunte ao @pedro quem é Bucéfalo!)',icon:'🐴',points:150,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'cavalo'},
+    {slug:'cara_joelho',name:'Cara de Joelho',desc:'Poste uma foto com um bebê',icon:'👶',points:90,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'bebe'},
+    {slug:'caixa',name:'Eu e o Caixa',desc:'Poste uma foto com o caixa de um estabelecimento',icon:'🏪',points:80,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'caixa'},
+    {slug:'tia_plantas',name:'Tia das Plantas',desc:'Poste uma foto igual sua tia das plantas',icon:'🪴',points:70,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'plantas'},
+    {slug:'lenda_fluvial',name:'Lenda Fluvial',desc:'Poste uma foto num rio',icon:'🏞️',points:100,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'rio'},
+    {slug:'gabriel_medina',name:'Eu meio Gabriel Medina',desc:'Poste uma foto no mar',icon:'🏄',points:120,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'mar'},
+    {slug:'eye_tiger',name:'Eye of the Tiger',desc:'Poste uma foto com um tigre',icon:'🐯',points:200,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'tigre'},
+    {slug:'la_ferrari',name:'La Ferrari!! 🤌',desc:'Poste uma foto com uma Ferrari',icon:'🏎️',points:300,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'ferrari'},
+    {slug:'uno_escada',name:'Carro de Corrida',desc:'Poste uma foto com um Uno com escada em cima',icon:'🚗',points:250,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'uno'},
+    {slug:'srta_belo',name:'Srta. Belo',desc:'Poste uma foto enquadrando uma maçã na sua cara',icon:'🍎',points:100,cat:'photo',trigger:'photo_tag',req_type:'tag',req_val:'maca'},
+  ];
+  const {v4:uuidv4}=require('uuid');
+  for(const a of toAdd){
+    try{
+      const ex=await db.prepare('SELECT id FROM achievements WHERE slug=$1').get(a.slug);
+      if(!ex){
+        await db.prepare('INSERT INTO achievements(id,slug,name,description,icon,points,category,trigger_type,requirement_type,requirement_value,active) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,1)')
+          .run(uuidv4(),a.slug,a.name,a.desc,a.icon,a.points,a.cat,a.trigger,a.req_type,a.req_val);
+      }
+    }catch(e){}
+  }
+}
+
 module.exports = router;
+module.exports.seedNewAchievements = seedNewAchievements;
 module.exports.checkAndGrant = checkAndGrant;
