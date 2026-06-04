@@ -209,4 +209,46 @@ router.post('/reset-pending-friendships', authMiddleware, adminOnly, async (req,
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// POST /api/admin/seed-achievements — inserir conquistas novas
+router.post('/seed-achievements', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const db = getDB();
+    const { v4: uuidv4 } = require('uuid');
+    const achs = [
+      ['esquema_piramide','Esquema de Pirâmide','Indique a rede para um amigo e ele abrir conta','🔺',400,'social','invite','count','1'],
+      ['bicho_estimacao','Eu e meu amigão','Poste uma foto com seu bicho de estimação','🐾',80,'photo','photo_tag','tag','bicho'],
+      ['melancia','Querendo chamar atenção','Poste uma foto segurando uma melancia','🍉',100,'photo','photo_tag','tag','melancia'],
+      ['no_trampo','No trampo','Poste uma foto no seu trabalho','💼',60,'photo','photo_tag','tag','trabalho'],
+      ['falsiane','Falsiane','Poste uma selfie dando um sorriso falso','😁',70,'photo','photo_tag','tag','selfie'],
+      ['parcas','Com os parças','Poste uma foto com seu grupo de amigos','👯',90,'social','photo_tag','tag','amigos'],
+      ['disney','Vivendo na Disney','Poste uma foto fantasiado','🏰',120,'photo','photo_tag','tag','fantasia'],
+      ['sextou','Sextou!','Poste uma foto da sua sexta à noite (sex 18h-23h59)','🎉',100,'time','photo_time','weekday','5_18_23'],
+      ['segundou','Segundou','Poste uma foto da semana começando (seg 5h-9h)','🌅',80,'time','photo_time','weekday','1_5_9'],
+      ['esg','Orgulho do ESG','Poste uma foto abraçando uma árvore','🌳',80,'photo','photo_tag','tag','arvore'],
+      ['queda_livre','Queda Livre','Poste uma foto pulando de paraquedas','🪂',200,'photo','photo_tag','tag','paraquedas'],
+      ['bucefalo','Meu Bucéfalo','Poste uma foto com um cavalo (pergunte ao @pedro quem é Bucéfalo!)','🐴',150,'photo','photo_tag','tag','cavalo'],
+      ['cara_joelho','Cara de Joelho','Poste uma foto com um bebê','👶',90,'photo','photo_tag','tag','bebe'],
+      ['caixa','Eu e o Caixa','Poste uma foto com o caixa de um estabelecimento','🏪',80,'photo','photo_tag','tag','caixa'],
+      ['tia_plantas','Tia das Plantas','Poste uma foto igual sua tia das plantas','🪴',70,'photo','photo_tag','tag','plantas'],
+      ['lenda_fluvial','Lenda Fluvial','Poste uma foto num rio','🏞️',100,'photo','photo_tag','tag','rio'],
+      ['gabriel_medina','Eu meio Gabriel Medina','Poste uma foto no mar','🏄',120,'photo','photo_tag','tag','mar'],
+      ['eye_tiger','Eye of the Tiger','Poste uma foto com um tigre','🐯',200,'photo','photo_tag','tag','tigre'],
+      ['la_ferrari','La Ferrari!! 🤌','Poste uma foto com uma Ferrari','🏎️',300,'photo','photo_tag','tag','ferrari'],
+      ['uno_escada','Carro de Corrida','Poste uma foto com um Uno com escada em cima','🚗',250,'photo','photo_tag','tag','uno'],
+      ['srta_belo','Srta. Belo','Poste uma foto enquadrando uma maçã na sua cara','🍎',100,'photo','photo_tag','tag','maca'],
+    ];
+    let added = 0;
+    for (const [slug,name,desc,icon,pts,cat,trig,rtype,rval] of achs) {
+      const ex = await db.prepare('SELECT id FROM achievements WHERE slug=$1').get(slug);
+      if (!ex) {
+        await db.prepare('INSERT INTO achievements(id,slug,name,description,icon,points,category,trigger_type,requirement_type,requirement_value,active) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true)')
+          .run(uuidv4(),slug,name,desc,icon,pts,cat,trig,rtype,rval);
+        added++;
+      }
+    }
+    res.json({ ok: true, added });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
