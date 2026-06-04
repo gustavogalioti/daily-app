@@ -37,7 +37,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const { route_id } = req.query;
     let sql = `SELECT mp.*, u.name as creator_name,
       (SELECT COUNT(*) FROM user_checkins WHERE point_id=mp.id) as checkin_count
-      FROM map_points mp JOIN users u ON u.id=mp.created_by WHERE mp.active=1`;
+      FROM map_points mp JOIN users u ON u.id=mp.created_by WHERE mp.active IS NOT FALSE AND mp.active IS NOT NULL AND mp.active != 0`;
     const p = [];
     if (route_id) { sql += ` AND mp.route_id=$1`; p.push(route_id); }
     sql += ` ORDER BY mp.created_at DESC`;
@@ -74,9 +74,9 @@ router.get('/routes/all', optionalAuth, async (req, res) => {
     const db = getDB();
     const routes = await db.prepare(`
       SELECT mr.*, u.name as creator_name,
-        (SELECT COUNT(*) FROM map_points WHERE route_id=mr.id AND active=1) as points_count
+        (SELECT COUNT(*) FROM map_points WHERE route_id=mr.id AND active IS NOT FALSE AND active IS NOT NULL AND active != 0) as points_count
       FROM map_routes mr JOIN users u ON u.id=mr.created_by
-      WHERE mr.active=1 ORDER BY mr.created_at DESC
+      WHERE mr.active IS NOT FALSE AND mr.active IS NOT NULL AND mr.active != 0 ORDER BY mr.created_at DESC
     `).all();
     if (req.user) {
       for (const r of routes) {
@@ -141,7 +141,7 @@ router.post('/:id/checkin', authMiddleware, (req, res, next) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
       const db = getDB();
-      const point = await db.prepare('SELECT * FROM map_points WHERE id=$1 AND active=1').get(req.params.id);
+      const point = await db.prepare('SELECT * FROM map_points WHERE id=$1 AND active IS NOT FALSE AND active IS NOT NULL AND active != 0').get(req.params.id);
       if (!point) return res.status(404).json({ error: 'Ponto não encontrado' });
 
       // Verifica se já fez check-in
