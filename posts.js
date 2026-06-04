@@ -112,13 +112,14 @@ router.get('/regional', optionalAuth, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    const { content, tab='agora', caption, is_anonymous=0 } = req.body;
+    const { content, tab='agora', caption, is_anonymous=0, lat, lng, type='text', poll_options } = req.body;
     if (!content && !caption) return res.status(400).json({ error: 'Conteúdo obrigatório' });
     const id = uuidv4();
-    const validTabs = ['global','agora','timeline','daily_mandou'];
+    const validTabs = ['global','agora','timeline','daily_mandou','regional'];
     const t = validTabs.includes(tab) ? tab : 'agora';
-    await db.prepare('INSERT INTO posts (id,user_id,type,content,tab,caption,is_anonymous) VALUES ($1,$2,$3,$4,$5,$6,$7)')
-      .run(id, req.user.id, 'text', content||caption, t, caption||null, is_anonymous?1:0);
+    const postType = ['text','poll'].includes(type) ? type : 'text';
+    await db.prepare('INSERT INTO posts (id,user_id,type,content,tab,caption,is_anonymous,lat,lng) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)')
+      .run(id, req.user.id, postType, content||caption, t, caption||null, is_anonymous?1:0, lat||null, lng||null);
     await checkAndGrant(db, req.user.id, 'posts');
     pedroAutoComment(id, 'text');
     const post = await db.prepare('SELECT * FROM posts WHERE id=$1').get(id);
@@ -133,7 +134,7 @@ router.post('/photo', authMiddleware, (req, res, next) => {
     if (!req.file) return res.status(400).json({ error: 'Foto obrigatória' });
     try {
       const db = getDB();
-      const { caption='', tab='global', notification_id } = req.body;
+      const { caption='', tab='global', notification_id, lat, lng } = req.body;
 
       // Daily Mandou: verifica notificação ativa
       if (tab === 'daily_mandou' || tab === 'geral') {
