@@ -571,6 +571,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div style="display:flex;background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:14px;gap:4px;">
         <button id="btn-mundo-global" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;background:var(--accent);color:#fff;transition:all .18s;" onclick="setMundoMode('global')">🌍 Global</button>
         <button id="btn-mundo-agora" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;" onclick="setMundoMode('agora')">💬 Ágora</button>
+        <button id="btn-mundo-regional" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;" onclick="setMundoMode('regional')">📍 Regional</button>
       </div>
 
       <!-- Filtros Global -->
@@ -585,6 +586,55 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <div style="font-size:10px;font-weight:800;letter-spacing:1px;opacity:.8;margin-bottom:4px;">📢 DAILY PERGUNTA</div>
           <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;line-height:1.3;" id="agora-banner-text">—</div>
           <div style="font-size:11px;opacity:.75;margin-top:6px;" id="agora-banner-time"></div>
+        </div>
+      </div>
+
+      <!-- Painel Regional -->
+      <div id="regional-panel" style="display:none;margin-bottom:14px;">
+        <!-- Geo required banner -->
+        <div id="regional-geo-required" style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">📍</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:6px;">Ative sua localização</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Para ver e publicar posts da sua cidade</div>
+          <button class="btn btn-primary" onclick="activateRegionalGeo()">📍 Habilitar geolocalização</button>
+        </div>
+        <!-- Compose regional -->
+        <div id="regional-compose" style="display:none;background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span style="font-size:11px;font-weight:800;color:var(--accent);background:var(--accent-light);padding:3px 10px;border-radius:20px;">📍 <span id="regional-city-label">Sua cidade</span></span>
+          </div>
+          <!-- Tabs post type -->
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <button class="btn btn-primary btn-xs" id="rp-tab-text" onclick="setRegionalTab('text',this)">📝 Texto</button>
+            <button class="btn btn-ghost btn-xs" id="rp-tab-photo" onclick="setRegionalTab('photo',this)">📷 Foto</button>
+            <button class="btn btn-ghost btn-xs" id="rp-tab-poll" onclick="setRegionalTab('poll',this)">📊 Enquete</button>
+          </div>
+          <!-- Texto -->
+          <div id="rp-text">
+            <textarea id="regional-text" placeholder="O que está acontecendo na sua cidade?" style="min-height:70px;width:100%;resize:none;border:none;background:transparent;font-size:14px;outline:none;"></textarea>
+          </div>
+          <!-- Foto -->
+          <div id="rp-photo" style="display:none;">
+            <img id="rp-photo-prev" style="width:100%;border-radius:10px;margin-bottom:8px;display:none;">
+            <label class="drop-zone" for="rp-photo-input" style="padding:12px;display:block;text-align:center;cursor:pointer;">📷 Escolher foto</label>
+            <input type="file" id="rp-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="onRpPhotoSel(event)">
+            <input type="text" id="rp-photo-cap" placeholder="Legenda..." style="margin-top:8px;width:100%;">
+          </div>
+          <!-- Enquete -->
+          <div id="rp-poll" style="display:none;display:none;">
+            <input type="text" id="rp-poll-q" placeholder="Pergunta..." style="width:100%;margin-bottom:6px;">
+            <input type="text" id="rp-poll-o1" placeholder="Opção 1" style="width:100%;margin-bottom:4px;">
+            <input type="text" id="rp-poll-o2" placeholder="Opção 2" style="width:100%;margin-bottom:4px;">
+            <input type="text" id="rp-poll-o3" placeholder="Opção 3 (opcional)" style="width:100%;">
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
+            <button class="btn btn-primary btn-sm" onclick="submitRegionalPost()">Publicar →</button>
+          </div>
+        </div>
+        <!-- Nuvem de palavras regional -->
+        <div id="regional-wordcloud-wrap" style="display:none;background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;margin-bottom:10px;">
+          <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">☁️ Nuvem da cidade</div>
+          <canvas id="regional-wordcloud" style="width:100%;height:120px;border-radius:10px;background:var(--surface2);display:block;"></canvas>
         </div>
       </div>
 
@@ -4212,14 +4262,20 @@ function setMundoMode(mode) {
   const fA = document.getElementById('mundo-agora-filters');
   const btnPost = document.getElementById('btn-mundo-post');
 
-  if (btnG) { btnG.style.background = mode==='global' ? 'var(--accent)' : 'transparent'; btnG.style.color = mode==='global' ? '#fff' : 'var(--muted)'; }
-  if (btnA) { btnA.style.background = mode==='agora' ? 'var(--accent)' : 'transparent'; btnA.style.color = mode==='agora' ? '#fff' : 'var(--muted)'; }
+  const btnR = document.getElementById('btn-mundo-regional');
+  if (btnG) { btnG.style.background = mode==='global'?'var(--accent)':'transparent'; btnG.style.color = mode==='global'?'#fff':'var(--muted)'; }
+  if (btnA) { btnA.style.background = mode==='agora'?'var(--accent)':'transparent'; btnA.style.color = mode==='agora'?'#fff':'var(--muted)'; }
+  if (btnR) { btnR.style.background = mode==='regional'?'var(--accent)':'transparent'; btnR.style.color = mode==='regional'?'#fff':'var(--muted)'; }
   if (fG) fG.style.display = mode==='global' ? 'flex' : 'none';
   if (fA) fA.style.display = mode==='agora' ? 'flex' : 'none';
   if (btnPost) {
     if (mode==='global') { btnPost.textContent = '+ Foto'; btnPost.onclick = () => openPostModal('photo','global'); }
     else { btnPost.textContent = '+ Publicar'; btnPost.onclick = () => openPostModal('text','agora'); }
   }
+  // Painel regional
+  const regionalPanel = document.getElementById('regional-panel');
+  if (regionalPanel) regionalPanel.style.display = mode==='regional' ? 'block' : 'none';
+  if (mode==='regional') initRegionalMode();
   // Painel de composição e banner
   const composePanel = document.getElementById('agora-compose-panel');
   const adminBanner = document.getElementById('agora-admin-banner');
@@ -4230,6 +4286,7 @@ function setMundoMode(mode) {
   if (adminBanner && mode==='agora') loadAgoraBanner();
   else if (adminBanner) adminBanner.style.display = 'none';
   if (mode==='global') loadGlobal();
+  else if (mode==='regional') loadRegionalFeed();
   else loadAgoraFeed();
 }
 
@@ -7231,6 +7288,194 @@ async function seedAchievements() {
     btn.textContent=`✅ ${r.added} inseridas`;
   } catch(e) { toast(e.message,'error'); btn.disabled=false; btn.textContent='▶ Executar'; }
 }
+</script>
+<script>
+// ═══════════════════════════════════════
+// REGIONAL — Posts por geolocalização
+// ═══════════════════════════════════════
+let regionalLat = null, regionalLng = null, regionalCity = '';
+let regionalPostType = 'text';
+
+async function initRegionalMode() {
+  if (regionalLat && regionalLng) {
+    showRegionalCompose();
+    loadRegionalFeed();
+    return;
+  }
+  // Verificar se já tem geo do mapa
+  if (typeof myLat !== 'undefined' && myLat) {
+    regionalLat = myLat; regionalLng = myLng;
+    showRegionalCompose();
+    loadRegionalFeed();
+    return;
+  }
+  // Pedir permissão
+  document.getElementById('regional-geo-required').style.display = 'block';
+  document.getElementById('regional-compose').style.display = 'none';
+}
+
+function activateRegionalGeo() {
+  if (!navigator.geolocation) { toast('Geolocalização não suportada', 'error'); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    regionalLat = pos.coords.latitude;
+    regionalLng = pos.coords.longitude;
+    showRegionalCompose();
+    loadRegionalFeed();
+    // Tentar reverter cidade via nominatim
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${regionalLat}&lon=${regionalLng}&format=json`)
+      .then(r=>r.json()).then(d=>{
+        const city = d.address?.city || d.address?.town || d.address?.village || d.address?.county || 'Sua cidade';
+        regionalCity = city;
+        const lbl = document.getElementById('regional-city-label');
+        if (lbl) lbl.textContent = city;
+      }).catch(()=>{});
+  }, () => toast('Não foi possível obter localização', 'error'));
+}
+
+function showRegionalCompose() {
+  document.getElementById('regional-geo-required').style.display = 'none';
+  document.getElementById('regional-compose').style.display = 'block';
+}
+
+function setRegionalTab(type, btn) {
+  regionalPostType = type;
+  ['text','photo','poll'].forEach(t => {
+    const el = document.getElementById('rp-'+t);
+    const tb = document.getElementById('rp-tab-'+t);
+    if (el) el.style.display = t===type ? 'block' : 'none';
+    if (tb) { tb.classList.toggle('btn-primary', t===type); tb.classList.toggle('btn-ghost', t!==type); }
+  });
+}
+
+function onRpPhotoSel(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => { const p=document.getElementById('rp-photo-prev'); p.src=ev.target.result; p.style.display='block'; };
+  reader.readAsDataURL(file);
+}
+
+async function submitRegionalPost() {
+  if (!regionalLat || !regionalLng) { toast('Ative a geolocalização primeiro', 'error'); return; }
+  try {
+    if (regionalPostType === 'photo') {
+      const file = document.getElementById('rp-photo-input')?.files[0];
+      if (!file) { toast('Escolha uma foto', 'error'); return; }
+      const cap = document.getElementById('rp-photo-cap')?.value || '';
+      const fd = new FormData();
+      fd.append('photo', file); fd.append('caption', cap);
+      fd.append('type', 'photo'); fd.append('tab', 'regional');
+      fd.append('lat', regionalLat); fd.append('lng', regionalLng);
+      await apiForm('/api/posts', fd);
+    } else if (regionalPostType === 'poll') {
+      const q = document.getElementById('rp-poll-q')?.value.trim();
+      const o1 = document.getElementById('rp-poll-o1')?.value.trim();
+      const o2 = document.getElementById('rp-poll-o2')?.value.trim();
+      const o3 = document.getElementById('rp-poll-o3')?.value.trim();
+      if (!q||!o1||!o2) { toast('Preencha pergunta e opções', 'error'); return; }
+      await api('/api/posts', {method:'POST', body:JSON.stringify({
+        type:'poll', tab:'regional', content:q, poll_options:[o1,o2,...(o3?[o3]:[])],
+        lat:regionalLat, lng:regionalLng
+      })});
+    } else {
+      const content = document.getElementById('regional-text')?.value.trim();
+      if (!content) { toast('Escreva algo', 'error'); return; }
+      await api('/api/posts', {method:'POST', body:JSON.stringify({
+        content, type:'text', tab:'regional', lat:regionalLat, lng:regionalLng
+      })});
+      document.getElementById('regional-text').value = '';
+    }
+    toast('Publicado na sua região! 📍', 'success');
+    loadRegionalFeed();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadRegionalFeed() {
+  if (!regionalLat || !regionalLng) return;
+  const grid = document.getElementById('global-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { posts } = await api(`/api/posts/regional?lat=${regionalLat}&lng=${regionalLng}&radius=30`);
+    if (!posts.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;">
+        <div style="font-size:40px;margin-bottom:8px;">📍</div>
+        <div style="font-weight:700;">Nenhum post na sua área ainda</div>
+        <div style="color:var(--muted);font-size:13px;margin-top:4px;">Seja o primeiro a publicar em ${regionalCity||'sua cidade'}!</div>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = posts.map(p => renderRegionalCard(p)).join('');
+    // Nuvem de palavras
+    const words = posts.map(p=>p.content||p.caption||'').join(' ');
+    if (words.trim()) {
+      const wc = document.getElementById('regional-wordcloud-wrap');
+      if (wc) wc.style.display = 'block';
+      const wordData = {};
+      words.split(/\s+/).forEach(w=>{
+        const wl=w.replace(/[^a-záàâãéèêíìîóòôõúùûç]/gi,'').toLowerCase();
+        if(wl.length>2) wordData[wl]=(wordData[wl]||0)+1;
+      });
+      const wcWords = Object.entries(wordData).map(([word,count])=>({word,count})).sort((a,b)=>b.count-a.count);
+      setTimeout(()=>drawWordCloud(wcWords.slice(0,40),'regional-wordcloud'),100);
+    }
+  } catch(e) { grid.innerHTML=`<p class="text-muted" style="text-align:center;padding:20px;">${e.message}</p>`; }
+}
+
+function renderRegionalCard(p) {
+  const av = p.author?.avatar_url || avatarUrl(p.author?.name||'?');
+  // Reações regionais especiais
+  const reactions = [
+    {emoji:'❤️', key:'heart', label:'Amei'},
+    {emoji:'👍', key:'like', label:'Curti'},
+    {emoji:'🎠', key:'disney', label:'Tá da Disney?'},
+  ].map(r => {
+    const count = p.reactions?.[r.key]||0;
+    const active = p.my_reaction===r.key;
+    return `<button onclick="reactRegional('${p.id}','${r.key}')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1.5px solid ${active?'var(--accent)':'var(--border)'};background:${active?'var(--accent-light)':'transparent'};cursor:pointer;font-size:13px;" title="${r.label}">${r.emoji}${count?` <span style="font-size:11px;font-weight:700;">${count}</span>`:''}
+    </button>`;
+  }).join('');
+
+  if (p.type==='photo' && p.image_url) {
+    return `<div class="photo-card">
+      <img src="${p.image_url}" loading="lazy" onclick="openPostDetail('${p.id}')">
+      <div class="photo-card-body">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;cursor:pointer;" onclick="openUserProfile('${p.author?.username}')">
+          <img src="${av}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid var(--accent);">
+          <span style="font-size:12px;font-weight:700;color:var(--accent);">@${p.author?.username||'?'}</span>
+        </div>
+        ${p.caption?`<p style="font-size:12px;color:var(--text2);margin-bottom:6px;">${p.caption}</p>`:''}
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">${reactions}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">
+          <span style="font-size:11px;color:var(--muted);">💬 ${p.comment_count||0}</span>
+          <span style="font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;" onclick="openPostDetail('${p.id}')">Comentar →</span>
+        </div>
+      </div>
+    </div>`;
+  }
+  return `<div class="card" style="padding:14px;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;" onclick="openUserProfile('${p.author?.username}')">
+      <img src="${av}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1.5px solid var(--accent);flex-shrink:0;">
+      <div>
+        <div style="font-weight:700;font-size:13px;">${p.author?.name||'?'}</div>
+        <div style="font-size:11px;color:var(--muted);">${timeAgo(p.created_at)}</div>
+      </div>
+    </div>
+    <p style="font-size:14px;line-height:1.5;margin-bottom:10px;">${p.content||''}</p>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${reactions}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border);">
+      <span style="font-size:11px;color:var(--muted);">💬 ${p.comment_count||0}</span>
+      <span style="font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;" onclick="openPostDetail('${p.id}')">Comentar →</span>
+    </div>
+  </div>`;
+}
+
+async function reactRegional(postId, reaction) {
+  try {
+    await api(`/api/posts/${postId}/react`, {method:'POST', body:JSON.stringify({reaction})});
+    loadRegionalFeed();
+  } catch(e) {}
+}
+
 </script>
 </body>
 </html>
