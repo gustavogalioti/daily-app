@@ -28,6 +28,13 @@ process.on('uncaughtException', (err) => {
   try {
     await initDB();
   try { require('./cloudinary'); } catch(e) { console.error('cloudinary:', e.message); }
+  // Seed novas conquistas
+  try {
+    const { seedNewAchievements } = require('./achievements');
+    const { getDB } = require('./database');
+    await seedNewAchievements(getDB());
+    console.log('  ✓ conquistas seeded');
+  } catch(e) { console.error('seed ach:', e.message); }
 
   const routeFiles = [
     ['/api/auth', './auth'], ['/api/posts', './posts'], ['/api/users', './users'],
