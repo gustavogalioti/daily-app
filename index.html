@@ -7024,6 +7024,7 @@ function darken(hex,a){const n=parseInt(hex.replace('#',''),16);return '#'+[n>>1
 // ═══════════════════════════════════════
 let chatPollingInterval = null;
 let chatLastTs = null;
+let chatSeenIds = new Set();
 let chatWordData = {};
 let chatOnlineInterval = null;
 
@@ -7036,6 +7037,7 @@ function openAgoraChat() {
   // Carregar mensagem ADM
   loadAdmChatMsg();
   // Registrar presença
+  chatSeenIds = new Set();
   registerChatPresence(true);
   // Carregar histórico
   loadChatHistory();
@@ -7075,6 +7077,7 @@ async function loadChatHistory() {
     box.innerHTML = '';
     messages.forEach(m => appendChatMessage(m));
     chatLastTs = messages.at(-1)?.created_at || null;
+    messages.forEach(m=>chatSeenIds.add(m.id));
     scrollChatBottom();
     updateChatWordCloud(messages.map(m=>m.content).join(' '));
   } catch(e) { box.innerHTML='<p class="text-muted" style="text-align:center;">Nenhuma mensagem ainda. Diz oi! 👋</p>'; }
@@ -7084,7 +7087,9 @@ async function pollNewChatMessages() {
   try {
     const {messages} = await api('/api/agora-chat/messages'+(chatLastTs?'?after='+encodeURIComponent(chatLastTs):''));
     if(!messages.length) return;
-    messages.forEach(m => appendChatMessage(m));
+    const newMsgs = messages.filter(m => !chatSeenIds.has(m.id));
+    if(!newMsgs.length) return;
+    newMsgs.forEach(m => { chatSeenIds.add(m.id); appendChatMessage(m); });
     chatLastTs = messages.at(-1)?.created_at || chatLastTs;
     scrollChatBottom();
     // Atualizar nuvem incrementalmente
@@ -7183,5 +7188,22 @@ async function clearAdmChatMsg() {
 }
 
 </script>
+
+<script>
+// Alias para compatibilidade com o grid de admin
+function openEditAchievement(a) {
+  document.getElementById('edit-ach-id').value = a.id||'';
+  document.getElementById('edit-ach-name').value = a.name||'';
+  document.getElementById('edit-ach-icon').value = a.icon||'';
+  document.getElementById('edit-ach-desc').value = a.description||'';
+  document.getElementById('edit-ach-points').value = a.points||0;
+  document.getElementById('edit-ach-cat').value = a.category||'general';
+  document.getElementById('edit-ach-trigger').value = a.trigger_type||'';
+  document.getElementById('edit-ach-req-val').value = a.requirement_value||'';
+  document.getElementById('edit-ach-title').textContent = '✏️ ' + (a.name||'Conquista');
+  openModal('modal-edit-ach');
+}
+</script>
+
 </body>
 </html>
