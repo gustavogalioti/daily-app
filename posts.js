@@ -76,6 +76,39 @@ router.get('/highlights', optionalAuth, async (req, res) => {
 });
 
 // POST /api/posts — post de texto (ágora/discussão)
+
+// GET /api/posts/regional — posts da mesma área geográfica
+router.get('/regional', optionalAuth, async (req, res) => {
+  try {
+    const db = getDB();
+    const { lat, lng, radius=30 } = req.query;
+    if (!lat || !lng) return res.status(400).json({ error: 'lat/lng obrigatórios' });
+    const R = 6371;
+    const dLat = parseFloat(radius)/111;
+    const dLng = parseFloat(radius)/(111 * Math.cos(parseFloat(lat)*Math.PI/180));
+    const minLat = parseFloat(lat)-dLat, maxLat = parseFloat(lat)+dLat;
+    const minLng = parseFloat(lng)-dLng, maxLng = parseFloat(lng)+dLng;
+    const posts = await db.prepare(`
+      SELECT p.*, u.name as author_name, u.username as author_username,
+             u.avatar_url as author_avatar, u.id as author_id,
+             (SELECT COUNT(*) FROM comments WHERE post_id=p.id) as comment_count
+      FROM posts p JOIN users u ON u.id=p.user_id
+      WHERE p.tab='regional'
+        AND p.lat BETWEEN $1 AND $2
+        AND p.lng BETWEEN $3 AND $4
+      ORDER BY p.created_at DESC LIMIT 50
+    `).all(minLat, maxLat, minLng, maxLng);
+    // Formatar author e reactions
+    const formatted = posts.map(p => ({
+      ...p,
+      author: { id:p.author_id, name:p.author_name, username:p.author_username, avatar_url:p.author_avatar },
+      reactions: p.reactions ? (typeof p.reactions==='string'?JSON.parse(p.reactions):p.reactions) : {},
+      my_reaction: null
+    }));
+    res.json({ posts: formatted });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
