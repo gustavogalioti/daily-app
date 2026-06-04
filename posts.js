@@ -137,7 +137,7 @@ router.post('/photo', authMiddleware, (req, res, next) => {
       const { caption='', tab='global', notification_id, lat, lng } = req.body;
 
       // Daily Mandou: verifica notificação ativa
-      if (tab === 'daily_mandou' || tab === 'geral') {
+      if ((tab === 'daily_mandou' || tab === 'geral') && tab !== 'regional') {
         const notif = await db.prepare("SELECT * FROM notifications WHERE active=1 AND expires_at > NOW() ORDER BY sent_at DESC LIMIT 1").get();
         if (!notif) return res.status(403).json({ error: 'Nenhuma notificação ativa. Aguarde o Daily Mandou!' });
       }
@@ -147,8 +147,8 @@ router.post('/photo', authMiddleware, (req, res, next) => {
       const finalTab = tab === 'geral' ? 'daily_mandou' : (tab || 'global');
       const activeNotif = await db.prepare("SELECT id FROM notifications WHERE active=1 ORDER BY sent_at DESC LIMIT 1").get();
 
-      await db.prepare('INSERT INTO posts (id,user_id,type,image_url,caption,tab,notification_id) VALUES ($1,$2,$3,$4,$5,$6,$7)')
-        .run(id, req.user.id, 'photo', image_url, caption, finalTab, activeNotif?.id || null);
+      await db.prepare('INSERT INTO posts (id,user_id,type,image_url,caption,tab,notification_id,lat,lng) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)')
+        .run(id, req.user.id, 'photo', image_url, caption, finalTab, activeNotif?.id || null, lat||null, lng||null);
 
       // Pontos e conquistas
       if (finalTab === 'daily_mandou') {
