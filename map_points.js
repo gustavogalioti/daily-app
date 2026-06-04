@@ -61,7 +61,7 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!title || !lat || !lng) return res.status(400).json({ error: 'título, lat e lng obrigatórios' });
     const id = uuidv4();
     await db.prepare(`INSERT INTO map_points (id,title,description,lat,lng,points,checkin_radius,route_id,icon,category,created_by,active)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,1)`)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true)`)
       .run(id, title.trim(), description||'', parseFloat(lat), parseFloat(lng), parseInt(points), parseInt(checkin_radius), route_id||null, icon, category, req.user.id);
     const point = await db.prepare('SELECT * FROM map_points WHERE id=$1').get(id);
     res.status(201).json({ point });
@@ -102,7 +102,7 @@ router.post('/routes', authMiddleware, async (req, res) => {
     if (!title) return res.status(400).json({ error: 'Título obrigatório' });
     const id = uuidv4();
     await db.prepare(`INSERT INTO map_routes (id,title,description,city,state,country,icon,category,created_by,active)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,1)`)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true)`)
       .run(id, title.trim(), description||'', city||'', state||'', country, icon, category, req.user.id);
     res.status(201).json({ route: await db.prepare('SELECT * FROM map_routes WHERE id=$1').get(id) });
   } catch(e) { res.status(500).json({ error: e.message }); }
