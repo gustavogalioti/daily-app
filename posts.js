@@ -31,7 +31,16 @@ async function pedroAutoComment(postId, type) {
     // Delay aleatório (1-5s) para parecer natural
     await new Promise(r => setTimeout(r, 1000 + Math.random() * 4000));
     const content = getPedroComment(type);
-    await db.prepare('INSERT INTO pedro_comments (id,post_id,content) VALUES ($1,$2,$3)').run(uuidv4(), postId, content);
+    const pedroId = uuidv4();
+    await db.prepare('INSERT INTO pedro_comments (id,post_id,content) VALUES ($1,$2,$3)').run(pedroId, postId, content);
+    // Também inserir como comentário normal para aparecer no modal
+    try {
+      const pedro = await db.prepare("SELECT id FROM users WHERE username='pedro' LIMIT 1").get();
+      if (pedro) {
+        await db.prepare('INSERT INTO comments (id,post_id,user_id,content) VALUES ($1,$2,$3,$4)')
+          .run(uuidv4(), postId, pedro.id, content);
+      }
+    } catch(e) {}
   } catch(e) {}
 }
 
