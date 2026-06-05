@@ -820,6 +820,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">
         <button class="btn btn-primary btn-sm" onclick="showJogoSection('dailypoke',this)" id="btn-jogo-dp">🎭 DailyPoke</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('catrunner',this)">🐱 Cat Runner</button>
+        <button class="btn btn-ghost btn-sm" onclick="openTruco()">🃏 Truco</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('outros',this)" style="opacity:.5;">🌾 Em breve</button>
       </div>
 
@@ -869,8 +870,8 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           </div>
 
           <!-- Game canvas container -->
-          <div style="position:relative;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);">
-            <canvas id="catCanvas" width="640" height="220" style="display:block;width:100%;cursor:pointer;"></canvas>
+          <div style="position:relative;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);aspect-ratio:640/220;">
+            <canvas id="catCanvas" width="640" height="220" style="display:block;width:100%;height:100%;cursor:pointer;"></canvas>
             <!-- Overlay start -->
             <div id="cat-overlay" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);">
               <div style="font-size:48px;margin-bottom:8px;">🐱</div>
@@ -6489,31 +6490,14 @@ async function checkDQPeriodChange() {
 let catGame = null;
 
 function initCatGame() {
-  if (catGame) { resizeCatCanvas(); return; }
-  resizeCatCanvas();
+  if (catGame) return; // já inicializado
   catGame = new CatRunner('catCanvas');
   catGame.init();
+  // carregar recorde do servidor
   api('/api/catrunner/score').then(d=>{
     if(d.best) document.getElementById('cat-best-display').textContent = d.best;
   }).catch(()=>{});
 }
-
-function resizeCatCanvas() {
-  const canvas = document.getElementById('catCanvas');
-  if (!canvas) return;
-  const container = canvas.parentElement;
-  const w = container.clientWidth || 360;
-  const h = Math.round(w * 220 / 640);
-  canvas.width = w;
-  canvas.height = h;
-  if (catGame) {
-    catGame.W = w;
-    catGame.H = h;
-    catGame.groundY = h - Math.round(h * 0.18);
-    catGame.cat.y = catGame.groundY - 40;
-  }
-}
-window.addEventListener('resize', () => { if (catGame) resizeCatCanvas(); });
 
 class CatRunner {
   constructor(canvasId) {
@@ -6532,7 +6516,7 @@ class CatRunner {
     this.gameRunning = false;
     this.gameover = false;
     this.frame = 0;
-    this.groundY = this.H - Math.round(this.H * 0.18);
+    this.groundY = this.H - 40;
     // Cat
     this.cat = { x:80, y:this.groundY-40, w:32, h:40, vy:0, jumping:false, frame:0 };
     // Obstacles & collectibles
@@ -7596,5 +7580,390 @@ loadMapPointsList = async function() {
 };
 </script>
 
+<!-- ─── TELA TRUCO ─── -->
+<div id="screen-truco" style="display:none;position:fixed;inset:0;z-index:670;background:#1a6b2e;flex-direction:column;">
+
+  <!-- Header -->
+  <div style="background:rgba(0,0,0,.4);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <button onclick="leaveTruco()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">‹</button>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:16px;">🃏 Truco</div>
+    <div id="truco-score" style="font-size:13px;color:#FFD700;font-weight:700;">0 × 0</div>
+  </div>
+
+  <!-- LOBBY / FILA -->
+  <div id="truco-lobby" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;">
+    <div style="font-size:64px;">🃏</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:24px;">Truco!</div>
+    <div style="color:rgba(255,255,255,.7);font-size:14px;text-align:center;">2 jogadores · Paulista · Primeiro a 12 pontos</div>
+    <button class="btn btn-primary" style="font-size:16px;padding:14px 40px;background:#FFD700;color:#1a1a1a;border:none;" onclick="joinTrucoQueue()">⚔️ Encontrar partida</button>
+    <div id="truco-queue-status" style="color:rgba(255,255,255,.7);font-size:13px;display:none;">⏳ Aguardando oponente...</div>
+    <button id="truco-cancel-btn" onclick="leaveTrucoQueue()" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.4);display:none;">Cancelar</button>
+    <!-- Ranking -->
+    <div id="truco-ranking-lobby" style="width:100%;max-width:320px;margin-top:8px;"></div>
+  </div>
+
+  <!-- MESA DE JOGO -->
+  <div id="truco-table" style="display:none;flex:1;flex-direction:column;position:relative;overflow:hidden;">
+    <!-- Oponente -->
+    <div style="display:flex;flex-direction:column;align-items:center;padding:10px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <img id="opp-avatar" src="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #FFD700;">
+        <div>
+          <div id="opp-name" style="color:#fff;font-weight:700;font-size:13px;"></div>
+          <div id="opp-score-label" style="color:#FFD700;font-size:11px;"></div>
+        </div>
+      </div>
+      <!-- Cartas do oponente (costas) -->
+      <div id="opp-cards" style="display:flex;gap:6px;"></div>
+    </div>
+
+    <!-- Mesa central -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative;">
+      <!-- Vira -->
+      <div style="position:absolute;top:8px;right:12px;text-align:center;">
+        <div style="font-size:9px;color:rgba(255,255,255,.6);margin-bottom:2px;">VIRA</div>
+        <div id="truco-vira" style="width:44px;height:62px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;box-shadow:0 2px 8px rgba(0,0,0,.4);"></div>
+      </div>
+      <!-- Placar mão -->
+      <div style="position:absolute;top:8px;left:12px;display:flex;gap:6px;" id="truco-ronda-dots"></div>
+      <!-- Cartas na mesa -->
+      <div style="display:flex;gap:16px;align-items:center;" id="truco-played-cards">
+        <div id="played-opp" style="width:52px;height:74px;border-radius:8px;border:2px dashed rgba(255,255,255,.3);"></div>
+        <div id="played-me" style="width:52px;height:74px;border-radius:8px;border:2px dashed rgba(255,255,255,.3);"></div>
+      </div>
+      <!-- Status/mensagem -->
+      <div id="truco-status" style="color:#FFD700;font-weight:700;font-size:14px;text-align:center;padding:4px 12px;background:rgba(0,0,0,.4);border-radius:20px;"></div>
+    </div>
+
+    <!-- Minha área -->
+    <div style="padding:10px;flex-shrink:0;">
+      <!-- Reações + Chat -->
+      <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px;">
+        <button onclick="sendTrucoReaction('😂')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">😂</button>
+        <button onclick="sendTrucoReaction('😤')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">😤</button>
+        <button onclick="sendTrucoReaction('😎')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">😎</button>
+        <button onclick="sendTrucoReaction('🙈')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">🙈</button>
+        <button onclick="toggleTrucoChat()" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:16px;cursor:pointer;color:#fff;">💬</button>
+      </div>
+      <!-- Meu avatar + cartas na mão -->
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="text-align:center;">
+          <img id="me-avatar" src="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #fff;">
+          <div id="me-score-label" style="color:#FFD700;font-size:10px;font-weight:700;margin-top:2px;"></div>
+        </div>
+        <!-- Minha mão -->
+        <div id="my-cards" style="display:flex;gap:6px;justify-content:center;flex:1;"></div>
+      </div>
+      <!-- Botões de ação -->
+      <div id="truco-actions" style="display:flex;gap:8px;justify-content:center;margin-top:8px;"></div>
+    </div>
+
+    <!-- Chat overlay -->
+    <div id="truco-chat-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;height:200px;background:rgba(0,0,0,.85);flex-direction:column;padding:8px;">
+      <div id="truco-chat-msgs" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-bottom:6px;font-size:12px;color:#fff;"></div>
+      <div style="display:flex;gap:6px;">
+        <input id="truco-chat-input" type="text" placeholder="Mensagem..." style="flex:1;font-size:13px;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 10px;" onkeydown="if(event.key==='Enter')sendTrucoChat()">
+        <button onclick="sendTrucoChat()" class="btn btn-primary btn-sm">→</button>
+      </div>
+    </div>
+
+    <!-- Reaction pop -->
+    <div id="truco-reaction-pop" style="position:absolute;top:30%;left:50%;transform:translateX(-50%);font-size:52px;display:none;pointer-events:none;"></div>
+  </div>
+
+  <!-- Game Over overlay -->
+  <div id="truco-gameover" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.75);flex-direction:column;align-items:center;justify-content:center;gap:12px;">
+    <div id="truco-go-emoji" style="font-size:64px;"></div>
+    <div id="truco-go-title" style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:28px;"></div>
+    <div id="truco-go-score" style="color:#FFD700;font-size:16px;"></div>
+    <button class="btn btn-primary" style="background:#FFD700;color:#1a1a1a;border:none;font-size:16px;padding:12px 32px;" onclick="startTrucoAgain()">🔄 Jogar de novo</button>
+    <button onclick="leaveTruco()" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.4);">Sair</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// TRUCO — Frontend
+// ═══════════════════════════════════════
+let trucoWS = null, trucoGame = null, trucoMyIdx = null;
+
+const NAIPE_COLOR = {'♠':'#1a1a1a','♣':'#1a1a1a','♥':'#e74c3c','♦':'#e74c3c'};
+const TRUCO_LABELS = {3:'Truco!',6:'Seis!',9:'Nove!',12:'Doze!'};
+const TRUCO_NEXT   = {1:3,3:6,6:9,9:12};
+
+function openTruco() {
+  document.getElementById('screen-truco').style.display='flex';
+  document.getElementById('truco-lobby').style.display='flex';
+  document.getElementById('truco-table').style.display='none';
+  document.getElementById('truco-gameover').style.display='none';
+  loadTrucoRanking();
+}
+
+function leaveTruco() {
+  if (trucoWS) { trucoWS.close(); trucoWS=null; }
+  trucoGame=null; trucoMyIdx=null;
+  document.getElementById('screen-truco').style.display='none';
+}
+
+function joinTrucoQueue() {
+  const wsUrl = `${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/truco?userId=${currentUser?.id}&name=${encodeURIComponent(currentUser?.name||'Jogador')}&avatar=${encodeURIComponent(currentUser?.avatar_url||'')}`;
+  trucoWS = new WebSocket(wsUrl);
+  trucoWS.onopen = () => {
+    trucoWS.send(JSON.stringify({type:'join_queue'}));
+    document.getElementById('truco-queue-status').style.display='block';
+    document.getElementById('truco-cancel-btn').style.display='block';
+    document.querySelector('#truco-lobby button.btn-primary').style.display='none';
+  };
+  trucoWS.onmessage = e => handleTrucoMsg(JSON.parse(e.data));
+  trucoWS.onerror = () => toast('Erro ao conectar ao Truco','error');
+  trucoWS.onclose = () => {
+    if (!trucoGame) {
+      document.getElementById('truco-queue-status').style.display='none';
+      document.getElementById('truco-cancel-btn').style.display='none';
+      document.querySelector('#truco-lobby button.btn-primary').style.display='block';
+    }
+  };
+}
+
+function leaveTrucoQueue() {
+  if (trucoWS) trucoWS.send(JSON.stringify({type:'leave_queue'}));
+  document.getElementById('truco-queue-status').style.display='none';
+  document.getElementById('truco-cancel-btn').style.display='none';
+  document.querySelector('#truco-lobby button.btn-primary').style.display='block';
+}
+
+function handleTrucoMsg(msg) {
+  if (msg.type==='queued') {
+    document.getElementById('truco-queue-status').textContent=`⏳ Na fila... (#${msg.position})`;
+  }
+  if (msg.type==='matched') {
+    document.getElementById('truco-queue-status').textContent='✅ Partida encontrada!';
+  }
+  if (msg.type==='state') {
+    trucoGame=msg; trucoMyIdx=msg.me.idx;
+    renderTrucoTable(msg);
+  }
+  if (msg.type==='truco_call') {
+    showTrucoStatus(`${msg.name} pediu ${TRUCO_LABELS[msg.value]}`, true);
+    renderTrucoActions();
+  }
+  if (msg.type==='truco_answer') {
+    showTrucoStatus(msg.accepted?`✅ Aceito! Vale ${msg.value}`:`❌ Correu! Vale ${msg.value}`);
+  }
+  if (msg.type==='chat') {
+    appendTrucoChat(msg.name, msg.text);
+  }
+  if (msg.type==='reaction') {
+    showReactionPop(msg.emoji);
+  }
+  if (msg.type==='gameover') {
+    showTrucoGameOver(msg);
+  }
+  if (msg.type==='error') {
+    toast(msg.msg,'error');
+  }
+}
+
+function renderTrucoTable(g) {
+  document.getElementById('truco-lobby').style.display='none';
+  document.getElementById('truco-table').style.display='flex';
+  document.getElementById('truco-table').style.flexDirection='column';
+  document.getElementById('truco-gameover').style.display='none';
+
+  const me=g.me, opp=g.opponent;
+
+  // Avatares e nomes
+  const meAv=me.avatar_url||me.avatar||avatarUrl(me.name||'?');
+  const opAv=opp.avatar_url||opp.avatar||avatarUrl(opp.name||'?');
+  document.getElementById('me-avatar').src=meAv;
+  document.getElementById('opp-avatar').src=opAv;
+  document.getElementById('opp-name').textContent=opp.name||'Oponente';
+  document.getElementById('me-score-label').textContent=`${me.score} pts`;
+  document.getElementById('opp-score-label').textContent=`${opp.score} pts`;
+  document.getElementById('truco-score').textContent=`${me.score} × ${opp.score}`;
+
+  // Vira
+  const vira=g.vira;
+  document.getElementById('truco-vira').innerHTML=`<span style="color:${NAIPE_COLOR[vira.n]||'#1a1a1a'};font-size:14px;font-weight:900;">${vira.v}${vira.n}</span>`;
+
+  // Cartas do oponente (costas)
+  const oppDiv=document.getElementById('opp-cards');
+  oppDiv.innerHTML=Array(opp.cards||0).fill(0).map(()=>cardBack()).join('');
+
+  // Minha mão
+  const myDiv=document.getElementById('my-cards');
+  myDiv.innerHTML=(me.hand||[]).map((c,i)=>cardFace(c,i,g)).join('');
+
+  // Cartas jogadas na mesa
+  const t=g.table||[null,null];
+  const oppPlayed = document.getElementById('played-opp');
+  const mePlayed  = document.getElementById('played-me');
+  const oppCard   = t[g.opponent.idx];
+  const meCard    = t[g.me.idx];
+  oppPlayed.innerHTML = oppCard ? cardFaceSmall(oppCard) : '';
+  oppPlayed.style.border = oppCard?'none':'2px dashed rgba(255,255,255,.3)';
+  mePlayed.innerHTML  = meCard  ? cardFaceSmall(meCard)  : '';
+  mePlayed.style.border = meCard?'none':'2px dashed rgba(255,255,255,.3)';
+
+  // Rodadas (dots)
+  const dots=document.getElementById('truco-ronda-dots');
+  dots.innerHTML=(g.rondas||[]).map(r=>`<div style="width:10px;height:10px;border-radius:50%;background:${r.winner===g.me.idx?'#4ade80':r.winner<0?'#facc15':'#ef4444'};"></div>`).join('');
+
+  // Status da vez
+  if (g.phase==='truco_pending') {
+    showTrucoStatus(g.truco?.by===g.me.idx ? '⚡ Aguardando resposta...' : `⚡ ${g.opponent.name} pediu ${TRUCO_LABELS[g.truco?.value]}!`);
+  } else {
+    showTrucoStatus(g.turn===g.me.idx ? '🟢 Sua vez!' : `⏳ Vez de ${g.opponent.name}`);
+  }
+
+  renderTrucoActions();
+}
+
+function cardBack() {
+  return `<div style="width:44px;height:62px;background:linear-gradient(135deg,#1a4f8a,#0d2d52);border-radius:6px;border:2px solid rgba(255,255,255,.3);box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:20px;">🃏</div>`;
+}
+
+function cardFace(c,i,g) {
+  const canPlay = g.phase==='playing' && g.turn===g.me.idx;
+  const color = NAIPE_COLOR[c.n]||'#1a1a1a';
+  return `<div onclick="${canPlay?`playTrucoCard(${i})`:''}" style="width:52px;height:74px;background:#fff;border-radius:8px;border:2px solid ${canPlay?'#FFD700':'rgba(255,255,255,.3)'};box-shadow:0 3px 10px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;cursor:${canPlay?'pointer':'default'};transition:transform .15s;${canPlay?'transform:translateY(-6px);':''}" onmouseenter="this.style.transform='translateY(-10px)'" onmouseleave="this.style.transform='${canPlay?'translateY(-6px)':'translateY(0)'}'">
+    <span style="color:${color};font-size:18px;font-weight:900;line-height:1;">${c.v}<br><span style="font-size:14px;">${c.n}</span></span>
+  </div>`;
+}
+
+function cardFaceSmall(c) {
+  const color = NAIPE_COLOR[c.n]||'#1a1a1a';
+  return `<div style="width:52px;height:74px;background:#fff;border-radius:8px;border:2px solid rgba(255,255,255,.6);box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;">
+    <span style="color:${color};font-size:18px;font-weight:900;">${c.v}${c.n}</span>
+  </div>`;
+}
+
+function renderTrucoActions() {
+  if (!trucoGame) return;
+  const g=trucoGame, acts=document.getElementById('truco-actions');
+  acts.innerHTML='';
+
+  if (g.phase==='playing' && g.turn===g.me.idx) {
+    // Botão pedir truco
+    const nextVal=TRUCO_NEXT[g.truco?.value||1];
+    if (nextVal) {
+      const btn=document.createElement('button');
+      btn.className='btn btn-primary btn-sm';
+      btn.style='background:#FFD700;color:#1a1a1a;border:none;font-weight:800;';
+      btn.textContent=TRUCO_LABELS[nextVal];
+      btn.onclick=()=>trucoSend({type:'truco',gameId:g.gameId});
+      acts.appendChild(btn);
+    }
+    // Correr
+    const run=document.createElement('button');
+    run.className='btn btn-ghost btn-sm';
+    run.style='color:#fff;border-color:rgba(255,255,255,.4);';
+    run.textContent='🏃 Correr';
+    run.onclick=()=>{ if(confirm('Correr da partida?')) trucoSend({type:'run',gameId:g.gameId}); };
+    acts.appendChild(run);
+  }
+
+  if (g.phase==='truco_pending' && g.truco?.by!==g.me.idx) {
+    const acc=document.createElement('button');
+    acc.className='btn btn-primary btn-sm';
+    acc.style='background:#4ade80;color:#1a1a1a;border:none;font-weight:800;';
+    acc.textContent=`✅ Aceitar (${g.truco?.value})`;
+    acc.onclick=()=>trucoSend({type:'truco_accept',gameId:g.gameId});
+    acts.appendChild(acc);
+
+    const rej=document.createElement('button');
+    rej.className='btn btn-ghost btn-sm';
+    rej.style='color:#ef4444;border-color:#ef4444;font-weight:700;';
+    rej.textContent='❌ Correr';
+    rej.onclick=()=>trucoSend({type:'truco_reject',gameId:g.gameId});
+    acts.appendChild(rej);
+  }
+}
+
+function playTrucoCard(idx) {
+  if (!trucoGame) return;
+  const card=trucoGame.me.hand[idx];
+  trucoSend({type:'play_card',gameId:trucoGame.gameId,card});
+}
+
+function trucoSend(msg) {
+  if (trucoWS?.readyState===1) trucoWS.send(JSON.stringify(msg));
+}
+
+function showTrucoStatus(txt, highlight=false) {
+  const el=document.getElementById('truco-status');
+  el.textContent=txt;
+  el.style.background=highlight?'rgba(255,215,0,.3)':'rgba(0,0,0,.4)';
+}
+
+function showReactionPop(emoji) {
+  const el=document.getElementById('truco-reaction-pop');
+  el.textContent=emoji; el.style.display='block';
+  setTimeout(()=>el.style.display='none',1500);
+}
+
+function sendTrucoReaction(emoji) {
+  if (!trucoGame) return;
+  trucoSend({type:'reaction',gameId:trucoGame.gameId,emoji});
+  showReactionPop(emoji);
+}
+
+function toggleTrucoChat() {
+  const p=document.getElementById('truco-chat-panel');
+  p.style.display=p.style.display==='flex'?'none':'flex';
+  if (p.style.display==='flex') document.getElementById('truco-chat-input').focus();
+}
+
+function sendTrucoChat() {
+  const inp=document.getElementById('truco-chat-input');
+  const text=inp.value.trim(); if(!text||!trucoGame) return;
+  trucoSend({type:'chat',gameId:trucoGame.gameId,text});
+  inp.value='';
+}
+
+function appendTrucoChat(name,text) {
+  const msgs=document.getElementById('truco-chat-msgs');
+  const d=document.createElement('div');
+  d.innerHTML=`<b>${name}:</b> ${text}`;
+  msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight;
+  const p=document.getElementById('truco-chat-panel');
+  if(p.style.display!=='flex'){p.style.display='flex';setTimeout(()=>p.style.display='none',4000);}
+}
+
+function showTrucoGameOver(msg) {
+  const won=msg.winner===trucoMyIdx;
+  document.getElementById('truco-gameover').style.display='flex';
+  document.getElementById('truco-go-emoji').textContent=msg.reason==='run'?'🏃':(won?'🏆':'😢');
+  document.getElementById('truco-go-title').textContent=msg.reason==='run'?'Alguém correu!':(won?'Você venceu!':'Você perdeu!');
+  const s=msg.scores||[];
+  document.getElementById('truco-go-score').textContent=`${s[0]?.score||0} × ${s[1]?.score||0}`;
+  trucoGame=null;
+}
+
+function startTrucoAgain() {
+  document.getElementById('truco-gameover').style.display='none';
+  document.getElementById('truco-lobby').style.display='flex';
+  document.getElementById('truco-table').style.display='none';
+  joinTrucoQueue();
+}
+
+async function loadTrucoRanking() {
+  try {
+    const {ranking}=await api('/api/truco/ranking');
+    const div=document.getElementById('truco-ranking-lobby');
+    if(!ranking?.length){div.innerHTML='';return;}
+    div.innerHTML=`<div style="background:rgba(0,0,0,.3);border-radius:12px;padding:10px;">
+      <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:8px;">🏆 Ranking</div>
+      ${ranking.slice(0,5).map((r,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.1);">
+        <div style="font-size:12px;color:#FFD700;width:16px;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+        <img src="${r.avatar_url||avatarUrl(r.name)}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">
+        <div style="flex:1;font-size:12px;color:#fff;font-weight:600;">${r.name}</div>
+        <div style="font-size:11px;color:#FFD700;">${r.wins}V ${r.losses}D</div>
+      </div>`).join('')}
+    </div>`;
+  } catch(e){}
+}
+
+</script>
 </body>
 </html>
