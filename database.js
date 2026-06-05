@@ -85,6 +85,12 @@ async function initPG() {
       action TEXT DEFAULT 'wave', created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+
+    CREATE TABLE IF NOT EXISTS truco_scores (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
+      wins INTEGER DEFAULT 0, losses INTEGER DEFAULT 0,
+      points INTEGER DEFAULT 0, updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS catrunner_scores (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
       best_score INTEGER DEFAULT 0, updated_at TIMESTAMPTZ DEFAULT NOW()
