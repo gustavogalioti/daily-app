@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
+const http    = require('http');
+const { WebSocketServer } = require('ws');
 const { initDB } = require('./database');
 let VAPID_PUBLIC = '';
 try {
@@ -44,6 +46,7 @@ process.on('uncaughtException', (err) => {
     ['/api/agenda', './agenda'],
     ['/api/dailypoke', './dailypoke'],
     ['/api/catrunner', './catrunner'],
+    ['/api/truco', './truco_api'],
     ['/api/agora-chat', './agora_chat'],
     ['/api/achievements', './achievements'], ['/api/pedro', './pedro'],
     ['/api/daily-questions', './daily_questions'], ['/api/geo', './geo'],
@@ -110,7 +113,12 @@ process.on('uncaughtException', (err) => {
   checkDailyQuestionPush(); // verificar imediatamente
 
     const PORT = process.env.PORT || 3000;
-  app.listen(PORT, '0.0.0.0', () => console.log(`\n🗓️  DAILY v3 rodando em http://localhost:${PORT}\n`));
+  const httpServer = http.createServer(app);
+  // WebSocket para Truco
+  const { setupTrucoWS } = require('./truco');
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws/truco' });
+  setupTrucoWS(wss);
+  httpServer.listen(PORT, '0.0.0.0', () => console.log(`\n🗓️  DAILY v3 rodando em http://localhost:${PORT}\n`));
   } catch(err) {
     console.error('FATAL ao iniciar:', err.message);
     console.error(err.stack);
