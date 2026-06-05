@@ -3,7 +3,8 @@ const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
 const http    = require('http');
-const { WebSocketServer } = require('ws');
+let WebSocketServer;
+try { WebSocketServer = require('ws').WebSocketServer; } catch(e) { console.warn('ws não instalado, Truco offline'); }
 const { initDB } = require('./database');
 let VAPID_PUBLIC = '';
 try {
@@ -114,10 +115,15 @@ process.on('uncaughtException', (err) => {
 
     const PORT = process.env.PORT || 3000;
   const httpServer = http.createServer(app);
-  // WebSocket para Truco
-  const { setupTrucoWS } = require('./truco');
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws/truco' });
-  setupTrucoWS(wss);
+  // WebSocket para Truco (opcional)
+  try {
+    if (WebSocketServer) {
+      const { setupTrucoWS } = require('./truco');
+      const wss = new WebSocketServer({ server: httpServer, path: '/ws/truco' });
+      setupTrucoWS(wss);
+      console.log('  ✓ Truco WebSocket ativo');
+    }
+  } catch(e) { console.warn('Truco WS erro:', e.message); }
   httpServer.listen(PORT, '0.0.0.0', () => console.log(`\n🗓️  DAILY v3 rodando em http://localhost:${PORT}\n`));
   } catch(err) {
     console.error('FATAL ao iniciar:', err.message);
