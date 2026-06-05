@@ -3162,7 +3162,7 @@ async function openAddPointModalWithCoords(lat, lng) {
   await openAddPointModal(lat, lng);
 }
 
-async function openAddPointModal() {
+async function openAddPointModal(forceLat, forceLng) {
   // Carregar roteiros para o select
   try {
     const { routes } = await api('/api/map-points/routes/all');
@@ -3175,9 +3175,14 @@ async function openAddPointModal() {
   document.getElementById('pm-desc').value = '';
   document.getElementById('pm-points').value = '100';
   document.getElementById('pm-radius').value = '100';
-  document.getElementById('pm-lat').value = myLat || '';
-  document.getElementById('pm-lng').value = myLng || '';
-  if (myLat && myLng) {
+  // Usar coordenadas passadas (clique no mapa) ou localização atual
+  const useLat = forceLat || myLat;
+  const useLng = forceLng || myLng;
+  document.getElementById('pm-lat').value = useLat || '';
+  document.getElementById('pm-lng').value = useLng || '';
+  if (forceLat && forceLng) {
+    document.getElementById('pm-loc-status').textContent = `✅ Local selecionado: ${forceLat.toFixed(5)}, ${forceLng.toFixed(5)}`;
+  } else if (myLat && myLng) {
     document.getElementById('pm-loc-status').textContent = `📍 Usando sua localização atual: ${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
   }
   setPointModalType('ponto', document.getElementById('pt-ponto'));
@@ -3217,8 +3222,8 @@ async function saveMapPoint() {
     })});
     toast(`Ponto "${title}" criado! 🏆`, 'success');
     closeModal('modal-add-point');
-    loadMapPoints();
-    loadMapPointsList();
+    // Recarregar com pequeno delay para garantir que API retorna o ponto novo
+    setTimeout(() => { loadMapPoints(); loadMapPointsList(); }, 500);
   } catch(e) { toast(e.message, 'error'); }
 }
 
