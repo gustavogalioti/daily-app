@@ -35,12 +35,10 @@ async function pedroAutoComment(postId, type) {
     await db.prepare('INSERT INTO pedro_comments (id,post_id,content) VALUES ($1,$2,$3)').run(pedroId, postId, content);
     // Também inserir como comentário normal para aparecer no modal
     try {
-      const pedro = await db.prepare("SELECT id FROM users WHERE username='pedro' LIMIT 1").get();
-      if (pedro) {
-        await db.prepare('INSERT INTO comments (id,post_id,user_id,content) VALUES ($1,$2,$3,$4)')
-          .run(uuidv4(), postId, pedro.id, content);
-      }
-    } catch(e) {}
+      const PEDRO_ID = 'pedro-official-daily';
+      await db.prepare('INSERT INTO comments (id,post_id,user_id,content) VALUES ($1,$2,$3,$4)')
+        .run(uuidv4(), postId, PEDRO_ID, content);
+    } catch(e) { console.error('pedro comment error:', e.message); }
   } catch(e) {}
 }
 
