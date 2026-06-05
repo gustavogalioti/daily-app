@@ -3254,7 +3254,11 @@ async function loadMapPointsList() {
           <div class="text-muted">${p.description||''}</div>
           <div style="font-size:12px;margin-top:4px;"><span style="color:var(--gold);font-weight:700;">+${p.points} pts</span> · 📍 raio ${p.checkin_radius}m · 👥 ${p.checkin_count||0} check-ins</div>
         </div>
-        ${!p.checked_in ? `<button class="btn btn-primary btn-sm" onclick="openCheckinModal('${p.id}')">Check-in</button>` : ''}
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          ${!p.checked_in ? `<button class="btn btn-primary btn-sm" onclick="openCheckinModal('${p.id}')">Check-in</button>` : ''}
+          ${currentUser?.is_admin ? `<button class="btn btn-ghost btn-xs" onclick="openEditMapPoint('${p.id}')">✏️</button>
+          <button class="btn btn-ghost btn-xs" style="color:#E74C3C;" onclick="deleteMapPoint('${p.id}','${p.title}')">🗑️</button>` : ''}
+        </div>
       </div>
     `).join('') : '<p class="text-muted" style="padding:20px;text-align:center;">Nenhum ponto de conquista no mapa ainda.</p>';
   } catch(e) {}
@@ -7480,5 +7484,95 @@ async function reactRegional(postId, reaction) {
 }
 
 </script>
+
+<!-- Modal Editar Ponto do Mapa -->
+<div class="modal-overlay" id="modal-edit-point" style="z-index:10001;" onclick="if(event.target===this)closeModal('modal-edit-point')">
+  <div class="modal-box" style="max-width:480px;background:var(--surface);">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Editar ponto</div>
+      <button class="modal-close" onclick="closeModal('modal-edit-point')">✕</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+      <input type="hidden" id="ep-id">
+      <div><label style="font-size:11px;font-weight:700;color:var(--muted);">Título</label>
+        <input type="text" id="ep-title" style="width:100%;margin-top:4px;"></div>
+      <div><label style="font-size:11px;font-weight:700;color:var(--muted);">Descrição</label>
+        <textarea id="ep-desc" rows="2" style="width:100%;margin-top:4px;resize:none;"></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label style="font-size:11px;font-weight:700;color:var(--muted);">Pontos</label>
+          <input type="number" id="ep-points" style="width:100%;margin-top:4px;"></div>
+        <div><label style="font-size:11px;font-weight:700;color:var(--muted);">Raio (m)</label>
+          <input type="number" id="ep-radius" style="width:100%;margin-top:4px;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label style="font-size:11px;font-weight:700;color:var(--muted);">Ícone</label>
+          <input type="text" id="ep-icon" style="width:100%;margin-top:4px;font-size:20px;" maxlength="4"></div>
+        <div><label style="font-size:11px;font-weight:700;color:var(--muted);">Categoria</label>
+          <input type="text" id="ep-category" style="width:100%;margin-top:4px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="saveEditMapPoint()">💾 Salvar</button>
+        <button class="btn btn-ghost" style="color:#E74C3C;" onclick="deleteMapPoint(document.getElementById('ep-id').value,'',true)">🗑️ Apagar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+function openEditMapPoint(id) {
+  const p = mapPoints.find(x=>x.id===id) || (window._mapPointsList||[]).find(x=>x.id===id);
+  if(!p) { toast('Ponto não encontrado','error'); return; }
+  document.getElementById('ep-id').value=p.id;
+  document.getElementById('ep-title').value=p.title||'';
+  document.getElementById('ep-desc').value=p.description||'';
+  document.getElementById('ep-points').value=p.points||100;
+  document.getElementById('ep-radius').value=p.checkin_radius||100;
+  document.getElementById('ep-icon').value=p.icon||'🏆';
+  document.getElementById('ep-category').value=p.category||'geral';
+  openModal('modal-edit-point');
+}
+
+async function saveEditMapPoint() {
+  const id=document.getElementById('ep-id').value;
+  const data={
+    title:document.getElementById('ep-title').value.trim(),
+    description:document.getElementById('ep-desc').value,
+    points:parseInt(document.getElementById('ep-points').value)||100,
+    checkin_radius:parseInt(document.getElementById('ep-radius').value)||100,
+    icon:document.getElementById('ep-icon').value,
+    category:document.getElementById('ep-category').value,
+    active:1,
+  };
+  if(!data.title){toast('Título obrigatório','error');return;}
+  try {
+    await api('/api/map-points/'+id,{method:'PUT',body:JSON.stringify(data)});
+    toast('Ponto atualizado! ✅','success');
+    closeModal('modal-edit-point');
+    loadMapPoints(); loadMapPointsList();
+  } catch(e){toast(e.message,'error');}
+}
+
+async function deleteMapPoint(id, title, fromModal=false) {
+  if(!confirm(`Apagar o ponto "${title||'este ponto'}"?`)) return;
+  try {
+    await api('/api/map-points/'+id,{method:'DELETE'});
+    toast('Ponto removido.','info');
+    if(fromModal) closeModal('modal-edit-point');
+    loadMapPoints(); loadMapPointsList();
+  } catch(e){toast(e.message,'error');}
+}
+
+// Guardar lista de pontos para acesso pelo modal de edição
+const _origLoadMapPointsList = loadMapPointsList;
+loadMapPointsList = async function() {
+  await _origLoadMapPointsList();
+  try {
+    const {points} = await api('/api/map-points');
+    window._mapPointsList = points;
+  } catch(e){}
+};
+</script>
+
 </body>
 </html>
