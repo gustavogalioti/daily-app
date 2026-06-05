@@ -37,7 +37,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const { route_id } = req.query;
     let sql = `SELECT mp.*, u.name as creator_name,
       (SELECT COUNT(*) FROM user_checkins WHERE point_id=mp.id) as checkin_count
-      FROM map_points mp JOIN users u ON u.id=mp.created_by WHERE mp.active=1`;
+      FROM map_points mp LEFT JOIN users u ON u.id=mp.created_by WHERE mp.active=1`;
     const p = [];
     if (route_id) { sql += ` AND mp.route_id=$1`; p.push(route_id); }
     sql += ` ORDER BY mp.created_at DESC`;
