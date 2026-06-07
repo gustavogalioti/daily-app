@@ -101,6 +101,15 @@ router.post('/push-subscribe', authMiddleware, async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/admin/push-unsubscribe
+router.post('/push-unsubscribe', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    await db.prepare('DELETE FROM push_subscriptions WHERE user_id=$1').run(req.user.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // PUT /api/admin/users/:id/toggle-moderator
 router.put('/users/:id/toggle-moderator', authMiddleware, adminOnly, async (req, res) => {
   const db = getDB();

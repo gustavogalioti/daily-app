@@ -924,6 +924,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <div class="profile-tab" onclick="showProfileSec('conquistas',this)" style="flex-shrink:0;">🏆</div>
 
         <div class="profile-tab" onclick="showProfileSec('agenda',this)" style="flex-shrink:0;">📆 Agenda</div>
+        <div class="profile-tab" onclick="showProfileSec('config',this)" style="flex-shrink:0;">⚙️ Config.</div>
       </div>
       <div id="ps-timeline"><div id="timeline-container"><div class="page-loader"><div class="loader"></div></div></div></div>
       <div id="ps-comunidades" class="hidden">
@@ -951,6 +952,58 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <button class="btn btn-primary btn-sm" onclick="openCreateAgenda()">+ Criar</button>
         </div>
         <div id="agenda-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+      <!-- CONFIGURAÇÕES -->
+      <div id="ps-config" class="hidden">
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
+
+          <!-- Notificações Push -->
+          <div class="card" style="padding:20px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px;">🔔 Notificações</div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--surface2);border-radius:12px;margin-bottom:10px;">
+              <div>
+                <div style="font-weight:700;font-size:14px;">Notificações push</div>
+                <div class="text-muted" style="font-size:12px;margin-top:2px;">Receba alertas no celular</div>
+              </div>
+              <label style="position:relative;display:inline-block;width:48px;height:26px;cursor:pointer;">
+                <input type="checkbox" id="toggle-push" style="opacity:0;width:0;height:0;" onchange="togglePushNotifications(this.checked)">
+                <span id="toggle-push-track" style="position:absolute;inset:0;background:var(--border);border-radius:99px;transition:.3s;"></span>
+                <span id="toggle-push-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.2);"></span>
+              </label>
+            </div>
+            <div id="push-status-msg" style="font-size:12px;color:var(--muted);padding:0 4px;"></div>
+          </div>
+
+          <!-- Privacidade -->
+          <div class="card" style="padding:20px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px;">🔒 Privacidade</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--surface2);border-radius:12px;">
+              <div>
+                <div style="font-weight:700;font-size:14px;">Localização no mapa</div>
+                <div class="text-muted" style="font-size:12px;margin-top:2px;">Aparecer para outros usuários</div>
+              </div>
+              <label style="position:relative;display:inline-block;width:48px;height:26px;cursor:pointer;">
+                <input type="checkbox" id="toggle-geo" style="opacity:0;width:0;height:0;" onchange="toggleGeoVisibility(this.checked)">
+                <span id="toggle-geo-track" style="position:absolute;inset:0;background:var(--border);border-radius:99px;transition:.3s;"></span>
+                <span id="toggle-geo-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.2);"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Conta -->
+          <div class="card" style="padding:20px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px;">👤 Conta</div>
+            <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;gap:10px;padding:12px;" onclick="openModal('modal-edit-profile')">
+              ✏️ Editar perfil
+            </button>
+            <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;gap:10px;padding:12px;margin-top:6px;" onclick="doLogout()">
+              🚪 Sair da conta
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -2216,7 +2269,7 @@ async function loadProfile(){
 }
 
 function showProfileSec(sec,btn){
-  ['timeline','amigos','comunidades','eventos','depoimentos','conquistas','profissional','agenda'].forEach(s=>{
+  ['timeline','amigos','comunidades','eventos','depoimentos','conquistas','profissional','agenda','config'].forEach(s=>{
     const el=document.getElementById('ps-'+s);
     if(el) el.classList.toggle('hidden',s!==sec);
   });
@@ -2229,7 +2282,108 @@ function showProfileSec(sec,btn){
   if(sec==='eventos') loadProfileEvents();
   if(sec==='comunidades') loadProfileCommunities();
   if(sec==='agenda') loadAgenda();
+  if(sec==='config') loadConfigSection();
 }
+
+// ─── CONFIGURAÇÕES ──────────────────────────────────────────────────────────
+function setToggle(id, on) {
+  const track = document.getElementById(id+'-track');
+  const thumb = document.getElementById(id+'-thumb');
+  const input = document.getElementById(id);
+  if (!track || !thumb) return;
+  if (on) {
+    track.style.background = 'var(--accent)';
+    thumb.style.left = '25px';
+    if (input) input.checked = true;
+  } else {
+    track.style.background = 'var(--border)';
+    thumb.style.left = '3px';
+    if (input) input.checked = false;
+  }
+}
+
+async function loadConfigSection() {
+  // Estado do push
+  const pushEnabled = await checkPushEnabled();
+  setToggle('toggle-push', pushEnabled);
+  document.getElementById('push-status-msg').textContent = pushEnabled
+    ? '✅ Notificações ativas — você receberá alertas no celular.'
+    : '🔕 Notificações desativadas.';
+
+  // Estado da geo (verificar se tem localização ativa)
+  const geoActive = localStorage.getItem('daily_geo_active') === '1';
+  setToggle('toggle-geo', geoActive);
+}
+
+async function checkPushEnabled() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission !== 'granted') return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    return !!sub;
+  } catch(e) { return false; }
+}
+
+async function togglePushNotifications(on) {
+  const msg = document.getElementById('push-status-msg');
+  if (on) {
+    msg.textContent = '⏳ Ativando notificações...';
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        msg.textContent = '❌ Permissão negada. Habilite nas configurações do seu navegador.';
+        setToggle('toggle-push', false);
+        return;
+      }
+      await registerPush();
+      msg.textContent = '✅ Notificações ativas — você receberá alertas no celular.';
+      setToggle('toggle-push', true);
+      toast('Notificações ativadas! 🔔', 'success');
+    } catch(e) {
+      msg.textContent = '❌ Erro ao ativar: ' + e.message;
+      setToggle('toggle-push', false);
+    }
+  } else {
+    // Desativar: remover subscription
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await sub.unsubscribe();
+        // Avisar o backend para remover
+        await api('/api/admin/push-unsubscribe', { method: 'POST' }).catch(()=>{});
+      }
+      msg.textContent = '🔕 Notificações desativadas.';
+      setToggle('toggle-push', false);
+      toast('Notificações desativadas.', 'info');
+    } catch(e) {
+      msg.textContent = '❌ Erro ao desativar: ' + e.message;
+    }
+  }
+}
+
+function toggleGeoVisibility(on) {
+  if (on) {
+    localStorage.setItem('daily_geo_active', '1');
+    setToggle('toggle-geo', true);
+    // Ativar geolocalização
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        api('/api/geo/update', { method:'POST', body: JSON.stringify({
+          lat: pos.coords.latitude, lng: pos.coords.longitude
+        })}).catch(()=>{});
+      });
+    }
+    toast('Localização ativada no mapa 📍', 'success');
+  } else {
+    localStorage.setItem('daily_geo_active', '0');
+    setToggle('toggle-geo', false);
+    api('/api/geo/disable', { method:'POST' }).catch(()=>{});
+    toast('Localização desativada.', 'info');
+  }
+}
+
 
 async function loadProfileFriends(){
   const g=document.getElementById('profile-friends-grid');
