@@ -2502,13 +2502,29 @@ function avatarUrl(name){
 
 // ─── Push ───
 async function registerPush(){
-  if(!('serviceWorker' in navigator)||!('PushManager' in window))return;
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){
+    console.log('[push] não suportado neste browser');
+    return;
+  }
   try{
-    const reg=await navigator.serviceWorker.ready;
-    const{key}=await api('/api/vapid-public-key');
-    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(key)});
+    // Pedir permissão explicitamente
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){
+      console.log('[push] permissão negada:', perm);
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    const {key} = await api('/api/vapid-public-key');
+    // Verificar se já tem subscription ativa
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64(key)});
+    }
     await api('/api/admin/push-subscribe',{method:'POST',body:JSON.stringify({subscription:sub})});
-  }catch(e){}
+    console.log('[push] subscription registrada com sucesso');
+  }catch(e){
+    console.error('[push] erro ao registrar:', e.message);
+  }
 }
 function b64(s){
   const p='='.repeat((4-s.length%4)%4);

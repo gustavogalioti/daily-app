@@ -106,6 +106,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (!user?.is_admin) return res.status(403).json({ error: 'Sem permissão' });
     const { question } = req.body;
     await db.prepare('UPDATE daily_questions SET question=$1 WHERE id=$2').run(question, req.params.id);
+    // Disparar push para todos
+    try {
+      const { sendPushQuestionOfDay } = require('./notifications');
+      await sendPushQuestionOfDay(db, question);
+    } catch(e) { console.error('[push] pergunta do dia:', e.message); }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });

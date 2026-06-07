@@ -7,45 +7,70 @@ const SITE_URL      = process.env.SITE_URL || 'http://localhost:3000';
 
 webpush.setVapidDetails(`mailto:admin@daily.app`, VAPID_PUBLIC, VAPID_PRIVATE);
 
+// ─── PUSH PARA UM USUÁRIO ESPECÍFICO ────────────────────────────────────────
+async function sendPushToUser(db, userId, { title, body, url, icon }) {
+  try {
+    const subs = await db.prepare(
+      'SELECT subscription FROM push_subscriptions WHERE user_id=$1'
+    ).all(userId);
+    if (!subs.length) return;
+    const payload = JSON.stringify({
+      title: title || '🔔 DAILY',
+      body:  body  || '',
+      url:   url   || SITE_URL,
+      icon:  icon  || '/icon-192.png'
+    });
+    for (const sub of subs) {
+      try {
+        const subscription = typeof sub.subscription === 'string'
+          ? JSON.parse(sub.subscription)
+          : sub.subscription;
+        await webpush.sendNotification(subscription, payload);
+      } catch(e) {
+        if (e.statusCode === 410) {
+          await db.prepare('DELETE FROM push_subscriptions WHERE user_id=$1').run(userId).catch(()=>{});
+        }
+      }
+    }
+  } catch(e) {
+    console.error('[push] sendPushToUser erro:', e.message);
+  }
+}
+
+// ─── PUSH PARA TODOS (Daily Mandou) ─────────────────────────────────────────
 async function sendPushToAll(db, notificationId) {
-  // Push — só para quem tem subscription
-  const subs = await db.prepare('SELECT ps.subscription, u.email, u.name FROM push_subscriptions ps JOIN users u ON u.id=ps.user_id').all();
-  // Email — para TODOS os usuários
+  const subs     = await db.prepare('SELECT ps.subscription, ps.user_id, u.email, u.name FROM push_subscriptions ps JOIN users u ON u.id=ps.user_id').all();
   const allUsers = await db.prepare('SELECT email, name FROM users').all();
 
   console.log(`   📣 Push para ${subs.length} | Email para ${allUsers.length} usuários`);
 
   const payload = JSON.stringify({
-    title: '📷 Hora da foto!',
-    body: 'Você tem 1 minuto para postar sua foto agora!',
-    url: SITE_URL + '/?notif=' + notificationId,
-    icon: '/icon-192.png'
+    title: '⚡ Hora do DAILY!',
+    body:  'Você tem 1 minuto para postar sua foto agora!',
+    url:   SITE_URL + '/?notif=' + notificationId,
+    icon:  '/icon-192.png'
   });
 
   const results = { push: 0, email: 0, errors: 0 };
 
-  // Envia push
   for (const sub of subs) {
     try {
       const subscription = typeof sub.subscription === 'string'
-        ? JSON.parse(sub.subscription)
-        : sub.subscription;
+        ? JSON.parse(sub.subscription) : sub.subscription;
       await webpush.sendNotification(subscription, payload);
       results.push++;
     } catch(e) {
       results.errors++;
       if (e.statusCode === 410) {
-        try { await db.prepare('DELETE FROM push_subscriptions WHERE user_id=(SELECT user_id FROM push_subscriptions ps JOIN users u ON u.id=ps.user_id WHERE u.email=$1 LIMIT 1)').run(sub.email); } catch(_) {}
+        await db.prepare('DELETE FROM push_subscriptions WHERE user_id=$1').run(sub.user_id).catch(()=>{});
       }
     }
   }
 
-  // Envia email para todos
   for (const user of allUsers) {
     try {
       await sendNotificationEmail({ to: user.email, name: user.name, notificationId, siteUrl: SITE_URL });
       results.email++;
-      console.log(`   ✉️  Email enviado: ${user.email}`);
     } catch(e) {
       console.error(`   ❌ Email erro (${user.email}):`, e.message);
     }
@@ -55,4 +80,29 @@ async function sendPushToAll(db, notificationId) {
   return results;
 }
 
-module.exports = { sendPushToAll, VAPID_PUBLIC };
+// ─── PUSH PARA TODOS (Pergunta do Dia) ──────────────────────────────────────
+async function sendPushQuestionOfDay(db, question) {
+  const subs = await db.prepare('SELECT ps.subscription, ps.user_id FROM push_subscriptions ps').all();
+  const payload = JSON.stringify({
+    title: '❓ Nova pergunta do DAILY!',
+    body:  question || 'Uma nova pergunta foi publicada. Venha responder!',
+    url:   SITE_URL,
+    icon:  '/icon-192.png'
+  });
+  let count = 0;
+  for (const sub of subs) {
+    try {
+      const subscription = typeof sub.subscription === 'string'
+        ? JSON.parse(sub.subscription) : sub.subscription;
+      await webpush.sendNotification(subscription, payload);
+      count++;
+    } catch(e) {
+      if (e.statusCode === 410) {
+        await db.prepare('DELETE FROM push_subscriptions WHERE user_id=$1').run(sub.user_id).catch(()=>{});
+      }
+    }
+  }
+  console.log(`   ❓ Push pergunta do dia: ${count} enviados`);
+}
+
+module.exports = { sendPushToAll, sendPushToUser, sendPushQuestionOfDay, VAPID_PUBLIC };
