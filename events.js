@@ -86,7 +86,7 @@ async function pedroHypeMembers(eventId) {
 
 // GET /api/events — listar eventos do usuário
 // ROTA DE DIAGNÓSTICO TEMPORÁRIA
-router.get('/diag/pedro', authMiddleware, async (req, res) => {
+router.get('/diag/pedro', async (req, res) => {
   try {
     const db = getDB();
     // 1. Verificar se tabela existe
