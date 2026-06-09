@@ -536,6 +536,10 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 12h2M18 12h2"/></svg>
         <span>Jogos</span>
       </button>
+      <button class="nav-btn" onclick="openAgoraChat()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Chat</span>
+      </button>
       <button class="nav-btn" onclick="openSearchModal()">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <span>Buscar</span>
@@ -665,7 +669,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
       <!-- Painel de composição Ágora (aparece só no modo agora) -->
       <!-- Botão Chat na Ágora -->
-      <div id="agora-chat-btn-wrap" style="display:none;margin-bottom:10px;">
+      <div id="agora-chat-btn-wrap" style="display:none!important;margin-bottom:10px;">
         <button class="btn btn-ghost btn-sm" onclick="openAgoraChat()" style="display:flex;align-items:center;gap:6px;border:1.5px solid var(--border);">
           💬 Chat ao vivo <span id="chat-online-badge" style="background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;font-weight:700;">...</span>
         </button>
