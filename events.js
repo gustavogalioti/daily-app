@@ -151,7 +151,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       p.reactions = await db.prepare(
         'SELECT emoji, COUNT(*) as count FROM event_post_reactions WHERE post_id=$1 GROUP BY emoji'
       ).all(p.id);
-      const pc = await db.prepare('SELECT content FROM pedro_comments WHERE post_id=$1').get(p.id);
+      const pc = await db.prepare('SELECT content FROM event_post_comments WHERE post_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 1').get(p.id, 'pedro-official-daily');
       p.pedro_comment = pc?.content || null;
     }
 

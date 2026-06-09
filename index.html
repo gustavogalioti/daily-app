@@ -3915,7 +3915,10 @@ async function openEventModal(eventId) {
       const reactions = (p.reactions||[]).map(r => `<span class="reaction-chip" onclick="reactEventPost('${eventId}','${p.id}','${r.emoji}',this)">${r.emoji}<span>${r.count}</span></span>`).join('');
       const addR = ['👍','❤️','😂','🌊'].filter(e => !(p.reactions||[]).find(r => r.emoji===e)).slice(0,3).map(e => `<span class="reaction-chip" onclick="reactEventPost('${eventId}','${p.id}','${e}',this)">${e}</span>`).join('');
       const pedroAv = 'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg';
-      const pedro = '';
+      const pedro = p.pedro_comment ? `<div style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;background:rgba(255,140,0,.08);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,140,0,.2);">
+        <img src="${pedroAv}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--accent);">
+        <div><span style="font-size:11px;font-weight:800;color:var(--accent);">Pedro 🐱</span><div style="font-size:12px;margin-top:2px;">${p.pedro_comment}</div></div>
+      </div>` : '';
       if (p.post_type === 'poll' && p.poll_data) {
         const pd = typeof p.poll_data === 'string' ? JSON.parse(p.poll_data) : p.poll_data;
         const total = pd.options.reduce((s,o) => s+(o.votes||0), 0);
