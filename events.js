@@ -85,6 +85,41 @@ async function pedroHypeMembers(eventId) {
 
 
 // GET /api/events — listar eventos do usuário
+// ROTA DE DIAGNÓSTICO TEMPORÁRIA
+router.get('/diag/pedro', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    // 1. Verificar se tabela existe
+    const tableCheck = await db.pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'event_post_comments'
+      ) as exists
+    `);
+    // 2. Verificar se Pedro existe
+    const pedroCheck = await db.pool.query(
+      "SELECT id, name FROM users WHERE id='pedro-official-daily'"
+    );
+    // 3. Contar comentários do Pedro em eventos
+    let pedroComments = { rows: [] };
+    if (tableCheck.rows[0].exists) {
+      pedroComments = await db.pool.query(
+        "SELECT COUNT(*) as c FROM event_post_comments WHERE user_id='pedro-official-daily'"
+      );
+    }
+    // 4. Contar total de posts de eventos
+    const eventPosts = await db.pool.query("SELECT COUNT(*) as c FROM event_posts");
+    
+    res.json({
+      table_exists: tableCheck.rows[0].exists,
+      pedro_exists: pedroComments.rows.length > 0,
+      pedro_in_users: pedroCheck.rows.length > 0,
+      pedro_comments_count: tableCheck.rows[0].exists ? pedroComments.rows[0].c : 'tabela não existe',
+      event_posts_count: eventPosts.rows[0].c
+    });
+  } catch(e) { res.json({ error: e.message }); }
+});
+
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
