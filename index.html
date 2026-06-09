@@ -1235,6 +1235,19 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 
 <!-- Badge Selector Modal -->
+<!-- Modal Linha do Tempo -->
+<div class="modal-overlay" id="modal-timeline">
+  <div class="modal" style="max-width:700px;width:97%;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title">📅 Linha do Tempo</span>
+      <button class="modal-close" onclick="closeModal('modal-timeline')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-timeline-body">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Feed Post Detail -->
 <div class="modal-overlay" id="modal-feed-post">
   <div class="modal" style="max-width:500px;width:95%;max-height:85vh;overflow-y:auto;">
@@ -2205,6 +2218,7 @@ async function loadProfile(){
             <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px;">
               <button class="btn btn-primary btn-sm" style="width:100%;font-size:11px;" onclick="openEditProfile()">✏️ Editar perfil</button>
               <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openBadgeSelector()">🏅 Badges</button>
+              <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openTimelinePage()">📅 Linha do Tempo</button>
             </div>
           </div>
 
@@ -2275,16 +2289,6 @@ async function loadProfile(){
             <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🏅 Badges</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;">${badges}</div>
           </div>` : ''}
-
-          <!-- Linha do Tempo (coluna esquerda) -->
-          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
-            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;cursor:pointer;" onclick="toggleTimelineSidebar()">
-              📅 Linha do Tempo <span id="timeline-toggle-icon" style="font-size:10px;color:var(--muted);">▼</span>
-            </div>
-            <div id="timeline-sidebar-container" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
-              <div class="loader" style="width:20px;height:20px;margin:auto;"></div>
-            </div>
-          </div>
         </div>
       </div>`;
     // Mover tabs e seções para o container central
@@ -2628,6 +2632,46 @@ async function loadTimelineSidebar() {
 }
 
 async function loadTimeline(){}
+
+// ═══ LINHA DO TEMPO (página modal) ═══
+async function openTimelinePage() {
+  openModal('modal-timeline');
+  const body = document.getElementById('modal-timeline-body');
+  body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { posts } = await api(`/api/users/${currentUser.username}/posts?limit=500`);
+    const photos = posts.filter(p => p.type === 'photo' && p.image_url);
+    if (!photos.length) {
+      body.innerHTML = '<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma foto postada ainda. Poste sua primeira foto! 📸</p></div>';
+      return;
+    }
+    const byDay = {};
+    photos.forEach(p => {
+      const d = new Date(p.created_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
+      if (!byDay[d]) byDay[d] = [];
+      byDay[d].push(p);
+    });
+    body.innerHTML = Object.entries(byDay).reverse().map(([day, ps]) => `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--border);">
+          📅 ${day} &nbsp;·&nbsp; ${ps.length} foto${ps.length !== 1 ? 's' : ''}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${ps.map(p => {
+            const t = new Date(p.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+            return `<div style="position:relative;cursor:pointer;" onclick="openPostDetail('${p.id}')">
+              <img src="${p.image_url}" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:2px solid var(--border);transition:all .15s;"
+                onmouseover="this.style.borderColor='var(--accent)';this.style.transform='scale(1.05)'"
+                onmouseout="this.style.borderColor='var(--border)';this.style.transform='scale(1)'">
+              <div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:9px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);">${t}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    body.innerHTML = '<p class="text-muted">Erro ao carregar linha do tempo.</p>';
+  }
+}
 
 async function loadTestimonials(){
   const w=document.getElementById('testimonials-wrap');
