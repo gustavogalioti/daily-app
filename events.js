@@ -7,6 +7,83 @@ const { createNotification } = require('./notif_helper');
 
 const router = express.Router();
 
+// ═══ PEDRO IA — EVENTOS ═══
+const PEDRO_EVENT_PHRASES = {
+  post_text: [
+    "Li e fiquei pensativo 🤔🧡 Evento bom começa com boa conversa!",
+    "Anotei mentalmente! Minha memória é de 3 segundos mas valeu! 😹",
+    "Que post! Estou ronronando de entusiasmo pelo evento! 😻",
+    "Boa! Continua animado porque esse evento vai ser incrível! 🎉🐾",
+    "Vi isso aqui da janela e aprovei com a patinha! ✅🐱",
+  ],
+  post_photo: [
+    "Que foto! Esse evento tá prometendo demais! 📸🧡",
+    "Fui lá e cheirei a tela — aprovado! O evento vai ser top! 😂🐾",
+    "Foto no evento! Queria ter ido mas gatos não saem muito 😅🐱",
+    "Isso sim é conteúdo de qualidade! O evento tá arrasando! 🏆🐾",
+  ],
+  hype_member: [
+    "Ei {name}! 👋 Tá animado pro evento? Eu tô que não caibo na pele! 🎉🐱",
+    "{name}! Você vai aparecer? O evento tá promeeeetendo! 🥳🐾",
+    "Oi {name}! 🧡 Lembra do evento! Vai ser incrível, prometo com a patinha! 🐾",
+    "{name}! Prepara o look porque esse evento vai ser ÉPICO! 😸🎊",
+    "Ei {name}! 🐱 Não falta não! Já reservei seu lugarzinho (mentira, mas vai lá!) 😂",
+  ],
+  event_soon: [
+    "O evento tá chegando! Estou me preparando com um belo cochilo preventivo 😴🐱",
+    "Faltam poucos dias! Já tô ensaiando minha entrada triunfal felina! 😸🎉",
+    "Contagem regressiva iniciada! Quem tá animado dá um 🐾 aqui!",
+    "Ei galera! O evento tá pertinho! Prepara o coração porque vai ser demais! 🧡🎊",
+  ],
+};
+
+function getPedroEventPhrase(type, name='') {
+  const pool = PEDRO_EVENT_PHRASES[type] || PEDRO_EVENT_PHRASES.post_text;
+  const msg = pool[Math.floor(Math.random() * pool.length)];
+  return msg.replace('{name}', name);
+}
+
+async function pedroCommentOnEventPost(postId, eventId, postType='text') {
+  try {
+    const db = getDB();
+    // Verificar se Pedro já comentou nesse post
+    const existing = await db.prepare(
+      'SELECT id FROM event_post_comments WHERE post_id=$1 AND user_id=$2'
+    ).get(postId, 'pedro-official-daily');
+    if (existing) return;
+    const phrase = getPedroEventPhrase(postType === 'photo' ? 'post_photo' : 'post_text');
+    await db.prepare(
+      'INSERT INTO event_post_comments (id,post_id,event_id,user_id,content) VALUES ($1,$2,$3,$4,$5)'
+    ).run(uuidv4(), postId, eventId, 'pedro-official-daily', phrase);
+  } catch(e) { /* silencioso */ }
+}
+
+async function pedroHypeMembers(eventId) {
+  try {
+    const db = getDB();
+    // Pegar até 2 membros confirmados aleatórios (exceto o Pedro)
+    const members = await db.prepare(`
+      SELECT u.id, u.name FROM event_members em
+      JOIN users u ON u.id = em.user_id
+      WHERE em.event_id=$1 AND em.status='accepted' AND em.user_id != $2
+      ORDER BY RANDOM() LIMIT 2
+    `).all(eventId, 'pedro-official-daily');
+    if (!members.length) return;
+    // Pegar o post mais recente do evento para comentar
+    const post = await db.prepare(
+      'SELECT id FROM event_posts WHERE event_id=$1 ORDER BY created_at DESC LIMIT 1'
+    ).get(eventId);
+    if (!post) return;
+    for (const m of members) {
+      const phrase = getPedroEventPhrase('hype_member', m.name.split(' ')[0]);
+      await db.prepare(
+        'INSERT INTO event_post_comments (id,post_id,event_id,user_id,content) VALUES ($1,$2,$3,$4,$5)'
+      ).run(uuidv4(), post.id, eventId, 'pedro-official-daily', phrase);
+    }
+  } catch(e) { /* silencioso */ }
+}
+
+
 // GET /api/events — listar eventos do usuário
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -154,6 +231,8 @@ router.put('/:id/respond', authMiddleware, async (req, res) => {
     await db.prepare('UPDATE event_members SET status=$1, decline_reason=$2 WHERE event_id=$3 AND user_id=$4')
       .run(status, reason||null, req.params.id, req.user.id);
     res.json({ ok: true, status });
+    // Pedro anima a galera quando alguém confirma presença
+    if (status === 'accepted') setTimeout(() => pedroHypeMembers(req.params.id), 3000);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -174,6 +253,8 @@ router.post('/:id/posts', authMiddleware, async (req, res) => {
       FROM event_posts ep JOIN users u ON u.id=ep.user_id WHERE ep.id=$1
     `).get(id);
     res.status(201).json({ post });
+    // Pedro comenta após 2s
+    setTimeout(() => pedroCommentOnEventPost(id, req.params.id, post_type), 2000);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -196,6 +277,7 @@ router.post('/:id/posts/photo', authMiddleware, (req, res, next) => {
         FROM event_posts ep JOIN users u ON u.id=ep.user_id WHERE ep.id=$1
       `).get(id);
       res.status(201).json({ post });
+      setTimeout(() => pedroCommentOnEventPost(id, req.params.id, 'photo'), 2000);
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 });
