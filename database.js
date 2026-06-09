@@ -10,8 +10,7 @@ async function initPG() {
   await pool.query('SELECT 1');
   console.log('   🐘 PostgreSQL conectado');
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY, name TEXT NOT NULL, username TEXT NOT NULL UNIQUE,
       email TEXT NOT NULL UNIQUE, password TEXT NOT NULL, birth_date TEXT,
       country TEXT, state TEXT, city TEXT, neighborhood TEXT, occupation TEXT,
@@ -19,84 +18,77 @@ async function initPG() {
       professional_title TEXT DEFAULT '', professional_url TEXT DEFAULT '', professional_desc TEXT DEFAULT '',
       is_admin INTEGER DEFAULT 0, points INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS posts (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS posts (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, type TEXT NOT NULL,
       content TEXT, image_url TEXT, caption TEXT,
       tab TEXT NOT NULL DEFAULT 'global', is_anonymous INTEGER DEFAULT 0,
       notification_id TEXT, created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS reactions (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS reactions (
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
       emoji TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(post_id, user_id, emoji)
-    );
-    CREATE TABLE IF NOT EXISTS comments (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS comments (
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
       parent_id TEXT, content TEXT NOT NULL, is_anonymous INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS notifications (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY, sent_by TEXT NOT NULL,
       sent_at TIMESTAMPTZ DEFAULT NOW(),
       expires_at TIMESTAMPTZ NOT NULL,
       active INTEGER DEFAULT 1
-    );
-
-
-    CREATE TABLE IF NOT EXISTS agendas (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agendas (
       id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT,
       event_date TIMESTAMPTZ NOT NULL, owner_id TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS agenda_members (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agenda_members (
       id TEXT PRIMARY KEY, agenda_id TEXT NOT NULL, user_id TEXT NOT NULL,
       status TEXT DEFAULT 'pending', created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(agenda_id, user_id)
-    );
-    CREATE TABLE IF NOT EXISTS agenda_posts (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agenda_posts (
       id TEXT PRIMARY KEY, agenda_id TEXT NOT NULL, user_id TEXT NOT NULL,
       content TEXT NOT NULL, image_url TEXT, post_type TEXT DEFAULT 'text',
       poll_data JSONB, created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS agenda_post_reactions (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agenda_post_reactions (
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
       emoji TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(post_id, user_id, emoji)
-    );
-
-    CREATE TABLE IF NOT EXISTS agenda_gastos (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agenda_gastos (
       id TEXT PRIMARY KEY, agenda_id TEXT NOT NULL, user_id TEXT NOT NULL,
       descricao TEXT NOT NULL, valor NUMERIC(10,2) NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS agenda_rateio_participantes (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agenda_rateio_participantes (
       id TEXT PRIMARY KEY, agenda_id TEXT NOT NULL, user_id TEXT NOT NULL,
       UNIQUE(agenda_id, user_id)
-    );
-
-    CREATE TABLE IF NOT EXISTS dailypokes (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS dailypokes (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
       config JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW(),
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS dailypoke_actions (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS dailypoke_actions (
       id TEXT PRIMARY KEY, from_user_id TEXT NOT NULL, to_user_id TEXT NOT NULL,
       action TEXT DEFAULT 'wave', created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-
-    CREATE TABLE IF NOT EXISTS truco_scores (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS truco_scores (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
       wins INTEGER DEFAULT 0, losses INTEGER DEFAULT 0,
       points INTEGER DEFAULT 0, updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS catrunner_scores (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS catrunner_scores (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
       best_score INTEGER DEFAULT 0, updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS agora_chat_messages (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agora_chat_messages (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT, user_id TEXT NOT NULL,
       content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
     );
@@ -111,19 +103,19 @@ async function initPG() {
           content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
         );
       END IF;
-    END $$;
-    CREATE TABLE IF NOT EXISTS agora_chat_presence (
+    END $$;`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agora_chat_presence (
       user_id TEXT PRIMARY KEY, expires_at TIMESTAMPTZ
-    );
-    CREATE TABLE IF NOT EXISTS agora_chat_adm (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agora_chat_adm (
       id TEXT PRIMARY KEY, message TEXT, active INTEGER DEFAULT 1,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS agora_banners (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agora_banners (
       id TEXT PRIMARY KEY, message TEXT NOT NULL, author TEXT,
       active INTEGER DEFAULT 1, created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS user_notifications (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS user_notifications (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
       from_user_id TEXT,
@@ -133,74 +125,73 @@ async function initPG() {
       data JSONB DEFAULT '{}',
       read INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS community_invites (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS community_invites (
       id TEXT PRIMARY KEY,
       community_id TEXT NOT NULL,
       inviter_id TEXT NOT NULL,
       invitee_id TEXT NOT NULL,
       status TEXT DEFAULT 'pending',
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
       subscription JSONB NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS friendships (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS friendships (
       id TEXT PRIMARY KEY, requester_id TEXT NOT NULL, addressee_id TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending', message TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(requester_id, addressee_id)
-    );
-    CREATE TABLE IF NOT EXISTS testimonials (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS testimonials (
       id TEXT PRIMARY KEY, author_id TEXT NOT NULL, target_id TEXT NOT NULL,
       content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS communities (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS communities (
       id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT,
       image_url TEXT DEFAULT '', type TEXT NOT NULL DEFAULT 'interest',
       category TEXT DEFAULT 'geral',
       country TEXT, state TEXT, city TEXT, neighborhood TEXT,
       is_open INTEGER DEFAULT 1, owner_id TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS community_members (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS community_members (
       id TEXT PRIMARY KEY, community_id TEXT NOT NULL, user_id TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'member', joined_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(community_id, user_id)
-    );
-    CREATE TABLE IF NOT EXISTS community_posts (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS community_posts (
       id TEXT PRIMARY KEY, community_id TEXT NOT NULL, user_id TEXT NOT NULL,
       content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS achievements (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS achievements (
       id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
       description TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'geral',
       points INTEGER NOT NULL DEFAULT 50, icon TEXT DEFAULT '🏆',
       requirement_type TEXT NOT NULL, requirement_value INTEGER NOT NULL DEFAULT 1,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS user_achievements (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS user_achievements (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, achievement_id TEXT NOT NULL,
       earned_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, achievement_id)
-    );
-    CREATE TABLE IF NOT EXISTS featured_badges (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS featured_badges (
       user_id TEXT NOT NULL, achievement_id TEXT NOT NULL, slot INTEGER NOT NULL,
       PRIMARY KEY(user_id, slot)
-    );
-    CREATE TABLE IF NOT EXISTS daily_questions (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS daily_questions (
       id TEXT PRIMARY KEY, period TEXT NOT NULL, question TEXT NOT NULL,
       active INTEGER DEFAULT 1, available_from TIME, available_to TIME,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS daily_question_responses (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS daily_question_responses (
       id TEXT PRIMARY KEY, question_id TEXT NOT NULL, user_id TEXT NOT NULL,
       content TEXT NOT NULL, response_date DATE NOT NULL DEFAULT CURRENT_DATE,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(question_id, user_id, response_date)
-    );
-
-    CREATE TABLE IF NOT EXISTS map_points (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS map_points (
       id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT,
       lat DOUBLE PRECISION NOT NULL, lng DOUBLE PRECISION NOT NULL,
       points INTEGER NOT NULL DEFAULT 100,
@@ -208,75 +199,73 @@ async function initPG() {
       route_id TEXT, icon TEXT DEFAULT '🏆', category TEXT DEFAULT 'geral',
       created_by TEXT NOT NULL, active INTEGER DEFAULT 1,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS map_routes (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS map_routes (
       id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT,
       city TEXT, state TEXT, country TEXT DEFAULT 'BR',
       icon TEXT DEFAULT '🗺️', category TEXT DEFAULT 'cultura',
       created_by TEXT NOT NULL, active INTEGER DEFAULT 1,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS user_checkins (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS user_checkins (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, point_id TEXT NOT NULL,
       image_url TEXT, distance_m INTEGER,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(user_id, point_id)
-    );
-
-    CREATE TABLE IF NOT EXISTS events (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS events (
       id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT,
       location TEXT, event_date TIMESTAMPTZ NOT NULL,
       event_end_date TIMESTAMPTZ, owner_id TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS event_members (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS event_members (
       id TEXT PRIMARY KEY, event_id TEXT NOT NULL, user_id TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       decline_reason TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(event_id, user_id)
-    );
-    CREATE TABLE IF NOT EXISTS event_posts (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS event_posts (
       id TEXT PRIMARY KEY, event_id TEXT NOT NULL, user_id TEXT NOT NULL,
       content TEXT NOT NULL, image_url TEXT,
       post_type TEXT DEFAULT 'text', poll_data JSONB,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS event_post_reactions (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS event_post_reactions (
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
       emoji TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(post_id, user_id, emoji)
-    );
-    CREATE TABLE IF NOT EXISTS event_post_comments (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS event_post_comments (
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL, event_id TEXT NOT NULL,
       user_id TEXT NOT NULL, content TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS pedro_comments (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS pedro_comments (
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL UNIQUE,
       content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS community_post_reactions (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS community_post_reactions (
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
       emoji TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(post_id, user_id, emoji)
-    );
-    CREATE TABLE IF NOT EXISTS community_post_comments (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS community_post_comments (
       id TEXT PRIMARY KEY, post_id TEXT NOT NULL, community_id TEXT NOT NULL,
       user_id TEXT NOT NULL, content TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS user_locations (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS user_locations (
       user_id TEXT PRIMARY KEY, lat DOUBLE PRECISION NOT NULL,
       lng DOUBLE PRECISION NOT NULL, is_active INTEGER DEFAULT 1,
       updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS geo_chat (
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS geo_chat (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, area_key TEXT NOT NULL,
       content TEXT NOT NULL, lat DOUBLE PRECISION, lng DOUBLE PRECISION,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-  `);
+    );`); } catch(e) { /* já existe */ }
 
   // Migrations
   const migrations = [
