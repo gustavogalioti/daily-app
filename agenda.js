@@ -254,8 +254,15 @@ router.put('/:id/rateio/participantes', authMiddleware, async (req, res) => {
     const db = getDB();
     const { user_ids } = req.body; // array de user_ids
     if (!Array.isArray(user_ids)) return res.status(400).json({ error: 'user_ids deve ser array' });
+    // Quem tem gastos registrados nunca pode ser removido da lista
+    const comGastos = await db.prepare(
+      'SELECT DISTINCT user_id FROM agenda_gastos WHERE agenda_id=$1'
+    ).all(req.params.id);
+    const idsComGastos = comGastos.map(r => r.user_id);
+    // União: quem foi selecionado + quem tem gastos
+    const todosIds = [...new Set([...user_ids, ...idsComGastos])];
     await db.prepare('DELETE FROM agenda_rateio_participantes WHERE agenda_id=$1').run(req.params.id);
-    for (const uid of user_ids) {
+    for (const uid of todosIds) {
       await db.prepare('INSERT INTO agenda_rateio_participantes (id,agenda_id,user_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING')
         .run(uuidv4(), req.params.id, uid);
     }
