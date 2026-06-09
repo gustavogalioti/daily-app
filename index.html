@@ -4707,8 +4707,6 @@ function setMundoMode(mode) {
   const composePanel = document.getElementById('agora-compose-panel');
   const adminBanner = document.getElementById('agora-admin-banner');
   if (composePanel) composePanel.style.display = mode==='agora' ? 'block' : 'none';
-  const chatBtn = document.getElementById('agora-chat-btn-wrap');
-  if (chatBtn) chatBtn.style.display = mode==='agora' ? 'block' : 'none';
   if (mode==='agora') pollChatOnline();
   if (adminBanner && mode==='agora') loadAgoraBanner();
   else if (adminBanner) adminBanner.style.display = 'none';
