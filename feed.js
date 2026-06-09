@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getDB } = require('./database');
-const { requireAuth } = require('./authmiddleware');
+const { authMiddleware: requireAuth } = require('./authmiddleware');
 const { v4: uuidv4 } = require('uuid');
 
 // Publicar post no feed
