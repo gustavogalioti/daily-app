@@ -4,31 +4,34 @@ const { getDB } = require('./database');
 const { requireAuth } = require('./authmiddleware');
 const { v4: uuidv4 } = require('uuid');
 
-// Criar tabelas se não existirem
+// Criar tabelas
 async function initFeedTables() {
   const db = getDB();
-  await db.prepare(`CREATE TABLE IF NOT EXISTS feed_posts (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now'))
-  )`).run();
-  await db.prepare(`CREATE TABLE IF NOT EXISTS feed_reactions (
-    id TEXT PRIMARY KEY,
-    post_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    reaction TEXT NOT NULL,
-    UNIQUE(post_id, user_id)
-  )`).run();
-  await db.prepare(`CREATE TABLE IF NOT EXISTS feed_comments (
-    id TEXT PRIMARY KEY,
-    post_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now'))
-  )`).run();
+  // Usar pool diretamente para o CREATE TABLE (SQL puro PostgreSQL)
+  await db.pool.query(`
+    CREATE TABLE IF NOT EXISTS feed_posts (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS feed_reactions (
+      id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      reaction TEXT NOT NULL,
+      UNIQUE(post_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS feed_comments (
+      id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
 }
-initFeedTables().catch(console.error);
+initFeedTables().catch(e => console.error('initFeedTables:', e.message));
 
 // Publicar post no feed
 router.post('/post', requireAuth, async (req, res) => {
@@ -127,9 +130,9 @@ router.post('/:id/react', requireAuth, async (req, res) => {
     const counts = {};
     for (const r of valid) {
       const row = await db.prepare(
-        `SELECT COUNT(*) as c FROM feed_reactions WHERE post_id=$1 AND reaction=$2`
+        `SELECT COUNT(*) as count FROM feed_reactions WHERE post_id=$1 AND reaction=$2`
       ).get(req.params.id, r);
-      counts[r] = row?.c || 0;
+      counts[r] = parseInt(row?.count || 0);
     }
     res.json({ counts });
   } catch(e) { console.error('feed/react:', e.message); res.status(500).json({ error: e.message }); }
