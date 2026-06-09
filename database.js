@@ -335,6 +335,20 @@ async function initPG() {
 
     try { await pool.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION'); } catch(_) {}
     try { await pool.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION'); } catch(_) {}
+  // Tabelas do Feed de Amigos
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS feed_posts (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL, content TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`); } catch(_) {}
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS feed_reactions (
+    id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
+    reaction TEXT NOT NULL, UNIQUE(post_id, user_id)
+  )`); } catch(_) {}
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS feed_comments (
+    id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL,
+    content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
+  )`); } catch(_) {}
+
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_user_notif_user ON user_notifications(user_id, read, created_at DESC)'); } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_comm_invites ON community_invites(invitee_id, status)'); } catch(_) {}
 
