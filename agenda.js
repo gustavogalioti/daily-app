@@ -228,6 +228,9 @@ router.post('/:id/rateio/gasto', authMiddleware, async (req, res) => {
     const id = uuidv4();
     await db.prepare('INSERT INTO agenda_gastos (id,agenda_id,user_id,descricao,valor) VALUES ($1,$2,$3,$4,$5)')
       .run(id, req.params.id, req.user.id, descricao.trim(), parseFloat(valor));
+    // Quem gastou entra automaticamente como participante do rateio
+    await db.prepare('INSERT INTO agenda_rateio_participantes (id,agenda_id,user_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING')
+      .run(uuidv4(), req.params.id, req.user.id);
     res.status(201).json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
