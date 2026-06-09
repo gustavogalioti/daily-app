@@ -252,9 +252,17 @@ router.post('/:id/posts', authMiddleware, async (req, res) => {
       SELECT ep.*, u.name as author_name, u.username as author_username, u.avatar_url as author_avatar
       FROM event_posts ep JOIN users u ON u.id=ep.user_id WHERE ep.id=$1
     `).get(id);
+    // Pedro comenta ANTES de retornar (para aparecer no reload)
+    try {
+      const PEDRO_ID = 'pedro-official-daily';
+      const phrases = post_type === 'photo'
+        ? ["Que foto! Esse evento tá prometendo demais! 📸🧡","Fui lá e cheirei a tela — aprovado! 😂🐾","Foto no evento! Queria ter ido mas gatos não saem muito 😅🐱"]
+        : ["Li e fiquei pensativo 🤔🧡 Evento bom começa com boa conversa!","Que post! Estou ronronando de entusiasmo pelo evento! 😻🎉","Boa! Esse evento vai ser incrível! 🎉🐾","Vi isso aqui da janela e aprovei com a patinha! ✅🐱"];
+      const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+      await db.prepare('INSERT INTO event_post_comments (id,post_id,event_id,user_id,content) VALUES ($1,$2,$3,$4,$5)')
+        .run(uuidv4(), id, req.params.id, PEDRO_ID, phrase);
+    } catch(pedroErr) { console.error('Pedro evento texto:', pedroErr.message); }
     res.status(201).json({ post });
-    // Pedro comenta após 2s
-    setTimeout(() => pedroCommentOnEventPost(id, req.params.id, post_type), 2000);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -276,8 +284,15 @@ router.post('/:id/posts/photo', authMiddleware, (req, res, next) => {
         SELECT ep.*, u.name as author_name, u.avatar_url as author_avatar
         FROM event_posts ep JOIN users u ON u.id=ep.user_id WHERE ep.id=$1
       `).get(id);
+      // Pedro comenta ANTES de retornar
+      try {
+        const PEDRO_ID = 'pedro-official-daily';
+        const phrases = ["Que foto! Esse evento tá prometendo demais! 📸🧡","Fui lá e cheirei a tela — aprovado! O evento vai ser top! 😂🐾","Isso sim é conteúdo! O evento tá arrasando! 🏆🐾"];
+        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+        await db.prepare('INSERT INTO event_post_comments (id,post_id,event_id,user_id,content) VALUES ($1,$2,$3,$4,$5)')
+          .run(uuidv4(), id, req.params.id, PEDRO_ID, phrase);
+      } catch(pedroErr) { console.error('Pedro evento foto:', pedroErr.message); }
       res.status(201).json({ post });
-      setTimeout(() => pedroCommentOnEventPost(id, req.params.id, 'photo'), 2000);
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 });
