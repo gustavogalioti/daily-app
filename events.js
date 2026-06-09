@@ -85,41 +85,6 @@ async function pedroHypeMembers(eventId) {
 
 
 // GET /api/events — listar eventos do usuário
-// ROTA DE DIAGNÓSTICO TEMPORÁRIA
-router.get('/diag/pedro', async (req, res) => {
-  try {
-    const db = getDB();
-    // 1. Verificar se tabela existe
-    const tableCheck = await db.pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'event_post_comments'
-      ) as exists
-    `);
-    // 2. Verificar se Pedro existe
-    const pedroCheck = await db.pool.query(
-      "SELECT id, name FROM users WHERE id='pedro-official-daily'"
-    );
-    // 3. Contar comentários do Pedro em eventos
-    let pedroComments = { rows: [] };
-    if (tableCheck.rows[0].exists) {
-      pedroComments = await db.pool.query(
-        "SELECT COUNT(*) as c FROM event_post_comments WHERE user_id='pedro-official-daily'"
-      );
-    }
-    // 4. Contar total de posts de eventos
-    const eventPosts = await db.pool.query("SELECT COUNT(*) as c FROM event_posts");
-    
-    res.json({
-      table_exists: tableCheck.rows[0].exists,
-      pedro_exists: pedroComments.rows.length > 0,
-      pedro_in_users: pedroCheck.rows.length > 0,
-      pedro_comments_count: tableCheck.rows[0].exists ? pedroComments.rows[0].c : 'tabela não existe',
-      event_posts_count: eventPosts.rows[0].c
-    });
-  } catch(e) { res.json({ error: e.message }); }
-});
-
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
@@ -186,7 +151,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       p.reactions = await db.prepare(
         'SELECT emoji, COUNT(*) as count FROM event_post_reactions WHERE post_id=$1 GROUP BY emoji'
       ).all(p.id);
-      const pc = await db.prepare('SELECT content FROM event_post_comments WHERE post_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 1').get(p.id, 'pedro-official-daily');
+      const pc = await db.prepare('SELECT content FROM pedro_comments WHERE post_id=$1').get(p.id);
       p.pedro_comment = pc?.content || null;
     }
 
@@ -287,15 +252,12 @@ router.post('/:id/posts', authMiddleware, async (req, res) => {
       SELECT ep.*, u.name as author_name, u.username as author_username, u.avatar_url as author_avatar
       FROM event_posts ep JOIN users u ON u.id=ep.user_id WHERE ep.id=$1
     `).get(id);
-    // Pedro comenta ANTES de retornar (para aparecer no reload)
+    // Pedro comenta em pedro_comments (tabela garantida)
     try {
-      const PEDRO_ID = 'pedro-official-daily';
-      const phrases = post_type === 'photo'
-        ? ["Que foto! Esse evento tá prometendo demais! 📸🧡","Fui lá e cheirei a tela — aprovado! 😂🐾","Foto no evento! Queria ter ido mas gatos não saem muito 😅🐱"]
-        : ["Li e fiquei pensativo 🤔🧡 Evento bom começa com boa conversa!","Que post! Estou ronronando de entusiasmo pelo evento! 😻🎉","Boa! Esse evento vai ser incrível! 🎉🐾","Vi isso aqui da janela e aprovei com a patinha! ✅🐱"];
+      const phrases = ["Li e fiquei pensativo 🤔🧡 Evento bom começa com boa conversa!","Que post! Estou ronronando de entusiasmo pelo evento! 😻🎉","Boa! Esse evento vai ser incrível! 🎉🐾","Vi isso aqui da janela e aprovei com a patinha! ✅🐱"];
       const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-      await db.prepare('INSERT INTO event_post_comments (id,post_id,event_id,user_id,content) VALUES ($1,$2,$3,$4,$5)')
-        .run(uuidv4(), id, req.params.id, PEDRO_ID, phrase);
+      await db.prepare('INSERT INTO pedro_comments (id,post_id,content) VALUES ($1,$2,$3) ON CONFLICT(post_id) DO NOTHING')
+        .run(uuidv4(), id, phrase);
     } catch(pedroErr) { console.error('Pedro evento texto:', pedroErr.message); }
     res.status(201).json({ post });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -319,13 +281,12 @@ router.post('/:id/posts/photo', authMiddleware, (req, res, next) => {
         SELECT ep.*, u.name as author_name, u.avatar_url as author_avatar
         FROM event_posts ep JOIN users u ON u.id=ep.user_id WHERE ep.id=$1
       `).get(id);
-      // Pedro comenta ANTES de retornar
+      // Pedro comenta em pedro_comments (tabela garantida)
       try {
-        const PEDRO_ID = 'pedro-official-daily';
         const phrases = ["Que foto! Esse evento tá prometendo demais! 📸🧡","Fui lá e cheirei a tela — aprovado! O evento vai ser top! 😂🐾","Isso sim é conteúdo! O evento tá arrasando! 🏆🐾"];
         const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-        await db.prepare('INSERT INTO event_post_comments (id,post_id,event_id,user_id,content) VALUES ($1,$2,$3,$4,$5)')
-          .run(uuidv4(), id, req.params.id, PEDRO_ID, phrase);
+        await db.prepare('INSERT INTO pedro_comments (id,post_id,content) VALUES ($1,$2,$3) ON CONFLICT(post_id) DO NOTHING')
+          .run(uuidv4(), id, phrase);
       } catch(pedroErr) { console.error('Pedro evento foto:', pedroErr.message); }
       res.status(201).json({ post });
     } catch(e) { res.status(500).json({ error: e.message }); }
