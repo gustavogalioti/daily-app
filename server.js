@@ -52,6 +52,7 @@ process.on('uncaughtException', (err) => {
     ['/api/achievements', './achievements'], ['/api/pedro', './pedro'],
     ['/api/daily-questions', './daily_questions'], ['/api/geo', './geo'],
     ['/api/map-points', './map_points'], ['/api/events', './events'],
+    ['/api/feed', './feed'],
   ];
   for (const [path, file] of routeFiles) {
     try { app.use(path, require(file)); console.log('  ✓', path); }

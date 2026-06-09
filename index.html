@@ -917,7 +917,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     <div id="tab-profile" class="tab-content">
       <div id="profile-card-wrap"><div class="page-loader"><div class="loader"></div></div></div>
       <div id="profile-tabs-row" class="profile-tabs-row hidden" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;display:flex;flex-wrap:nowrap;gap:4px;padding:4px 0;">
-        <div class="profile-tab active" onclick="showProfileSec('timeline',this)" style="flex-shrink:0;">📅 Linha</div>
+        <div class="profile-tab active" onclick="showProfileSec('feed',this)" style="flex-shrink:0;">📰 Feed</div>
         <div class="profile-tab" onclick="showProfileSec('comunidades',this)" style="flex-shrink:0;">🏘️ Comunidades</div>
 
         <div class="profile-tab" onclick="showProfileSec('depoimentos',this)" style="flex-shrink:0;">💬 Depoi.</div>
@@ -926,7 +926,22 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <div class="profile-tab" onclick="showProfileSec('agenda',this)" style="flex-shrink:0;">📆 Agenda</div>
         <div class="profile-tab" onclick="showProfileSec('config',this)" style="flex-shrink:0;">⚙️ Config.</div>
       </div>
-      <div id="ps-timeline"><div id="timeline-container"><div class="page-loader"><div class="loader"></div></div></div></div>
+      <div id="ps-feed">
+        <!-- Sub-abas Feed -->
+        <div style="display:flex;gap:6px;margin-bottom:14px;">
+          <button id="feed-tab-meus" class="btn btn-primary btn-sm" onclick="switchFeedTab('meus')" style="flex:1;font-size:12px;">📝 Meus Posts</button>
+          <button id="feed-tab-amigos" class="btn btn-ghost btn-sm" onclick="switchFeedTab('amigos')" style="flex:1;font-size:12px;">👥 Feed</button>
+        </div>
+        <!-- Box de publicação (só aparece em Meus Posts) -->
+        <div id="feed-compose" style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;margin-bottom:14px;">
+          <textarea id="feed-text-input" placeholder="Publique apenas para seus amigos..." style="width:100%;border:none;outline:none;resize:none;font-size:13px;color:var(--text);background:transparent;min-height:70px;font-family:inherit;"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+            <button class="btn btn-primary btn-sm" onclick="publishFeedPost()" style="font-size:12px;">Publicar 📢</button>
+          </div>
+        </div>
+        <!-- Container dos posts -->
+        <div id="feed-posts-container"><div class="page-loader"><div class="loader"></div></div></div>
+      </div>
       <div id="ps-comunidades" class="hidden">
         <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
           <div class="filter-pills" style="flex:1;">
@@ -1220,6 +1235,19 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 
 <!-- Badge Selector Modal -->
+<!-- Modal Feed Post Detail -->
+<div class="modal-overlay" id="modal-feed-post">
+  <div class="modal" style="max-width:500px;width:95%;max-height:85vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title">📰 Post do Feed</span>
+      <button class="modal-close" onclick="closeModal('modal-feed-post')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-feed-post-body">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-badges">
   <div class="modal">
     <div class="modal-hdr">
@@ -2247,8 +2275,18 @@ async function loadProfile(){
             <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🏅 Badges</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;">${badges}</div>
           </div>` : ''}
+
+          <!-- Linha do Tempo (coluna esquerda) -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;cursor:pointer;" onclick="toggleTimelineSidebar()">
+              📅 Linha do Tempo <span id="timeline-toggle-icon" style="font-size:10px;color:var(--muted);">▼</span>
+            </div>
+            <div id="timeline-sidebar-container" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
+              <div class="loader" style="width:20px;height:20px;margin:auto;"></div>
+            </div>
+          </div>
         </div>
-      </div>`;
+      </div>\`;
     // Mover tabs e seções para o container central
     const tabsRow = document.getElementById('profile-tabs-row');
     const wrap = document.getElementById('profile-tabs-row-wrap');
@@ -2256,12 +2294,13 @@ async function loadProfile(){
       wrap.appendChild(tabsRow);
       tabsRow.classList.remove('hidden');
       // Mover seções de conteúdo
-      ['timeline','comunidades','depoimentos','conquistas','profissional','agenda','amigos'].forEach(sec => {
+      ['feed','comunidades','depoimentos','conquistas','profissional','agenda','amigos'].forEach(sec => {
         const el = document.getElementById('ps-' + sec);
         if (el) wrap.appendChild(el);
       });
     }
-    loadTimeline();
+    loadFeedTab('meus');
+    loadTimelineSidebar();
     loadProfileFriendsMini();
     loadProfileCommMini();
     loadProfileProfSidebar(user);
@@ -2269,7 +2308,7 @@ async function loadProfile(){
 }
 
 function showProfileSec(sec,btn){
-  ['timeline','amigos','comunidades','eventos','depoimentos','conquistas','profissional','agenda','config'].forEach(s=>{
+  ['feed','amigos','comunidades','eventos','depoimentos','conquistas','profissional','agenda','config'].forEach(s=>{
     const el=document.getElementById('ps-'+s);
     if(el) el.classList.toggle('hidden',s!==sec);
   });
@@ -2402,38 +2441,193 @@ async function loadProfileFriends(){
 }
 
 // ── TIMELINE — TODOS OS POSTS ──
-async function loadTimeline(){
-  const c=document.getElementById('timeline-container');
-  c.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
-  try{
-    const{posts}=await api(`/api/users/${currentUser.username}/posts?limit=500`);
-    const photos=posts.filter(p=>p.type==='photo'&&p.image_url);
-    if(!photos.length){c.innerHTML=`<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma foto postada ainda. Poste sua primeira foto! 📸</p></div>`;return;}
-    // Agrupar por dia
-    const byDay={};
-    photos.forEach(p=>{
-      const d=new Date(p.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
-      if(!byDay[d]) byDay[d]=[];
-      byDay[d].push(p);
+// ═══ FEED DE AMIGOS ═══
+let currentFeedTab = 'meus';
+
+function switchFeedTab(tab) {
+  currentFeedTab = tab;
+  const btnMeus = document.getElementById('feed-tab-meus');
+  const btnAmigos = document.getElementById('feed-tab-amigos');
+  const compose = document.getElementById('feed-compose');
+  if (!btnMeus) return;
+  if (tab === 'meus') {
+    btnMeus.className = 'btn btn-primary btn-sm';
+    btnAmigos.className = 'btn btn-ghost btn-sm';
+    if (compose) compose.style.display = 'block';
+  } else {
+    btnMeus.className = 'btn btn-ghost btn-sm';
+    btnAmigos.className = 'btn btn-primary btn-sm';
+    if (compose) compose.style.display = 'none';
+  }
+  loadFeedTab(tab);
+}
+
+async function loadFeedTab(tab) {
+  currentFeedTab = tab;
+  const c = document.getElementById('feed-posts-container');
+  if (!c) return;
+  c.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const endpoint = tab === 'meus' ? '/api/feed/myposts' : '/api/feed/friends';
+    const { posts } = await api(endpoint);
+    if (!posts || !posts.length) {
+      c.innerHTML = `<div class="card" style="padding:24px;text-align:center;">
+        <p class="text-muted">${tab === 'meus' ? 'Você ainda não publicou nada no feed. Escreva algo para seus amigos! ✍️' : 'Nenhum post dos seus amigos ainda. Quando eles publicarem, aparecerá aqui! 👥'}</p>
+      </div>`;
+      return;
+    }
+    c.innerHTML = posts.map(p => renderFeedPost(p)).join('');
+  } catch(e) {
+    c.innerHTML = '<p class="text-muted">Erro ao carregar feed.</p>';
+  }
+}
+
+function renderFeedPost(p) {
+  const av = p.author_avatar || avatarUrl(p.author_name || 'U');
+  const time = new Date(p.created_at).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const reactions = [
+    {emoji:'❤️', label:'Amei', key:'amei'},
+    {emoji:'👍', label:'Curti', key:'curti'},
+    {emoji:'🎠', label:'Tá na Disney?', key:'disney'},
+    {emoji:'👎', label:'Não curti', key:'naocurti'}
+  ];
+  const reactionBar = reactions.map(r =>
+    `<button onclick="reactFeedPost('${p.id}','${r.key}')" style="background:none;border:1px solid var(--border);border-radius:20px;padding:3px 8px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px;">
+      ${r.emoji} <span id="feed-react-${p.id}-${r.key}">${p['r_'+r.key]||0}</span>
+    </button>`
+  ).join('');
+  return `<div class="card" style="padding:14px;margin-bottom:10px;cursor:pointer;" onclick="openFeedPostDetail('${p.id}')">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <img src="${av}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.src='${avatarUrl(p.author_name||'U')}'">
+      <div>
+        <div style="font-weight:700;font-size:13px;" onclick="event.stopPropagation();openUserProfile('${p.author_username}')">${p.author_name}</div>
+        <div style="font-size:11px;color:var(--muted);">@${p.author_username} · ${time}</div>
+      </div>
+    </div>
+    <div style="font-size:13px;line-height:1.5;margin-bottom:12px;white-space:pre-wrap;">${p.content}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;" onclick="event.stopPropagation();">
+      ${reactionBar}
+    </div>
+    <div style="font-size:12px;color:var(--muted);cursor:pointer;" onclick="event.stopPropagation();openFeedPostDetail('${p.id}')">
+      💬 ${p.comments_count||0} comentário${p.comments_count!==1?'s':''}
+    </div>
+  </div>`;
+}
+
+async function publishFeedPost() {
+  const txt = document.getElementById('feed-text-input');
+  if (!txt || !txt.value.trim()) { toast('Escreva algo primeiro!', 'info'); return; }
+  try {
+    await api('/api/feed/post', { method:'POST', body: JSON.stringify({ content: txt.value.trim() }) });
+    txt.value = '';
+    toast('Post publicado para seus amigos! 📢', 'success');
+    loadFeedTab('meus');
+  } catch(e) { toast('Erro ao publicar', 'error'); }
+}
+
+async function reactFeedPost(postId, reaction) {
+  try {
+    const { counts } = await api(`/api/feed/${postId}/react`, { method:'POST', body: JSON.stringify({ reaction }) });
+    const reactions = ['amei','curti','disney','naocurti'];
+    reactions.forEach(r => {
+      const el = document.getElementById(`feed-react-${postId}-${r}`);
+      if (el && counts) el.textContent = counts[r] || 0;
     });
-    c.innerHTML=`<div class="timeline-all">${Object.entries(byDay).reverse().map(([day,ps])=>`<div class="timeline-day">
-      <div class="timeline-day-header">📅 ${day} · ${ps.length} foto${ps.length>1?'s':''}</div>
-      <div class="timeline-scroll">
-        <div class="timeline-track">
-          <div class="timeline-line"></div>
-          ${ps.map((p,i)=>{
-            const t=new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-            return`<div class="timeline-item" onclick="openPostDetail('${p.id}')">
-              <img class="timeline-img" src="${p.image_url}" alt="">
-              <div class="timeline-dot"></div>
-              <div class="timeline-time">${t}</div>
-            </div>`;
-          }).join('')}
+  } catch(e) {}
+}
+
+async function openFeedPostDetail(postId) {
+  try {
+    const { post, comments } = await api(`/api/feed/${postId}`);
+    const av = post.author_avatar || avatarUrl(post.author_name || 'U');
+    const time = new Date(post.created_at).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const commentHtml = (comments||[]).map(c => {
+      const cav = c.author_avatar || avatarUrl(c.author_name || 'U');
+      const ct = new Date(c.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return `<div style="display:flex;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <img src="${cav}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+        <div>
+          <span style="font-weight:700;font-size:12px;">${c.author_name}</span>
+          <span style="font-size:11px;color:var(--muted);margin-left:6px;">${ct}</span>
+          <div style="font-size:13px;margin-top:3px;">${c.content}</div>
+        </div>
+      </div>`;
+    }).join('') || '<p class="text-muted" style="font-size:12px;">Nenhum comentário ainda. Seja o primeiro!</p>';
+    document.getElementById('modal-feed-post-body').innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <img src="${av}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+        <div>
+          <div style="font-weight:700;">${post.author_name}</div>
+          <div style="font-size:11px;color:var(--muted);">@${post.author_username} · ${time}</div>
         </div>
       </div>
-    </div>`).join('')}</div>`;
-  }catch(e){c.innerHTML='<p class="text-muted">Erro ao carregar linha do tempo.</p>';}
+      <div style="font-size:14px;line-height:1.6;margin-bottom:16px;white-space:pre-wrap;">${post.content}</div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px;">Comentários</div>
+        <div id="feed-detail-comments">${commentHtml}</div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <input id="feed-comment-input" placeholder="Comentar..." style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;outline:none;">
+          <button class="btn btn-primary btn-sm" onclick="submitFeedComment('${postId}')">Enviar</button>
+        </div>
+      </div>`;
+    openModal('modal-feed-post');
+  } catch(e) { toast('Erro ao abrir post', 'error'); }
 }
+
+async function submitFeedComment(postId) {
+  const inp = document.getElementById('feed-comment-input');
+  if (!inp || !inp.value.trim()) return;
+  try {
+    await api(`/api/feed/${postId}/comment`, { method:'POST', body: JSON.stringify({ content: inp.value.trim() }) });
+    inp.value = '';
+    openFeedPostDetail(postId);
+  } catch(e) { toast('Erro ao comentar', 'error'); }
+}
+
+// ═══ LINHA DO TEMPO (sidebar) ═══
+let timelineSidebarOpen = true;
+
+function toggleTimelineSidebar() {
+  timelineSidebarOpen = !timelineSidebarOpen;
+  const c = document.getElementById('timeline-sidebar-container');
+  const icon = document.getElementById('timeline-toggle-icon');
+  if (c) c.style.display = timelineSidebarOpen ? 'flex' : 'none';
+  if (icon) icon.textContent = timelineSidebarOpen ? '▼' : '▶';
+}
+
+async function loadTimelineSidebar() {
+  const c = document.getElementById('timeline-sidebar-container');
+  if (!c) return;
+  c.innerHTML = '<div class="loader" style="width:20px;height:20px;margin:auto;"></div>';
+  try {
+    const { posts } = await api(`/api/users/${currentUser.username}/posts?limit=200`);
+    const photos = posts.filter(p => p.type === 'photo' && p.image_url);
+    if (!photos.length) {
+      c.innerHTML = '<p style="font-size:11px;color:var(--muted);text-align:center;">Nenhuma foto ainda 📸</p>';
+      return;
+    }
+    const byDay = {};
+    photos.forEach(p => {
+      const d = new Date(p.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+      if (!byDay[d]) byDay[d] = [];
+      byDay[d].push(p);
+    });
+    c.innerHTML = Object.entries(byDay).reverse().map(([day, ps]) => `
+      <div style="margin-bottom:8px;">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:5px;">📅 ${day}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${ps.slice(0,6).map(p => `<img src="${p.image_url}" onclick="openPostDetail('${p.id}')"
+            style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;"
+            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">`).join('')}
+          ${ps.length > 6 ? `<div style="width:44px;height:44px;border-radius:8px;background:var(--surface2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);">+${ps.length-6}</div>` : ''}
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    c.innerHTML = '<p style="font-size:11px;color:var(--muted);">Erro ao carregar.</p>';
+  }
+}
+
+async function loadTimeline(){}
 
 async function loadTestimonials(){
   const w=document.getElementById('testimonials-wrap');
