@@ -3,7 +3,21 @@ const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
 const { authMiddleware } = require('./authmiddleware');
 const { createPhotoUpload, getUploadedUrl } = require('./cloudinary');
-const { createNotification } = require('./notif_helper');
+const { createNotification } = require('./notif_helper')
+const { getPedroComment } = require('./pedro')
+const { v4: uuidv4b } = require('uuid')
+
+async function pedroCommentEvent(postId) {
+  try {
+    const db = getDB();
+    const existing = await db.prepare('SELECT id FROM pedro_comments WHERE post_id=$1').get(postId);
+    if (existing) return;
+    await new Promise(r => setTimeout(r, 1500 + Math.random() * 3000));
+    const content = getPedroComment('text');
+    await db.prepare('INSERT INTO pedro_comments (id,post_id,content) VALUES ($1,$2,$3)')
+      .run(uuidv4(), postId, content);
+  } catch(e) { console.error('pedroCommentEvent:', e.message); }
+};
 
 const router = express.Router();
 
@@ -252,14 +266,8 @@ router.post('/:id/posts', authMiddleware, async (req, res) => {
       SELECT ep.*, u.name as author_name, u.username as author_username, u.avatar_url as author_avatar
       FROM event_posts ep JOIN users u ON u.id=ep.user_id WHERE ep.id=$1
     `).get(id);
-    // Pedro comenta em pedro_comments (tabela garantida)
-    try {
-      const phrases = ["Li e fiquei pensativo 🤔🧡 Evento bom começa com boa conversa!","Que post! Estou ronronando de entusiasmo pelo evento! 😻🎉","Boa! Esse evento vai ser incrível! 🎉🐾","Vi isso aqui da janela e aprovei com a patinha! ✅🐱"];
-      const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-      await db.prepare('INSERT INTO pedro_comments (id,post_id,content) VALUES ($1,$2,$3) ON CONFLICT(post_id) DO NOTHING')
-        .run(uuidv4(), id, phrase);
-    } catch(pedroErr) { console.error('Pedro evento texto:', pedroErr.message); }
     res.status(201).json({ post });
+    pedroCommentEvent(id); // fire-and-forget
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -281,14 +289,8 @@ router.post('/:id/posts/photo', authMiddleware, (req, res, next) => {
         SELECT ep.*, u.name as author_name, u.avatar_url as author_avatar
         FROM event_posts ep JOIN users u ON u.id=ep.user_id WHERE ep.id=$1
       `).get(id);
-      // Pedro comenta em pedro_comments (tabela garantida)
-      try {
-        const phrases = ["Que foto! Esse evento tá prometendo demais! 📸🧡","Fui lá e cheirei a tela — aprovado! O evento vai ser top! 😂🐾","Isso sim é conteúdo! O evento tá arrasando! 🏆🐾"];
-        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-        await db.prepare('INSERT INTO pedro_comments (id,post_id,content) VALUES ($1,$2,$3) ON CONFLICT(post_id) DO NOTHING')
-          .run(uuidv4(), id, phrase);
-      } catch(pedroErr) { console.error('Pedro evento foto:', pedroErr.message); }
       res.status(201).json({ post });
+      pedroCommentEvent(id); // fire-and-forget
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 });
