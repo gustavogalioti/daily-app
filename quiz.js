@@ -2,7 +2,7 @@
 const express = require('express');
 const router  = express.Router();
 const { getDB } = require('./database');
-const { optionalAuth, requireAuth } = require('./authmiddleware');
+const { authMiddleware: requireAuth, optionalAuth } = require('./authmiddleware');
 const { v4: uuidv4 } = require('uuid');
 
 // ─── BANCO DE PERGUNTAS (seed interno) ───────────────────────────────────────
