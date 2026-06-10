@@ -186,6 +186,32 @@ router.post('/:id/posts/:postId/comments', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET álbum do evento (todas as fotos)
+router.get('/:id/album', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const posts = await db.prepare(`
+      SELECT ap.*, u.name as author_name, u.avatar_url as author_avatar
+      FROM agenda_posts ap JOIN users u ON u.id=ap.user_id
+      WHERE ap.agenda_id=$1 AND ap.post_type='photo' AND ap.image_url IS NOT NULL
+      ORDER BY ap.created_at DESC
+    `).all(req.params.id);
+    res.json({ posts });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT editar título do álbum
+router.put('/:id/album-title', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const { album_title } = req.body;
+    const agenda = await db.prepare('SELECT owner_id FROM agendas WHERE id=$1').get(req.params.id);
+    if (agenda?.owner_id !== req.user.id) return res.status(403).json({ error: 'Só o dono pode editar' });
+    await db.prepare('UPDATE agendas SET album_title=$1 WHERE id=$2').run(album_title, req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 router.post('/:id/posts/:postId/react', authMiddleware, async (req, res) => {
   try {
     const db = getDB();

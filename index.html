@@ -1241,6 +1241,19 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 
 <!-- Badge Selector Modal -->
+<!-- Modal Fotos -->
+<div class="modal-overlay" id="modal-photos">
+  <div class="modal" style="max-width:700px;width:97%;max-height:92vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-photos-title">📸 Fotos</span>
+      <button class="modal-close" onclick="closeModal('modal-photos')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-photos-body">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Linha do Tempo -->
 <div class="modal-overlay" id="modal-timeline">
   <div class="modal" style="max-width:700px;width:97%;max-height:90vh;overflow-y:auto;">
@@ -2225,6 +2238,7 @@ async function loadProfile(){
               <button class="btn btn-primary btn-sm" style="width:100%;font-size:11px;" onclick="openEditProfile()">✏️ Editar perfil</button>
               <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openBadgeSelector()">🏅 Badges</button>
               <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openTimelinePage()">📅 Linha do Tempo</button>
+              <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openPhotosPage()">📸 Fotos</button>
             </div>
           </div>
 
@@ -2638,6 +2652,77 @@ async function loadTimelineSidebar() {
 }
 
 async function loadTimeline(){}
+
+// ═══ FOTOS (página modal) ═══
+async function openPhotosPage() {
+  openModal('modal-photos');
+  document.getElementById('modal-photos-title').textContent = '📸 Fotos';
+  const body = document.getElementById('modal-photos-body');
+  body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+
+  // Seções: Álbuns de Eventos + Fotos com Você
+  try {
+    const [albumsRes, taggedRes] = await Promise.all([
+      api('/api/photos/event-albums').catch(() => ({ albums: [] })),
+      api('/api/photos/tagged').catch(() => ({ photos: [] }))
+    ]);
+
+    const albums = albumsRes.albums || [];
+    const tagged = taggedRes.photos || [];
+
+    const albumsHtml = albums.length ? albums.map(a => `
+      <div style="cursor:pointer;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);" onclick="openAgendaAlbum('${a.agenda_id}','${a.title}')">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;height:80px;">
+          ${a.photos.slice(0,4).map(url => `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`).join('')}
+          ${Array(Math.max(0,4-a.photos.length)).fill('<div style="background:var(--surface2);"></div>').join('')}
+        </div>
+        <div style="padding:6px 8px;font-size:11px;font-weight:700;">${a.title}</div>
+        <div style="padding:0 8px 6px;font-size:10px;color:var(--muted);">${a.photo_count} foto${a.photo_count!==1?'s':''}</div>
+      </div>`).join('')
+    : '<p class="text-muted" style="font-size:12px;">Você ainda não participou de eventos com fotos.</p>';
+
+    const taggedHtml = tagged.length ? `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+        ${tagged.map(p => `<img src="${p.image_url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid var(--border);" onclick="openPostDetail('${p.id}')">`).join('')}
+      </div>`
+    : '<p class="text-muted" style="font-size:12px;">Nenhuma foto com você ainda.</p>';
+
+    body.innerHTML = `
+      <div style="margin-bottom:20px;">
+        <div style="font-weight:800;font-size:13px;margin-bottom:12px;">🎉 Álbuns de Eventos</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">${albumsHtml}</div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-weight:800;font-size:13px;">🤝 Fotos com Você</div>
+          <button class="btn btn-primary btn-sm" style="font-size:11px;" onclick="openAddTaggedPhoto()">+ Adicionar foto</button>
+        </div>
+        ${taggedHtml}
+      </div>`;
+  } catch(e) {
+    body.innerHTML = '<p class="text-muted">Erro ao carregar fotos.</p>';
+  }
+}
+
+async function openAddTaggedPhoto() {
+  // Pegar o usuário do perfil atual
+  const profileUsername = document.getElementById('profile-username-display')?.textContent?.replace('@','') || currentUser?.username;
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const fd = new FormData();
+      fd.append('photo', file);
+      fd.append('tagged_user', profileUsername);
+      await apiForm('/api/photos/tagged', fd);
+      toast('Foto adicionada! 📸', 'success');
+      openPhotosPage();
+    } catch(err) { toast('Erro ao adicionar foto', 'error'); }
+  };
+  input.click();
+}
 
 // ═══ LINHA DO TEMPO (página modal) ═══
 async function openTimelinePage() {
@@ -5656,51 +5741,45 @@ async function openAgendaModal(agendaId) {
 
     const canPost = is_owner || confirmed.find(m => m.user_id === currentUser?.id);
 
-    body.innerHTML = `
-      <!-- Layout estilo Orkut: sidebar esquerda + conteúdo central -->
-      <div style="display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:start;">
+    const photos = posts.filter(p => p.post_type === 'photo' && p.image_url);
 
-        <!-- ── SIDEBAR ── -->
+    body.innerHTML = `
+      <!-- Layout 3 colunas: info | posts | membros -->
+      <div style="display:grid;grid-template-columns:170px 1fr 150px;gap:12px;align-items:start;">
+
+        <!-- ── COLUNA ESQUERDA: info do evento ── -->
         <div style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
 
-          <!-- Foto do evento / banner laranja -->
+          <!-- Banner do evento -->
           <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:14px;padding:16px;color:#fff;text-align:center;">
-            <div style="font-size:32px;margin-bottom:8px;">📆</div>
-            <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;line-height:1.3;">${agenda.title}</div>
-            <div style="font-size:11px;opacity:.85;margin-top:6px;">📅 ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</div>
-            <div style="font-size:11px;opacity:.85;">🕐 ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
-            ${agenda.description ? `<div style="font-size:11px;opacity:.8;margin-top:6px;border-top:1px solid rgba(255,255,255,.3);padding-top:6px;">${agenda.description}</div>` : ''}
-            ${is_owner ? `<button class="btn btn-sm" style="margin-top:10px;width:100%;background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);font-size:12px;" onclick="openAgendaInvite('${agendaId}')">👥 Convidar</button>` : ''}
-          <button class="btn btn-sm" style="margin-top:6px;width:100%;background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);font-size:12px;" onclick="openRateio('${agendaId}')">💰 Rateio</button>
+            <div style="font-size:28px;margin-bottom:6px;">📆</div>
+            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;line-height:1.3;">${agenda.title}</div>
+            <div style="font-size:10px;opacity:.85;margin-top:5px;">📅 ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</div>
+            <div style="font-size:10px;opacity:.85;">🕐 ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+            ${agenda.description ? `<div style="font-size:10px;opacity:.8;margin-top:5px;border-top:1px solid rgba(255,255,255,.3);padding-top:5px;">${agenda.description}</div>` : ''}
+            ${is_owner ? `<button class="btn btn-sm" style="margin-top:8px;width:100%;background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);font-size:11px;" onclick="openAgendaInvite('${agendaId}')">👥 Convidar</button>` : ''}
+            <button class="btn btn-sm" style="margin-top:5px;width:100%;background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);font-size:11px;" onclick="openRateio('${agendaId}')">💰 Rateio</button>
           </div>
 
-          <!-- Confirmados -->
-          ${confirmed.length ? `<div style="background:var(--surface);border-radius:12px;padding:12px;border:1px solid var(--border);">
-            <div style="font-weight:800;font-size:12px;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">✅ ${confirmed.length} confirmado${confirmed.length!==1?'s':''}</div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
-              ${confirmed.slice(0,9).map(m => `<div style="text-align:center;cursor:pointer;" onclick="openUserProfile('${m.username}')">
-                <img src="${m.avatar_url||avatarUrl(m.name)}" style="width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;border:2px solid var(--border);">
-                <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name.split(' ')[0]}</div>
-              </div>`).join('')}
+          <!-- Álbum do evento -->
+          <div style="background:var(--surface);border-radius:12px;border:1px solid var(--border);overflow:hidden;">
+            <div style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+              <div style="font-weight:800;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;">📸 Fotos do Evento</div>
+              ${is_owner ? `<button onclick="editAgendaAlbumTitle('${agendaId}')" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;">✏️</button>` : ''}
             </div>
-          </div>` : ''}
-
-          <!-- Pendentes (só dono vê) -->
-          ${is_owner && pending.length ? `<div style="background:var(--surface);border-radius:12px;padding:12px;border:1px solid var(--border);">
-            <div style="font-weight:800;font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">⏳ ${pending.length} pendente${pending.length!==1?'s':''}</div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
-              ${pending.slice(0,6).map(m => `<div style="text-align:center;opacity:.6;">
-                <img src="${m.avatar_url||avatarUrl(m.name)}" style="width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover;border:2px dashed var(--border);">
-                <div style="font-size:9px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name.split(' ')[0]}</div>
-              </div>`).join('')}
+            <div style="padding:8px;cursor:pointer;" onclick="openAgendaAlbum('${agendaId}','${agenda.title}')">
+              ${photos.length ? `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:6px;">
+                  ${photos.slice(0,4).map(p => `<img src="${p.image_url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:5px;">`).join('')}
+                </div>
+                <div style="font-size:10px;color:var(--muted);text-align:center;">${photos.length} foto${photos.length!==1?'s':''} · Ver álbum →</div>
+              ` : `<div style="text-align:center;padding:12px;font-size:11px;color:var(--muted);">Nenhuma foto ainda.<br>Publique a primeira! 📸</div>`}
             </div>
-          </div>` : ''}
+          </div>
         </div>
 
-        <!-- ── CONTEÚDO CENTRAL ── -->
+        <!-- ── COLUNA CENTRAL: posts ── -->
         <div style="display:flex;flex-direction:column;gap:10px;">
-
-          <!-- Publicar -->
           ${canPost ? `<div class="card" style="padding:14px;">
             <div class="post-type-tabs" style="margin-bottom:10px;">
               <button class="ptype-btn active" onclick="setAgendaPostType('text',this)">📝 Texto</button>
@@ -5722,14 +5801,71 @@ async function openAgendaModal(agendaId) {
             </div>
             <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="submitAgendaPost('${agendaId}')">Publicar</button>
           </div>` : ''}
-
-          <!-- Posts / Discussões -->
           ${posts.length ? posts.map(renderPost).join('') : '<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma publicação ainda. Seja o primeiro! 💬</p></div>'}
+        </div>
+
+        <!-- ── COLUNA DIREITA: membros ── -->
+        <div style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
+          ${confirmed.length ? `<div style="background:var(--surface);border-radius:12px;padding:10px;border:1px solid var(--border);">
+            <div style="font-weight:800;font-size:11px;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">✅ ${confirmed.length} confirmado${confirmed.length!==1?'s':''}</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;">
+              ${confirmed.slice(0,9).map(m => `<div style="text-align:center;cursor:pointer;" onclick="openUserProfile('${m.username}')">
+                <img src="${m.avatar_url||avatarUrl(m.name)}" style="width:100%;aspect-ratio:1;border-radius:6px;object-fit:cover;border:2px solid var(--border);">
+                <div style="font-size:8px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name.split(' ')[0]}</div>
+              </div>`).join('')}
+            </div>
+          </div>` : ''}
+          ${is_owner && pending.length ? `<div style="background:var(--surface);border-radius:12px;padding:10px;border:1px solid var(--border);">
+            <div style="font-weight:800;font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">⏳ ${pending.length} pendente${pending.length!==1?'s':''}</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;">
+              ${pending.slice(0,6).map(m => `<div style="text-align:center;opacity:.6;">
+                <img src="${m.avatar_url||avatarUrl(m.name)}" style="width:100%;aspect-ratio:1;border-radius:6px;object-fit:cover;border:2px dashed var(--border);">
+                <div style="font-size:8px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name.split(' ')[0]}</div>
+              </div>`).join('')}
+            </div>
+          </div>` : ''}
         </div>
       </div>`;
   } catch(e) {
     if(body) body.innerHTML = `<p class="text-muted" style="padding:20px;text-align:center;">${e.message}</p>`;
   }
+}
+
+// ═══ ÁLBUM DO EVENTO ═══
+async function openAgendaAlbum(agendaId, title) {
+  const body = document.getElementById('modal-feed-post-body');
+  document.getElementById('modal-feed-post').querySelector('.modal-title').textContent = '📸 ' + (title || 'Fotos do Evento');
+  openModal('modal-feed-post');
+  body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { posts } = await api('/api/agenda/' + agendaId + '/album');
+    if (!posts.length) {
+      body.innerHTML = '<div style="text-align:center;padding:30px;"><p class="text-muted">Nenhuma foto ainda. Publique a primeira! 📸</p></div>';
+      return;
+    }
+    body.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+        ${posts.map(p => {
+          const av = p.author_avatar || avatarUrl(p.author_name || 'U');
+          return `<div style="position:relative;cursor:pointer;border-radius:8px;overflow:hidden;" onclick="openPostDetail('${p.id}')">
+            <img src="${p.image_url}" style="width:100%;aspect-ratio:1;object-fit:cover;">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.6));padding:4px;">
+              <img src="${av}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;">
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);text-align:center;">${posts.length} foto${posts.length!==1?'s':''} · Toque para ver detalhes</div>`;
+  } catch(e) { body.innerHTML = '<p class="text-muted">Erro ao carregar álbum.</p>'; }
+}
+
+async function editAgendaAlbumTitle(agendaId) {
+  const title = prompt('Nome do álbum:');
+  if (!title?.trim()) return;
+  try {
+    await api('/api/agenda/' + agendaId + '/album-title', { method:'PUT', body: JSON.stringify({ album_title: title.trim() }) });
+    toast('Título atualizado! ✅', 'success');
+  } catch(e) { toast('Erro ao atualizar', 'error'); }
 }
 
 function openAgendaInvite(agendaId) {
