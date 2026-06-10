@@ -92,6 +92,20 @@ router.get('/received', authMiddleware, async (req, res) => {
 
 
 // GET /api/dailypoke/user/:id — ver poke de outro usuário
+// GET todos os pokes (para o DailyVERSE)
+router.get('/all', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const pokes = await db.prepare(`
+      SELECT dp.config, u.id as user_id, u.username, u.name
+      FROM dailypokes dp JOIN users u ON u.id = dp.user_id
+      WHERE dp.config IS NOT NULL
+      ORDER BY dp.updated_at DESC LIMIT 80
+    `).all();
+    res.json({ pokes });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 router.get('/user/:id', async (req, res) => {
   try {
     const db = getDB();

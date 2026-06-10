@@ -858,6 +858,18 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
             <div class="page-loader"><div class="loader"></div></div>
           </div>
         </div>
+
+        <!-- DailyVERSE -->
+        <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);margin-top:12px;overflow:hidden;">
+          <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;">🌍 DailyPokeVERSE</div>
+            <div id="verse-online-count" style="font-size:11px;color:var(--muted);">carregando...</div>
+          </div>
+          <div id="dailyverse-canvas" style="position:relative;width:100%;height:420px;background:radial-gradient(ellipse at 50% 100%, #e8f5e9 0%, #f0f4ff 60%, #fff 100%);overflow:hidden;cursor:default;">
+            <!-- Personagens renderizados via JS -->
+            <div style="position:absolute;bottom:0;left:0;right:0;height:18px;background:rgba(0,0,0,.04);border-radius:0;"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Outros jogos (em breve) -->
@@ -1697,7 +1709,7 @@ function switchTab(tab,btn){
     'friends':()=>{loadFriends();loadFriendRequests();},
     'communities':loadCommunities,'achievements':loadAchievements,
     'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou,
-    'mapa':loadMapa,'events':loadEvents,'jogos':()=>{}
+    'mapa':loadMapa,'events':loadEvents,'jogos':()=>{showJogoSection('dailypoke',document.getElementById('btn-jogo-dp'));}
   };
   loaders[tab]?.();
 }
@@ -6832,7 +6844,9 @@ async function loadDailyPoke() {
     renderMyPoke();
     loadFriendsPokes();
     loadPokesReceived();
+    loadDailyVerse();
   } catch(e) {}
+
 }
 
 function renderMyPoke() {
@@ -6843,6 +6857,262 @@ function renderMyPoke() {
   const mini = document.getElementById('profile-poke-mini');
   if (mini && myPokeConfig) mini.innerHTML = buildPokeSVG(cfg).replace('width="100" height="200"','width="48" height="96"');
 }
+
+
+// ═══════════════════════════════════════════════
+// DAILYVERSE — mundo animado com todos os pokes
+// ═══════════════════════════════════════════════
+let verseAgents = [];
+let verseAnimFrame = null;
+let verseRunning = false;
+
+const VERSE_SCENES = [
+  { emoji:'⚽', label:'futebol', duration:3000 },
+  { emoji:'🏀', label:'basquete', duration:3000 },
+  { emoji:'🎣', label:'pescando', duration:4000 },
+  { emoji:'💃', label:'dançando', duration:3000 },
+  { emoji:'🍻', label:'brindando', duration:2500 },
+  { emoji:'🏄', label:'surfando', duration:3500 },
+  { emoji:'🤗', label:'abraçando', duration:2500 },
+  { emoji:'🌸', label:'flor', duration:2500 },
+  { emoji:'🥊', label:'brigando', duration:3000 },
+  { emoji:'🏃', label:'correndo', duration:2000 },
+];
+
+async function loadDailyVerse() {
+  const canvas = document.getElementById('dailyverse-canvas');
+  if (!canvas) return;
+
+  try {
+    const { pokes } = await api('/api/dailypoke/all').catch(() => ({ pokes: [] }));
+    const list = pokes && pokes.length ? pokes : [];
+
+    // Adicionar o usuário atual se tiver poke
+    if (myPokeConfig) {
+      const meExists = list.find(p => p.user_id === currentUser?.id);
+      if (!meExists) list.unshift({ config: myPokeConfig, username: currentUser?.username, name: currentUser?.name, user_id: currentUser?.id });
+    }
+
+    if (!list.length) {
+      canvas.innerHTML += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--muted);font-size:13px;">Crie seu DailyPoke para aparecer aqui! 🎭</div>';
+      return;
+    }
+
+    const W = canvas.offsetWidth || 400;
+    const H = 400;
+    document.getElementById('verse-online-count').textContent = list.length + ' poke' + (list.length !== 1 ? 's' : '') + ' no verso';
+
+    // Criar agentes
+    verseAgents = list.map((p, i) => {
+      const cfg = typeof p.config === 'string' ? JSON.parse(p.config) : (p.config || {});
+      const el = document.createElement('div');
+      el.style.cssText = 'position:absolute;display:flex;flex-direction:column;align-items:center;transition:none;pointer-events:auto;cursor:pointer;';
+      el.title = p.name || p.username || 'DailyPoke';
+
+      // SVG do personagem (64px)
+      const svgStr = buildPokeSVG(cfg).replace(/width="[^"]*"/, 'width="52"').replace(/height="[^"]*"/, 'height="100"');
+      el.innerHTML = svgStr + '<div style="font-size:9px;color:#555;margin-top:1px;max-width:55px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;">' + (p.name||'').split(' ')[0] + '</div>';
+
+      // Clique abre perfil
+      el.onclick = () => openUserProfile(p.username);
+
+      canvas.appendChild(el);
+
+      const x = 40 + (i / list.length) * (W - 100) + (Math.random() - .5) * 60;
+      const y = H - 140 - Math.random() * 60;
+
+      return {
+        el, cfg,
+        x, y,
+        vx: (Math.random() - .5) * 0.6,
+        vy: 0,
+        dir: Math.random() > .5 ? 1 : -1,
+        action: 'walk',
+        actionTimer: 0,
+        bubble: null,
+        sceneTimer: 0,
+        username: p.username,
+        name: p.name || '',
+      };
+    });
+
+    verseRunning = true;
+    verseLoop(canvas, W, H);
+
+    // A cada 8s um agente aleatório faz uma cena com outro
+    setInterval(() => triggerVerseScene(), 8000);
+
+  } catch(e) { console.error('loadDailyVerse:', e); }
+}
+
+const VERSE_FALAS = [
+  'Oi! 👋', 'Bora!', 'E aí?', '😎', 'kkk', 'Daily!',
+  'Vibe!', '🔥', 'Show!', '?!', 'Boa!', '😂'
+];
+
+function triggerVerseScene() {
+  if (verseAgents.length < 2) return;
+  const a = verseAgents[Math.floor(Math.random() * verseAgents.length)];
+  const b = verseAgents[Math.floor(Math.random() * verseAgents.length)];
+  if (a === b) return;
+  const scene = VERSE_SCENES[Math.floor(Math.random() * VERSE_SCENES.length)];
+
+  // Mostrar balão nos dois
+  showVerseBubble(a, scene.emoji + ' ' + scene.label);
+  setTimeout(() => showVerseBubble(b, scene.emoji + '!'), 600);
+}
+
+function showVerseBubble(agent, text) {
+  if (!agent.el) return;
+  // Remover balão anterior
+  const old = agent.el.querySelector('.verse-bubble');
+  if (old) old.remove();
+  const bubble = document.createElement('div');
+  bubble.className = 'verse-bubble';
+  bubble.style.cssText = 'position:absolute;bottom:108px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #ddd;border-radius:10px;padding:3px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:10;pointer-events:none;';
+  bubble.textContent = text;
+  agent.el.appendChild(bubble);
+  setTimeout(() => bubble.remove(), 2500);
+}
+
+function verseLoop(canvas, W, H) {
+  if (!verseRunning) return;
+
+  verseAgents.forEach(agent => {
+    // Movimento
+    agent.x += agent.vx * agent.dir;
+    agent.y += agent.vy;
+
+    // Bounce nas bordas
+    if (agent.x < 10) { agent.dir = 1; agent.x = 10; }
+    if (agent.x > W - 70) { agent.dir = -1; agent.x = W - 70; }
+
+    // Mudar direção aleatoriamente
+    agent.actionTimer--;
+    if (agent.actionTimer <= 0) {
+      agent.actionTimer = 80 + Math.floor(Math.random() * 120);
+      const r = Math.random();
+      if (r < 0.2) {
+        // Parar e falar
+        agent.vx = 0;
+        const fala = VERSE_FALAS[Math.floor(Math.random() * VERSE_FALAS.length)];
+        showVerseBubble(agent, fala);
+        setTimeout(() => { agent.vx = (Math.random() - .5) * 0.6; }, 2500);
+      } else if (r < 0.5) {
+        agent.dir *= -1;
+        agent.vx = 0.4 + Math.random() * 0.4;
+      } else {
+        agent.vx = (Math.random() - .5) * 0.6;
+      }
+    }
+
+    // Flip SVG baseado na direção
+    agent.el.style.transform = agent.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+    agent.el.style.left = agent.x + 'px';
+    agent.el.style.top = agent.y + 'px';
+  });
+
+  requestAnimationFrame(() => verseLoop(canvas, W, H));
+}
+
+// ═══ MANDAR POKE — modal de cenas ═══
+async function openPokeActions() {
+  if (!myPokeConfig) {
+    toast('Crie seu DailyPoke primeiro! 🎭', 'info');
+    openPokeEditor();
+    return;
+  }
+  // Buscar amigos com poke
+  const { pokes } = await api('/api/dailypoke/friends').catch(() => ({ pokes: [] }));
+  if (!pokes || !pokes.length) {
+    toast('Nenhum amigo tem DailyPoke ainda!', 'info');
+    return;
+  }
+
+  document.getElementById('modal-feed-post-body').innerHTML = `
+    <div style="font-weight:800;font-size:14px;margin-bottom:12px;">Escolha um amigo:</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+      ${pokes.map(p => {
+        const cfg = typeof p.config==='string'?JSON.parse(p.config):p.config;
+        const svg = buildPokeSVG(cfg).replace(/width="[^"]*"/, 'width="52"').replace(/height="[^"]*"/, 'height="100"');
+        return `<div onclick="selectPokeTarget('${p.user_id}','${p.username}','${(p.name||'').replace(/'/g,'')}',this)"
+          style="text-align:center;cursor:pointer;border-radius:10px;padding:8px;border:2px solid transparent;transition:.15s;" class="poke-target-card">
+          ${svg}
+          <div style="font-size:10px;font-weight:700;margin-top:4px;">${(p.name||'').split(' ')[0]}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div id="poke-scene-picker" style="display:none;">
+      <div style="font-weight:800;font-size:13px;margin-bottom:10px;">Escolha uma cena:</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;">
+        ${VERSE_SCENES.map(s => `
+          <div onclick="selectPokeScene('${s.emoji}','${s.label}',this)"
+            style="text-align:center;cursor:pointer;border-radius:10px;padding:8px 4px;border:2px solid var(--border);font-size:20px;transition:.15s;" class="poke-scene-card">
+            ${s.emoji}
+            <div style="font-size:9px;color:var(--muted);margin-top:2px;">${s.label}</div>
+          </div>`).join('')}
+      </div>
+      <div id="poke-preview-area" style="display:none;text-align:center;margin-bottom:14px;"></div>
+      <button id="btn-send-poke" class="btn btn-primary" style="width:100%;display:none;" onclick="sendPokeScene()">Mandar poke! 🎭</button>
+    </div>`;
+
+  document.getElementById('modal-feed-post').querySelector('.modal-title').textContent = '🎭 Mandar Poke';
+  openModal('modal-feed-post');
+}
+
+let selectedPokeTarget = null;
+let selectedPokeScene = null;
+
+function selectPokeTarget(userId, username, name, el) {
+  document.querySelectorAll('.poke-target-card').forEach(c => c.style.borderColor='transparent');
+  el.style.borderColor = 'var(--accent)';
+  selectedPokeTarget = { userId, username, name };
+  document.getElementById('poke-scene-picker').style.display = 'block';
+}
+
+function selectPokeScene(emoji, label, el) {
+  document.querySelectorAll('.poke-scene-card').forEach(c => c.style.borderColor='var(--border)');
+  el.style.borderColor = 'var(--accent)';
+  selectedPokeScene = { emoji, label };
+
+  // Mostrar preview animado da cena
+  const preview = document.getElementById('poke-preview-area');
+  const mySvg = buildPokeSVG(myPokeConfig).replace(/width="[^"]*"/, 'width="60"').replace(/height="[^"]*"/, 'height="114"');
+  preview.style.display = 'block';
+  preview.innerHTML = `
+    <div style="display:inline-flex;align-items:flex-end;gap:16px;background:var(--surface2);border-radius:14px;padding:16px 24px;position:relative;">
+      <div style="text-align:center;">
+        <div style="animation:pokeBob 0.6s ease-in-out infinite alternate;">${mySvg}</div>
+        <div style="font-size:10px;font-weight:700;margin-top:4px;">Você</div>
+      </div>
+      <div style="font-size:36px;animation:pokeSpin 1s ease-in-out infinite;">${emoji}</div>
+      <div style="text-align:center;transform:scaleX(-1);">
+        <div style="animation:pokeBob 0.6s ease-in-out infinite alternate .3s;">${mySvg}</div>
+        <div style="font-size:10px;font-weight:700;margin-top:4px;transform:scaleX(-1);">${selectedPokeTarget?.name?.split(' ')[0] || '?'}</div>
+      </div>
+    </div>
+    <style>
+      @keyframes pokeBob { from{transform:translateY(0)} to{transform:translateY(-6px)} }
+      @keyframes pokeSpin { 0%{transform:scale(1) rotate(-10deg)} 50%{transform:scale(1.2) rotate(10deg)} 100%{transform:scale(1) rotate(-10deg)} }
+    </style>`;
+  document.getElementById('btn-send-poke').style.display = 'block';
+}
+
+async function sendPokeScene() {
+  if (!selectedPokeTarget || !selectedPokeScene) return;
+  try {
+    await api('/api/dailypoke/send', {
+      method: 'POST',
+      body: JSON.stringify({
+        to_user_id: selectedPokeTarget.userId,
+        scene: selectedPokeScene.emoji + ' ' + selectedPokeScene.label
+      })
+    });
+    toast('Poke enviado! ' + selectedPokeScene.emoji, 'success');
+    closeModal('modal-feed-post');
+  } catch(e) { toast('Erro ao enviar poke', 'error'); }
+}
+
 
 async function loadFriendsPokes() {
   const el = document.getElementById('friends-pokes');
