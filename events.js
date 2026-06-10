@@ -155,13 +155,11 @@ async function pedroProativoEventos() {
         const template = PEDRO_HYPE_PHRASES[Math.floor(Math.random() * PEDRO_HYPE_PHRASES.length)];
         postContent = template.replace('{name}', membro.name.split(' ')[0]);
         try {
-          await createNotification(db, {
-            userId: membro.id,
-            fromUserId: PEDRO_ID,
-            type: 'pedro_mention',
-            title: `🐱 Pedro te marcou em "${evento.title}"`,
-            body: postContent,
-            data: { event_id: evento.id }
+          await NotificationService.sendPedroMention(db, {
+            toUserId: membro.id,
+            eventTitle: evento.title,
+            eventId: evento.id,
+            message: postContent
           });
         } catch(ne) {}
       }
@@ -299,12 +297,11 @@ router.post('/:id/invite', authMiddleware, async (req, res) => {
       .run(uuidv4(), req.params.id, user_id, 'pending');
     // Notificação
     const inviter = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
-    await createNotification(db, {
-      userId: user_id, fromUserId: req.user.id,
-      type: 'event_invite',
-      title: `${inviter.name} te convidou para um evento`,
-      body: event.title,
-      data: { event_id: req.params.id }
+    await NotificationService.sendEventInvite(db, {
+      toUserId: user_id,
+      fromUser: { id: req.user.id, name: inviter.name },
+      eventName: event.title,
+      eventId: req.params.id
     });
     res.status(201).json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }

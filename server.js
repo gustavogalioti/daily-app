@@ -54,6 +54,7 @@ process.on('uncaughtException', (err) => {
     ['/api/map-points', './map_points'], ['/api/events', './events'],
     ['/api/feed', './feed'],
     ['/api/photos', './photos'],
+    ['/api/notif-prefs', './notif_prefs'],
   ];
   for (const [path, file] of routeFiles) {
     try { app.use(path, require(file)); console.log('  ✓', path); }

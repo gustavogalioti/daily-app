@@ -2,7 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
 const { authMiddleware } = require('./authmiddleware');
-const { createNotification } = require('./notif_helper');
+const { NotificationService } = require('./notif_service');
 
 const router = express.Router();
 
@@ -63,12 +63,10 @@ router.post('/send', authMiddleware, async (req, res) => {
     const sender = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
     const sceneText = scene ? ` quer fazer uma cena com você: ${scene}` : ' te mandou um poke! 👋';
     try {
-      await createNotification(db, {
-        userId: to_user_id, fromUserId: req.user.id,
-        type: 'poke',
-        title: `🎭 ${sender?.name}${sceneText}`,
-        body: 'Abra o DailyPoke para ver!',
-        data: { action: finalAction }
+      await NotificationService.sendDailyPoke(db, {
+        toUserId: to_user_id,
+        fromUser: { id: req.user.id, name: sender?.name || 'Alguém' },
+        scene: scene || null
       });
     } catch(notifErr) { console.error('poke notif erro:', notifErr.message); }
     res.status(201).json({ ok: true });

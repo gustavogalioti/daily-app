@@ -106,3 +106,5 @@ async function sendPushQuestionOfDay(db, question) {
 }
 
 module.exports = { sendPushToAll, sendPushToUser, sendPushQuestionOfDay, VAPID_PUBLIC };
+// Re-export NotificationService para compatibilidade
+try { const { NotificationService } = require('./notif_service'); module.exports.NotificationService = NotificationService; } catch(e) {}

@@ -135,9 +135,15 @@ async function initPG() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );`); } catch(e) { /* já existe */ }
   try { await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
-      subscription JSONB NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+      subscription JSONB NOT NULL,
+      device_key TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, device_key)
     );`); } catch(e) { /* já existe */ }
+  // Migração: remover UNIQUE constraint antigo se existir
+  try { await pool.query('ALTER TABLE push_subscriptions DROP CONSTRAINT IF EXISTS push_subscriptions_user_id_key'); } catch(e) {}
+  try { await pool.query('ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS device_key TEXT'); } catch(e) {}
   try { await pool.query(`CREATE TABLE IF NOT EXISTS friendships (
       id TEXT PRIMARY KEY, requester_id TEXT NOT NULL, addressee_id TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending', message TEXT,
@@ -325,6 +331,18 @@ async function initPG() {
     try { await pool.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION'); } catch(_) {}
     try { await pool.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION'); } catch(_) {}
   // Tabelas do Feed de Amigos
+  // Preferências de notificação por usuário
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS notif_prefs (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+      pref_key TEXT NOT NULL, value TEXT NOT NULL DEFAULT '1',
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, pref_key)
+    );`); } catch(e) { /* já existe */ }
+  // Métricas de notificação
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS notif_metrics (
+      id TEXT PRIMARY KEY, user_id TEXT, type TEXT NOT NULL,
+      status TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
+    );`); } catch(e) { /* já existe */ }
   try { await pool.query(`CREATE TABLE IF NOT EXISTS tagged_photos (
       id TEXT PRIMARY KEY, tagged_user_id TEXT NOT NULL, uploader_id TEXT NOT NULL,
       image_url TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()

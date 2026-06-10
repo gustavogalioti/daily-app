@@ -91,12 +91,20 @@ router.post('/push-subscribe', authMiddleware, async (req, res) => {
   const db = getDB();
   const { subscription } = req.body;
   if (!subscription) return res.status(400).json({ error: 'Subscription obrigatória' });
-  const id = uuidv4();
   const subStr = JSON.stringify(subscription);
+  // device_key = endpoint da subscription (único por device)
+  const deviceKey = subscription.endpoint ? subscription.endpoint.slice(-40) : uuidv4();
   try {
-    await db.prepare('INSERT INTO push_subscriptions (id,user_id,subscription) VALUES ($1,$2,$3)').run(id, req.user.id, subStr);
+    await db.prepare(
+      'INSERT INTO push_subscriptions (id,user_id,subscription,device_key) VALUES ($1,$2,$3,$4) ON CONFLICT (user_id,device_key) DO UPDATE SET subscription=$3'
+    ).run(uuidv4(), req.user.id, subStr, deviceKey);
   } catch(e) {
-    await db.prepare('UPDATE push_subscriptions SET subscription=$1 WHERE user_id=$2').run(subStr, req.user.id);
+    // fallback se ON CONFLICT não funcionar
+    try {
+      await db.prepare('INSERT INTO push_subscriptions (id,user_id,subscription,device_key) VALUES ($1,$2,$3,$4)').run(uuidv4(), req.user.id, subStr, deviceKey);
+    } catch(e2) {
+      await db.prepare('UPDATE push_subscriptions SET subscription=$1 WHERE user_id=$2 AND device_key=$3').run(subStr, req.user.id, deviceKey);
+    }
   }
   res.json({ ok: true });
 });
