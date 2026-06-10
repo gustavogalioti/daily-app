@@ -98,6 +98,82 @@ async function pedroHypeMembers(eventId) {
 }
 
 
+// ═══ PEDRO PROATIVO NOS EVENTOS ═══
+const PEDRO_ID = 'pedro-official-daily';
+
+const PEDRO_QUIET_PHRASES = [
+  "Essa festa tá perdendo pra velório! Cadê a animação? 😹🎉",
+  "Gente... tá mais quieto aqui do que cemitério em dia de semana 😂 Alguém fala alguma coisa!",
+  "Olá? Tem alguém aí? Eu tô aqui esperando... 🐱👀",
+  "O evento tá chegando e o grupo tá no silêncio! Acorda galera! 🔔🐾",
+  "Passei aqui, vi que tá morto, resolvi dar uma chacoalhada! Fala alguma coisa! 😸",
+];
+
+const PEDRO_HYPE_PHRASES = [
+  "Ei @{name}! 👋 O que você mais tá esperando desse evento? 🎉🐱",
+  "@{name}! Vai comparecer? Conta pra gente o que acha que vai rolar! 😸",
+  "Oi @{name}! 🧡 Tô curioso... você vai fazer o quê nesse evento? 🐾",
+  "@{name}! Preparado(a)? Me conta suas expectativas! 🎊🐱",
+  "Ei @{name}! Você tá animado(a)? Compartilha com a galera! 🔥🐾",
+];
+
+async function pedroProativoEventos() {
+  try {
+    const db = getDB();
+    if (!db) return;
+    const eventos = await db.prepare(`
+      SELECT e.id, e.title FROM events e
+      WHERE e.event_date > NOW() AND e.event_date < NOW() + INTERVAL '7 days'
+      LIMIT 10
+    `).all();
+    for (const evento of eventos) {
+      const recentes = await db.prepare(`
+        SELECT COUNT(*) as c FROM event_posts
+        WHERE event_id=$1 AND created_at > NOW() - INTERVAL '24 hours' AND user_id != $2
+      `).get(evento.id, PEDRO_ID);
+      const qtd = parseInt(recentes?.c || 0);
+      const ultimoPedro = await db.prepare(`
+        SELECT created_at FROM event_posts WHERE event_id=$1 AND user_id=$2
+        ORDER BY created_at DESC LIMIT 1
+      `).get(evento.id, PEDRO_ID);
+      if (ultimoPedro) {
+        const diff = Date.now() - new Date(ultimoPedro.created_at).getTime();
+        if (diff < 6 * 60 * 60 * 1000) continue;
+      }
+      const membros = await db.prepare(`
+        SELECT u.id, u.name, u.username
+        FROM event_members em JOIN users u ON u.id=em.user_id
+        WHERE em.event_id=$1 AND em.status='accepted' AND em.user_id != $2
+        ORDER BY RANDOM() LIMIT 3
+      `).all(evento.id, PEDRO_ID);
+      if (!membros.length) continue;
+      let postContent;
+      if (qtd === 0) {
+        postContent = PEDRO_QUIET_PHRASES[Math.floor(Math.random() * PEDRO_QUIET_PHRASES.length)];
+      } else {
+        const membro = membros[Math.floor(Math.random() * membros.length)];
+        const template = PEDRO_HYPE_PHRASES[Math.floor(Math.random() * PEDRO_HYPE_PHRASES.length)];
+        postContent = template.replace('{name}', membro.name.split(' ')[0]);
+        try {
+          await createNotification(db, {
+            userId: membro.id,
+            fromUserId: PEDRO_ID,
+            type: 'pedro_mention',
+            title: `🐱 Pedro te marcou em "${evento.title}"`,
+            body: postContent,
+            data: { event_id: evento.id }
+          });
+        } catch(ne) {}
+      }
+      await db.prepare('INSERT INTO event_posts (id,event_id,user_id,content,post_type) VALUES ($1,$2,$3,$4,$5)')
+        .run(uuidv4(), evento.id, PEDRO_ID, postContent, 'text');
+    }
+  } catch(e) { console.error('pedroProativoEventos:', e.message); }
+}
+
+setInterval(pedroProativoEventos, 3 * 60 * 60 * 1000);
+setTimeout(pedroProativoEventos, 30 * 1000);
+
 // GET /api/events — listar eventos do usuário
 router.get('/', authMiddleware, async (req, res) => {
   try {
