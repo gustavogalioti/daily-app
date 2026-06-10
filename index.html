@@ -7075,7 +7075,7 @@ async function openPokeActions() {
     return;
   }
   // Buscar todos os amigos (com ou sem poke)
-  const { friends } = await api('/api/friends/list').catch(() => ({ friends: [] }));
+  const { friends } = await api('/api/friends').catch(() => ({ friends: [] }));
   if (!friends || !friends.length) {
     toast('Você ainda não tem amigos para mandar poke!', 'info');
     return;
