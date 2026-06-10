@@ -38,7 +38,7 @@ router.get('/friends', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     const pokes = await db.prepare(`
-      SELECT dp.config, u.name, u.username, u.avatar_url
+      SELECT dp.config, u.id as user_id, u.name, u.username, u.avatar_url
       FROM dailypokes dp JOIN users u ON u.id=dp.user_id
       JOIN friendships f ON (
         (f.requester_id=dp.user_id AND f.addressee_id=$1) OR
