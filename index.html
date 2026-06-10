@@ -7155,18 +7155,29 @@ function selectPokeScene(emoji, label, el) {
 }
 
 async function sendPokeScene() {
-  if (!selectedPokeTarget || !selectedPokeScene) return;
+  if (!selectedPokeTarget || !selectedPokeScene) {
+    toast('Selecione amigo e cena!', 'info');
+    return;
+  }
   try {
-    await api('/api/dailypoke/send', {
+    const body = {
+      to_user_id: selectedPokeTarget.userId,
+      scene: selectedPokeScene.emoji + ' ' + selectedPokeScene.label
+    };
+    console.log('Enviando poke:', body);
+    const result = await api('/api/dailypoke/send', {
       method: 'POST',
-      body: JSON.stringify({
-        to_user_id: selectedPokeTarget.userId,
-        scene: selectedPokeScene.emoji + ' ' + selectedPokeScene.label
-      })
+      body: JSON.stringify(body)
     });
+    console.log('Poke resultado:', result);
     toast('Poke enviado! ' + selectedPokeScene.emoji, 'success');
     closeModal('modal-feed-post');
-  } catch(e) { toast('Erro ao enviar poke', 'error'); }
+    // Recarregar listas
+    setTimeout(() => { loadPokesReceived(); }, 500);
+  } catch(e) {
+    console.error('Erro poke:', e);
+    toast('Erro: ' + e.message, 'error');
+  }
 }
 
 
