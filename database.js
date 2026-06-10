@@ -325,6 +325,11 @@ async function initPG() {
     try { await pool.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION'); } catch(_) {}
     try { await pool.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION'); } catch(_) {}
   // Tabelas do Feed de Amigos
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS agenda_post_comments (
+      id TEXT PRIMARY KEY, post_id TEXT NOT NULL, agenda_id TEXT NOT NULL,
+      user_id TEXT NOT NULL, content TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );`); } catch(e) { /* já existe */ }
   try { await pool.query(`CREATE TABLE IF NOT EXISTS feed_posts (
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, content TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()

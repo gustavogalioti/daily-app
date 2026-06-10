@@ -61,6 +61,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
     for (const p of posts) {
       p.reactions = await db.prepare('SELECT emoji, COUNT(*) as count FROM agenda_post_reactions WHERE post_id=$1 GROUP BY emoji').all(p.id);
       if (p.poll_data && typeof p.poll_data === 'string') p.poll_data = JSON.parse(p.poll_data);
+      const pc = await db.prepare('SELECT content FROM pedro_comments WHERE post_id=$1').get(p.id);
+      p.pedro_comment = pc?.content || null;
+      const cc = await db.prepare('SELECT COUNT(*) as c FROM agenda_post_comments WHERE post_id=$1').get(p.id);
+      p.comment_count = parseInt(cc?.c || 0);
     }
 
     res.json({ agenda, members, posts, is_owner: agenda.owner_id === req.user.id });
@@ -156,6 +160,32 @@ router.post('/:id/posts/photo', authMiddleware, (req, res) => {
 });
 
 // POST /api/agenda/:id/posts/:postId/react
+// GET comentários de um post
+router.get('/:id/posts/:postId/comments', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const comments = await db.prepare(`
+      SELECT ac.*, u.name as author_name, u.avatar_url as author_avatar
+      FROM agenda_post_comments ac JOIN users u ON u.id=ac.user_id
+      WHERE ac.post_id=$1 ORDER BY ac.created_at ASC
+    `).all(req.params.postId);
+    res.json({ comments });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST comentário em post
+router.post('/:id/posts/:postId/comments', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Conteúdo vazio' });
+    const { v4: uuidv4 } = require('uuid');
+    await db.prepare('INSERT INTO agenda_post_comments (id,post_id,agenda_id,user_id,content) VALUES ($1,$2,$3,$4,$5)')
+      .run(uuidv4(), req.params.postId, req.params.id, req.user.id, content.trim());
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 router.post('/:id/posts/:postId/react', authMiddleware, async (req, res) => {
   try {
     const db = getDB();

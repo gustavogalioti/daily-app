@@ -5616,10 +5616,16 @@ async function openAgendaModal(agendaId) {
     const confirmed = members.filter(m => m.status === 'accepted');
     const pending = members.filter(m => m.status === 'pending');
 
+    const pedroAv = 'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg';
     const renderPost = (p) => {
       const av = p.author_avatar || avatarUrl(p.author_name);
       const reactions = (p.reactions||[]).map(r => `<span class="reaction-chip" onclick="reactAgendaPost('${agendaId}','${p.id}','${r.emoji}',this)">${r.emoji}<span>${r.count}</span></span>`).join('');
       const addR = ['👍','❤️','😂','🔥'].filter(e => !(p.reactions||[]).find(r => r.emoji===e)).map(e => `<span class="reaction-chip" onclick="reactAgendaPost('${agendaId}','${p.id}','${e}',this)">${e}</span>`).join('');
+      const pedroHtml = p.pedro_comment ? `<div class="pedro-comment" style="margin-top:8px;"><strong>🐱 Pedro:</strong> ${p.pedro_comment}</div>` : '';
+      const commentRow = `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+        <span style="font-size:12px;color:var(--muted);">💬 ${p.comment_count||0} comentário${p.comment_count!==1?'s':''}</span>
+        <span style="font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;" onclick="openAgendaPostComments('${agendaId}','${p.id}')">Ver e comentar →</span>
+      </div>`;
       if (p.post_type === 'poll' && p.poll_data) {
         const pd = p.poll_data;
         const total = pd.options.reduce((s,o) => s+(o.votes||0), 0);
@@ -5630,6 +5636,7 @@ async function openAgendaModal(agendaId) {
           ${pd.options.map((o,i) => { const pct=total?Math.round((o.votes||0)/total*100):0; return `<div class="poll-option" onclick="${voted?'':'voteAgendaPoll(\''+agendaId+'\',\''+p.id+'\','+i+')'}"><div class="poll-bar-wrap"><div class="poll-bar" style="width:${pct}%"></div><span class="poll-bar-text">${o.text}</span></div><span class="poll-pct">${pct}%</span></div>`; }).join('')}
           <div class="text-muted" style="font-size:12px;margin-top:4px;">${total} votos</div></div>
           <div class="reactions-row">${reactions}${addR}</div>
+          ${pedroHtml}${commentRow}
         </div>`;
       }
       if (p.post_type === 'photo' && p.image_url) {
@@ -5637,11 +5644,13 @@ async function openAgendaModal(agendaId) {
           <img class="forum-card-img" src="${p.image_url}">
           ${p.content ? `<div class="forum-card-text">${p.content}</div>` : ''}
           <div class="reactions-row">${reactions}${addR}</div>
+          ${pedroHtml}${commentRow}
         </div>`;
       }
       return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32" style="cursor:pointer;" onclick="openUserProfile('${p.author_username}')"><div><div style="font-weight:700;font-size:13px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
         <div class="forum-card-text">${p.content}</div>
         <div class="reactions-row">${reactions}${addR}</div>
+        ${pedroHtml}${commentRow}
       </div>`;
     };
 
@@ -5780,28 +5789,69 @@ function onAgendaPhotoSel(e) {
 
 async function submitAgendaPost(agendaId) {
   try {
+    let postId = null;
     if (currentAgendaPostType === 'photo') {
       const file = document.getElementById('agenda-photo-file').files[0];
       if (!file) { toast('Selecione uma foto', 'error'); return; }
       const fd = new FormData();
       fd.append('photo', file);
       fd.append('caption', document.getElementById('agenda-photo-cap').value || '');
-      await apiForm('/api/agenda/' + agendaId + '/posts/photo', fd);
+      const r = await apiForm('/api/agenda/' + agendaId + '/posts/photo', fd);
+      postId = r?.post?.id;
     } else if (currentAgendaPostType === 'poll') {
       const q = document.getElementById('apoll-q').value.trim();
       const o1 = document.getElementById('apoll-o1').value.trim();
       const o2 = document.getElementById('apoll-o2').value.trim();
       if (!q || !o1 || !o2) { toast('Preencha pergunta e opções', 'error'); return; }
       const options = [o1, o2, document.getElementById('apoll-o3').value.trim()].filter(Boolean).map(t => ({ text: t, votes: 0, voter_ids: [] }));
-      await api('/api/agenda/' + agendaId + '/posts', { method: 'POST', body: JSON.stringify({ content: q, post_type: 'poll', poll_data: { question: q, options } }) });
+      const r = await api('/api/agenda/' + agendaId + '/posts', { method: 'POST', body: JSON.stringify({ content: q, post_type: 'poll', poll_data: { question: q, options } }) });
+      postId = r?.post?.id;
     } else {
       const content = document.getElementById('agenda-post-text').value.trim();
       if (!content) { toast('Escreva algo', 'error'); return; }
-      await api('/api/agenda/' + agendaId + '/posts', { method: 'POST', body: JSON.stringify({ content, post_type: 'text' }) });
+      const r = await api('/api/agenda/' + agendaId + '/posts', { method: 'POST', body: JSON.stringify({ content, post_type: 'text' }) });
+      postId = r?.post?.id;
     }
     toast('Publicado! ✅', 'success');
     openAgendaModal(agendaId);
+    if (postId) api('/api/pedro/comment', { method:'POST', body: JSON.stringify({ post_id: postId, post_type: currentAgendaPostType, tab: 'agenda' }) }).catch(()=>{});
   } catch(e) { toast(e.message, 'error'); }
+}
+
+async function openAgendaPostComments(agendaId, postId) {
+  try {
+    const { comments } = await api('/api/agenda/' + agendaId + '/posts/' + postId + '/comments');
+    const pc = await api('/api/pedro/comment/' + postId).catch(() => ({ comment: null }));
+    const pedroAv = 'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg';
+    const pedroHtml = pc?.comment?.content ? `<div style="display:flex;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <img src="${pedroAv}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+      <div><span style="font-weight:700;font-size:12px;color:var(--accent);">Pedro 🐱</span>
+      <div style="font-size:13px;margin-top:3px;">${pc.comment.content}</div></div></div>` : '';
+    const commentHtml = (comments||[]).map(c => {
+      const cav = c.author_avatar || avatarUrl(c.author_name||'U');
+      return `<div style="display:flex;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <img src="${cav}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+        <div><span style="font-weight:700;font-size:12px;">${c.author_name||'Usuário'}</span>
+        <div style="font-size:13px;margin-top:3px;">${c.content}</div></div></div>`;
+    }).join('') || '<p class="text-muted" style="font-size:12px;padding:10px 0;">Nenhum comentário ainda. Seja o primeiro!</p>';
+    document.getElementById('modal-feed-post-body').innerHTML = `
+      <div style="max-height:55vh;overflow-y:auto;">${pedroHtml}${commentHtml}</div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <input id="agenda-comment-inp" placeholder="Comentar..." style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;outline:none;background:var(--surface);">
+        <button class="btn btn-primary btn-sm" onclick="submitAgendaComment('${agendaId}','${postId}')">Enviar</button>
+      </div>`;
+    openModal('modal-feed-post');
+  } catch(e) { toast('Erro ao carregar comentários', 'error'); }
+}
+
+async function submitAgendaComment(agendaId, postId) {
+  const inp = document.getElementById('agenda-comment-inp');
+  if (!inp?.value.trim()) return;
+  try {
+    await api('/api/agenda/' + agendaId + '/posts/' + postId + '/comments', { method:'POST', body: JSON.stringify({ content: inp.value.trim() }) });
+    inp.value = '';
+    openAgendaPostComments(agendaId, postId);
+  } catch(e) { toast('Erro ao comentar', 'error'); }
 }
 
 async function reactAgendaPost(agendaId, postId, emoji, btn) {
