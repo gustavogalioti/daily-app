@@ -88,6 +88,49 @@ async function initPG() {
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE,
       best_score INTEGER DEFAULT 0, updated_at TIMESTAMPTZ DEFAULT NOW()
     );`); } catch(e) { /* já existe */ }
+
+  // ── QUIZ ARENA ──
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS quiz_profiles (
+      user_id TEXT PRIMARY KEY,
+      xp_total INTEGER DEFAULT 0,
+      season_points INTEGER DEFAULT 0,
+      league TEXT DEFAULT 'Bronze III',
+      best_league TEXT DEFAULT 'Bronze III',
+      best_rank INTEGER,
+      wins INTEGER DEFAULT 0,
+      losses INTEGER DEFAULT 0,
+      daily_streak INTEGER DEFAULT 0,
+      best_streak INTEGER DEFAULT 0,
+      city TEXT,
+      last_daily DATE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );`); } catch(e) {}
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS quiz_daily_attempts (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      attempt_date DATE NOT NULL,
+      score INTEGER DEFAULT 0,
+      xp_earned INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, attempt_date)
+    );`); } catch(e) {}
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS quiz_battles (
+      id TEXT PRIMARY KEY,
+      challenger_id TEXT NOT NULL,
+      opponent_id TEXT,
+      category TEXT DEFAULT 'aleatorio',
+      question_count INTEGER DEFAULT 10,
+      questions TEXT,
+      challenger_score INTEGER,
+      opponent_score INTEGER,
+      challenger_time_ms INTEGER,
+      opponent_time_ms INTEGER,
+      winner_id TEXT,
+      status TEXT DEFAULT 'pending',
+      is_bet BOOLEAN DEFAULT false,
+      bet_amount INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );`); } catch(e) {}
   try { await pool.query(`CREATE TABLE IF NOT EXISTS agora_chat_messages (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT, user_id TEXT NOT NULL,
       content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()

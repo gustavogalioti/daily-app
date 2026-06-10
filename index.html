@@ -825,6 +825,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <button class="btn btn-primary btn-sm" onclick="showJogoSection('dailypoke',this)" id="btn-jogo-dp">🎭 DailyPoke</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('catrunner',this)">🐱 Cat Runner</button>
         <button class="btn btn-ghost btn-sm" onclick="openTruco()">🃏 Truco</button>
+        <button class="btn btn-ghost btn-sm" onclick="showJogoSection('quiz',this)" id="btn-jogo-quiz">🧠 Quiz Arena</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('outros',this)" style="opacity:.5;">🌾 Em breve</button>
       </div>
 
@@ -917,6 +918,252 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           </div>
         </div>
       </div>
+
+      <!-- ══════════════════════════════════════════════
+           DAILY QUIZ ARENA
+      ══════════════════════════════════════════════ -->
+      <div id="jogo-quiz" style="display:none;">
+
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#FF6B35,#F7931E);border-radius:16px;padding:20px;margin-bottom:14px;color:#fff;position:relative;overflow:hidden;">
+          <div style="position:absolute;right:-20px;top:-20px;font-size:120px;opacity:.1;">🧠</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <span style="font-size:28px;">🧠</span>
+            <div>
+              <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:22px;letter-spacing:-0.5px;">DAILY Quiz Arena</div>
+              <div style="font-size:12px;opacity:.85;">Compete. Sobe de liga. Representa sua cidade.</div>
+            </div>
+          </div>
+          <!-- Perfil inline -->
+          <div id="quiz-header-profile" style="display:flex;gap:16px;background:rgba(255,255,255,.15);border-radius:12px;padding:10px 14px;margin-top:10px;">
+            <div style="text-align:center;"><div id="qh-xp" style="font-weight:800;font-size:18px;">—</div><div style="font-size:10px;opacity:.8;">XP</div></div>
+            <div style="width:1px;background:rgba(255,255,255,.3);"></div>
+            <div style="text-align:center;"><div id="qh-league" style="font-weight:800;font-size:14px;">—</div><div style="font-size:10px;opacity:.8;">Liga</div></div>
+            <div style="width:1px;background:rgba(255,255,255,.3);"></div>
+            <div style="text-align:center;"><div id="qh-streak" style="font-weight:800;font-size:18px;">—</div><div style="font-size:10px;opacity:.8;">Streak 🔥</div></div>
+            <div style="width:1px;background:rgba(255,255,255,.3);"></div>
+            <div style="text-align:center;"><div id="qh-wins" style="font-weight:800;font-size:18px;">—</div><div style="font-size:10px;opacity:.8;">Vitórias</div></div>
+          </div>
+        </div>
+
+        <!-- Sub-nav modos -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;" id="quiz-mode-nav">
+          <button class="btn btn-primary btn-sm" id="qnav-daily" onclick="quizShowMode('daily',this)">📅 Quiz Diário</button>
+          <button class="btn btn-ghost btn-sm" id="qnav-battle" onclick="quizShowMode('battle',this)">⚔️ Batalha 1x1</button>
+          <button class="btn btn-ghost btn-sm" id="qnav-bet" onclick="quizShowMode('bet',this)">💰 XP Bet</button>
+          <button class="btn btn-ghost btn-sm" id="qnav-cities" onclick="quizShowMode('cities',this)">🏙️ Cidades</button>
+          <button class="btn btn-ghost btn-sm" id="qnav-royale" onclick="quizShowMode('royale',this)">👑 Arena Royale</button>
+          <button class="btn btn-ghost btn-sm" id="qnav-ranking" onclick="quizShowMode('ranking',this)">🏆 Ranking</button>
+        </div>
+
+        <!-- ── MODO: QUIZ DIÁRIO ── -->
+        <div id="quiz-mode-daily">
+          <div id="quiz-daily-lobby" style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:20px;text-align:center;">
+            <div style="font-size:56px;margin-bottom:12px;">📅</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin-bottom:6px;">Quiz Diário</div>
+            <div style="color:var(--muted);font-size:14px;margin-bottom:16px;">10 perguntas · 15 segundos cada · Categorias variadas</div>
+            <div id="quiz-daily-done-msg" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:14px;margin-bottom:14px;">
+              <div style="font-size:24px;margin-bottom:4px;">✅</div>
+              <div style="font-weight:700;color:#166534;">Quiz de hoje concluído!</div>
+              <div id="quiz-daily-done-info" style="color:#15803d;font-size:13px;margin-top:4px;"></div>
+            </div>
+            <button id="quiz-daily-start-btn" class="btn btn-primary" style="width:100%;font-size:16px;padding:14px;" onclick="startDailyQuiz()">▶ Começar Quiz do Dia</button>
+          </div>
+
+          <!-- Área do quiz em si -->
+          <div id="quiz-daily-game" style="display:none;">
+            <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);overflow:hidden;">
+              <!-- Progresso -->
+              <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:13px;color:var(--muted);">Pergunta <span id="q-current">1</span>/10</div>
+                <div id="q-timer-bar-wrap" style="flex:1;margin:0 12px;height:6px;background:#f0f0f0;border-radius:99px;overflow:hidden;">
+                  <div id="q-timer-bar" style="height:100%;background:var(--accent);border-radius:99px;transition:width .1s linear;width:100%;"></div>
+                </div>
+                <div id="q-timer-num" style="font-weight:800;font-size:16px;color:var(--accent);min-width:24px;text-align:right;">15</div>
+              </div>
+              <!-- Pergunta -->
+              <div style="padding:20px 16px;">
+                <div id="q-category-badge" style="display:inline-block;background:var(--accent);color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:3px 10px;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;"></div>
+                <div id="q-text" style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;line-height:1.4;margin-bottom:18px;"></div>
+                <div id="q-options" style="display:flex;flex-direction:column;gap:10px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resultado final -->
+          <div id="quiz-daily-result" style="display:none;background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:24px;text-align:center;">
+            <div id="qr-emoji" style="font-size:56px;margin-bottom:10px;"></div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:4px;">Resultado</div>
+            <div id="qr-score" style="font-size:48px;font-weight:900;color:var(--accent);margin:10px 0;"></div>
+            <div id="qr-xp" style="color:var(--muted);font-size:14px;margin-bottom:6px;"></div>
+            <div id="qr-streak" style="font-size:13px;color:#F59E0B;font-weight:700;margin-bottom:16px;"></div>
+          </div>
+        </div>
+
+        <!-- ── MODO: BATALHA 1x1 ── -->
+        <div id="quiz-mode-battle" style="display:none;">
+          <!-- Criar batalha -->
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;margin-bottom:12px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:12px;">⚔️ Criar Batalha</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <label style="font-size:12px;color:var(--muted);font-weight:600;">Adversário</label>
+                <input id="battle-opponent-search" type="text" placeholder="Buscar amigo..." oninput="quizSearchOpponent(this.value,'battle')"
+                  style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--bg);color:var(--text);box-sizing:border-box;">
+                <div id="battle-opponent-results" style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;margin-top:4px;display:none;max-height:140px;overflow-y:auto;"></div>
+                <div id="battle-opponent-selected" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:8px 12px;margin-top:4px;font-size:13px;font-weight:600;color:#166534;"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div>
+                  <label style="font-size:12px;color:var(--muted);font-weight:600;">Categoria</label>
+                  <select id="battle-category" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--bg);color:var(--text);">
+                    <option value="aleatorio">🎲 Aleatório</option>
+                    <option value="futebol">⚽ Futebol</option>
+                    <option value="historia">📜 História</option>
+                    <option value="geografia">🌍 Geografia</option>
+                    <option value="cinema">🎬 Cinema</option>
+                    <option value="ciencias">🔬 Ciências</option>
+                    <option value="tecnologia">💻 Tecnologia</option>
+                    <option value="cultura_pop">🎭 Cultura Pop</option>
+                    <option value="esportes">🏅 Esportes</option>
+                    <option value="geral">💡 Geral</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:12px;color:var(--muted);font-weight:600;">Perguntas</label>
+                  <select id="battle-qcount" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--bg);color:var(--text);">
+                    <option value="5">5 perguntas</option>
+                    <option value="10" selected>10 perguntas</option>
+                    <option value="15">15 perguntas</option>
+                    <option value="20">20 perguntas</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="createBattle()" id="create-battle-btn">⚔️ Desafiar</button>
+            </div>
+          </div>
+
+          <!-- Batalhas ativas -->
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:10px;">Meus Desafios</div>
+            <div id="my-battles-list"><div class="page-loader"><div class="loader"></div></div></div>
+          </div>
+        </div>
+
+        <!-- ── MODO: XP BET ── -->
+        <div id="quiz-mode-bet" style="display:none;">
+          <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:16px;padding:16px;color:#fff;margin-bottom:12px;">
+            <div style="font-size:28px;margin-bottom:6px;">💰</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;">XP Bet</div>
+            <div style="font-size:13px;opacity:.85;margin-top:4px;">Aposte XP em batalhas. Vencedor leva tudo!</div>
+          </div>
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:12px;">Criar Aposta</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <label style="font-size:12px;color:var(--muted);font-weight:600;">Adversário</label>
+                <input id="bet-opponent-search" type="text" placeholder="Buscar amigo..." oninput="quizSearchOpponent(this.value,'bet')"
+                  style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--bg);color:var(--text);box-sizing:border-box;">
+                <div id="bet-opponent-results" style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;margin-top:4px;display:none;max-height:140px;overflow-y:auto;"></div>
+                <div id="bet-opponent-selected" style="display:none;background:#fdf4ff;border:1.5px solid #d8b4fe;border-radius:10px;padding:8px 12px;margin-top:4px;font-size:13px;font-weight:600;color:#581c87;"></div>
+              </div>
+              <div>
+                <label style="font-size:12px;color:var(--muted);font-weight:600;">Valor da Aposta</label>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px;" id="bet-amounts">
+                  <button onclick="selectBetAmount(50,this)" class="bet-amount-btn" style="padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);font-weight:700;cursor:pointer;font-size:13px;">50 XP</button>
+                  <button onclick="selectBetAmount(100,this)" class="bet-amount-btn" style="padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);font-weight:700;cursor:pointer;font-size:13px;">100 XP</button>
+                  <button onclick="selectBetAmount(250,this)" class="bet-amount-btn" style="padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);font-weight:700;cursor:pointer;font-size:13px;">250 XP</button>
+                  <button onclick="selectBetAmount(500,this)" class="bet-amount-btn" style="padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);font-weight:700;cursor:pointer;font-size:13px;">500 XP</button>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="createBet()" style="background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;">💰 Criar Aposta</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── MODO: GUERRA DAS CIDADES ── -->
+        <div id="quiz-mode-cities" style="display:none;">
+          <div style="background:linear-gradient(135deg,#059669,#10b981);border-radius:16px;padding:16px;color:#fff;margin-bottom:12px;">
+            <div style="font-size:28px;margin-bottom:4px;">🏙️</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;">Guerra das Cidades</div>
+            <div style="font-size:13px;opacity:.85;">Índice de eficiência: pontos ÷ usuários ativos</div>
+          </div>
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:12px;">🏆 Ranking das Cidades</div>
+            <div id="cities-ranking-list"><div class="page-loader"><div class="loader"></div></div></div>
+          </div>
+        </div>
+
+        <!-- ── MODO: ARENA ROYALE ── -->
+        <div id="quiz-mode-royale" style="display:none;">
+          <div id="royale-lobby" style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:16px;padding:20px;color:#fff;text-align:center;margin-bottom:12px;">
+            <div style="font-size:52px;margin-bottom:8px;">👑</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:22px;margin-bottom:4px;">Arena Royale</div>
+            <div style="font-size:13px;opacity:.8;margin-bottom:16px;">Erre e saia. Último de pé vence. Até 100 jogadores.</div>
+            <div id="royale-player-count" style="font-size:28px;font-weight:800;margin-bottom:4px;">—</div>
+            <div style="font-size:12px;opacity:.7;margin-bottom:14px;">jogadores na sala</div>
+            <div id="royale-countdown" style="font-size:14px;color:#fbbf24;font-weight:700;margin-bottom:14px;"></div>
+            <button class="btn btn-primary" onclick="joinRoyale()" id="royale-join-btn" style="width:100%;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1e1b4b;font-weight:800;border:none;font-size:16px;padding:14px;">👑 Entrar na Arena</button>
+          </div>
+
+          <!-- Jogo Royale -->
+          <div id="royale-game" style="display:none;">
+            <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);overflow:hidden;margin-bottom:12px;">
+              <div style="background:#1e1b4b;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;">
+                <div style="color:#fbbf24;font-weight:800;font-size:13px;">👑 Arena Royale</div>
+                <div style="color:#fff;font-size:13px;">⚡ <span id="royale-alive">—</span> sobreviventes</div>
+                <div id="royale-q-timer" style="color:#fbbf24;font-weight:800;font-size:18px;">15</div>
+              </div>
+              <div style="padding:20px 16px;">
+                <div id="royale-q-text" style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:16px;"></div>
+                <div id="royale-q-options" style="display:flex;flex-direction:column;gap:10px;"></div>
+              </div>
+            </div>
+            <!-- Chat da sala -->
+            <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:12px;">
+              <div style="font-weight:700;font-size:13px;margin-bottom:8px;">💬 Chat da Arena</div>
+              <div id="royale-chat-msgs" style="height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-bottom:8px;"></div>
+              <div style="display:flex;gap:8px;">
+                <input id="royale-chat-input" type="text" placeholder="Mensagem..." maxlength="200"
+                  style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;background:var(--bg);color:var(--text);">
+                <button class="btn btn-ghost btn-sm" onclick="sendRoyaleChat()">Enviar</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="royale-eliminated" style="display:none;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:16px;padding:24px;text-align:center;">
+            <div style="font-size:48px;margin-bottom:10px;">💀</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#991b1b;margin-bottom:4px;">Eliminado!</div>
+            <div style="color:#dc2626;font-size:14px;margin-bottom:16px;">Você errou e foi eliminado da Arena.</div>
+            <button class="btn btn-primary" onclick="joinRoyale()">Tentar de novo</button>
+          </div>
+        </div>
+
+        <!-- ── MODO: RANKING GLOBAL ── -->
+        <div id="quiz-mode-ranking" style="display:none;">
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:12px;">🏆 Ranking Global</div>
+            <div id="quiz-ranking-list"><div class="page-loader"><div class="loader"></div></div></div>
+          </div>
+        </div>
+
+        <!-- ── MODAL: JOGAR BATALHA ── -->
+        <div id="quiz-battle-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px;">
+          <div style="background:var(--surface);border-radius:20px;width:100%;max-width:500px;overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#FF6B35,#F7931E);padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;">
+              <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;">⚔️ Batalha em andamento</div>
+              <div id="battle-modal-timer" style="font-size:24px;font-weight:900;">15</div>
+            </div>
+            <div style="padding:20px;">
+              <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Pergunta <span id="bm-current">1</span>/<span id="bm-total">10</span></div>
+              <div id="bm-q-text" style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:16px;"></div>
+              <div id="bm-q-options" style="display:flex;flex-direction:column;gap:10px;"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- FIM QUIZ ARENA -->
 
       <div id="jogo-outros" style="display:none;">
         <div class="jogos-soon">
@@ -7077,14 +7324,18 @@ let myPokeConfig = null;
 let editorCfg = null;
 
 function showJogoSection(sec, btn) {
-  ['dailypoke','catrunner','outros'].forEach(s=>{
+  ['dailypoke','catrunner','outros','quiz'].forEach(s=>{
     const el=document.getElementById('jogo-'+s);
     if(el) el.style.display='none';
   });
   const target=document.getElementById('jogo-'+sec);
   if(target) target.style.display='block';
+  // update nav buttons
+  document.querySelectorAll('#tab-jogos > div:first-child .btn').forEach(b=>b.className=b.className.replace('btn-primary','btn-ghost'));
+  if(btn) { btn.className=btn.className.replace('btn-ghost','btn-primary'); }
   if(sec==='dailypoke') loadDailyPoke();
   if(sec==='catrunner') initCatGame();
+  if(sec==='quiz') initQuizArena();
 }
 
 async function loadDailyPoke() {
@@ -9202,3 +9453,523 @@ async function loadTrucoRanking() {
 </script>
 </body>
 </html>
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// DAILY QUIZ ARENA - JavaScript completo
+// ══════════════════════════════════════════════════════════════════════════
+let quizProfile = null;
+let quizDailyQuestions = [];
+let quizDailyAnswers = [];
+let quizDailyCurrentQ = 0;
+let quizDailyTimer = null;
+let quizDailyTimeLeft = 15;
+let quizBattleOpponentId = null;
+let quizBetOpponentId = null;
+let quizBetAmount = null;
+let royaleRoomId = null;
+let royaleAlive = true;
+let royaleTimer = null;
+let royaleChatInterval = null;
+let royaleChatSince = null;
+
+async function initQuizArena() {
+  try {
+    quizProfile = await api('/api/quiz/profile/me');
+    renderQuizHeader();
+    quizShowMode('daily', document.getElementById('qnav-daily'));
+    await checkDailyQuizStatus();
+  } catch(e) { console.log('quiz init', e); }
+}
+
+function renderQuizHeader() {
+  if (!quizProfile) return;
+  const leagueIcons = { 'Bronze':'🥉','Prata':'🥈','Ouro':'🥇','Platina':'💎','Diamante':'💠','Mestre':'👑','Lenda':'🌟' };
+  const icon = Object.keys(leagueIcons).find(k => (quizProfile.league||'').includes(k));
+  document.getElementById('qh-xp').textContent = quizProfile.xp_total || 0;
+  document.getElementById('qh-league').textContent = `${leagueIcons[icon]||'🎮'} ${quizProfile.league || 'Bronze III'}`;
+  document.getElementById('qh-streak').textContent = quizProfile.daily_streak || 0;
+  document.getElementById('qh-wins').textContent = quizProfile.wins || 0;
+}
+
+function quizShowMode(mode, btn) {
+  ['daily','battle','bet','cities','royale','ranking'].forEach(m => {
+    const el = document.getElementById('quiz-mode-'+m);
+    if (el) el.style.display = 'none';
+  });
+  const target = document.getElementById('quiz-mode-'+mode);
+  if (target) target.style.display = 'block';
+  document.querySelectorAll('#quiz-mode-nav .btn').forEach(b => {
+    b.className = b.className.replace('btn-primary','btn-ghost');
+  });
+  if (btn) btn.className = btn.className.replace('btn-ghost','btn-primary');
+  if (mode === 'ranking') loadQuizRanking();
+  if (mode === 'cities')  loadCitiesRanking();
+  if (mode === 'battle')  loadMyBattles();
+}
+
+// ── QUIZ DIÁRIO ──────────────────────────────────────────────────────────────
+async function checkDailyQuizStatus() {
+  try {
+    const data = await api('/api/quiz/daily');
+    if (data.done) {
+      const btn = document.getElementById('quiz-daily-start-btn');
+      if (btn) btn.disabled = true;
+      const doneMsg = document.getElementById('quiz-daily-done-msg');
+      if (doneMsg) doneMsg.style.display = 'block';
+      const doneInfo = document.getElementById('quiz-daily-done-info');
+      if (doneInfo) doneInfo.textContent = `Acertos: ${data.score}/10 · +${data.xp} XP`;
+    } else {
+      quizDailyQuestions = data.questions || [];
+    }
+  } catch(e) {}
+}
+
+async function startDailyQuiz() {
+  if (!quizDailyQuestions.length) {
+    try {
+      const data = await api('/api/quiz/daily');
+      if (data.done) { toast('Quiz de hoje já respondido!'); return; }
+      quizDailyQuestions = data.questions || [];
+    } catch(e) { toast('Erro ao carregar quiz'); return; }
+  }
+  quizDailyCurrentQ = 0;
+  quizDailyAnswers = [];
+  document.getElementById('quiz-daily-lobby').style.display = 'none';
+  document.getElementById('quiz-daily-result').style.display = 'none';
+  document.getElementById('quiz-daily-game').style.display = 'block';
+  showDailyQuestion();
+}
+
+function showDailyQuestion() {
+  clearInterval(quizDailyTimer);
+  const q = quizDailyQuestions[quizDailyCurrentQ];
+  if (!q) { submitDailyQuiz(); return; }
+
+  const catNames = {historia:'📜 História',geografia:'🌍 Geografia',ciencias:'🔬 Ciências',
+    cultura_pop:'🎭 Cultura Pop',esportes:'🏅 Esportes',cinema:'🎬 Cinema',
+    tecnologia:'💻 Tecnologia',geral:'💡 Geral',futebol:'⚽ Futebol'};
+
+  document.getElementById('q-current').textContent = quizDailyCurrentQ + 1;
+  document.getElementById('q-category-badge').textContent = catNames[q.category] || q.category;
+  document.getElementById('q-text').textContent = q.question;
+
+  const optsEl = document.getElementById('q-options');
+  optsEl.innerHTML = q.options.map((opt, i) =>
+    `<button onclick="answerDaily(${i})" style="text-align:left;padding:12px 16px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;font-size:14px;font-weight:500;color:var(--text);transition:all .15s;">
+      <span style="font-weight:700;color:var(--accent);margin-right:8px;">${'ABCD'[i]}</span>${opt}
+    </button>`
+  ).join('');
+
+  quizDailyTimeLeft = 15;
+  updateTimerBar();
+  quizDailyTimer = setInterval(() => {
+    quizDailyTimeLeft--;
+    updateTimerBar();
+    if (quizDailyTimeLeft <= 0) { answerDaily(-1); } // timeout = errou
+  }, 1000);
+}
+
+function updateTimerBar() {
+  const bar = document.getElementById('q-timer-bar');
+  const num = document.getElementById('q-timer-num');
+  if (bar) bar.style.width = (quizDailyTimeLeft / 15 * 100) + '%';
+  if (bar) bar.style.background = quizDailyTimeLeft > 5 ? 'var(--accent)' : '#ef4444';
+  if (num) { num.textContent = quizDailyTimeLeft; num.style.color = quizDailyTimeLeft > 5 ? 'var(--accent)' : '#ef4444'; }
+}
+
+function answerDaily(answerIdx) {
+  clearInterval(quizDailyTimer);
+  const q = quizDailyQuestions[quizDailyCurrentQ];
+  quizDailyAnswers.push({ questionId: quizDailyCurrentQ, answer: answerIdx });
+
+  // feedback visual
+  const btns = document.getElementById('q-options').querySelectorAll('button');
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.style.background = '#dcfce7';
+    else if (i === answerIdx && answerIdx !== q.correct) btn.style.background = '#fee2e2';
+  });
+
+  setTimeout(() => {
+    quizDailyCurrentQ++;
+    if (quizDailyCurrentQ >= quizDailyQuestions.length) submitDailyQuiz();
+    else showDailyQuestion();
+  }, 800);
+}
+
+async function submitDailyQuiz() {
+  document.getElementById('quiz-daily-game').style.display = 'none';
+  try {
+    const result = await api('/api/quiz/daily/submit', {
+      method: 'POST',
+      body: JSON.stringify({ answers: quizDailyAnswers, questions: quizDailyQuestions })
+    });
+    const emojis = ['😢','😅','🙂','😊','😁','🤩','🔥','⚡','🌟','💫','🏆'];
+    document.getElementById('qr-emoji').textContent = emojis[Math.min(result.correct, 10)];
+    document.getElementById('qr-score').textContent = `${result.correct}/10`;
+    document.getElementById('qr-xp').textContent = `+${result.xp} XP ganhos`;
+    document.getElementById('qr-streak').textContent = result.streak > 1 ? `🔥 ${result.streak} dias seguidos!` : '';
+    document.getElementById('quiz-daily-result').style.display = 'block';
+    // refresh perfil
+    quizProfile = await api('/api/quiz/profile/me');
+    renderQuizHeader();
+  } catch(e) { toast('Erro ao enviar respostas'); }
+}
+
+// ── BATALHA 1X1 ──────────────────────────────────────────────────────────────
+async function quizSearchOpponent(q, mode) {
+  if (q.length < 2) {
+    document.getElementById(`${mode}-opponent-results`).style.display = 'none';
+    return;
+  }
+  try {
+    const data = await api(`/api/users/search?q=${encodeURIComponent(q)}`);
+    const users = data.users || data || [];
+    const res = document.getElementById(`${mode}-opponent-results`);
+    if (!users.length) { res.style.display = 'none'; return; }
+    res.style.display = 'block';
+    res.innerHTML = users.slice(0,6).map(u =>
+      `<div onclick="selectQuizOpponent('${u.id}','${u.name}','${u.username}','${mode}')"
+        style="padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);">
+        <img src="${u.avatar||avatarUrl(u.name)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+        <div>
+          <div style="font-weight:600;font-size:13px;">${u.name}</div>
+          <div style="font-size:11px;color:var(--muted);">@${u.username}</div>
+        </div>
+      </div>`
+    ).join('');
+  } catch(e) {}
+}
+
+function selectQuizOpponent(id, name, username, mode) {
+  if (mode === 'battle') { quizBattleOpponentId = id; }
+  else { quizBetOpponentId = id; }
+  document.getElementById(`${mode}-opponent-results`).style.display = 'none';
+  document.getElementById(`${mode}-opponent-search`).value = '';
+  const sel = document.getElementById(`${mode}-opponent-selected`);
+  sel.style.display = 'block';
+  sel.innerHTML = `✅ ${name} <span style="color:var(--muted);">@${username}</span>
+    <span onclick="clearQuizOpponent('${mode}')" style="float:right;cursor:pointer;color:#ef4444;">✕</span>`;
+}
+
+function clearQuizOpponent(mode) {
+  if (mode === 'battle') quizBattleOpponentId = null;
+  else quizBetOpponentId = null;
+  document.getElementById(`${mode}-opponent-selected`).style.display = 'none';
+}
+
+async function createBattle() {
+  if (!quizBattleOpponentId) { toast('Selecione um adversário'); return; }
+  const category = document.getElementById('battle-category').value;
+  const qcount = document.getElementById('battle-qcount').value;
+  const btn = document.getElementById('create-battle-btn');
+  btn.disabled = true; btn.textContent = 'Criando...';
+  try {
+    const data = await api('/api/quiz/battle/create', {
+      method: 'POST',
+      body: JSON.stringify({ opponent_id: quizBattleOpponentId, category, question_count: qcount })
+    });
+    toast('Desafio enviado! 🎯');
+    openBattleGame(data.id, data.questions);
+    clearQuizOpponent('battle');
+    loadMyBattles();
+  } catch(e) { toast('Erro ao criar batalha'); }
+  finally { btn.disabled = false; btn.textContent = '⚔️ Desafiar'; }
+}
+
+async function loadMyBattles() {
+  try {
+    const battles = await api('/api/quiz/battles');
+    const list = document.getElementById('my-battles-list');
+    if (!list) return;
+    if (!battles.length) { list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px;font-size:14px;">Nenhum desafio ainda.</div>'; return; }
+    const statusLabel = { pending:'Aguardando', challenger_done:'Aguardando adversário', opponent_done:'Sua vez!', finished:'Finalizada' };
+    list.innerHTML = battles.map(b => {
+      const isChallenger = b.challenger_id === (quizProfile?.user_id || '');
+      const them = isChallenger ? b.opponent_name : b.challenger_name;
+      const myScore = isChallenger ? b.challenger_score : b.opponent_score;
+      const theirScore = isChallenger ? b.opponent_score : b.challenger_score;
+      const won = b.winner_id === (quizProfile?.user_id || '');
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:13px;">vs ${them||'?'}</div>
+          <div style="font-size:11px;color:var(--muted);">${statusLabel[b.status]||b.status} · ${b.category}</div>
+        </div>
+        ${b.status==='finished'
+          ? `<div style="font-weight:800;font-size:14px;color:${won?'#16a34a':'#dc2626'}">${myScore}x${theirScore}</div>`
+          : `<button class="btn btn-primary btn-xs" onclick="openBattleGame('${b.id}',${JSON.stringify(b.questions||[]).replace(/"/g,"'")})">▶ Jogar</button>`
+        }
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+function openBattleGame(battleId, questions) {
+  if (!questions || !questions.length) { toast('Carregando perguntas...'); return; }
+  const modal = document.getElementById('quiz-battle-modal');
+  modal.style.display = 'flex';
+  battleModal = { id: battleId, questions, current: 0, answers: [], timer: null, timeLeft: 15, startTime: Date.now() };
+  showBattleQuestion();
+}
+
+function showBattleQuestion() {
+  clearInterval(battleModal.timer);
+  const q = battleModal.questions[battleModal.current];
+  if (!q) { submitBattleAnswers(); return; }
+  document.getElementById('bm-current').textContent = battleModal.current + 1;
+  document.getElementById('bm-total').textContent = battleModal.questions.length;
+  document.getElementById('bm-q-text').textContent = q.question;
+  document.getElementById('bm-q-options').innerHTML = q.options.map((opt, i) =>
+    `<button onclick="answerBattle(${i})" style="text-align:left;padding:12px 16px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;font-size:14px;color:var(--text);">
+      <span style="font-weight:700;color:var(--accent);margin-right:8px;">${'ABCD'[i]}</span>${opt}
+    </button>`
+  ).join('');
+  battleModal.timeLeft = 15;
+  document.getElementById('battle-modal-timer').textContent = 15;
+  battleModal.timer = setInterval(() => {
+    battleModal.timeLeft--;
+    document.getElementById('battle-modal-timer').textContent = battleModal.timeLeft;
+    if (battleModal.timeLeft <= 0) answerBattle(-1);
+  }, 1000);
+}
+
+function answerBattle(answerIdx) {
+  clearInterval(battleModal.timer);
+  battleModal.answers.push(answerIdx);
+  const q = battleModal.questions[battleModal.current];
+  const btns = document.getElementById('bm-q-options').querySelectorAll('button');
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.style.background = '#dcfce7';
+    else if (i === answerIdx && answerIdx !== q.correct) btn.style.background = '#fee2e2';
+  });
+  setTimeout(() => {
+    battleModal.current++;
+    showBattleQuestion();
+  }, 600);
+}
+
+async function submitBattleAnswers() {
+  document.getElementById('quiz-battle-modal').style.display = 'none';
+  const correct = battleModal.answers.filter((a, i) => a === battleModal.questions[i]?.correct).length;
+  const timeMs = Date.now() - battleModal.startTime;
+  try {
+    const result = await api(`/api/quiz/battle/${battleModal.id}/submit`, {
+      method: 'POST', body: JSON.stringify({ score: correct, time_ms: timeMs })
+    });
+    toast(`✅ Respondido! ${correct}/${battleModal.questions.length} acertos`);
+    loadMyBattles();
+    quizProfile = await api('/api/quiz/profile/me');
+    renderQuizHeader();
+  } catch(e) { toast('Erro ao enviar resultado'); }
+}
+
+// ── XP BET ───────────────────────────────────────────────────────────────────
+function selectBetAmount(amount, btn) {
+  quizBetAmount = amount;
+  document.querySelectorAll('.bet-amount-btn').forEach(b => {
+    b.style.background = 'var(--bg)';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--text)';
+  });
+  btn.style.background = '#7c3aed';
+  btn.style.color = '#fff';
+  btn.style.borderColor = '#7c3aed';
+}
+
+async function createBet() {
+  if (!quizBetOpponentId) { toast('Selecione um adversário'); return; }
+  if (!quizBetAmount) { toast('Selecione o valor da aposta'); return; }
+  try {
+    const data = await api('/api/quiz/bet/create', {
+      method: 'POST',
+      body: JSON.stringify({ opponent_id: quizBetOpponentId, bet_amount: quizBetAmount })
+    });
+    toast(`💰 Aposta de ${quizBetAmount} XP criada!`);
+    openBattleGame(data.id, data.questions);
+    clearQuizOpponent('bet');
+  } catch(e) { toast(e?.message || 'Erro ao criar aposta'); }
+}
+
+// ── RANKING GLOBAL ────────────────────────────────────────────────────────────
+async function loadQuizRanking() {
+  try {
+    const ranking = await api('/api/quiz/ranking');
+    const list = document.getElementById('quiz-ranking-list');
+    if (!ranking.length) { list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;">Nenhum jogador ainda.</div>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    list.innerHTML = ranking.map((r, i) =>
+      `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:${i<3?'22':'14'}px;min-width:28px;text-align:center;">${medals[i]||i+1}</div>
+        <img src="${r.avatar||avatarUrl(r.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">${r.name}</div>
+          <div style="font-size:11px;color:var(--muted);">${r.league||'Bronze III'} · ${r.city||'—'}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-weight:800;font-size:15px;color:var(--accent);">${r.xp_total} XP</div>
+          <div style="font-size:11px;color:var(--muted);">${r.wins}V ${r.losses}D</div>
+        </div>
+      </div>`
+    ).join('');
+  } catch(e) {}
+}
+
+// ── GUERRA DAS CIDADES ────────────────────────────────────────────────────────
+async function loadCitiesRanking() {
+  try {
+    const cities = await api('/api/quiz/cities-ranking');
+    const list = document.getElementById('cities-ranking-list');
+    if (!cities.length) { list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;">Jogue para representar sua cidade!</div>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    list.innerHTML = cities.map((c, i) =>
+      `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:${i<3?'22':'14'}px;min-width:28px;text-align:center;">${medals[i]||i+1}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:15px;">🏙️ ${c.city}</div>
+          <div style="font-size:11px;color:var(--muted);">${c.members} jogadores ativos</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-weight:800;font-size:15px;color:#059669;">${parseFloat(c.efficiency).toFixed(1)}</div>
+          <div style="font-size:10px;color:var(--muted);">eficiência</div>
+        </div>
+      </div>`
+    ).join('');
+  } catch(e) {}
+}
+
+// ── ARENA ROYALE ──────────────────────────────────────────────────────────────
+async function joinRoyale() {
+  royaleAlive = true;
+  document.getElementById('royale-eliminated').style.display = 'none';
+  document.getElementById('royale-lobby').style.display = 'block';
+  document.getElementById('royale-game').style.display = 'none';
+  const btn = document.getElementById('royale-join-btn');
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    const data = await api('/api/quiz/royale/join', { method: 'POST', body: JSON.stringify({}) });
+    royaleRoomId = data.roomId;
+    document.getElementById('royale-player-count').textContent = data.players;
+    if (data.startTime) {
+      const remaining = Math.max(0, Math.round((data.startTime - Date.now()) / 1000));
+      document.getElementById('royale-countdown').textContent = remaining > 0 ? `Começa em ${remaining}s` : 'Começando!';
+    } else {
+      document.getElementById('royale-countdown').textContent = 'Aguardando jogadores...';
+    }
+    btn.textContent = 'Na fila! ✅';
+    // polling de estado
+    clearInterval(royaleTimer);
+    royaleTimer = setInterval(pollRoyaleState, 2000);
+    // chat
+    royaleChatSince = null;
+    clearInterval(royaleChatInterval);
+    royaleChatInterval = setInterval(loadRoyaleChat, 3000);
+  } catch(e) { toast('Erro ao entrar'); btn.disabled=false; btn.textContent='👑 Entrar na Arena'; }
+}
+
+async function pollRoyaleState() {
+  if (!royaleRoomId) return;
+  try {
+    const state = await api(`/api/quiz/royale/${royaleRoomId}/state`);
+    document.getElementById('royale-player-count').textContent = state.players;
+    if (state.status === 'finished') {
+      clearInterval(royaleTimer);
+      clearInterval(royaleChatInterval);
+      if (royaleAlive) {
+        toast('🏆 Você venceu a Arena Royale!');
+      }
+      document.getElementById('royale-game').style.display = 'none';
+      document.getElementById('royale-lobby').style.display = 'block';
+      const btn = document.getElementById('royale-join-btn');
+      btn.disabled = false; btn.textContent = '👑 Entrar na Arena';
+      return;
+    }
+    if (state.status === 'playing' && state.question) {
+      document.getElementById('royale-lobby').style.display = 'none';
+      document.getElementById('royale-game').style.display = 'block';
+      document.getElementById('royale-alive').textContent = state.alive;
+      if (royaleAlive) showRoyaleQuestion(state.question);
+    }
+  } catch(e) {}
+}
+
+let royaleLastQId = -1;
+function showRoyaleQuestion(q) {
+  if (q.id === royaleLastQId) return;
+  royaleLastQId = q.id;
+  clearInterval(royaleTimer);
+  document.getElementById('royale-q-text').textContent = q.question;
+  document.getElementById('royale-q-options').innerHTML = q.options.map((opt, i) =>
+    `<button onclick="answerRoyale(${i})" style="text-align:left;padding:12px 16px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;font-size:14px;color:var(--text);">
+      <span style="font-weight:700;color:#fbbf24;margin-right:8px;">${'ABCD'[i]}</span>${opt}
+    </button>`
+  ).join('');
+  let t = 15;
+  document.getElementById('royale-q-timer').textContent = t;
+  royaleTimer = setInterval(() => {
+    t--;
+    document.getElementById('royale-q-timer').textContent = t;
+    if (t <= 0) { clearInterval(royaleTimer); answerRoyale(-1); }
+  }, 1000);
+}
+
+async function answerRoyale(answerIdx) {
+  clearInterval(royaleTimer);
+  const btns = document.getElementById('royale-q-options').querySelectorAll('button');
+  btns.forEach(b => b.disabled = true);
+  try {
+    const result = await api(`/api/quiz/royale/${royaleRoomId}/answer`, {
+      method: 'POST', body: JSON.stringify({ answer: answerIdx })
+    });
+    if (!result.alive) {
+      royaleAlive = false;
+      clearInterval(royaleChatInterval);
+      document.getElementById('royale-game').style.display = 'none';
+      document.getElementById('royale-eliminated').style.display = 'block';
+      clearInterval(royaleTimer);
+    }
+  } catch(e) {}
+}
+
+async function loadRoyaleChat() {
+  if (!royaleRoomId) return;
+  try {
+    const url = `/api/quiz/chat/${royaleRoomId}${royaleChatSince ? '?since='+encodeURIComponent(royaleChatSince) : ''}`;
+    const msgs = await api(url);
+    if (!msgs.length) return;
+    royaleChatSince = msgs[msgs.length-1].created_at;
+    const container = document.getElementById('royale-chat-msgs');
+    msgs.forEach(m => {
+      const div = document.createElement('div');
+      div.style.cssText = 'font-size:12px;display:flex;gap:6px;align-items:flex-start;';
+      div.innerHTML = `<span style="font-weight:700;color:var(--accent);">@${m.username}</span><span>${m.message}</span>`;
+      container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
+  } catch(e) {}
+}
+
+async function sendRoyaleChat() {
+  const input = document.getElementById('royale-chat-input');
+  const msg = input.value.trim();
+  if (!msg || !royaleRoomId) return;
+  input.value = '';
+  try {
+    await api(`/api/quiz/chat/${royaleRoomId}`, { method:'POST', body: JSON.stringify({ message: msg }) });
+    await loadRoyaleChat();
+  } catch(e) {}
+}
+
+// enter no chat
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement?.id === 'royale-chat-input') sendRoyaleChat();
+});
+
+// fechar modal de batalha com ESC
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const m = document.getElementById('quiz-battle-modal');
+    if (m && m.style.display !== 'none') { m.style.display = 'none'; clearInterval(battleModal.timer); }
+  }
+});
+</script>

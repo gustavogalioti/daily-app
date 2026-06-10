@@ -48,6 +48,7 @@ process.on('uncaughtException', (err) => {
     ['/api/dailypoke', './dailypoke'],
     ['/api/catrunner', './catrunner'],
     ['/api/truco', './truco_api'],
+    ['/api/quiz', './quiz'],
     ['/api/agora-chat', './agora_chat'],
     ['/api/achievements', './achievements'], ['/api/pedro', './pedro'],
     ['/api/daily-questions', './daily_questions'], ['/api/geo', './geo'],
