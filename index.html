@@ -7234,26 +7234,6 @@ async function savePoke() {
   } catch(e) { toast(e.message, 'error'); }
 }
 
-function openPokeActions() {
-  if (!myPokeConfig) { toast('Crie seu DailyPoke primeiro!','info'); openPokeEditor(); return; }
-  openModal('modal-send-poke');
-  loadFriendsForPoke();
-}
-
-async function loadFriendsForPoke() {
-  const el = document.getElementById('poke-friends-list');
-  if (!el) return;
-  try {
-    const {friends} = await api('/api/friends/list');
-    el.innerHTML = friends.map(f => `
-      <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:var(--surface2);">
-        <img src="${f.avatar_url||avatarUrl(f.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
-        <div style="flex:1;"><div style="font-weight:700;font-size:13px;">${f.name}</div><div class="text-muted" style="font-size:11px;">@${f.username}</div></div>
-        <button class="btn btn-primary btn-xs" id="pokebtn-${f.id}" onclick="sendPoke('${f.id}','${f.name.split(' ')[0]}',this)">👋 Poke!</button>
-      </div>`).join('') || '<p class="text-muted" style="font-size:13px;">Nenhum amigo encontrado.</p>';
-  } catch(e) {}
-}
-
 async function sendPoke(userId, name, btn) {
   try {
     btn.disabled=true; btn.textContent='...';
