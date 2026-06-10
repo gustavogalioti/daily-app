@@ -3919,6 +3919,7 @@ async function openEventModal(eventId) {
         <img src="${pedroAv}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--accent);">
         <div><span style="font-size:11px;font-weight:800;color:var(--accent);">Pedro 🐱</span><div style="font-size:12px;margin-top:2px;">${p.pedro_comment}</div></div>
       </div>` : '';
+      const commentBtn = `<div style="margin-top:8px;font-size:12px;color:var(--accent);cursor:pointer;" onclick="openEventComments('${eventId}','${p.id}')">💬 ${p.comment_count||0} comentário${p.comment_count!==1?'s':''} · Ver e comentar</div>`;
       if (p.post_type === 'poll' && p.poll_data) {
         const pd = typeof p.poll_data === 'string' ? JSON.parse(p.poll_data) : p.poll_data;
         const total = pd.options.reduce((s,o) => s+(o.votes||0), 0);
@@ -3934,13 +3935,12 @@ async function openEventModal(eventId) {
       if (p.post_type === 'photo' && p.image_url) {
         return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32"><div><div style="font-weight:700;font-size:14px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
           <img class="forum-card-img" src="${p.image_url}"><div class="forum-card-text">${p.content||''}</div>
-          <div class="reactions-row">${reactions}${addR}</div>${pedro}
-          <div style="margin-top:8px;font-size:12px;color:var(--muted);">💬 ${p.comment_count} comentários</div>
+          <div class="reactions-row">${reactions}${addR}</div>${pedro}${commentBtn}
         </div>`;
       }
       return `<div class="forum-card"><div class="forum-card-author"><img class="avatar" src="${av}" width="32" height="32"><div><div style="font-weight:700;font-size:14px;">${p.author_name}</div><div class="text-muted">${timeAgo(p.created_at)}</div></div></div>
         <div class="forum-card-text">${p.content}</div>
-        <div class="reactions-row" style="margin-top:8px;">${reactions}${addR}</div>${pedro}
+        <div class="reactions-row" style="margin-top:8px;">${reactions}${addR}</div>${pedro}${commentBtn}
       </div>`;
     };
 
@@ -4129,26 +4129,69 @@ function onEventPhotoSel(e) {
 
 async function submitEventPost(eventId) {
   try {
+    let postId = null;
     if (eventPostType === 'text') {
       const content = document.getElementById('event-post-text').value.trim();
       if (!content) { toast('Escreva algo', 'error'); return; }
-      await api(`/api/events/${eventId}/posts`, { method:'POST', body: JSON.stringify({ content, post_type:'text' }) });
+      const r = await api(`/api/events/${eventId}/posts`, { method:'POST', body: JSON.stringify({ content, post_type:'text' }) });
+      postId = r?.post?.id;
     } else if (eventPostType === 'photo') {
       const f = document.getElementById('event-photo-file').files[0];
       if (!f) { toast('Selecione uma foto', 'error'); return; }
       const fd = new FormData();
       fd.append('photo', f);
       fd.append('caption', document.getElementById('event-photo-cap').value);
-      await apiForm(`/api/events/${eventId}/posts/photo`, fd);
+      const r = await apiForm(`/api/events/${eventId}/posts/photo`, fd);
+      postId = r?.post?.id;
     } else if (eventPostType === 'poll') {
       const question = document.getElementById('epoll-q').value.trim();
       const opts = ['epoll-o1','epoll-o2','epoll-o3'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
       if (!question || opts.length < 2) { toast('Pergunta e 2+ opções obrigatórias', 'error'); return; }
-      await api(`/api/events/${eventId}/posts/poll`, { method:'POST', body: JSON.stringify({ question, options: opts }) });
+      const r = await api(`/api/events/${eventId}/posts/poll`, { method:'POST', body: JSON.stringify({ question, options: opts }) });
+      postId = r?.post?.id;
     }
     toast('Publicado! ✅', 'success');
     openEventModal(eventId);
+    // Pedro comenta com o ID real do post
+    if (postId) api('/api/pedro/comment', { method:'POST', body: JSON.stringify({ post_id: postId, post_type: eventPostType, tab: 'evento' }) }).catch(()=>{});
   } catch(e) { toast(e.message, 'error'); }
+}
+
+async function openEventComments(eventId, postId) {
+  // Reusar o modal de post detail existente
+  try {
+    const { post, comments } = await api(`/api/events/${eventId}/posts/${postId}/detail`).catch(() => ({ post: null, comments: [] }));
+    const pc = await api(`/api/pedro/comment/${postId}`).catch(() => ({ comment: null }));
+    const pedroAv = 'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg';
+    const pedroHtml = pc?.comment?.content ? `<div style="display:flex;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <img src="${pedroAv}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+      <div><span style="font-weight:700;font-size:12px;color:var(--accent);">Pedro 🐱</span>
+      <div style="font-size:13px;margin-top:3px;">${pc.comment.content}</div></div></div>` : '';
+    const commentHtml = (comments||[]).map(c => {
+      const cav = c.author_avatar || avatarUrl(c.author_name||'U');
+      return `<div style="display:flex;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <img src="${cav}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+        <div><span style="font-weight:700;font-size:12px;">${c.author_name||'Usuário'}</span>
+        <div style="font-size:13px;margin-top:3px;">${c.content}</div></div></div>`;
+    }).join('') || '<p class="text-muted" style="font-size:12px;">Nenhum comentário ainda.</p>';
+    document.getElementById('modal-feed-post-body').innerHTML = `
+      <div style="max-height:60vh;overflow-y:auto;">${pedroHtml}${commentHtml}</div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <input id="event-comment-inp" placeholder="Comentar..." style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;outline:none;">
+        <button class="btn btn-primary btn-sm" onclick="submitEventComment('${eventId}','${postId}')">Enviar</button>
+      </div>`;
+    openModal('modal-feed-post');
+  } catch(e) { toast('Erro ao carregar comentários','error'); }
+}
+
+async function submitEventComment(eventId, postId) {
+  const inp = document.getElementById('event-comment-inp');
+  if (!inp?.value.trim()) return;
+  try {
+    await api(`/api/events/${eventId}/posts/${postId}/comment`, { method:'POST', body: JSON.stringify({ content: inp.value.trim() }) });
+    inp.value = '';
+    openEventComments(eventId, postId);
+  } catch(e) { toast('Erro ao comentar','error'); }
 }
 
 async function reactEventPost(eventId, postId, emoji, el) {

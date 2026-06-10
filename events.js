@@ -295,6 +295,32 @@ router.post('/:id/posts/photo', authMiddleware, (req, res, next) => {
   });
 });
 
+// GET /api/events/:id/posts/:postId/detail — comentários do post
+router.get('/:id/posts/:postId/detail', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const comments = await db.prepare(`
+      SELECT epc.*, u.name as author_name, u.avatar_url as author_avatar
+      FROM event_post_comments epc JOIN users u ON u.id = epc.user_id
+      WHERE epc.post_id=$1 AND epc.user_id != 'pedro-official-daily'
+      ORDER BY epc.created_at ASC
+    `).all(req.params.postId);
+    res.json({ comments });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/events/:id/posts/:postId/comment
+router.post('/:id/posts/:postId/comment', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Conteúdo vazio' });
+    await db.prepare('INSERT INTO event_post_comments (id,post_id,event_id,user_id,content) VALUES ($1,$2,$3,$4,$5)')
+      .run(uuidv4(), req.params.postId, req.params.id, req.user.id, content.trim());
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // POST /api/events/:id/posts/:postId/react
 router.post('/:id/posts/:postId/react', authMiddleware, async (req, res) => {
   try {
