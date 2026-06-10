@@ -1,4 +1,4 @@
-// quiz.js — DAILY Quiz Arena
+// quiz.js — DAILY Quiz Arena (PostgreSQL via wrapper)
 const express = require('express');
 const router  = express.Router();
 const { getDB } = require('./database');
@@ -77,56 +77,7 @@ function getQuestions(category, count) {
   }));
 }
 
-// ─── INICIALIZAR TABELAS (chamado pelo database.js via initDB, mas também aqui por segurança) ──
-async function ensureTables(db) {
-  try {
-    await db.prepare(`CREATE TABLE IF NOT EXISTS quiz_profiles (
-      user_id TEXT PRIMARY KEY,
-      xp_total INTEGER DEFAULT 0,
-      season_points INTEGER DEFAULT 0,
-      league TEXT DEFAULT 'Bronze III',
-      best_league TEXT DEFAULT 'Bronze III',
-      wins INTEGER DEFAULT 0,
-      losses INTEGER DEFAULT 0,
-      daily_streak INTEGER DEFAULT 0,
-      best_streak INTEGER DEFAULT 0,
-      city TEXT,
-      last_daily TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
-    )`).run();
-  } catch(e) {}
-  try {
-    await db.prepare(`CREATE TABLE IF NOT EXISTS quiz_daily_attempts (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      attempt_date TEXT NOT NULL,
-      score INTEGER DEFAULT 0,
-      xp_earned INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now'))
-    )`).run();
-  } catch(e) {}
-  try {
-    await db.prepare(`CREATE TABLE IF NOT EXISTS quiz_battles (
-      id TEXT PRIMARY KEY,
-      challenger_id TEXT NOT NULL,
-      opponent_id TEXT,
-      category TEXT DEFAULT 'aleatorio',
-      question_count INTEGER DEFAULT 10,
-      questions TEXT,
-      challenger_score INTEGER,
-      opponent_score INTEGER,
-      challenger_time_ms INTEGER,
-      opponent_time_ms INTEGER,
-      winner_id TEXT,
-      status TEXT DEFAULT 'pending',
-      is_bet INTEGER DEFAULT 0,
-      bet_amount INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now'))
-    )`).run();
-  } catch(e) {}
-}
-
-// ─── HELPERS XP / LIGA ────────────────────────────────────────────────────────
+// ─── LIGAS ────────────────────────────────────────────────────────────────────
 const LEAGUES = ['Bronze III','Bronze II','Bronze I','Prata III','Prata II','Prata I',
   'Ouro III','Ouro II','Ouro I','Platina III','Platina II','Platina I',
   'Diamante III','Diamante II','Diamante I','Mestre','Lenda'];
@@ -140,125 +91,105 @@ function xpToLeague(pts) {
   return league;
 }
 
+// ─── HELPER: upsert perfil ────────────────────────────────────────────────────
+async function upsertProfile(userId, db) {
+  // Tenta buscar — se não existir, cria
+  let p = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
+  if (!p) {
+    let city = null;
+    try { const u = await db.prepare(`SELECT city FROM users WHERE id=?`).get(userId); city = u?.city || null; } catch(e){}
+    await db.prepare(`INSERT INTO quiz_profiles (user_id, city) VALUES (?,?) ON CONFLICT (user_id) DO NOTHING`).run(userId, city);
+    p = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
+  }
+  return p || { user_id: userId, xp_total: 0, season_points: 0, league: 'Bronze III', wins: 0, losses: 0, daily_streak: 0, best_streak: 0 };
+}
+
 async function addXP(userId, xp, db) {
   try {
-    let existing = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
-    if (!existing) {
-      let city = null;
-      try { const u = await db.prepare(`SELECT city FROM users WHERE id=?`).get(userId); city = u?.city || null; } catch(e2){}
-      try {
-        await db.prepare(`INSERT INTO quiz_profiles (user_id, xp_total, season_points, league, best_league, city) VALUES (?,?,?,?,?,?)`)
-          .run(userId, xp, xp, xpToLeague(xp), xpToLeague(xp), city);
-      } catch(e2) {
-        // já existe por corrida, buscar e atualizar
-        existing = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
-      }
-    }
-    if (existing) {
-      const newXp = (existing.xp_total || 0) + xp;
-      const newSeason = (existing.season_points || 0) + xp;
-      const league = xpToLeague(newSeason);
-      const bestLeague = league; // simplificado
-      await db.prepare(`UPDATE quiz_profiles SET xp_total=?, season_points=?, league=?, best_league=? WHERE user_id=?`)
-        .run(newXp, newSeason, league, bestLeague, userId);
-    }
-  } catch(e) { console.error('addXP error:', e.message); }
+    const p = await upsertProfile(userId, db);
+    const newXp = (p.xp_total || 0) + xp;
+    const newSeason = (p.season_points || 0) + xp;
+    const league = xpToLeague(newSeason);
+    await db.prepare(`UPDATE quiz_profiles SET xp_total=?, season_points=?, league=? WHERE user_id=?`)
+      .run(newXp, newSeason, league, userId);
+  } catch(e) { console.error('addXP:', e.message); }
 }
 
-async function getOrCreateProfile(userId, db) {
-  let profile = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
-  if (!profile) {
-    let city = null;
-    try { const u = await db.prepare(`SELECT city FROM users WHERE id=?`).get(userId); city = u?.city || null; } catch(e2){}
-    try {
-      await db.prepare(`INSERT INTO quiz_profiles (user_id, city) VALUES (?,?)`).run(userId, city);
-    } catch(e2) { /* já existe */ }
-    profile = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
-  }
-  return profile || { user_id: userId, xp_total: 0, season_points: 0, league: 'Bronze III', best_league: 'Bronze III', wins: 0, losses: 0, daily_streak: 0, best_streak: 0, city: null };
-}
-
-// ─── ROTAS ────────────────────────────────────────────────────────────────────
-
-// Perfil
+// ─── ROTA: PERFIL ─────────────────────────────────────────────────────────────
 router.get('/profile/me', requireAuth, async (req, res) => {
   try {
     const db = getDB();
-    await ensureTables(db);
-    const profile = await getOrCreateProfile(req.user.id, db);
+    const profile = await upsertProfile(req.user.id, db);
     res.json(profile);
-  } catch(e) { console.error('quiz/profile/me', e.message); res.status(500).json({ error: e.message }); }
+  } catch(e) { console.error('/profile/me:', e.message); res.status(500).json({ error: e.message }); }
 });
 
-// Ranking global
+// ─── ROTA: RANKING GLOBAL ─────────────────────────────────────────────────────
 router.get('/ranking', optionalAuth, async (req, res) => {
   try {
     const db = getDB();
-    await ensureTables(db);
     const rows = await db.prepare(`
       SELECT qp.*, u.name, u.username, u.avatar_url as avatar
-      FROM quiz_profiles qp
-      JOIN users u ON u.id = qp.user_id
+      FROM quiz_profiles qp JOIN users u ON u.id=qp.user_id
       ORDER BY qp.xp_total DESC LIMIT 50
     `).all();
     res.json(rows);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Ranking de cidades
+// ─── ROTA: RANKING CIDADES ────────────────────────────────────────────────────
 router.get('/cities-ranking', optionalAuth, async (req, res) => {
   try {
     const db = getDB();
-    await ensureTables(db);
     const rows = await db.prepare(`
       SELECT city,
         SUM(season_points) AS total_pts,
         COUNT(*) AS members,
-        CAST(SUM(season_points) AS REAL) / COUNT(*) AS efficiency
+        CAST(SUM(season_points) AS FLOAT) / COUNT(*) AS efficiency
       FROM quiz_profiles
       WHERE city IS NOT NULL AND city != '' AND season_points > 0
-      GROUP BY city
-      ORDER BY efficiency DESC LIMIT 20
+      GROUP BY city ORDER BY efficiency DESC LIMIT 20
     `).all();
     res.json(rows);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Quiz diário — GET
+// ─── ROTA: QUIZ DIÁRIO — GET ──────────────────────────────────────────────────
 router.get('/daily', requireAuth, async (req, res) => {
   try {
     const db = getDB();
-    await ensureTables(db);
     const today = new Date().toISOString().split('T')[0];
     const attempt = await db.prepare(
-      `SELECT * FROM quiz_daily_attempts WHERE user_id=? AND attempt_date=?`
+      `SELECT * FROM quiz_daily_attempts WHERE user_id=? AND attempt_date=CAST(? AS DATE)`
     ).get(req.user.id, today);
     if (attempt) return res.json({ done: true, score: attempt.score, xp: attempt.xp_earned });
     const questions = getQuestions('aleatorio', 10);
     res.json({ done: false, questions });
-  } catch(e) { console.error('quiz/daily', e.message); res.status(500).json({ error: e.message }); }
+  } catch(e) { console.error('/daily GET:', e.message); res.status(500).json({ error: e.message }); }
 });
 
-// Quiz diário — POST submit
+// ─── ROTA: QUIZ DIÁRIO — POST SUBMIT ─────────────────────────────────────────
 router.post('/daily/submit', requireAuth, async (req, res) => {
   try {
     const db = getDB();
-    await ensureTables(db);
     const today = new Date().toISOString().split('T')[0];
 
+    // checar duplicata
     const already = await db.prepare(
-      `SELECT id FROM quiz_daily_attempts WHERE user_id=? AND attempt_date=?`
+      `SELECT id FROM quiz_daily_attempts WHERE user_id=? AND attempt_date=CAST(? AS DATE)`
     ).get(req.user.id, today);
     if (already) return res.status(400).json({ error: 'Quiz diário já respondido hoje.' });
 
+    // calcular acertos
     const { answers, questions: sentQs } = req.body;
     let correct = 0;
-    if (sentQs && answers) {
+    if (Array.isArray(sentQs) && Array.isArray(answers)) {
       sentQs.forEach((q, i) => {
-        if (answers[i] !== undefined && answers[i] !== null && answers[i] !== -1 && Number(answers[i]) === Number(q.correct)) correct++;
+        if (answers[i] !== undefined && answers[i] !== -1 && Number(answers[i]) === Number(q.correct)) correct++;
       });
     }
 
+    // calcular XP
     let xp = correct;
     if (correct === 10) xp += 10;
     else if (correct === 9) xp += 5;
@@ -266,57 +197,57 @@ router.post('/daily/submit', requireAuth, async (req, res) => {
     // streak
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
     const prevDay = await db.prepare(
-      `SELECT id FROM quiz_daily_attempts WHERE user_id=? AND attempt_date=?`
+      `SELECT id FROM quiz_daily_attempts WHERE user_id=? AND attempt_date=CAST(? AS DATE)`
     ).get(req.user.id, yesterday);
-    const profile = await getOrCreateProfile(req.user.id, db);
+    const profile = await upsertProfile(req.user.id, db);
     let streak = prevDay ? (profile.daily_streak || 0) + 1 : 1;
     if (streak === 7) xp += 30;
     else if (streak >= 30) xp += 100;
     else if (streak > 1) xp += 5;
 
-    const attemptId = uuidv4();
+    // salvar attempt — id SERIAL (não passar id)
     await db.prepare(
-      `INSERT INTO quiz_daily_attempts (id, user_id, attempt_date, score, xp_earned) VALUES (?,?,?,?,?)`
-    ).run(attemptId, req.user.id, today, correct, xp);
+      `INSERT INTO quiz_daily_attempts (user_id, attempt_date, score, xp_earned) VALUES (?,CAST(? AS DATE),?,?)`
+    ).run(req.user.id, today, correct, xp);
 
-    // update streak e XP
-    await db.prepare(`UPDATE quiz_profiles SET daily_streak=?, best_streak=CASE WHEN best_streak>? THEN best_streak ELSE ? END, last_daily=? WHERE user_id=?`)
-      .run(streak, streak, streak, today, req.user.id);
+    // update streak
+    await db.prepare(`
+      UPDATE quiz_profiles
+      SET daily_streak=?, best_streak=CASE WHEN best_streak>? THEN best_streak ELSE ? END, last_daily=CAST(? AS DATE)
+      WHERE user_id=?
+    `).run(streak, streak, streak, today, req.user.id);
+
+    // add XP
     await addXP(req.user.id, xp, db);
 
     res.json({ correct, total: 10, xp, streak });
-  } catch(e) { console.error('quiz/daily/submit', e.message); res.status(500).json({ error: e.message }); }
+  } catch(e) { console.error('/daily/submit ERROR:', e.message); res.status(500).json({ error: e.message }); }
 });
 
-// Criar batalha
+// ─── ROTA: CRIAR BATALHA ──────────────────────────────────────────────────────
 router.post('/battle/create', requireAuth, async (req, res) => {
   try {
     const db = getDB();
-    await ensureTables(db);
     const { opponent_id, category, question_count } = req.body;
     const qcount = Math.min(parseInt(question_count) || 10, 20);
     const questions = getQuestions(category, qcount);
     const id = uuidv4();
     await db.prepare(`
-      INSERT INTO quiz_battles (id, challenger_id, opponent_id, category, question_count, questions, status)
+      INSERT INTO quiz_battles (id,challenger_id,opponent_id,category,question_count,questions,status)
       VALUES (?,?,?,?,?,?,'pending')
     `).run(id, req.user.id, opponent_id || null, category || 'aleatorio', qcount, JSON.stringify(questions));
 
-    // notificação
     if (opponent_id) {
       try {
-        const notifId = uuidv4();
-        await db.prepare(`
-          INSERT OR IGNORE INTO user_notifications (id, user_id, type, actor_id, message)
-          VALUES (?,?,'quiz_challenge',?,?)
-        `).run(notifId, opponent_id, req.user.id, 'te desafiou para uma batalha no Quiz Arena! 🧠');
+        await db.prepare(`INSERT INTO user_notifications (id,user_id,type,actor_id,message) VALUES (?,?,'quiz_challenge',?,?) ON CONFLICT DO NOTHING`)
+          .run(uuidv4(), opponent_id, req.user.id, 'te desafiou para uma batalha no Quiz Arena! 🧠');
       } catch(e2) {}
     }
     res.json({ id, questions });
-  } catch(e) { console.error('quiz/battle/create', e.message); res.status(500).json({ error: e.message }); }
+  } catch(e) { console.error('/battle/create:', e.message); res.status(500).json({ error: e.message }); }
 });
 
-// Buscar batalha
+// ─── ROTA: BUSCAR BATALHA ─────────────────────────────────────────────────────
 router.get('/battle/:id', requireAuth, async (req, res) => {
   try {
     const db = getDB();
@@ -327,110 +258,100 @@ router.get('/battle/:id', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Submeter resultado da batalha
+// ─── ROTA: SUBMETER BATALHA ───────────────────────────────────────────────────
 router.post('/battle/:id/submit', requireAuth, async (req, res) => {
   try {
     const db = getDB();
-    await ensureTables(db);
     const { score, time_ms } = req.body;
     const battle = await db.prepare(`SELECT * FROM quiz_battles WHERE id=?`).get(req.params.id);
     if (!battle) return res.status(404).json({ error: 'Batalha não encontrada' });
 
     const isChallenger = battle.challenger_id === req.user.id;
-
     if (isChallenger) {
-      await db.prepare(`UPDATE quiz_battles SET challenger_score=?, challenger_time_ms=? WHERE id=?`)
-        .run(score, time_ms, req.params.id);
+      await db.prepare(`UPDATE quiz_battles SET challenger_score=?,challenger_time_ms=? WHERE id=?`).run(score, time_ms, req.params.id);
     } else {
-      await db.prepare(`UPDATE quiz_battles SET opponent_score=?, opponent_time_ms=? WHERE id=?`)
-        .run(score, time_ms, req.params.id);
+      await db.prepare(`UPDATE quiz_battles SET opponent_score=?,opponent_time_ms=? WHERE id=?`).run(score, time_ms, req.params.id);
     }
 
     const updated = await db.prepare(`SELECT * FROM quiz_battles WHERE id=?`).get(req.params.id);
-    const bothDone = updated.challenger_score !== null && updated.challenger_score !== undefined
-      && updated.opponent_score !== null && updated.opponent_score !== undefined;
+    const cs = updated.challenger_score;
+    const os = updated.opponent_score;
+    const bothDone = cs !== null && cs !== undefined && os !== null && os !== undefined;
 
     if (bothDone && !updated.winner_id) {
-      const cs = updated.challenger_score, os = updated.opponent_score;
       const ct = updated.challenger_time_ms, ot = updated.opponent_time_ms;
       let winner_id;
-      if (cs > os) winner_id = updated.challenger_id;
-      else if (os > cs) winner_id = updated.opponent_id;
-      else if (ct < ot) winner_id = updated.challenger_id;
+      if (Number(cs) > Number(os)) winner_id = updated.challenger_id;
+      else if (Number(os) > Number(cs)) winner_id = updated.opponent_id;
+      else if (Number(ct) < Number(ot)) winner_id = updated.challenger_id;
       else winner_id = updated.opponent_id;
 
       const loser_id = winner_id === updated.challenger_id ? updated.opponent_id : updated.challenger_id;
-      await db.prepare(`UPDATE quiz_battles SET winner_id=?, status='finished' WHERE id=?`).run(winner_id, req.params.id);
+      await db.prepare(`UPDATE quiz_battles SET winner_id=?,status='finished' WHERE id=?`).run(winner_id, req.params.id);
       await db.prepare(`UPDATE quiz_profiles SET wins=wins+1 WHERE user_id=?`).run(winner_id);
       if (loser_id) await db.prepare(`UPDATE quiz_profiles SET losses=losses+1 WHERE user_id=?`).run(loser_id);
-      await addXP(winner_id, updated.is_bet ? updated.bet_amount * 2 : 15, db);
+
+      const xpWin = updated.is_bet ? Number(updated.bet_amount) * 2 : 15;
+      await addXP(winner_id, xpWin, db);
       if (loser_id) await addXP(loser_id, updated.is_bet ? 0 : 3, db);
 
-      // notificar perdedor
       if (loser_id) {
         try {
           const winnerRow = await db.prepare(`SELECT name FROM users WHERE id=?`).get(winner_id);
-          await db.prepare(`INSERT OR IGNORE INTO user_notifications (id,user_id,type,actor_id,message) VALUES (?,?,'quiz_result',?,?)`)
+          await db.prepare(`INSERT INTO user_notifications (id,user_id,type,actor_id,message) VALUES (?,?,'quiz_result',?,?) ON CONFLICT DO NOTHING`)
             .run(uuidv4(), loser_id, winner_id, `${winnerRow?.name} venceu a batalha ${cs}x${os} no Quiz Arena!`);
         } catch(e2) {}
       }
     }
+
     res.json({ ok: true, status: bothDone ? 'finished' : 'waiting' });
-  } catch(e) { console.error('quiz/battle/submit', e.message); res.status(500).json({ error: e.message }); }
+  } catch(e) { console.error('/battle/submit:', e.message); res.status(500).json({ error: e.message }); }
 });
 
-// Minhas batalhas
+// ─── ROTA: MINHAS BATALHAS ────────────────────────────────────────────────────
 router.get('/battles', requireAuth, async (req, res) => {
   try {
     const db = getDB();
-    await ensureTables(db);
     const rows = await db.prepare(`
       SELECT qb.*,
         u1.name as challenger_name, u1.username as challenger_username,
         u2.name as opponent_name, u2.username as opponent_username
       FROM quiz_battles qb
-      JOIN users u1 ON u1.id = qb.challenger_id
-      LEFT JOIN users u2 ON u2.id = qb.opponent_id
+      JOIN users u1 ON u1.id=qb.challenger_id
+      LEFT JOIN users u2 ON u2.id=qb.opponent_id
       WHERE qb.challenger_id=? OR qb.opponent_id=?
       ORDER BY qb.created_at DESC LIMIT 20
     `).all(req.user.id, req.user.id);
-    const result = rows.map(b => {
-      try { b.questions = JSON.parse(b.questions); } catch(e) { b.questions = []; }
-      return b;
-    });
-    res.json(result);
+    res.json(rows.map(b => { try { b.questions = JSON.parse(b.questions); } catch(e){} return b; }));
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// XP Bet
+// ─── ROTA: XP BET ────────────────────────────────────────────────────────────
 router.post('/bet/create', requireAuth, async (req, res) => {
   try {
     const db = getDB();
-    await ensureTables(db);
     const { opponent_id, bet_amount, category } = req.body;
-    const valid = [50, 100, 250, 500];
     const amount = parseInt(bet_amount);
-    if (!valid.includes(amount)) return res.status(400).json({ error: 'Valor de aposta inválido' });
-
-    const profile = await getOrCreateProfile(req.user.id, db);
+    if (![50,100,250,500].includes(amount)) return res.status(400).json({ error: 'Valor inválido' });
+    const profile = await upsertProfile(req.user.id, db);
     if ((profile.xp_total || 0) < amount) return res.status(400).json({ error: 'XP insuficiente' });
 
     await db.prepare(`UPDATE quiz_profiles SET xp_total=xp_total-? WHERE user_id=?`).run(amount, req.user.id);
     const questions = getQuestions(category || 'aleatorio', 10);
     const id = uuidv4();
     await db.prepare(`
-      INSERT INTO quiz_battles (id, challenger_id, opponent_id, category, question_count, questions, status, is_bet, bet_amount)
-      VALUES (?,?,?,?,10,?,'pending',1,?)
+      INSERT INTO quiz_battles (id,challenger_id,opponent_id,category,question_count,questions,status,is_bet,bet_amount)
+      VALUES (?,?,?,?,10,?,'pending',true,?)
     `).run(id, req.user.id, opponent_id || null, category || 'aleatorio', JSON.stringify(questions), amount);
 
     if (opponent_id) {
       try {
-        await db.prepare(`INSERT OR IGNORE INTO user_notifications (id,user_id,type,actor_id,message) VALUES (?,?,'quiz_bet',?,?)`)
-          .run(uuidv4(), opponent_id, req.user.id, `te desafiou para uma aposta de ${amount} XP no Quiz Arena! 💰`);
+        await db.prepare(`INSERT INTO user_notifications (id,user_id,type,actor_id,message) VALUES (?,?,'quiz_bet',?,?) ON CONFLICT DO NOTHING`)
+          .run(uuidv4(), opponent_id, req.user.id, `te desafiou para uma aposta de ${amount} XP! 💰`);
       } catch(e2) {}
     }
     res.json({ id, questions, bet_amount: amount });
-  } catch(e) { console.error('quiz/bet', e.message); res.status(500).json({ error: e.message }); }
+  } catch(e) { console.error('/bet/create:', e.message); res.status(500).json({ error: e.message }); }
 });
 
 // ─── ARENA ROYALE (em memória) ────────────────────────────────────────────────
@@ -441,13 +362,11 @@ router.post('/royale/join', requireAuth, async (req, res) => {
     let room = [...royaleRooms.values()].find(r => r.status === 'waiting' && r.players.length < 100);
     if (!room) {
       const roomId = uuidv4();
-      room = { id: roomId, status: 'waiting', players: [], questions: getQuestions('aleatorio', 20),
-        currentQuestion: 0, eliminated: [], startTime: null };
+      room = { id: roomId, status: 'waiting', players: [], questions: getQuestions('aleatorio', 20), currentQuestion: 0, startTime: null };
       royaleRooms.set(roomId, room);
     }
     if (!room.players.find(p => p.id === req.user.id)) {
-      room.players.push({ id: req.user.id, name: req.user.name, username: req.user.username,
-        avatar: req.user.avatar_url, alive: true, score: 0 });
+      room.players.push({ id: req.user.id, name: req.user.name, username: req.user.username, alive: true, score: 0 });
     }
     if (room.players.length >= 2 && !room.startTime) {
       room.startTime = Date.now() + 20000;
@@ -461,12 +380,11 @@ router.get('/royale/:roomId/state', requireAuth, (req, res) => {
   const room = royaleRooms.get(req.params.roomId);
   if (!room) return res.status(404).json({ error: 'Sala não encontrada' });
   const q = room.questions[room.currentQuestion];
-  const qSafe = q ? { id: room.currentQuestion, question: q.question, options: q.options } : null;
   res.json({
     status: room.status, players: room.players.length,
     alive: room.players.filter(p => p.alive).length,
-    question: qSafe, questionIndex: room.currentQuestion,
-    total: room.questions.length, startTime: room.startTime,
+    question: q ? { id: room.currentQuestion, question: q.question, options: q.options } : null,
+    questionIndex: room.currentQuestion, startTime: room.startTime,
   });
 });
 
@@ -477,45 +395,37 @@ router.post('/royale/:roomId/answer', requireAuth, async (req, res) => {
     if (!room || room.status !== 'playing') return res.status(400).json({ error: 'Sala inativa' });
     const { answer } = req.body;
     const player = room.players.find(p => p.id === req.user.id);
-    if (!player || !player.alive) return res.status(400).json({ error: 'Eliminado' });
+    if (!player || !player.alive) return res.json({ alive: false, correct: false, surviving: room.players.filter(p=>p.alive).length });
     const q = room.questions[room.currentQuestion];
-    const correct = q && answer === q.correct;
+    const correct = q && Number(answer) === Number(q.correct);
     if (correct) player.score++;
-    else { player.alive = false; room.eliminated.push(req.user.id); }
-
-    // avançar pergunta se todos responderam
-    const alive = room.players.filter(p => p.alive);
-    const answered = room.players.filter(p => !p.alive || p._answered === room.currentQuestion);
+    else player.alive = false;
     player._answered = room.currentQuestion;
 
+    const alive = room.players.filter(p => p.alive);
     if (alive.length <= 1) {
       room.status = 'finished';
-      if (alive.length === 1) {
-        try { await addXP(alive[0].id, 250, db); } catch(e2) {}
-      }
+      if (alive.length === 1) { try { await addXP(alive[0].id, 250, db); } catch(e2){} }
       setTimeout(() => royaleRooms.delete(room.id), 300000);
     } else {
-      // avançar pergunta após 2s
-      setTimeout(() => { room.currentQuestion = Math.min(room.currentQuestion + 1, room.questions.length - 1); }, 2000);
+      const allAnswered = room.players.every(p => !p.alive || p._answered === room.currentQuestion);
+      if (allAnswered) setTimeout(() => { room.currentQuestion++; }, 2000);
     }
     res.json({ alive: player.alive, correct, surviving: alive.length });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── CHAT DA SALA ──────────────────────────────────────────────────────────────
+// ─── CHAT ─────────────────────────────────────────────────────────────────────
 const roomChats = new Map();
 
 router.post('/chat/:roomId', requireAuth, (req, res) => {
   try {
     const { message } = req.body;
-    if (!message?.trim()) return res.status(400).json({ error: 'Mensagem vazia' });
+    if (!message?.trim()) return res.status(400).json({ error: 'Vazio' });
     if (!roomChats.has(req.params.roomId)) roomChats.set(req.params.roomId, []);
     const msgs = roomChats.get(req.params.roomId);
-    const msg = {
-      id: uuidv4(), user_id: req.user.id, name: req.user.name,
-      username: req.user.username, avatar: req.user.avatar_url,
-      message: message.trim().slice(0, 200), created_at: new Date().toISOString(),
-    };
+    const msg = { id: uuidv4(), user_id: req.user.id, name: req.user.name, username: req.user.username,
+      message: message.trim().slice(0,200), created_at: new Date().toISOString() };
     msgs.push(msg);
     if (msgs.length > 100) msgs.splice(0, msgs.length - 100);
     res.json(msg);
@@ -523,12 +433,9 @@ router.post('/chat/:roomId', requireAuth, (req, res) => {
 });
 
 router.get('/chat/:roomId', requireAuth, (req, res) => {
-  try {
-    const msgs = roomChats.get(req.params.roomId) || [];
-    const since = req.query.since;
-    const filtered = since ? msgs.filter(m => m.created_at > since) : msgs.slice(-30);
-    res.json(filtered);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  const msgs = roomChats.get(req.params.roomId) || [];
+  const since = req.query.since;
+  res.json(since ? msgs.filter(m => m.created_at > since) : msgs.slice(-30));
 });
 
 module.exports = router;
