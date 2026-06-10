@@ -142,19 +142,25 @@ function xpToLeague(pts) {
 
 async function addXP(userId, xp, db) {
   try {
-    const existing = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
+    let existing = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
     if (!existing) {
-      const userRow = await db.prepare(`SELECT city FROM users WHERE id=?`).get(userId);
-      const newXp = xp;
-      const league = xpToLeague(newXp);
-      await db.prepare(`INSERT OR IGNORE INTO quiz_profiles (user_id, xp_total, season_points, league, best_league, city)
-        VALUES (?,?,?,?,?,?)`).run(userId, newXp, newXp, league, league, userRow?.city || null);
-    } else {
+      let city = null;
+      try { const u = await db.prepare(`SELECT city FROM users WHERE id=?`).get(userId); city = u?.city || null; } catch(e2){}
+      try {
+        await db.prepare(`INSERT INTO quiz_profiles (user_id, xp_total, season_points, league, best_league, city) VALUES (?,?,?,?,?,?)`)
+          .run(userId, xp, xp, xpToLeague(xp), xpToLeague(xp), city);
+      } catch(e2) {
+        // já existe por corrida, buscar e atualizar
+        existing = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
+      }
+    }
+    if (existing) {
       const newXp = (existing.xp_total || 0) + xp;
       const newSeason = (existing.season_points || 0) + xp;
       const league = xpToLeague(newSeason);
+      const bestLeague = league; // simplificado
       await db.prepare(`UPDATE quiz_profiles SET xp_total=?, season_points=?, league=?, best_league=? WHERE user_id=?`)
-        .run(newXp, newSeason, league, league, userId);
+        .run(newXp, newSeason, league, bestLeague, userId);
     }
   } catch(e) { console.error('addXP error:', e.message); }
 }
@@ -162,12 +168,14 @@ async function addXP(userId, xp, db) {
 async function getOrCreateProfile(userId, db) {
   let profile = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
   if (!profile) {
-    const userRow = await db.prepare(`SELECT city FROM users WHERE id=?`).get(userId);
-    await db.prepare(`INSERT OR IGNORE INTO quiz_profiles (user_id, city) VALUES (?,?)`)
-      .run(userId, userRow?.city || null);
+    let city = null;
+    try { const u = await db.prepare(`SELECT city FROM users WHERE id=?`).get(userId); city = u?.city || null; } catch(e2){}
+    try {
+      await db.prepare(`INSERT INTO quiz_profiles (user_id, city) VALUES (?,?)`).run(userId, city);
+    } catch(e2) { /* já existe */ }
     profile = await db.prepare(`SELECT * FROM quiz_profiles WHERE user_id=?`).get(userId);
   }
-  return profile;
+  return profile || { user_id: userId, xp_total: 0, season_points: 0, league: 'Bronze III', best_league: 'Bronze III', wins: 0, losses: 0, daily_streak: 0, best_streak: 0, city: null };
 }
 
 // ─── ROTAS ────────────────────────────────────────────────────────────────────
@@ -247,7 +255,7 @@ router.post('/daily/submit', requireAuth, async (req, res) => {
     let correct = 0;
     if (sentQs && answers) {
       sentQs.forEach((q, i) => {
-        if (answers[i] !== undefined && answers[i] !== null && answers[i] === q.correct) correct++;
+        if (answers[i] !== undefined && answers[i] !== null && answers[i] !== -1 && Number(answers[i]) === Number(q.correct)) correct++;
       });
     }
 
@@ -272,8 +280,8 @@ router.post('/daily/submit', requireAuth, async (req, res) => {
     ).run(attemptId, req.user.id, today, correct, xp);
 
     // update streak e XP
-    await db.prepare(`UPDATE quiz_profiles SET daily_streak=?, best_streak=MAX(best_streak,?), last_daily=? WHERE user_id=?`)
-      .run(streak, streak, today, req.user.id);
+    await db.prepare(`UPDATE quiz_profiles SET daily_streak=?, best_streak=CASE WHEN best_streak>? THEN best_streak ELSE ? END, last_daily=? WHERE user_id=?`)
+      .run(streak, streak, streak, today, req.user.id);
     await addXP(req.user.id, xp, db);
 
     res.json({ correct, total: 10, xp, streak });
