@@ -92,6 +92,22 @@ router.get('/received', authMiddleware, async (req, res) => {
 });
 
 
+// GET pokes enviados
+router.get('/sent', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const pokes = await db.prepare(`
+      SELECT pa.*, u.name as to_name, u.username as to_username, dp.config as to_config
+      FROM dailypoke_actions pa
+      JOIN users u ON u.id = pa.to_user_id
+      LEFT JOIN dailypokes dp ON dp.user_id = pa.to_user_id
+      WHERE pa.from_user_id = $1
+      ORDER BY pa.created_at DESC LIMIT 20
+    `).all(req.user.id);
+    res.json({ pokes });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/dailypoke/user/:id — ver poke de outro usuário
 // GET todos os pokes (para o DailyVERSE)
 router.get('/all', authMiddleware, async (req, res) => {
