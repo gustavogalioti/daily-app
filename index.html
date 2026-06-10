@@ -7036,7 +7036,7 @@ async function openPokeActions() {
         const cfg = typeof p.config==='string'?JSON.parse(p.config):p.config;
         const svg = buildPokeSVG(cfg).replace(/width="[^"]*"/, 'width="52"').replace(/height="[^"]*"/, 'height="100"');
         return `<div onclick="selectPokeTarget('${p.user_id}','${p.username}','${(p.name||'').replace(/'/g,'')}',this)"
-          style="text-align:center;cursor:pointer;border-radius:10px;padding:8px;border:2px solid transparent;transition:.15s;" class="poke-target-card">
+          data-svg="" style="text-align:center;cursor:pointer;border-radius:10px;padding:8px;border:2px solid transparent;transition:.15s;" class="poke-target-card">
           ${svg}
           <div style="font-size:10px;font-weight:700;margin-top:4px;">${(p.name||'').split(' ')[0]}</div>
         </div>`;
@@ -7066,7 +7066,10 @@ let selectedPokeScene = null;
 function selectPokeTarget(userId, username, name, el) {
   document.querySelectorAll('.poke-target-card').forEach(c => c.style.borderColor='transparent');
   el.style.borderColor = 'var(--accent)';
-  selectedPokeTarget = { userId, username, name };
+  // Pegar SVG do filho do card
+  const svgEl = el.querySelector('svg');
+  const friendSvg = svgEl ? svgEl.outerHTML : '';
+  selectedPokeTarget = { userId, username, name, svg: friendSvg };
   document.getElementById('poke-scene-picker').style.display = 'block';
 }
 
@@ -7078,6 +7081,7 @@ function selectPokeScene(emoji, label, el) {
   // Mostrar preview animado da cena
   const preview = document.getElementById('poke-preview-area');
   const mySvg = buildPokeSVG(myPokeConfig).replace(/width="[^"]*"/, 'width="60"').replace(/height="[^"]*"/, 'height="114"');
+  const friendSvg = selectedPokeTarget?.svg ? selectedPokeTarget.svg.replace(/width="[^"]*"/, 'width="60"').replace(/height="[^"]*"/, 'height="114"') : mySvg;
   preview.style.display = 'block';
   preview.innerHTML = `
     <div style="display:inline-flex;align-items:flex-end;gap:16px;background:var(--surface2);border-radius:14px;padding:16px 24px;position:relative;">
@@ -7087,7 +7091,7 @@ function selectPokeScene(emoji, label, el) {
       </div>
       <div style="font-size:36px;animation:pokeSpin 1s ease-in-out infinite;">${emoji}</div>
       <div style="text-align:center;transform:scaleX(-1);">
-        <div style="animation:pokeBob 0.6s ease-in-out infinite alternate .3s;">${mySvg}</div>
+        <div style="animation:pokeBob 0.6s ease-in-out infinite alternate .3s;">${friendSvg}</div>
         <div style="font-size:10px;font-weight:700;margin-top:4px;transform:scaleX(-1);">${selectedPokeTarget?.name?.split(' ')[0] || '?'}</div>
       </div>
     </div>
