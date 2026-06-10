@@ -117,6 +117,29 @@ process.on('uncaughtException', (err) => {
   setInterval(checkDailyQuestionPush, 5 * 60 * 1000);
   checkDailyQuestionPush(); // verificar imediatamente
 
+  // ── Scheduler: notificação do Quiz Arena à meia-noite ────────────────────
+  let lastQuizNotifDate = null;
+
+  async function checkQuizArenaPush() {
+    try {
+      const db = getDB();
+      const h = getBrazilHour();
+      if (h !== 0) return; // só à meia-noite (horário de Brasília)
+      const today = new Date().toISOString().split('T')[0];
+      if (lastQuizNotifDate === today) return; // já enviou hoje
+      lastQuizNotifDate = today;
+      const { v4: uuidv4 } = require('uuid');
+      const notifId = uuidv4();
+      await db.prepare("INSERT INTO notifications(id,message,active,sent_at,expires_at) VALUES($1,$2,1,NOW(),NOW()+INTERVAL '6 hours')")
+        .run(notifId, '🧠 O Quiz Diário do DAILY Quiz Arena está liberado! Jogue agora e represente sua cidade.');
+      await sendPushToAll(db, notifId);
+      console.log('📬 Quiz Arena push enviado para todos os usuários');
+    } catch(e) { console.error('quiz arena push error:', e.message); }
+  }
+
+  setInterval(checkQuizArenaPush, 5 * 60 * 1000);
+  checkQuizArenaPush();
+
     const PORT = process.env.PORT || 3000;
   const httpServer = http.createServer(app);
   // WebSocket para Truco (opcional)

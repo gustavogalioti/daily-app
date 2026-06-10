@@ -9580,7 +9580,8 @@ function updateTimerBar() {
 function answerDaily(answerIdx) {
   clearInterval(quizDailyTimer);
   const q = quizDailyQuestions[quizDailyCurrentQ];
-  quizDailyAnswers.push({ questionId: quizDailyCurrentQ, answer: answerIdx });
+  // guardar índice simples (inteiro)
+  quizDailyAnswers[quizDailyCurrentQ] = answerIdx;
 
   // feedback visual
   const btns = document.getElementById('q-options').querySelectorAll('button');
@@ -9600,9 +9601,13 @@ function answerDaily(answerIdx) {
 async function submitDailyQuiz() {
   document.getElementById('quiz-daily-game').style.display = 'none';
   try {
+    // answers = array de inteiros indexado por posição da pergunta
+    const answersToSend = quizDailyQuestions.map((q, i) =>
+      quizDailyAnswers[i] !== undefined ? quizDailyAnswers[i] : -1
+    );
     const result = await api('/api/quiz/daily/submit', {
       method: 'POST',
-      body: JSON.stringify({ answers: quizDailyAnswers, questions: quizDailyQuestions })
+      body: JSON.stringify({ answers: answersToSend, questions: quizDailyQuestions })
     });
     const emojis = ['😢','😅','🙂','😊','😁','🤩','🔥','⚡','🌟','💫','🏆'];
     document.getElementById('qr-emoji').textContent = emojis[Math.min(result.correct, 10)];
@@ -9610,7 +9615,6 @@ async function submitDailyQuiz() {
     document.getElementById('qr-xp').textContent = `+${result.xp} XP ganhos`;
     document.getElementById('qr-streak').textContent = result.streak > 1 ? `🔥 ${result.streak} dias seguidos!` : '';
     document.getElementById('quiz-daily-result').style.display = 'block';
-    // refresh perfil
     quizProfile = await api('/api/quiz/profile/me');
     renderQuizHeader();
   } catch(e) { toast('Erro ao enviar respostas'); }
