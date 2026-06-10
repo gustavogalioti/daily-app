@@ -949,7 +949,6 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <div class="profile-tab" onclick="showProfileSec('depoimentos',this)" style="flex-shrink:0;">💬 Depoi.</div>
         <div class="profile-tab" onclick="showProfileSec('conquistas',this)" style="flex-shrink:0;">🏆 Conquistas</div>
         <div class="profile-tab" onclick="showProfileSec('agenda',this)" style="flex-shrink:0;">📆 Agenda</div>
-        <div class="profile-tab" onclick="showProfileSec('config',this)" style="flex-shrink:0;">⚙️ Config.</div>
       </div>
       <div id="ps-feed">
         <!-- Sub-abas Feed -->
@@ -1275,6 +1274,19 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <button class="modal-close" onclick="closeModal('modal-photos')">✕</button>
     </div>
     <div class="modal-body" id="modal-photos-body">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Configurações -->
+<div class="modal-overlay" id="modal-config">
+  <div class="modal" style="max-width:500px;width:97%;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title">⚙️ Configurações</span>
+      <button class="modal-close" onclick="closeModal('modal-config')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-config-body">
       <div class="page-loader"><div class="loader"></div></div>
     </div>
   </div>
@@ -2315,6 +2327,7 @@ async function loadProfile(){
               <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openBadgeSelector()">🏅 Badges</button>
               <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openTimelinePage()">📅 Linha do Tempo</button>
               <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openPhotosPage()">📸 Fotos</button>
+              <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;" onclick="openConfigPage()">⚙️ Configurações</button>
             </div>
           </div>
 
@@ -2801,6 +2814,90 @@ async function openAddTaggedPhoto() {
 }
 
 // ═══ LINHA DO TEMPO (página modal) ═══
+// ═══ CONFIGURAÇÕES (modal) ═══
+async function openConfigPage() {
+  openModal('modal-config');
+  const body = document.getElementById('modal-config-body');
+
+  // Buscar dados do perfil para configs
+  try {
+    // Carregar seções de configuração
+    body.innerHTML = `
+      <!-- Conta -->
+      <div style="margin-bottom:20px;">
+        <div style="font-weight:800;font-size:14px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border);">👤 Conta</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;text-align:left;" onclick="closeModal('modal-config');openEditProfile()">✏️ Editar perfil</button>
+          <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;text-align:left;" onclick="closeModal('modal-config');openEditAvatar()">📸 Alterar foto de perfil</button>
+          <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;text-align:left;" onclick="changePassword()">🔒 Alterar senha</button>
+        </div>
+      </div>
+
+      <!-- Notificações -->
+      <div style="margin-bottom:20px;">
+        <div style="font-weight:800;font-size:14px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border);">🔔 Notificações</div>
+        <div id="config-notif-prefs" style="display:flex;flex-direction:column;gap:8px;">
+          <div class="page-loader"><div class="loader"></div></div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="width:100%;margin-top:12px;" onclick="activatePushNotifications()">🔔 Ativar / Reativar push</button>
+      </div>
+
+      <!-- Privacidade -->
+      <div style="margin-bottom:20px;">
+        <div style="font-weight:800;font-size:14px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border);">🔒 Privacidade</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;text-align:left;" onclick="closeModal('modal-config');switchTab('mapa',document.querySelector('[data-tab=mapa]'))">📍 Configurar geolocalização</button>
+        </div>
+      </div>
+
+      <!-- Sobre -->
+      <div>
+        <div style="font-weight:800;font-size:14px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border);">ℹ️ Sobre</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.8;">
+          <div>DAILY — Sua vida, seu tempo</div>
+          <div>Versão 3.0</div>
+          <div style="margin-top:8px;">
+            <button class="btn btn-ghost btn-sm" style="color:#e55;font-size:12px;" onclick="logoutConfirm()">🚪 Sair da conta</button>
+          </div>
+        </div>
+      </div>`;
+
+    // Carregar preferências de notificação dentro do modal
+    loadNotifPrefsInto('config-notif-prefs');
+  } catch(e) {
+    body.innerHTML = '<p class="text-muted">Erro ao carregar configurações.</p>';
+  }
+}
+
+async function loadNotifPrefsInto(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  try {
+    const { prefs } = await api('/api/notif-prefs');
+    el.innerHTML = Object.entries(NOTIF_PREF_LABELS).map(([key, label]) => {
+      const active = prefs[key] !== '0';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:12px;">${label}</span>
+        <label style="position:relative;display:inline-block;width:38px;height:20px;cursor:pointer;flex-shrink:0;">
+          <input type="checkbox" ${active ? 'checked' : ''} onchange="toggleNotifPref('${key}',this.checked)"
+            style="opacity:0;width:0;height:0;position:absolute;">
+          <span style="position:absolute;inset:0;background:${active ? 'var(--accent)' : '#ccc'};border-radius:20px;transition:.25s;">
+            <span style="position:absolute;height:14px;width:14px;left:${active ? '20px' : '3px'};bottom:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></span>
+          </span>
+        </label>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<p class="text-muted" style="font-size:12px;">Erro ao carregar.</p>'; }
+}
+
+function logoutConfirm() {
+  if (confirm('Sair da conta DAILY?')) {
+    localStorage.clear();
+    sessionStorage.clear();
+    location.reload();
+  }
+}
+
 // ═══ PREFERÊNCIAS DE NOTIFICAÇÃO ═══
 const NOTIF_PREF_LABELS = {
   notif_friend_request:    '🤝 Solicitações de amizade',
