@@ -2299,6 +2299,20 @@ function showAchSection(sec,btn){
 // ═══════════════════════════════════
 async function loadProfile(){
   const w=document.getElementById('profile-card-wrap');
+  // Salvar elementos que foram movidos para dentro do wrap antes de limpar
+  const _tabsRow = document.getElementById('profile-tabs-row');
+  const _savedEls = {};
+  ['feed','comunidades','depoimentos','conquistas','profissional','agenda','amigos','config'].forEach(sec => {
+    const el = document.getElementById('ps-' + sec);
+    if (el) _savedEls[sec] = el;
+  });
+  // Mover para fora do w antes de limpar
+  const _stash = document.createElement('div');
+  _stash.style.display = 'none';
+  document.body.appendChild(_stash);
+  if (_tabsRow) _stash.appendChild(_tabsRow);
+  Object.values(_savedEls).forEach(el => _stash.appendChild(el));
+  
   w.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
   try{
     const{user}=await api(`/api/users/${currentUser.username}`);
@@ -2406,12 +2420,15 @@ async function loadProfile(){
     if (tabsRow && wrap) {
       wrap.appendChild(tabsRow);
       tabsRow.classList.remove('hidden');
-      // Mover seções de conteúdo
       ['feed','comunidades','depoimentos','conquistas','profissional','agenda','amigos'].forEach(sec => {
         const el = document.getElementById('ps-' + sec);
         if (el) wrap.appendChild(el);
       });
     }
+    // Limpar stash temporário
+    document.querySelectorAll('body > div[style*="display: none"]').forEach(el => {
+      if (el.children.length === 0) el.remove();
+    });
     loadFeedTab('meus');
     loadTimelineSidebar();
     loadProfileFriendsMini();
@@ -5782,7 +5799,7 @@ function showOnboardBanners() {
       <button onclick="closeVisitorProfile()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--text);line-height:1;padding:0 8px 0 0;">‹</button>
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;" id="visitor-screen-name">Perfil</div>
     </div>
-    <div id="visitor-screen-body" style="max-width:600px;margin:0 auto;width:100%;"></div>
+    <div id="visitor-screen-body" style="max-width:1200px;margin:0 auto;width:100%;padding:0 8px;"></div>
   </div>
 
 <script>
