@@ -830,30 +830,29 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
       <!-- DailyPoke -->
       <div id="jogo-dailypoke">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
-
-          <!-- Meu bonequinho -->
-          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;text-align:center;">
-            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px;">Meu DailyPoke</div>
-            <div id="my-poke-preview" style="display:flex;justify-content:center;margin-bottom:12px;">
-              <div style="font-size:48px;color:var(--muted);">🎭</div>
-            </div>
-            <button class="btn btn-primary btn-sm" style="width:100%;" onclick="openPokeEditor()">✏️ Criar / Editar</button>
-            <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;" onclick="openPokeActions()">💌 Mandar poke</button>
+        <!-- Linha 1: Meu Poke -->
+        <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;text-align:center;margin-bottom:12px;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:10px;">Meu DailyPoke</div>
+          <div id="my-poke-preview" style="display:flex;justify-content:center;margin-bottom:10px;">
+            <div style="font-size:48px;color:var(--muted);">🎭</div>
           </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" style="flex:1;" onclick="openPokeEditor()">✏️ Criar / Editar</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="openPokeActions()">💌 Mandar poke</button>
+          </div>
+        </div>
 
-          <!-- Pokes dos amigos -->
-          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;">
-            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px;">Pokes recebidos</div>
-            <div id="pokes-received" style="display:flex;flex-direction:column;gap:8px;">
+        <!-- Linha 2: Recebidos + Enviados lado a lado -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:12px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;margin-bottom:10px;">📥 Recebidos</div>
+            <div id="pokes-received" style="display:flex;flex-direction:column;gap:6px;">
               <div class="page-loader"><div class="loader"></div></div>
             </div>
           </div>
-
-          <!-- Pokes enviados -->
-          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;margin-top:12px;">
-            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px;">📤 Pokes enviados</div>
-            <div id="pokes-sent" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:12px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;margin-bottom:10px;">📤 Enviados</div>
+            <div id="pokes-sent" style="display:flex;flex-direction:column;gap:6px;">
               <div class="page-loader"><div class="loader"></div></div>
             </div>
           </div>
@@ -6953,10 +6952,28 @@ async function loadDailyVerse() {
   } catch(e) { console.error('loadDailyVerse:', e); }
 }
 
-const VERSE_FALAS = [
-  'Oi! 👋', 'Bora!', 'E aí?', '😎', 'kkk', 'Daily!',
-  'Vibe!', '🔥', 'Show!', '?!', 'Boa!', '😂'
+const VERSE_FALAS_SIMPLES = [
+  'Vibe! 🔥', 'Show!', 'kkk 😂', 'Daily!', '😎', 'Boa!', '🎉'
 ];
+
+// Pares de debate - quando um fala A, o vizinho mais próximo responde B
+const VERSE_DEBATES = [
+  ['Eu prefiro o lanche do palhaço! 🍔', 'Eu prefiro o lanche do Rei! 👑🍔'],
+  ['Time do coração é o melhor! ❤️', 'Meu time é imbatível! 🏆'],
+  ['Android é superior! 🤖', 'iPhone é melhor! 🍎'],
+  ['Prefiro praia! 🏖️', 'Eu prefiro montanha! ⛰️'],
+  ['Café com leite! ☕', 'Café puro só! ☕🖤'],
+];
+
+function getVerseGreeting(myName, otherName) {
+  const msgs = [
+    `Oi, ${otherName}! 👋`,
+    `Eai ${otherName}! 😄`,
+    `${otherName}! Tudo bem? 🤙`,
+    `Boa, ${otherName}! 🤜🤛`,
+  ];
+  return msgs[Math.floor(Math.random() * msgs.length)];
+}
 
 function triggerVerseScene() {
   if (verseAgents.length < 2) return;
@@ -6998,19 +7015,46 @@ function verseLoop(canvas, W, H) {
     // Mudar direção aleatoriamente
     agent.actionTimer--;
     if (agent.actionTimer <= 0) {
-      agent.actionTimer = 80 + Math.floor(Math.random() * 120);
+      agent.actionTimer = 90 + Math.floor(Math.random() * 130);
       const r = Math.random();
-      if (r < 0.2) {
-        // Parar e falar
+      if (r < 0.12) {
+        // Cumprimentar vizinho mais próximo
         agent.vx = 0;
-        const fala = VERSE_FALAS[Math.floor(Math.random() * VERSE_FALAS.length)];
+        const nearest = verseAgents
+          .filter(a => a !== agent)
+          .sort((a, b) => Math.abs(a.x - agent.x) - Math.abs(b.x - agent.x))[0];
+        if (nearest && Math.abs(nearest.x - agent.x) < 200) {
+          const greeting = getVerseGreeting(agent.name, (nearest.name||'').split(' ')[0] || nearest.username || 'aí');
+          showVerseBubble(agent, greeting);
+          setTimeout(() => {
+            const reply = getVerseGreeting(nearest.name, (agent.name||'').split(' ')[0] || '');
+            showVerseBubble(nearest, reply);
+          }, 1200);
+        }
+        setTimeout(() => { agent.vx = (Math.random() - .5) * 0.5; }, 2500);
+      } else if (r < 0.22) {
+        // Iniciar debate
+        agent.vx = 0;
+        const debate = VERSE_DEBATES[Math.floor(Math.random() * VERSE_DEBATES.length)];
+        const nearest = verseAgents
+          .filter(a => a !== agent)
+          .sort((a, b) => Math.abs(a.x - agent.x) - Math.abs(b.x - agent.x))[0];
+        showVerseBubble(agent, debate[0]);
+        if (nearest && Math.abs(nearest.x - agent.x) < 250) {
+          setTimeout(() => showVerseBubble(nearest, debate[1]), 1500);
+        }
+        setTimeout(() => { agent.vx = (Math.random() - .5) * 0.5; }, 3500);
+      } else if (r < 0.38) {
+        // Fala simples
+        agent.vx = 0;
+        const fala = VERSE_FALAS_SIMPLES[Math.floor(Math.random() * VERSE_FALAS_SIMPLES.length)];
         showVerseBubble(agent, fala);
-        setTimeout(() => { agent.vx = (Math.random() - .5) * 0.6; }, 2500);
-      } else if (r < 0.5) {
+        setTimeout(() => { agent.vx = (Math.random() - .5) * 0.5; }, 2000);
+      } else if (r < 0.6) {
         agent.dir *= -1;
         agent.vx = 0.4 + Math.random() * 0.4;
       } else {
-        agent.vx = (Math.random() - .5) * 0.6;
+        agent.vx = (Math.random() - .5) * 0.5;
       }
     }
 

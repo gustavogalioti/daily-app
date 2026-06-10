@@ -62,15 +62,17 @@ router.post('/send', authMiddleware, async (req, res) => {
       .run(id, req.user.id, to_user_id, finalAction);
     const sender = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
     const sceneText = scene ? ` quer fazer uma cena com você: ${scene}` : ' te mandou um poke! 👋';
-    await createNotification(db, {
-      userId: to_user_id, fromUserId: req.user.id,
-      type: 'poke',
-      title: `🎭 ${sender?.name}${sceneText}`,
-      body: 'Abra o DailyPoke para ver!',
-      data: { action: finalAction }
-    });
+    try {
+      await createNotification(db, {
+        userId: to_user_id, fromUserId: req.user.id,
+        type: 'poke',
+        title: `🎭 ${sender?.name}${sceneText}`,
+        body: 'Abra o DailyPoke para ver!',
+        data: { action: finalAction }
+      });
+    } catch(notifErr) { console.error('poke notif erro:', notifErr.message); }
     res.status(201).json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { console.error('poke send erro:', e.message); res.status(500).json({ error: e.message }); }
 });
 
 // GET /api/dailypoke/received — pokes recebidos
