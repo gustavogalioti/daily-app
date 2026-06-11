@@ -566,9 +566,14 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     <!-- ─── GLOBAL ─── -->
     <div id="tab-mundo" class="tab-content active">
       <div id="notif-banner" class="notif-banner hidden">
-        <div>
+        <div style="flex:1;">
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📷 Daily Mandou!</div>
           <div style="font-size:13px;opacity:.9;margin-top:2px;">Poste uma foto do seu momento agora. Corra!</div>
+          <div id="ios-notif-warning" style="display:none;margin-top:8px;background:rgba(255,255,255,0.2);border-radius:8px;padding:8px 10px;font-size:11px;line-height:1.5;">
+            ⚠️ <strong>iPhone?</strong> Para receber essa notificação automaticamente, adicione o DAILY à sua Tela de Início.<br>
+            <span style="opacity:.85;">Toque em <strong>Compartilhar</strong> → <strong>Adicionar à Tela de Início</strong> → abra pelo ícone.</span>
+            <button onclick="openModal('modal-ios-install')" style="background:#fff;color:var(--accent);border:none;border-radius:6px;font-size:11px;font-weight:700;padding:3px 8px;margin-top:5px;cursor:pointer;display:block;">Ver passo a passo →</button>
+          </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
           <div class="notif-timer" id="notif-countdown">01:00</div>
@@ -1602,26 +1607,33 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <button class="modal-close" onclick="closeModal('modal-ios-install')">✕</button>
     </div>
     <div class="modal-body" style="text-align:center;">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Para receber notificações no iPhone, instale o DAILY na sua tela inicial:</p>
+      <div style="background:#fff3cd;border:1.5px solid #ffb300;border-radius:12px;padding:12px 14px;margin-bottom:16px;text-align:left;">
+        <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:4px;">⚠️ Importante para iPhone</div>
+        <div style="font-size:12px;color:#78350f;line-height:1.5;">As notificações do <strong>Daily Mandou NÃO funcionam no Safari</strong>. Você precisa adicionar o DAILY à sua Tela de Início e abrir sempre por lá.</div>
+      </div>
       <div style="display:flex;flex-direction:column;gap:14px;text-align:left;">
         <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:12px;">
           <div style="font-size:28px;">1️⃣</div>
-          <div><div style="font-weight:700;font-size:13px;">Toque em Compartilhar</div><div style="font-size:12px;color:var(--muted);">O ícone de quadrado com seta pra cima</div></div>
+          <div><div style="font-weight:700;font-size:13px;">Toque em Compartilhar</div><div style="font-size:12px;color:var(--muted);">O ícone de quadrado com seta ↑ na barra do Safari</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:12px;">
           <div style="font-size:28px;">2️⃣</div>
-          <div><div style="font-weight:700;font-size:13px;">Adicionar à Tela de Início</div><div style="font-size:12px;color:var(--muted);">Role para baixo e toque nessa opção</div></div>
+          <div><div style="font-weight:700;font-size:13px;">Adicionar à Tela de Início</div><div style="font-size:12px;color:var(--muted);">Role o menu pra baixo e toque nessa opção</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:12px;">
           <div style="font-size:28px;">3️⃣</div>
-          <div><div style="font-weight:700;font-size:13px;">Abra pelo ícone criado</div><div style="font-size:12px;color:var(--muted);">Feche o Safari e abra o ícone do DAILY</div></div>
+          <div><div style="font-weight:700;font-size:13px;">Feche o Safari</div><div style="font-size:12px;color:var(--muted);">Saia do navegador completamente</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:12px;">
           <div style="font-size:28px;">4️⃣</div>
+          <div><div style="font-weight:700;font-size:13px;">Abra pelo ícone do DAILY</div><div style="font-size:12px;color:var(--muted);">Sempre use o ícone na tela inicial — nunca o Safari</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:12px;">
+          <div style="font-size:28px;">5️⃣</div>
           <div><div style="font-weight:700;font-size:13px;">Ative as notificações</div><div style="font-size:12px;color:var(--muted);">Toque em "Ativar notificações" quando aparecer</div></div>
         </div>
       </div>
-      <button class="btn btn-ghost" style="width:100%;margin-top:16px;" onclick="closeModal('modal-ios-install')">Entendido</button>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px;" onclick="closeModal('modal-ios-install')">Entendido, vou instalar!</button>
     </div>
   </div>
 </div>
@@ -2079,6 +2091,11 @@ async function checkNotif(){
     if(active&&ms_remaining>0){
       b1.classList.remove('hidden');b2.classList.remove('hidden');
       startCountdown(ms_remaining);
+      // Mostrar aviso iOS se for iPhone fora do app instalado
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      const iosWarn = document.getElementById('ios-notif-warning');
+      if(iosWarn) iosWarn.style.display = (isIOS && !isStandalone) ? 'block' : 'none';
     }else{
       b1.classList.add('hidden');b2.classList.add('hidden');
       clearInterval(notifIntervalId);
