@@ -314,8 +314,10 @@
   </div>
 </div>
 
-<script type="module">
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+<script>
+// Dynamic import so we don't need type="module" but still get Three.js
+(async () => {
+const THREE = await import('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js');
 
 // ─── State ────────────────────────────────────────────────────────────
 const state = {
@@ -907,6 +909,7 @@ window.goToMenu = function() {
   document.getElementById('crosshair').style.display = 'none';
   if (pveInterval) clearInterval(pveInterval);
 };
+})(); // end async IIFE
 </script>
 </body>
 </html>
