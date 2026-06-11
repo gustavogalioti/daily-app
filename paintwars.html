@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAILY Paint Wars</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+
+  #canvas { display: block; width: 100vw; height: 100vh; cursor: none; }
+
+  /* HUD */
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+
+  /* Crosshair */
+  #crosshair {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px; height: 20px;
+  }
+  #crosshair::before, #crosshair::after {
+    content: ''; position: absolute; background: rgba(255,255,255,0.85);
+  }
+  #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+  #crosshair::after  { height: 2px; width: 100%; top: 50%; transform: translateY(-50%); }
+
+  /* Top bar */
+  #topbar {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 20px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.65), transparent);
+  }
+  #logo { font-size: 13px; font-weight: 900; letter-spacing: 1px; color: #fff; text-transform: uppercase; }
+  #logo span { color: #ff6b35; }
+  #level-badge {
+    background: #ff6b35; color: #fff; font-size: 11px; font-weight: 700;
+    padding: 3px 8px; border-radius: 4px;
+  }
+  #xp-bar-wrap {
+    flex: 1; max-width: 160px;
+    background: rgba(255,255,255,0.15); border-radius: 4px; height: 6px;
+  }
+  #xp-bar { height: 100%; background: #ff6b35; border-radius: 4px; width: 35%; transition: width 0.4s; }
+  #xp-label { font-size: 11px; color: rgba(255,255,255,0.6); }
+
+  /* Drops counter */
+  #drops-wrap {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.1);
+    padding: 6px 14px; border-radius: 20px;
+  }
+  #drops-icon { font-size: 18px; }
+  #drops-count { font-size: 16px; font-weight: 700; color: #a78bfa; }
+  #drops-label { font-size: 11px; color: rgba(255,255,255,0.5); }
+  #drops-regen { font-size: 10px; color: rgba(167,139,250,0.6); }
+
+  /* Bottom toolbar */
+  #toolbar {
+    position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: flex-end; gap: 10px;
+    pointer-events: all;
+  }
+  .color-slot {
+    width: 48px; height: 48px; border-radius: 10px;
+    border: 2px solid rgba(255,255,255,0.2);
+    cursor: pointer; transition: all 0.15s;
+    position: relative; overflow: hidden;
+  }
+  .color-slot:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.6); }
+  .color-slot.active {
+    width: 60px; height: 60px;
+    border-color: #fff; border-width: 3px;
+    transform: translateY(-6px);
+    box-shadow: 0 0 18px rgba(255,255,255,0.4);
+  }
+  .color-slot .key-hint {
+    position: absolute; bottom: 3px; right: 4px;
+    font-size: 9px; color: rgba(255,255,255,0.5); font-weight: 700;
+  }
+
+  /* Weapon HUD */
+  #weapon-wrap {
+    position: absolute; bottom: 30px; right: 30px;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+    pointer-events: all;
+  }
+  #weapon-name { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 1px; text-transform: uppercase; }
+  #weapon-icon { font-size: 48px; filter: drop-shadow(0 0 8px rgba(255,107,53,0.5)); }
+
+  /* Shoot flash */
+  #shoot-flash {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.12), transparent 70%);
+    opacity: 0; pointer-events: none; transition: opacity 0.08s;
+  }
+
+  /* Mini-map */
+  #minimap {
+    position: absolute; top: 70px; right: 20px;
+    width: 110px; height: 110px;
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; overflow: hidden;
+  }
+  #minimap canvas { width: 100%; height: 100%; }
+
+  /* Score popup */
+  .score-popup {
+    position: absolute; font-size: 18px; font-weight: 900; color: #ff6b35;
+    pointer-events: none; animation: floatUp 1.2s ease-out forwards;
+    text-shadow: 0 0 8px rgba(255,107,53,0.6);
+  }
+  @keyframes floatUp {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-60px) scale(0.7); }
+  }
+
+  /* Announcements */
+  #announce {
+    position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,107,53,0.9); color: #fff;
+    padding: 10px 22px; border-radius: 8px;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+    opacity: 0; transition: opacity 0.3s;
+    text-align: center; max-width: 340px;
+  }
+  #announce.show { opacity: 1; }
+
+  /* Start screen */
+  #start-screen {
+    position: fixed; inset: 0; z-index: 100;
+    background: #0a0a0f;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0;
+  }
+  #start-title {
+    font-size: 68px; font-weight: 900; line-height: 1;
+    background: linear-gradient(135deg, #ff6b35, #a78bfa, #34d399);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-transform: uppercase; letter-spacing: -2px;
+    margin-bottom: 6px;
+  }
+  #start-sub {
+    font-size: 15px; color: rgba(255,255,255,0.5); letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 40px;
+  }
+  #start-info {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px; margin-bottom: 40px; max-width: 560px; width: 90%;
+  }
+  .info-card {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 16px; text-align: center;
+  }
+  .info-card .icon { font-size: 28px; margin-bottom: 8px; }
+  .info-card .title { font-size: 12px; font-weight: 700; color: #ff6b35; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .info-card .desc { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.5; }
+  #start-btn {
+    background: linear-gradient(135deg, #ff6b35, #e55a25);
+    color: #fff; border: none; padding: 16px 52px;
+    font-size: 16px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+    border-radius: 12px; cursor: pointer;
+    box-shadow: 0 8px 32px rgba(255,107,53,0.4);
+    transition: all 0.2s;
+  }
+  #start-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(255,107,53,0.6); }
+  #start-controls {
+    margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.3);
+    text-align: center; line-height: 1.9;
+  }
+
+  /* Color picker modal */
+  #color-picker-modal {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center;
+    pointer-events: all;
+  }
+  #color-picker-modal.open { display: flex; }
+  #color-picker-box {
+    background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px; padding: 28px; width: 360px;
+  }
+  #color-picker-box h3 { color: #fff; font-size: 16px; margin-bottom: 18px; }
+  #color-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-bottom: 18px; }
+  .cpick { width: 36px; height: 36px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
+  .cpick:hover, .cpick.selected { border-color: #fff; transform: scale(1.15); }
+  #color-picker-close {
+    width: 100%; padding: 10px; background: rgba(255,255,255,0.07);
+    color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="hud">
+  <div id="crosshair"></div>
+
+  <div id="topbar">
+    <div id="logo">DAILY <span>PAINT WARS</span></div>
+    <div id="level-badge">Nível 1</div>
+    <div id="xp-bar-wrap"><div id="xp-bar"></div></div>
+    <div id="xp-label">0 / 500 XP</div>
+
+    <div id="drops-wrap">
+      <div id="drops-icon">💧</div>
+      <div>
+        <div id="drops-count">50</div>
+        <div id="drops-label">gotas</div>
+      </div>
+      <div id="drops-regen">+1/min</div>
+    </div>
+  </div>
+
+  <div id="minimap"><canvas id="minimap-canvas" width="110" height="110"></canvas></div>
+
+  <div id="toolbar"></div>
+
+  <div id="weapon-wrap">
+    <div id="weapon-name">Pistola</div>
+    <div id="weapon-icon">🔫</div>
+  </div>
+
+  <div id="shoot-flash"></div>
+  <div id="announce"></div>
+</div>
+
+<!-- Color picker modal -->
+<div id="color-picker-modal">
+  <div id="color-picker-box">
+    <h3>🎨 Escolha uma cor</h3>
+    <div id="color-grid"></div>
+    <button id="color-picker-close" onclick="closeColorPicker()">Fechar</button>
+  </div>
+</div>
+
+<!-- Start screen -->
+<div id="start-screen">
+  <div id="start-title">Paint Wars</div>
+  <div id="start-sub">DAILY · Pinte. Crie. Conquiste.</div>
+  <div id="start-info">
+    <div class="info-card">
+      <div class="icon">💧</div>
+      <div class="title">Gotas de Tinta</div>
+      <div class="desc">Cada disparo usa 1 gota. Regenera 1 por minuto.</div>
+    </div>
+    <div class="info-card">
+      <div class="icon">🎨</div>
+      <div class="title">Cores</div>
+      <div class="desc">Comece com 3 cores. Descubra misturas raras!</div>
+    </div>
+    <div class="info-card">
+      <div class="icon">🏆</div>
+      <div class="title">Conquistas</div>
+      <div class="desc">Pinte blocos, suba de nível e domine a muralha.</div>
+    </div>
+  </div>
+  <button id="start-btn" onclick="startGame()">ENTRAR NA MURALHA</button>
+  <div id="start-controls">
+    WASD · Mover &nbsp;|&nbsp; Mouse · Olhar &nbsp;|&nbsp; Clique · Atirar &nbsp;|&nbsp; 1-6 · Cores &nbsp;|&nbsp; ESC · Sair
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+
+// ─── State ───────────────────────────────────────────────────────────
+const state = {
+  drops: 50,
+  xp: 0,
+  level: 1,
+  paintedBlocks: 0,
+  colorSlot: 0,
+  running: false,
+};
+
+const COLORS_UNLOCKED = [
+  { name: 'Azul',     hex: '#1d4ed8' },
+  { name: 'Vermelho', hex: '#dc2626' },
+  { name: 'Preto',    hex: '#111111' },
+  { name: 'Amarelo',  hex: '#facc15' },
+  { name: 'Verde',    hex: '#16a34a' },
+  { name: 'Roxo',     hex: '#7c3aed' },
+];
+
+const ALL_COLORS = [
+  '#dc2626','#ea580c','#d97706','#ca8a04','#65a30d','#16a34a',
+  '#059669','#0d9488','#0891b2','#0284c7','#1d4ed8','#4f46e5',
+  '#7c3aed','#9333ea','#c026d3','#db2777','#be123c','#9f1239',
+  '#57534e','#334155','#111111','#f5f5f5','#fbbf24','#34d399',
+  '#60a5fa','#a78bfa','#f472b6','#fb923c','#4ade80','#38bdf8',
+  '#ff6b35','#c084fc',
+];
+
+// Wall data: sparse map of painted voxels {key: colorHex}
+const wallPaint = new Map();
+
+// ─── Three.js setup ───────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 60, 200);
+
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 300);
+camera.position.set(0, 2, 18);
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const sun = new THREE.DirectionalLight(0xfffde0, 1.2);
+sun.position.set(30, 60, 30);
+sun.castShadow = true;
+scene.add(sun);
+
+// Ground
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(400, 400),
+  new THREE.MeshLambertMaterial({ color: 0xf0f0e8 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ─── THE WALL ─────────────────────────────────────────────────────────
+const WALL_W = 80;   // blocks wide
+const WALL_H = 40;   // blocks tall
+const BLOCK_SIZE = 1;
+const WALL_Z = -8;
+
+// Wall base (grey uncolored blocks)
+const wallBaseMat = new THREE.MeshLambertMaterial({ color: 0xd4d0cc });
+const blockGeo = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+
+// We'll use InstancedMesh for uncolored blocks and individual meshes for painted ones
+const totalBlocks = WALL_W * WALL_H;
+const wallInstance = new THREE.InstancedMesh(blockGeo, wallBaseMat, totalBlocks);
+wallInstance.receiveShadow = true;
+
+const dummy = new THREE.Object3D();
+for (let x = 0; x < WALL_W; x++) {
+  for (let y = 0; y < WALL_H; y++) {
+    const i = x * WALL_H + y;
+    dummy.position.set(
+      (x - WALL_W / 2) * BLOCK_SIZE,
+      y * BLOCK_SIZE + BLOCK_SIZE / 2,
+      WALL_Z
+    );
+    dummy.updateMatrix();
+    wallInstance.setMatrixAt(i, dummy.matrix);
+  }
+}
+wallInstance.instanceMatrix.needsUpdate = true;
+scene.add(wallInstance);
+
+// Map from block key to painted mesh
+const paintedMeshes = new Map();
+
+function blockKey(x, y) { return `${x},${y}`; }
+
+function paintBlock(x, y, hex) {
+  const key = blockKey(x, y);
+  // Remove old painted mesh if exists
+  if (paintedMeshes.has(key)) {
+    scene.remove(paintedMeshes.get(key));
+    paintedMeshes.get(key).geometry.dispose();
+    paintedMeshes.get(key).material.dispose();
+    paintedMeshes.delete(key);
+  }
+  wallPaint.set(key, hex);
+  const mat = new THREE.MeshLambertMaterial({ color: new THREE.Color(hex) });
+  const mesh = new THREE.Mesh(blockGeo, mat);
+  mesh.position.set(
+    (x - WALL_W / 2) * BLOCK_SIZE,
+    y * BLOCK_SIZE + BLOCK_SIZE / 2,
+    WALL_Z + 0.01
+  );
+  mesh.userData.blockX = x;
+  mesh.userData.blockY = y;
+  scene.add(mesh);
+  paintedMeshes.set(key, mesh);
+}
+
+// ─── Raycast / Shooting ──────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+
+// Collect all hittable objects for raycasting
+function getWallMeshes() {
+  const meshes = [wallInstance];
+  paintedMeshes.forEach(m => meshes.push(m));
+  return meshes;
+}
+
+function shoot() {
+  if (state.drops <= 0) {
+    announce('💧 Sem gotas! Aguarde regeneração.');
+    return;
+  }
+  state.drops--;
+  updateDropsHUD();
+
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const hits = raycaster.intersectObjects(getWallMeshes());
+
+  if (hits.length > 0) {
+    const hit = hits[0];
+    let bx, by;
+
+    if (hit.object === wallInstance) {
+      // InstancedMesh — get instance world position
+      const m = new THREE.Matrix4();
+      wallInstance.getMatrixAt(hit.instanceId, m);
+      const pos = new THREE.Vector3();
+      pos.setFromMatrixPosition(m);
+      bx = Math.round(pos.x / BLOCK_SIZE + WALL_W / 2);
+      by = Math.round((pos.y - BLOCK_SIZE / 2) / BLOCK_SIZE);
+    } else {
+      bx = hit.object.userData.blockX;
+      by = hit.object.userData.blockY;
+    }
+
+    if (bx >= 0 && bx < WALL_W && by >= 0 && by < WALL_H) {
+      const hex = COLORS_UNLOCKED[state.colorSlot].hex;
+      paintBlock(bx, by, hex);
+      state.paintedBlocks++;
+      gainXP(1, hit.point);
+      flashShoot();
+      drawMinimap();
+    }
+  }
+
+  flashShoot();
+}
+
+// ─── XP & Levels ─────────────────────────────────────────────────────
+const XP_PER_LEVEL = 500;
+function gainXP(amount, worldPos) {
+  state.xp += amount;
+  const needed = state.level * XP_PER_LEVEL;
+  if (state.xp >= needed) {
+    state.xp -= needed;
+    state.level++;
+    announce(`🎉 Subiu para Nível ${state.level}!`);
+    // Unlock new color
+    if (state.level <= ALL_COLORS.length && state.level > COLORS_UNLOCKED.length) {
+      const newHex = ALL_COLORS[COLORS_UNLOCKED.length];
+      COLORS_UNLOCKED.push({ name: 'Nova cor!', hex: newHex });
+      announce(`🎨 Nova cor desbloqueada!`);
+      buildToolbar();
+    }
+  }
+  updateXPBar();
+  if (worldPos) showScorePopup('+1 XP', worldPos);
+}
+
+// ─── HUD updates ─────────────────────────────────────────────────────
+function updateDropsHUD() {
+  document.getElementById('drops-count').textContent = state.drops;
+}
+function updateXPBar() {
+  const needed = state.level * XP_PER_LEVEL;
+  const pct = (state.xp / needed) * 100;
+  document.getElementById('xp-bar').style.width = pct + '%';
+  document.getElementById('xp-label').textContent = `${state.xp} / ${needed} XP`;
+  document.getElementById('level-badge').textContent = `Nível ${state.level}`;
+}
+
+function flashShoot() {
+  const el = document.getElementById('shoot-flash');
+  el.style.opacity = 1;
+  setTimeout(() => el.style.opacity = 0, 80);
+}
+
+let announceTimer;
+function announce(msg) {
+  const el = document.getElementById('announce');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function showScorePopup(text, worldPos) {
+  const vec = worldPos.clone().project(camera);
+  const x = (vec.x * 0.5 + 0.5) * innerWidth;
+  const y = (-vec.y * 0.5 + 0.5) * innerHeight;
+  const el = document.createElement('div');
+  el.className = 'score-popup';
+  el.textContent = text;
+  el.style.left = (x - 20) + 'px';
+  el.style.top = (y - 20) + 'px';
+  document.getElementById('hud').appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+
+// ─── Toolbar ─────────────────────────────────────────────────────────
+function buildToolbar() {
+  const tb = document.getElementById('toolbar');
+  tb.innerHTML = '';
+  COLORS_UNLOCKED.forEach((c, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'color-slot' + (i === state.colorSlot ? ' active' : '');
+    slot.style.background = c.hex;
+    slot.title = c.name;
+    slot.innerHTML = `<span class="key-hint">${i + 1}</span>`;
+    slot.onclick = () => { state.colorSlot = i; buildToolbar(); };
+    tb.appendChild(slot);
+  });
+}
+
+// ─── Minimap ─────────────────────────────────────────────────────────
+const minimapCanvas = document.getElementById('minimap-canvas');
+const mmCtx = minimapCanvas.getContext('2d');
+
+function drawMinimap() {
+  mmCtx.clearRect(0, 0, 110, 110);
+  mmCtx.fillStyle = '#111';
+  mmCtx.fillRect(0, 0, 110, 110);
+
+  const scaleX = 110 / WALL_W;
+  const scaleY = 60 / WALL_H; // show bottom 60% of minimap for wall
+
+  wallPaint.forEach((hex, key) => {
+    const [bx, by] = key.split(',').map(Number);
+    mmCtx.fillStyle = hex;
+    mmCtx.fillRect(bx * scaleX, 50 + (WALL_H - by - 1) * (60 / WALL_H), scaleX, 60 / WALL_H);
+  });
+
+  // Player dot
+  const px = ((camera.position.x + WALL_W / 2) / WALL_W) * 110;
+  mmCtx.fillStyle = '#ff6b35';
+  mmCtx.beginPath();
+  mmCtx.arc(Math.max(5, Math.min(105, px)), 30, 4, 0, Math.PI * 2);
+  mmCtx.fill();
+}
+
+// ─── Color picker modal ───────────────────────────────────────────────
+window.openColorPicker = function(slotIndex) {
+  state.colorSlot = slotIndex;
+  const grid = document.getElementById('color-grid');
+  grid.innerHTML = '';
+  ALL_COLORS.forEach(hex => {
+    const div = document.createElement('div');
+    div.className = 'cpick' + (COLORS_UNLOCKED[slotIndex]?.hex === hex ? ' selected' : '');
+    div.style.background = hex;
+    div.title = hex;
+    div.onclick = () => {
+      COLORS_UNLOCKED[slotIndex] = { name: hex, hex };
+      closeColorPicker();
+      buildToolbar();
+    };
+    grid.appendChild(div);
+  });
+  document.getElementById('color-picker-modal').classList.add('open');
+  if (document.pointerLockElement) document.exitPointerLock();
+};
+window.closeColorPicker = function() {
+  document.getElementById('color-picker-modal').classList.remove('open');
+};
+
+// ─── Controls ────────────────────────────────────────────────────────
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  // Number keys for color slots
+  const n = parseInt(e.key);
+  if (n >= 1 && n <= COLORS_UNLOCKED.length) {
+    state.colorSlot = n - 1;
+    buildToolbar();
+  }
+  if (e.code === 'Escape') {
+    document.exitPointerLock?.();
+  }
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// Mouse look
+let yaw = 0, pitch = 0;
+document.addEventListener('mousemove', e => {
+  if (!state.running) return;
+  if (document.pointerLockElement !== canvas) return;
+  yaw   -= e.movementX * 0.002;
+  pitch -= e.movementY * 0.002;
+  pitch = Math.max(-1.2, Math.min(1.2, pitch));
+});
+
+canvas.addEventListener('click', () => {
+  if (!state.running) return;
+  if (document.pointerLockElement !== canvas) {
+    canvas.requestPointerLock();
+  } else {
+    shoot();
+  }
+});
+
+document.addEventListener('pointerlockchange', () => {
+  document.getElementById('crosshair').style.display =
+    document.pointerLockElement === canvas ? 'block' : 'none';
+});
+
+window.addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+// ─── Movement ────────────────────────────────────────────────────────
+const velocity = new THREE.Vector3();
+const direction = new THREE.Vector3();
+const cameraDir = new THREE.Vector3();
+
+function updateMovement(dt) {
+  const speed = 10;
+  direction.set(0, 0, 0);
+  if (keys['KeyW']) direction.z = -1;
+  if (keys['KeyS']) direction.z =  1;
+  if (keys['KeyA']) direction.x = -1;
+  if (keys['KeyD']) direction.x =  1;
+
+  direction.normalize();
+  camera.getWorldDirection(cameraDir);
+  cameraDir.y = 0; cameraDir.normalize();
+  const right = new THREE.Vector3().crossVectors(cameraDir, new THREE.Vector3(0,1,0));
+
+  velocity.set(0, 0, 0);
+  velocity.addScaledVector(cameraDir, -direction.z * speed * dt);
+  velocity.addScaledVector(right, direction.x * speed * dt);
+
+  camera.position.add(velocity);
+  // Clamp
+  camera.position.x = Math.max(-40, Math.min(40, camera.position.x));
+  camera.position.z = Math.max(-6, Math.min(30, camera.position.z));
+  camera.position.y = 2;
+}
+
+// ─── Game loop ────────────────────────────────────────────────────────
+let lastTime = 0;
+
+function loop(time) {
+  requestAnimationFrame(loop);
+  const dt = Math.min((time - lastTime) / 1000, 0.1);
+  lastTime = time;
+
+  if (!state.running) return;
+
+  // Camera rotation
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+
+  updateMovement(dt);
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(loop);
+
+// ─── Drop regen ──────────────────────────────────────────────────────
+setInterval(() => {
+  if (state.drops < 200) {
+    state.drops++;
+    updateDropsHUD();
+  }
+}, 6000); // 1 drop per 6 seconds for gameplay feel (spec: 1/min)
+
+// ─── Start ───────────────────────────────────────────────────────────
+window.startGame = function() {
+  document.getElementById('start-screen').style.display = 'none';
+  state.running = true;
+  buildToolbar();
+  updateDropsHUD();
+  updateXPBar();
+  drawMinimap();
+  canvas.requestPointerLock();
+  // Pre-paint a few blocks so wall isn't empty
+  const preColors = ['#1d4ed8','#dc2626','#16a34a','#facc15','#7c3aed','#ff6b35'];
+  for (let i = 0; i < 40; i++) {
+    paintBlock(
+      Math.floor(Math.random() * WALL_W),
+      Math.floor(Math.random() * WALL_H),
+      preColors[Math.floor(Math.random() * preColors.length)]
+    );
+  }
+  drawMinimap();
+  announce('🎮 Clique na muralha para atirar! Use WASD para mover.');
+};
+</script>
+</body>
+</html>
