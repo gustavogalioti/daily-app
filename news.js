@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { getDB } = require('./database');
-const { optionalAuth, requireAuth } = require('./authmiddleware');
+const { authMiddleware, optionalAuth } = require('./authmiddleware');
+const requireAuth = authMiddleware;
 
 // ── Textos variados do Pedro ──────────────────────────────────────────────────
 const pedroTexts = {
