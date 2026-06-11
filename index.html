@@ -1287,7 +1287,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
           <!-- Controls -->
           <div style="background:rgba(6,6,10,.99);padding:10px 14px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,.05);">
-            <button id="dt-btn-jump" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#2a2040);border:2px solid rgba(255,255,255,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#fff;flex-shrink:0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dtKeys.jump=true;event.preventDefault();" ontouchend="dtKeys.jump=false;" onmousedown="dtKeys.jump=true;" onmouseup="dtKeys.jump=false;"><span style="font-size:26px;">↑</span><span style="font-size:9px;color:#8888aa;">PULAR</span></button>
+            <button id="dt-btn-jump" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#2a2040);border:2px solid rgba(255,255,255,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#fff;flex-shrink:0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dtKeys.jump=true;event.preventDefault();" ontouchend="setTimeout(()=>{dtKeys.jump=false;},80);" onmousedown="dtKeys.jump=true;" onmouseup="setTimeout(()=>{dtKeys.jump=false;},80);"><span style="font-size:26px;">↑</span><span style="font-size:9px;color:#8888aa;">PULAR</span></button>
             <div style="display:flex;gap:8px;align-items:center;">
               <button style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#e8e8f0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dtKeys.left=true;event.preventDefault();" ontouchend="dtKeys.left=false;" onmousedown="dtKeys.left=true;" onmouseup="dtKeys.left=false;"><span style="font-size:22px;">◀</span><span style="font-size:9px;color:#8888aa;">ANDAR</span></button>
               <button style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#e8e8f0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dtKeys.right=true;event.preventDefault();" ontouchend="dtKeys.right=false;" onmousedown="dtKeys.right=true;" onmouseup="dtKeys.right=false;"><span style="font-size:22px;">▶</span><span style="font-size:9px;color:#8888aa;">ANDAR</span></button>
@@ -10560,7 +10560,7 @@ function dtGenFloor(num) {
 
 function dtLoop(ts) {
   if (!DT.running) return;
-  const dt = Math.min((ts-DT.lastTime)/16.67,3);
+  const dt = Math.min((ts - DT.lastTime) / 16.67, 1.5); // cap at 1.5x frame
   DT.lastTime = ts;
   if (!DT.paused) dtUpdate(dt);
   dtDraw();
@@ -10571,99 +10571,159 @@ function dtUpdate(dt) {
   const p = DT.player;
   const W = DT.canvas.width, H = DT.canvas.height;
   const groundY = H - 40;
-  // Tower bounds (physics always in tower-local coords, 0..towerW)
   const towerW = Math.floor(W * 0.65);
 
-  if (dtKeys.left) { p.vx -= 1.4*dt; p.facingRight=false; }
-  else if (dtKeys.right) { p.vx += 1.4*dt; p.facingRight=true; }
-  else p.vx *= 0.75;
-  p.vx = Math.max(-4, Math.min(4, p.vx));
+  // ── MOVEMENT: suave, sem aceleração excessiva ──
+  const TARGET_SPEED = 3.5;
+  if (dtKeys.left) {
+    p.vx = -TARGET_SPEED;
+    p.facingRight = false;
+  } else if (dtKeys.right) {
+    p.vx = TARGET_SPEED;
+    p.facingRight = true;
+  } else {
+    p.vx = 0; // para imediatamente — sem deslize
+  }
 
-  if (dtKeys.jump && p.onGround) { p.vy=-13; p.onGround=false; dtKeys.jump=false; }
-  p.vy += 0.55*dt;
-  p.x += p.vx*dt;
-  p.y += p.vy*dt;
-  p.x = Math.max(0, Math.min(towerW-p.w, p.x));
+  // ── JUMP: só na física, direto ──
+  if (dtKeys.jump && p.onGround) {
+    p.vy = -12;
+    p.onGround = false;
+    // NÃO consume o jump aqui — a escada usa o mesmo botão
+  }
 
-  const pBottom = groundY - p.h;
-  if (p.y >= pBottom) { p.y=pBottom; p.vy=0; p.onGround=true; }
-
-  // Platform collisions
-  for (const pl of DT.currentFloor.platforms) {
-    const platY = groundY - pl.y - pl.h;
-    if (p.vy>=0 && p.y+p.h>=platY && p.y+p.h<=platY+pl.h+8 && p.x+p.w>pl.x && p.x<pl.x+pl.w) {
-      p.y=platY-p.h; p.vy=0; p.onGround=true;
+  // ── LADDER: checa PRIMEIRO, antes de aplicar física ──
+  const lx = towerW - 30;
+  if (p.x + p.w > lx && p.x < lx + DT_LADDER_W) {
+    const alive = DT.currentFloor.enemies.filter(e => e.hpCurrent > 0);
+    if (alive.length === 0) {
+      if (dtKeys.jump) {
+        dtKeys.jump = false; // consome o pulo
+        dtAdvance();
+        return;
+      }
+    } else if (dtKeys.jump && p.onGround) {
+      dtToast('⚠️ Derrote os inimigos primeiro!', '#ef4444');
+      dtKeys.jump = false;
     }
   }
 
-  // Ladder / advance floor (ladder is at towerW-28)
-  const lx = towerW - 28;
-  if (p.x+p.w>lx && p.x<lx+DT_LADDER_W && dtKeys.jump && p.onGround) {
-    const alive = DT.currentFloor.enemies.filter(e=>e.hpCurrent>0);
-    if (alive.length===0) { dtAdvance(); return; }
-    else dtToast('⚠️ Derrote os inimigos primeiro!','#ef4444');
+  // Consome o pulo para não repetir
+  if (dtKeys.jump && !p.onGround) dtKeys.jump = false;
+
+  // ── GRAVITY ──
+  p.vy += 0.6 * dt;
+  p.vy = Math.min(p.vy, 18); // terminal velocity
+
+  // ── INTEGRATE ──
+  p.x += p.vx * dt;
+  p.y += p.vy * dt;
+
+  // ── BOUNDS ──
+  p.x = Math.max(4, Math.min(towerW - p.w - 4, p.x));
+
+  // ── GROUND COLLISION ──
+  const pBottom = groundY - p.h;
+  p.onGround = false;
+  if (p.y >= pBottom) {
+    p.y = pBottom;
+    p.vy = 0;
+    p.onGround = true;
   }
 
-  if (p.invincible>0) p.invincible-=dt;
-  if (p.shootCD>0) p.shootCD-=dt;
+  // ── PLATFORM COLLISIONS ──
+  for (const pl of DT.currentFloor.platforms) {
+    const platY = groundY - pl.y - pl.h;
+    if (p.vy >= 0 &&
+        p.y + p.h >= platY &&
+        p.y + p.h <= platY + pl.h + 10 &&
+        p.x + p.w > pl.x + 4 &&
+        p.x < pl.x + pl.w - 4) {
+      p.y = platY - p.h;
+      p.vy = 0;
+      p.onGround = true;
+    }
+  }
 
-  // Enemy AI (x coords tower-relative)
-  const eGroundY = groundY - 36;
+  if (p.invincible > 0) p.invincible -= dt;
+  if (p.shootCD > 0) p.shootCD -= dt;
+
+  // ── ENEMIES ──
   for (const e of DT.currentFloor.enemies) {
-    if (e.hpCurrent<=0) continue;
-    const dx = p.x - e.x; e.dir = dx>0?1:-1;
-    e.x += e.dir*e.speed*dt;
-    e.x = Math.max(0, Math.min(towerW-36, e.x));
-    if (e.hitTimer>0) e.hitTimer-=dt;
-    if (p.invincible<=0 && Math.abs(e.x-p.x)<36 && Math.abs(eGroundY-(groundY-p.h))<50) dtTakeDamage(e.isBoss?18:8);
+    if (e.hpCurrent <= 0) continue;
+    const dx = p.x - e.x;
+    e.dir = dx > 0 ? 1 : -1;
+    e.x += e.dir * e.speed * dt;
+    e.x = Math.max(4, Math.min(towerW - 40, e.x));
+    if (e.hitTimer > 0) e.hitTimer -= dt;
+    const eY = groundY - 36;
+    if (p.invincible <= 0 &&
+        Math.abs((e.x + 18) - (p.x + p.w/2)) < 34 &&
+        Math.abs(eY - (p.y + p.h/2)) < 48) {
+      dtTakeDamage(e.isBoss ? 18 : 8);
+    }
   }
 
-  // Bullets (x tower-relative)
-  for (let i=DT.bullets.length-1;i>=0;i--) {
-    const b=DT.bullets[i];
-    b.x+=b.vx*dt; b.life-=dt;
-    if (b.life<=0||b.x<0||b.x>towerW) { DT.bullets.splice(i,1); continue; }
+  // ── BULLETS ──
+  for (let i = DT.bullets.length - 1; i >= 0; i--) {
+    const b = DT.bullets[i];
+    b.x += b.vx * dt;
+    b.life -= dt;
+    if (b.life <= 0 || b.x < 0 || b.x > towerW) { DT.bullets.splice(i, 1); continue; }
+    let hit = false;
     for (const e of DT.currentFloor.enemies) {
-      if (e.hpCurrent<=0) continue;
-      const eY=groundY-36;
-      if (Math.abs(b.x-e.x)<28&&Math.abs(b.y-eY)<28) {
-        e.hpCurrent--; e.hitTimer=10;
-        DT.bullets.splice(i,1);
-        dtParticles(e.x,eY,e.color,5);
-        if (e.hpCurrent<=0) {
-          DT.kills++; DT.coins+=e.points;
-          dtToast(`💀 ${e.name}! +${e.points}🟡`,'#22c55e');
-          if(e.isBoss) dtToast(`🔥 CHEFE DERROTADO! +${e.points*2}🟡`,'#f5a623');
+      if (e.hpCurrent <= 0) continue;
+      const eY = groundY - 36;
+      if (Math.abs(b.x - (e.x + 18)) < 26 && Math.abs(b.y - eY) < 30) {
+        e.hpCurrent--;
+        e.hitTimer = 10;
+        DT.bullets.splice(i, 1);
+        dtParticles(e.x + 18, eY, e.color, 5);
+        if (e.hpCurrent <= 0) {
+          DT.kills++;
+          DT.coins += e.points;
+          dtToast(`💀 ${e.name}! +${e.points}🟡`, '#22c55e');
+          if (e.isBoss) dtToast(`🔥 CHEFE DERROTADO!`, '#f5a623');
         }
+        hit = true;
         break;
       }
     }
   }
 
-  // Coins
-  const coinY = groundY - 60;
+  // ── COINS ──
+  const coinY = groundY - 62;
   for (const c of DT.currentFloor.coins) {
-    if (!c.collected && Math.abs(p.x+p.w/2-c.x)<25 && Math.abs(p.y+p.h/2-coinY)<35) {
-      c.collected=true; DT.coins++; dtParticles(c.x,coinY,'#f5a623',4);
+    if (!c.collected &&
+        Math.abs((p.x + p.w/2) - c.x) < 26 &&
+        Math.abs((p.y + p.h/2) - coinY) < 38) {
+      c.collected = true;
+      DT.coins++;
+      dtParticles(c.x, coinY, '#f5a623', 4);
     }
   }
 
-  // Item
+  // ── ITEM ──
   if (DT.currentFloor.hasItem && !DT.currentFloor.itemCollected) {
-    const iy=groundY-80;
-    if (Math.abs(p.x+p.w/2-DT.currentFloor.itemX)<30&&Math.abs(p.y+p.h/2-iy)<40) {
-      DT.currentFloor.itemCollected=true; dtApplyItem(DT.currentFloor.itemType);
+    const iy = groundY - 82;
+    if (Math.abs((p.x + p.w/2) - DT.currentFloor.itemX) < 30 &&
+        Math.abs((p.y + p.h/2) - iy) < 42) {
+      DT.currentFloor.itemCollected = true;
+      dtApplyItem(DT.currentFloor.itemType);
     }
   }
 
-  // Particles
-  for (let i=DT.particles.length-1;i>=0;i--) {
-    const pt=DT.particles[i];
-    pt.x+=pt.vx*dt; pt.y+=pt.vy*dt; pt.vy+=0.2*dt; pt.life-=dt;
-    if(pt.life<=0) DT.particles.splice(i,1);
+  // ── PARTICLES ──
+  for (let i = DT.particles.length - 1; i >= 0; i--) {
+    const pt = DT.particles[i];
+    pt.x += pt.vx * dt;
+    pt.y += pt.vy * dt;
+    pt.vy += 0.2 * dt;
+    pt.life -= dt;
+    if (pt.life <= 0) DT.particles.splice(i, 1);
   }
-  // Enemy announce countdown
-  if(DT.enemyAnnounce && DT.enemyAnnounce.timer>0) DT.enemyAnnounce.timer-=dt;
+
+  if (DT.enemyAnnounce && DT.enemyAnnounce.timer > 0) DT.enemyAnnounce.timer -= dt;
 
   dtUpdateHUD();
 }
@@ -11161,29 +11221,58 @@ function dtDrawRoomDetail(ctx, fl, x, y, w, h, groundY) {
 }
 
 function dtDrawPlayer(p, groundY, towerW, towerX) {
-  const ctx=DT.ctx;
-  if(p.invincible>0&&Math.floor(p.invincible)%6<3) return;
-  const px=(towerX||0)+p.x+p.w/2, py=groundY-p.h;
-  ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(px,groundY-3,14,5,0,0,Math.PI*2); ctx.fill();
+  const ctx = DT.ctx;
+  if (p.invincible > 0 && Math.floor(p.invincible) % 6 < 3) return;
 
-  if(DT.pokeConfig && typeof buildPokeSVG==='function'){
-    if(!DT._pokeImg || DT._pokeImgCfgHash!==JSON.stringify(DT.pokeConfig)){
-      const svgStr=buildPokeSVG(DT.pokeConfig).replace(/width="[^"]*"/,'width="32"').replace(/height="[^"]*"/,'height="48"');
-      const blob=new Blob([svgStr],{type:'image/svg+xml'});
-      const url=URL.createObjectURL(blob);
-      const img=new Image(); img.src=url;
-      img.onload=()=>{DT._pokeImg=img;DT._pokeImgCfgHash=JSON.stringify(DT.pokeConfig);};
+  // px/py: canvas-absolute position of player top-left
+  const px = (towerX || 0) + p.x;
+  const py = p.y; // p.y is already in canvas coords
+
+  // Shadow on ground
+  const shadowX = (towerX || 0) + p.x + p.w / 2;
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(shadowX, groundY - 2, 14, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (DT.pokeConfig && typeof buildPokeSVG === 'function') {
+    if (!DT._pokeImg || DT._pokeImgCfgHash !== JSON.stringify(DT.pokeConfig)) {
+      const svgStr = buildPokeSVG(DT.pokeConfig)
+        .replace(/width="[^"]*"/, 'width="32"')
+        .replace(/height="[^"]*"/, 'height="48"');
+      const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.src = url;
+      img.onload = () => { DT._pokeImg = img; DT._pokeImgCfgHash = JSON.stringify(DT.pokeConfig); };
     }
-    if(DT._pokeImg){
+    if (DT._pokeImg) {
       ctx.save();
-      if(!p.facingRight){ctx.translate(px+16,py);ctx.scale(-1,1);ctx.drawImage(DT._pokeImg,-32,0,32,48);}
-      else ctx.drawImage(DT._pokeImg,px-16,py,32,48);
-      ctx.restore(); return;
+      if (!p.facingRight) {
+        ctx.translate(px + p.w, py);
+        ctx.scale(-1, 1);
+        ctx.drawImage(DT._pokeImg, 0, 0, 32, 48);
+      } else {
+        ctx.drawImage(DT._pokeImg, px, py, 32, 48);
+      }
+      ctx.restore();
+      return;
     }
   }
-  ctx.font='30px serif'; ctx.textAlign='center';
-  if(!p.facingRight){ctx.save();ctx.translate(px,py);ctx.scale(-1,1);ctx.fillText('🧑',0,p.h);ctx.restore();}
-  else ctx.fillText('🧑',px,py+p.h);
+
+  // Fallback emoji
+  const cx = px + p.w / 2;
+  ctx.font = '30px serif';
+  ctx.textAlign = 'center';
+  if (!p.facingRight) {
+    ctx.save();
+    ctx.translate(cx, py);
+    ctx.scale(-1, 1);
+    ctx.fillText('🧑', 0, p.h);
+    ctx.restore();
+  } else {
+    ctx.fillText('🧑', cx, py + p.h);
+  }
 }
 
 function dtDrawLabel(num, x, y, theme, isBoss, alpha) {
