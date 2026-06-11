@@ -10474,6 +10474,14 @@ const DT_FLOOR_H = 160;
 const DT_LADDER_W = 24;
 
 async function initDailyTowerHome() {
+  // ── Carregar recorde salvo ──
+  try {
+    const saved = JSON.parse(localStorage.getItem('dt_save')||'{}');
+    if ((saved.record||0) > DT.record) DT.record = saved.record;
+    if ((saved.deaths||0) > 0) DT.deaths = saved.deaths;
+    if ((saved.globalRecord||0) > DT.globalRecord) DT.globalRecord = saved.globalRecord;
+  } catch(e) {}
+
   // Load player poke config
   try {
     const data = await api('/api/dailypoke/me').catch(()=>null);
@@ -10490,7 +10498,6 @@ async function initDailyTowerHome() {
   document.getElementById('dt-record-home').textContent = DT.record;
   document.getElementById('dt-deaths-home').textContent = DT.deaths;
   dtShowPanel('home');
-  // Global height = max record across all players (uses DT.globalRecord updated on game start)
   const el = document.getElementById('dt-global-height');
   if (el) {
     const globalTop = Math.max(DT.globalRecord || 0, DT.record || 0, 1);
@@ -10547,28 +10554,29 @@ function startDailyTower() {
 }
 
 function dtGenFloor(num) {
-  const W = DT.canvas ? Math.floor(DT.canvas.width * 0.65) : 240; // tower-relative width
+  const W = DT.canvas ? Math.floor(DT.canvas.width * 0.65) : 240;
   const theme = DT_THEMES[num % DT_THEMES.length];
   const isBoss = num > 0 && num % 25 === 0;
-  // Difficulty: enemy chance scales from 75% at floor 1 to 95% at floor 30+
-  const enemyChance = Math.min(0.75 + (num / 30) * 0.2, 0.95);
-  const hasEnemy = !isBoss && Math.random() < enemyChance;
   const hasPlatform = Math.random() < 0.35;
+
+  // ── ENEMY COUNT: sempre tem pelo menos 1, escala com floor ──
+  let enemyCount = 1;
+  if (num >= 15) enemyCount = 3;
+  else if (num >= 10) enemyCount = 2;
+  // Andares 30+ podem ter 4
+  if (num >= 30 && Math.random() < 0.4) enemyCount = 4;
 
   let enemies = [];
   if (isBoss) {
     const b = DT_BOSSES[Math.floor(num/25-1) % DT_BOSSES.length];
     enemies = [{...b, x:W*0.55, vy:0, hpCurrent:b.hp, isBoss:true, dir:-1, hitTimer:0}];
-  } else if (hasEnemy) {
-    // Enemy count: 1 until floor 5, up to 4 by floor 40+
-    const maxCount = num < 5 ? 1 : num < 15 ? 2 : num < 30 ? 3 : 4;
-    const cnt = 1 + Math.floor(Math.random() * Math.min(Math.floor(num / 8) + 1, maxCount));
-    for(let i=0;i<cnt;i++){
+  } else {
+    for (let i = 0; i < enemyCount; i++) {
       const e = DT_ENEMIES[Math.floor(Math.random()*DT_ENEMIES.length)];
-      // Spawn enemies on the far right, away from player start (left side)
-      enemies.push({...e, x:W*(0.55+0.12*i), vy:0, hpCurrent:e.hp, dir:-1, hitTimer:0});
+      enemies.push({...e, x:W*(0.52+0.13*i), vy:0, hpCurrent:e.hp, dir:-1, hitTimer:0});
     }
   }
+
   let coins = [];
   if (Math.random()<0.6) {
     const cnt = 1+Math.floor(Math.random()*4);
@@ -10576,10 +10584,20 @@ function dtGenFloor(num) {
   }
   let platforms = [];
   if (hasPlatform) platforms.push({x:W*0.2+Math.random()*W*0.25, y:DT_FLOOR_H*0.42, w:50+Math.random()*50, h:10});
-  const hasItem = Math.random()<0.18;
+
+  // ── ANDAR 20+: item obrigatório para subir ──
+  const requiresItem = num >= 20 && !isBoss;
+  // Item types: andares normais têm powerup, andares 20+ têm "prova"
+  const itemTypes = ['☕','🛡','💊','⚡'];
+  const proofItems = ['📃','🔑','💊','⭐','🏷️']; // "comprovantes" temáticos
+  const hasItem = requiresItem || Math.random() < 0.25;
+  const itemType = requiresItem
+    ? proofItems[num % proofItems.length]
+    : itemTypes[Math.floor(Math.random()*itemTypes.length)];
+
   return { num, theme, isBoss, enemies, coins, platforms,
-    hasItem, itemType:hasItem?(['☕','🛡','💊','⚡'][Math.floor(Math.random()*4)]):null,
-    itemX:W*0.45, itemCollected:false, ladderX:W-34 };
+    hasItem, requiresItem, itemType,
+    itemX:W*0.42, itemCollected:false, ladderX:W-34 };
 }
 
 function dtLoop(ts) {
@@ -10620,14 +10638,19 @@ function dtUpdate(dt) {
   const lx = towerW - 30;
   if (p.x + p.w > lx && p.x < lx + DT_LADDER_W) {
     const alive = DT.currentFloor.enemies.filter(e => e.hpCurrent > 0);
-    if (alive.length === 0) {
+    const needsItem = DT.currentFloor.requiresItem && !DT.currentFloor.itemCollected;
+    if (alive.length === 0 && !needsItem) {
       if (dtKeys.jump) {
-        dtKeys.jump = false; // consome o pulo
+        dtKeys.jump = false;
         dtAdvance();
         return;
       }
     } else if (dtKeys.jump && p.onGround) {
-      dtToast('⚠️ Derrote os inimigos primeiro!', '#ef4444');
+      if (alive.length > 0) {
+        dtToast('⚠️ Derrote os inimigos primeiro!', '#ef4444');
+      } else if (needsItem) {
+        dtToast(`📃 Pegue o ${DT.currentFloor.itemType} para subir!`, '#f5a623');
+      }
       dtKeys.jump = false;
     }
   }
@@ -10762,7 +10785,10 @@ function dtApplyItem(t) {
 
 function dtAdvance() {
   DT.floor++;
-  if(DT.floor>DT.record) DT.record=DT.floor;
+  if(DT.floor>DT.record) {
+    DT.record=DT.floor;
+    try { localStorage.setItem('dt_save', JSON.stringify({record:DT.record,deaths:DT.deaths,globalRecord:DT.globalRecord})); } catch(e){}
+  }
   if(DT.floor>DT.globalRecord) DT.globalRecord=DT.floor;
   const bossWarn = DT.floor%25===0?'⚠️ CHEFE!':(DT.floor+1)%25===0?'Próximo: CHEFE!':'';
   dtToast(`🆙 ANDAR ${DT.floor}! ${bossWarn}`,'#f5a623');
@@ -10791,6 +10817,14 @@ function dtTakeDamage(amt) {
 
 function dtDie() {
   DT.running=false; DT.deaths++;
+  // ── Salvar recorde no localStorage ──
+  try {
+    localStorage.setItem('dt_save', JSON.stringify({
+      record: DT.record,
+      deaths: DT.deaths,
+      globalRecord: DT.globalRecord,
+    }));
+  } catch(e) {}
   document.getElementById('dt-death-floor').textContent=DT.floor;
   document.getElementById('dt-d-floor').textContent=DT.floor;
   document.getElementById('dt-d-record').textContent=DT.record;
@@ -11212,8 +11246,22 @@ function dtDrawFloor(fl, x, y, w, h, alpha, groundY, towerX, towerW) {
   if(fl.hasItem&&!fl.itemCollected){
     const iy=groundY-80;
     const pulse=Math.sin(Date.now()/300)*4;
-    ctx.font='22px serif'; ctx.textAlign='center'; ctx.fillText(fl.itemType,x+fl.itemX,iy+pulse);
-    ctx.fillStyle='rgba(245,166,35,0.12)'; ctx.beginPath(); ctx.arc(x+fl.itemX,iy,18,0,Math.PI*2); ctx.fill();
+    if(fl.requiresItem) {
+      const glowP=0.5+0.5*Math.sin(Date.now()/200);
+      ctx.save();
+      ctx.shadowBlur=16+glowP*12; ctx.shadowColor='#f5a623';
+      ctx.font='26px serif'; ctx.textAlign='center';
+      ctx.fillText(fl.itemType,x+fl.itemX,iy+pulse);
+      ctx.shadowBlur=0;
+      ctx.strokeStyle=`rgba(245,166,35,${0.4+glowP*0.5})`; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(x+fl.itemX,iy-4,22+glowP*4,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle='#f5a623'; ctx.font='bold 8px Arial'; ctx.textAlign='center';
+      ctx.fillText('NECESSÁRIO P/ SUBIR',x+fl.itemX,iy+18);
+      ctx.restore();
+    } else {
+      ctx.font='22px serif'; ctx.textAlign='center'; ctx.fillText(fl.itemType,x+fl.itemX,iy+pulse);
+      ctx.fillStyle='rgba(245,166,35,0.12)'; ctx.beginPath(); ctx.arc(x+fl.itemX,iy,18,0,Math.PI*2); ctx.fill();
+    }
   }
 
   // Enemies
@@ -11368,10 +11416,14 @@ function dtToast(msg,color='#f5a623') {
 }
 
 function dtShareChallenge() {
-  // Post to DAILY news/feed as a challenge
-  const msg = `🏙️ Subi ${DT.floor} andares no Daily Tower! Consegue passar?`;
-  if (typeof createPost === 'function') {
-    dtToast('👥 Desafio postado na DAILY!','#60a5fa');
+  const floor = DT.floor;
+  const userName = (typeof currentUser!=='undefined'&&currentUser) ? (currentUser.name||'@dailyuser') : '@dailyuser';
+  // Post to DAILY global feed
+  const texto = `🏙️ Daily Tower | ${userName} chegou ao ANDAR ${floor}! Consegue passar? 🔥`;
+  if (typeof api === 'function') {
+    api('/api/posts', {method:'POST', body:JSON.stringify({content: texto, type:'text'})})
+      .then(()=>{ dtToast('👥 Desafio postado no DAILY!','#60a5fa'); })
+      .catch(()=>{ dtToast('👥 Desafio enviado!','#60a5fa'); });
   } else {
     dtToast('👥 Desafio enviado para seus amigos!','#60a5fa');
   }
