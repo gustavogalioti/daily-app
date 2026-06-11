@@ -539,7 +539,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <button class="nav-btn" data-tab="news" onclick="switchTab('news',this)" id="nav-news" style="position:relative;">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg>
         <span>NEWS</span>
-        <span id="news-badge" style="display:none;position:absolute;top:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;display:none;align-items:center;justify-content:center;"></span>
+        <span id="news-badge" style="display:none;position:absolute;top:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;align-items:center;justify-content:center;"></span>
       </button>
       <button class="nav-btn" onclick="openAgoraChat()">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -10207,4 +10207,52 @@ function formatTimeAgo(dateStr) {
   if (hrs < 24) return `${hrs}h`;
   return `${Math.floor(hrs/24)}d`;
 }
+
+// ── NEWS badge ────────────────────────────────────────────────────────────────
+let _newsLastSeen = null;
+let _newsTabOpen  = false;
+
+function _setNewsBadge(n) {
+  const el = document.getElementById('news-badge');
+  if (!el) return;
+  if (n > 0) {
+    el.textContent = n > 99 ? '99+' : n;
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+async function _checkNewsBadge() {
+  if (_newsTabOpen) return;
+  try {
+    const since = _newsLastSeen || new Date(Date.now() - 24*60*60*1000).toISOString();
+    const data = await api(`/api/news/count?since=${encodeURIComponent(since)}`);
+    if (data && typeof data.count === 'number') _setNewsBadge(data.count);
+  } catch(e) {}
+}
+
+function startNewsBadgePolling() {
+  _checkNewsBadge();
+  setInterval(_checkNewsBadge, 60 * 1000);
+}
+
+// integrar ao switchTab — zerar badge ao abrir NEWS, reativar ao sair
+const _origSwitchTab = switchTab;
+switchTab = function(tab, btn) {
+  if (tab === 'news') {
+    _newsTabOpen = true;
+    _newsLastSeen = new Date().toISOString();
+    _setNewsBadge(0);
+  } else {
+    _newsTabOpen = false;
+  }
+  _origSwitchTab(tab, btn);
+};
+
+// iniciar polling quando currentUser estiver disponível
+const _newsPollingInterval = setInterval(() => {
+  const u = typeof currentUser !== 'undefined' ? currentUser : null;
+  if (u) { clearInterval(_newsPollingInterval); startNewsBadgePolling(); }
+}, 2000);
 </script>

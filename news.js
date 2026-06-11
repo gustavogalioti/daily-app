@@ -36,6 +36,20 @@ async function createNews(db, { category, title, body, pedro_comment=null, user_
   return id;
 }
 
+// ── GET /api/news/count?since=ISO ─────────────────────────────────────────────
+router.get('/count', optionalAuth, async (req, res) => {
+  try {
+    const db = getDB();
+    const since = req.query.since ? new Date(req.query.since) : new Date(Date.now() - 24*60*60*1000);
+    const { rows } = await db.pool.query(
+      `SELECT COUNT(*) AS n FROM news
+       WHERE created_at > $1 AND (expires_at IS NULL OR expires_at > NOW())`,
+      [since]
+    );
+    res.json({ count: parseInt(rows[0]?.n || 0) });
+  } catch(e) { res.status(500).json({ count: 0 }); }
+});
+
 // ── GET /api/news ─────────────────────────────────────────────────────────────
 router.get('/', optionalAuth, async (req, res) => {
   try {
