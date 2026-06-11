@@ -56,6 +56,7 @@ process.on('uncaughtException', (err) => {
     ['/api/feed', './feed'],
     ['/api/photos', './photos'],
     ['/api/notif-prefs', './notif_prefs'],
+    ['/api/news', './news'],
   ];
   for (const [path, file] of routeFiles) {
     try { app.use(path, require(file)); console.log('  ✓', path); }
@@ -139,6 +140,36 @@ process.on('uncaughtException', (err) => {
 
   setInterval(checkQuizArenaPush, 5 * 60 * 1000);
   checkQuizArenaPush();
+
+  // ── Scheduler: NEWS automático ────────────────────────────────────────────
+  let newsScheduler;
+  try {
+    newsScheduler = require('./news_scheduler');
+    const { getDB } = require('./database');
+    setInterval(() => newsScheduler.runNewsSchedulers(getDB()), 5 * 60 * 1000);
+    // Checar aniversários a cada hora
+    async function checkAnniversaries() {
+      try {
+        const db = getDB();
+        const milestones = [10,30,90,180,365,730,1095,1825];
+        const users = await db.prepare(`SELECT id, username, created_at FROM users`).all();
+        for (const u of users) {
+          const days = Math.floor((Date.now() - new Date(u.created_at).getTime()) / (1000*60*60*24));
+          if (milestones.includes(days)) {
+            // Só publica uma vez por marco (verifica se já existe news)
+            const existing = await db.prepare(
+              `SELECT id FROM news WHERE category='anniversary' AND body LIKE $1 AND created_at > NOW() - INTERVAL '2 days'`
+            ).get(`%@${u.username}%`);
+            if (!existing) {
+              await newsScheduler.notifyAnniversary(db, { username: u.username, user_id: u.id, days });
+            }
+          }
+        }
+      } catch(e) { console.error('news anniversary check:', e.message); }
+    }
+    setInterval(checkAnniversaries, 60 * 60 * 1000);
+    console.log('  ✓ News scheduler ativo');
+  } catch(e) { console.error('news_scheduler:', e.message); }
 
     const PORT = process.env.PORT || 3000;
   const httpServer = http.createServer(app);

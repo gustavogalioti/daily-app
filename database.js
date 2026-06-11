@@ -417,6 +417,7 @@ async function initPG() {
   try { await seedRegionalCommunities(pool); } catch(e) { console.error('seedRegionalCommunities:', e.message); }
   try { await seedPedro(pool); } catch(e) { console.error('seedPedro:', e.message); }
   try { await seedPedroCommunity(pool); } catch(e) { console.error('seedPedroCommunity:', e.message); }
+  try { await initNewsDB(pool); console.log('   ✓ news tables'); } catch(e) { console.error('initNewsDB:', e.message); }
 
   wrapper = {
     prepare: (sql) => ({
@@ -603,4 +604,40 @@ async function seedPedroCommunity(pool) {
   console.log('   🐱 Comunidade do Pedro criada!');
 }
 
-module.exports = { initDB, getDB };
+// ── NEWS tables ───────────────────────────────────────────────────────────────
+async function initNewsDB(pool) {
+  await pool.query(`CREATE TABLE IF NOT EXISTS news (
+    id TEXT PRIMARY KEY,
+    category TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    pedro_comment TEXT,
+    is_flash BOOLEAN DEFAULT false,
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS news_users (
+    news_id TEXT REFERENCES news(id) ON DELETE CASCADE,
+    user_id TEXT,
+    PRIMARY KEY(news_id, user_id)
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS news_reactions (
+    id TEXT PRIMARY KEY,
+    news_id TEXT REFERENCES news(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
+    reaction TEXT NOT NULL DEFAULT 'like',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(news_id, user_id)
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS news_comments (
+    id TEXT PRIMARY KEY,
+    news_id TEXT REFERENCES news(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
+    text TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_news_created ON news(created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_news_category ON news(category)`);
+}
+
+module.exports = { initDB, getDB, initNewsDB };

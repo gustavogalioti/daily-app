@@ -536,6 +536,11 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 12h2M18 12h2"/></svg>
         <span>Jogos</span>
       </button>
+      <button class="nav-btn" data-tab="news" onclick="switchTab('news',this)" id="nav-news" style="position:relative;">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg>
+        <span>NEWS</span>
+        <span id="news-badge" style="display:none;position:absolute;top:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;display:none;align-items:center;justify-content:center;"></span>
+      </button>
       <button class="nav-btn" onclick="openAgoraChat()">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span>Chat</span>
@@ -1187,6 +1192,32 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     </div>
   </div>
   
+    <!-- ─── NEWS ─── -->
+    <div id="tab-news" class="tab-content">
+      <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:16px;padding:20px;margin-bottom:16px;color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-20px;right:-20px;font-size:80px;opacity:.08;">📰</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <img src="pedro.jpg" style="width:40px;height:40px;border-radius:50%;border:2px solid #f97316;object-fit:cover;" onerror="this.style.display='none'">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;">DAILY NEWS</div>
+            <div style="font-size:12px;opacity:.7;">Pedro acompanha tudo o que acontece aqui 🐱</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">
+        <button class="btn btn-primary btn-sm" onclick="loadNews('all',this)" id="news-filter-all">📰 Tudo</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadNews('flash',this)">⚡ Flash</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadNews('records',this)">🏆 Recordes</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadNews('social',this)">🤝 Social</button>
+      </div>
+      <div id="news-feed" style="display:flex;flex-direction:column;gap:12px;">
+        <div class="page-loader"><div class="loader"></div></div>
+      </div>
+      <div id="news-load-more" style="display:none;text-align:center;margin-top:16px;">
+        <button class="btn btn-ghost btn-sm" onclick="loadMoreNews()">Carregar mais</button>
+      </div>
+    </div>
+
     <!-- ─── PERFIL ─── -->
     <div id="tab-profile" class="tab-content">
       <div id="profile-card-wrap"><div class="page-loader"><div class="loader"></div></div></div>
@@ -2032,7 +2063,7 @@ function switchTab(tab,btn){
     'friends':()=>{loadFriends();loadFriendRequests();},
     'communities':loadCommunities,'achievements':loadAchievements,
     'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou,
-    'mapa':loadMapa,'events':loadEvents,'jogos':()=>{showJogoSection('dailypoke',document.getElementById('btn-jogo-dp'));}
+    'mapa':loadMapa,'events':loadEvents,'jogos':()=>{showJogoSection('dailypoke',document.getElementById('btn-jogo-dp'));},'news':()=>loadNews('all',document.getElementById('news-filter-all'))
   };
   loaders[tab]?.();
 }
@@ -9969,11 +10000,194 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.activeElement?.id === 'royale-chat-input') sendRoyaleChat();
 });
 
-// fechar modal de batalha com ESC
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    const m = document.getElementById('quiz-battle-modal');
-    if (m && m.style.display !== 'none') { m.style.display = 'none'; clearInterval(battleModal.timer); }
-  }
-});
+// ═══════════════════════════════════════════════════════════════════
+// NEWS
+// ═══════════════════════════════════════════════════════════════════
+let newsPage = 1;
+let newsCurrentFilter = 'all';
+let newsLoading = false;
+
+const newsCategoryMeta = {
+  record_broken:   { icon:'🏆', label:'Recorde', color:'#f59e0b' },
+  rank_moved:      { icon:'📈', label:'Ranking', color:'#3b82f6' },
+  achievement_milestone:{ icon:'🎉', label:'Conquista', color:'#8b5cf6' },
+  anniversary:     { icon:'🎈', label:'Aniversário', color:'#ec4899' },
+  first_post:      { icon:'🌅', label:'Primeiro Post', color:'#f97316' },
+  most_active:     { icon:'🏅', label:'Mais Ativo', color:'#10b981' },
+  welcome_new_users:{ icon:'👋', label:'Boas-vindas', color:'#06b6d4' },
+  hall_of_fame:    { icon:'⭐', label:'Hall da Fama', color:'#eab308' },
+  new_friendship:  { icon:'🤝', label:'Amizade', color:'#f97316' },
+  flash:           { icon:'⚡', label:'Flash', color:'#ef4444' },
+};
+
+async function loadNews(filter, btnEl) {
+  newsCurrentFilter = filter || 'all';
+  newsPage = 1;
+  // highlight filtro
+  document.querySelectorAll('[onclick^="loadNews"]').forEach(b => b.classList.remove('btn-primary'));
+  document.querySelectorAll('[onclick^="loadNews"]').forEach(b => b.classList.add('btn-ghost'));
+  if (btnEl) { btnEl.classList.remove('btn-ghost'); btnEl.classList.add('btn-primary'); }
+  const feed = document.getElementById('news-feed');
+  feed.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  await fetchNews(true);
+}
+
+async function fetchNews(replace = false) {
+  if (newsLoading) return;
+  newsLoading = true;
+  try {
+    const data = await api(`/api/news?filter=${newsCurrentFilter}&page=${newsPage}`);
+    const feed = document.getElementById('news-feed');
+    const more = document.getElementById('news-load-more');
+    if (replace) feed.innerHTML = '';
+    if (!data.news || data.news.length === 0) {
+      if (replace) feed.innerHTML = `
+        <div style="text-align:center;padding:40px;color:var(--muted);">
+          <div style="font-size:48px;margin-bottom:12px;">📰</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;">Nenhuma notícia ainda</div>
+          <div style="font-size:13px;margin-top:4px;">As novidades da comunidade vão aparecer aqui!</div>
+        </div>`;
+      more.style.display = 'none';
+      return;
+    }
+    data.news.forEach(n => feed.appendChild(buildNewsCard(n)));
+    more.style.display = data.news.length === 20 ? 'block' : 'none';
+  } catch(e) {
+    document.getElementById('news-feed').innerHTML = `<div style="color:var(--muted);text-align:center;padding:20px;">Erro ao carregar notícias</div>`;
+  } finally { newsLoading = false; }
+}
+
+async function loadMoreNews() {
+  newsPage++;
+  await fetchNews(false);
+}
+
+function buildNewsCard(n) {
+  const meta = newsCategoryMeta[n.category] || { icon:'📰', label:'News', color:'#f97316' };
+  const isFlash = n.is_flash;
+  const timeAgo = formatTimeAgo(n.created_at);
+  const mentioned = n.mentioned_users ? (typeof n.mentioned_users === 'string' ? JSON.parse(n.mentioned_users) : n.mentioned_users) : [];
+  const liked = n.my_reaction === 'like';
+
+  const div = document.createElement('div');
+  div.style.cssText = `background:var(--surface);border-radius:16px;border:1.5px solid ${isFlash ? meta.color+'44' : 'var(--border)'};overflow:hidden;${isFlash ? `box-shadow:0 0 12px ${meta.color}22;` : ''}`;
+  div.innerHTML = `
+    <!-- categoria bar -->
+    <div style="background:${meta.color}18;border-bottom:1px solid ${meta.color}33;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:16px;">${meta.icon}</span>
+      <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:${meta.color};text-transform:uppercase;letter-spacing:.5px;">${meta.label}${isFlash ? ' · ⚡ Flash' : ''}</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--muted);">${timeAgo}</span>
+    </div>
+    <!-- corpo -->
+    <div style="padding:14px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:8px;line-height:1.3;">${escHtml(n.title)}</div>
+      <div style="font-size:13px;color:var(--text);white-space:pre-line;line-height:1.6;margin-bottom:${n.pedro_comment ? '10px' : '0'};">${linkifyMentions(escHtml(n.body))}</div>
+      ${n.pedro_comment ? `
+        <div style="background:#f97316 11;border-left:3px solid #f97316;padding:8px 12px;border-radius:0 8px 8px 0;margin-bottom:4px;display:flex;gap:8px;align-items:flex-start;">
+          <img src="pedro.jpg" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">
+          <div style="font-size:12px;font-style:italic;color:#f97316;line-height:1.4;">${escHtml(n.pedro_comment)}</div>
+        </div>` : ''}
+      <!-- usuários mencionados -->
+      ${mentioned.length > 0 ? `
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+          ${mentioned.map(u => `
+            <div onclick="openUserProfile('${u.id}')" style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:3px 8px 3px 4px;cursor:pointer;">
+              <img src="${u.avatar || ''}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;background:var(--muted);" onerror="this.src=''">
+              <span style="font-size:11px;font-weight:600;">@${escHtml(u.username)}</span>
+            </div>`).join('')}
+        </div>` : ''}
+      <!-- ações -->
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+        <button onclick="reactNews('${n.id}',this)" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;color:${liked ? '#ef4444' : 'var(--muted)'};font-size:13px;padding:4px 8px;border-radius:8px;transition:background .2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='none'">
+          <span style="font-size:16px;">${liked ? '❤️' : '🤍'}</span>
+          <span class="news-likes-${n.id}">${n.likes || 0}</span>
+        </button>
+        <button onclick="toggleNewsComments('${n.id}',this)" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;color:var(--muted);font-size:13px;padding:4px 8px;border-radius:8px;transition:background .2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='none'">
+          <span style="font-size:16px;">💬</span>
+          <span>${n.comments || 0} comentários</span>
+        </button>
+      </div>
+      <!-- painel de comentários (oculto) -->
+      <div id="news-comments-${n.id}" style="display:none;margin-top:10px;">
+        <div id="news-comments-list-${n.id}" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;">
+          <input id="news-comment-input-${n.id}" type="text" placeholder="Comentar..." style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--text);" onkeydown="if(event.key==='Enter')postNewsComment('${n.id}')">
+          <button onclick="postNewsComment('${n.id}')" class="btn btn-primary btn-sm">→</button>
+        </div>
+      </div>
+    </div>`;
+  return div;
+}
+
+function linkifyMentions(text) {
+  return text.replace(/@(\w+)/g, '<span style="color:var(--accent);font-weight:600;cursor:pointer;" onclick="openUserProfile(\'$1\')">@$1</span>');
+}
+
+async function reactNews(newsId, btn) {
+  const liked = btn.querySelector('span:first-child').textContent === '❤️';
+  const reaction = liked ? null : 'like';
+  try {
+    const data = await api(`/api/news/${newsId}/react`, { method:'POST', body: JSON.stringify({ reaction }) });
+    btn.querySelector('span:first-child').textContent = reaction ? '❤️' : '🤍';
+    btn.style.color = reaction ? '#ef4444' : 'var(--muted)';
+    document.querySelectorAll(`.news-likes-${newsId}`).forEach(el => el.textContent = data.likes);
+  } catch(e) { showToast('Faça login para reagir','error'); }
+}
+
+async function toggleNewsComments(newsId, btn) {
+  const panel = document.getElementById(`news-comments-${newsId}`);
+  const isOpen = panel.style.display !== 'none';
+  if (isOpen) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  await loadNewsComments(newsId);
+}
+
+async function loadNewsComments(newsId) {
+  const list = document.getElementById(`news-comments-list-${newsId}`);
+  list.innerHTML = '<div class="loader" style="margin:8px auto;"></div>';
+  try {
+    const data = await api(`/api/news/${newsId}/comments`);
+    list.innerHTML = '';
+    if (!data.comments.length) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;">Sem comentários ainda</div>';
+      return;
+    }
+    data.comments.forEach(c => {
+      const d = document.createElement('div');
+      d.style.cssText = 'display:flex;gap:8px;align-items:flex-start;';
+      d.innerHTML = `
+        <img src="${c.avatar_url||''}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;background:var(--muted);flex-shrink:0;" onerror="this.src=''">
+        <div style="background:var(--bg);border-radius:12px;padding:6px 10px;flex:1;">
+          <span style="font-size:11px;font-weight:700;color:var(--accent);">@${escHtml(c.username)}</span>
+          <div style="font-size:13px;margin-top:2px;">${escHtml(c.text)}</div>
+        </div>`;
+      list.appendChild(d);
+    });
+  } catch(e) { list.innerHTML = '<div style="color:var(--muted);font-size:12px;">Erro ao carregar</div>'; }
+}
+
+async function postNewsComment(newsId) {
+  const input = document.getElementById(`news-comment-input-${newsId}`);
+  const text = input.value.trim();
+  if (!text) return;
+  try {
+    await api(`/api/news/${newsId}/comment`, { method:'POST', body: JSON.stringify({ text }) });
+    input.value = '';
+    await loadNewsComments(newsId);
+  } catch(e) { showToast('Faça login para comentar','error'); }
+}
+
+function escHtml(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatTimeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff/60000);
+  if (mins < 1) return 'agora';
+  if (mins < 60) return `${mins}min`;
+  const hrs = Math.floor(mins/60);
+  if (hrs < 24) return `${hrs}h`;
+  return `${Math.floor(hrs/24)}d`;
+}
 </script>
