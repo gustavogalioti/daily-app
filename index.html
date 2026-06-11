@@ -248,6 +248,8 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 /* ── JOGOS ── */
 .jogos-soon{text-align:center;padding:60px 20px;}
+@keyframes dtToastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dtFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
 .jogos-badge{display:inline-block;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;border-radius:20px;padding:5px 18px;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;}
 .game-cards{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px;}
 .game-card-soon{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:20px;text-align:center;width:130px;opacity:.6;}
@@ -838,6 +840,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('catrunner',this)">🐱 Cat Runner</button>
         <button class="btn btn-ghost btn-sm" onclick="openTruco()">🃏 Truco</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('quiz',this)" id="btn-jogo-quiz">🧠 Quiz Arena</button>
+        <button class="btn btn-ghost btn-sm" onclick="showJogoSection('tower',this)" id="btn-jogo-tower">🏙️ Daily Tower</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('outros',this)" style="opacity:.5;">🌾 Em breve</button>
       </div>
 
@@ -1176,6 +1179,152 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
       </div>
       <!-- FIM QUIZ ARENA -->
+
+      <!-- DAILY TOWER GAME -->
+      <div id="jogo-tower" style="display:none;">
+        <div id="dt-home-screen" style="text-align:center;padding:0 0 16px;">
+          <!-- City skyline header -->
+          <div style="background:linear-gradient(180deg,#0a0015 0%,#15002a 50%,#0d0d1a 100%);border-radius:16px;overflow:hidden;margin-bottom:16px;padding:24px 16px 0;position:relative;">
+            <svg viewBox="0 0 360 120" style="width:100%;display:block;" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="20" width="35" height="100" fill="#0d0d20"/><rect x="5" y="5" width="25" height="115" fill="#111130"/>
+              <rect x="42" y="35" width="22" height="85" fill="#0e0e25"/><rect x="58" y="15" width="18" height="105" fill="#12122e"/>
+              <rect x="280" y="25" width="28" height="95" fill="#0d0d20"/><rect x="300" y="10" width="25" height="110" fill="#111130"/>
+              <rect x="330" y="40" width="30" height="80" fill="#0e0e25"/>
+              <!-- center tower -->
+              <rect x="145" y="0" width="70" height="120" fill="#0f0f28"/>
+              <rect x="152" y="8" width="56" height="112" fill="#13132f"/>
+              <rect x="158" y="15" width="7" height="4" fill="#f5a623" opacity=".9" rx="1"/>
+              <rect x="170" y="15" width="7" height="4" fill="#f5a623" opacity=".9" rx="1"/>
+              <rect x="182" y="15" width="7" height="4" fill="#f5a623" opacity=".7" rx="1"/>
+              <rect x="158" y="26" width="7" height="4" fill="#60a5fa" opacity=".7" rx="1"/>
+              <rect x="170" y="26" width="7" height="4" fill="#4fc3f7" opacity=".6" rx="1"/>
+              <rect x="182" y="26" width="7" height="4" fill="#60a5fa" opacity=".8" rx="1"/>
+              <rect x="8" y="18" width="4" height="3" fill="#4fc3f7" opacity=".6" rx="1"/>
+              <rect x="16" y="25" width="4" height="3" fill="#f472b6" opacity=".5" rx="1"/>
+              <rect x="304" y="22" width="4" height="3" fill="#a855f7" opacity=".6" rx="1"/>
+              <rect x="314" y="14" width="4" height="3" fill="#f5a623" opacity=".8" rx="1"/>
+              <rect x="152" y="58" width="56" height="18" fill="rgba(245,166,35,.15)" rx="3"/>
+              <text x="180" y="70" fill="#f5a623" font-size="10" font-weight="900" text-anchor="middle" font-family="Arial">DAILY TOWER</text>
+            </svg>
+            <div style="padding-bottom:20px;">
+              <div style="font-size:11px;letter-spacing:6px;color:#f5a623;font-weight:700;text-transform:uppercase;">DAILY</div>
+              <div style="font-size:52px;font-weight:900;line-height:1;background:linear-gradient(180deg,#fff 0%,#f5a623 60%,#e67e00 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 20px rgba(245,166,35,.4));">TOWER</div>
+              <div style="font-size:12px;color:#8888aa;margin-top:4px;letter-spacing:2px;">SUBA O MÁXIMO QUE PUDER</div>
+            </div>
+          </div>
+          <!-- Tower height badge -->
+          <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(245,166,35,.3);border-radius:12px;padding:12px;margin-bottom:16px;">
+            <div style="font-size:10px;color:#8888aa;letter-spacing:2px;text-transform:uppercase;">🏙️ Torre Global — Altura atual</div>
+            <div id="dt-global-height" style="font-size:32px;font-weight:900;color:#f5a623;">128.554</div>
+            <div style="font-size:11px;color:#8888aa;">andares e crescendo</div>
+          </div>
+          <!-- Player preview -->
+          <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;">
+            <div id="dt-player-preview" style="width:64px;height:64px;background:rgba(0,0,0,.3);border-radius:10px;border:2px solid rgba(245,166,35,.4);display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;overflow:hidden;"></div>
+            <div style="flex:1;text-align:left;">
+              <div style="font-size:12px;font-weight:700;color:#fff;" id="dt-player-name">Seu Dailypoke</div>
+              <div style="font-size:11px;color:#8888aa;">Recorde: <span id="dt-record-home" style="color:#f5a623;font-weight:700;">0</span> andares</div>
+              <div style="font-size:11px;color:#8888aa;margin-top:2px;">Mortes: <span id="dt-deaths-home" style="color:#ef4444;font-weight:700;">0</span></div>
+            </div>
+          </div>
+          <!-- Play button -->
+          <button onclick="startDailyTower()" style="width:100%;background:linear-gradient(135deg,#f5a623,#e67e00);border:none;border-radius:50px;padding:18px;font-size:20px;font-weight:900;color:#000;letter-spacing:2px;cursor:pointer;box-shadow:0 4px 30px rgba(245,166,35,.4);text-transform:uppercase;margin-bottom:10px;">▶ JOGAR</button>
+          <button onclick="dtShowRanking()" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:50px;padding:13px;font-size:14px;font-weight:600;color:#e8e8f0;cursor:pointer;">🏆 Ver Ranking</button>
+        </div>
+
+        <!-- Game canvas area -->
+        <div id="dt-game-area" style="display:none;position:relative;background:#060610;border-radius:16px;overflow:hidden;">
+          <!-- HUD -->
+          <div id="dt-hud" style="background:rgba(6,6,10,.97);padding:10px 14px 8px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.05);">
+            <div id="dt-hud-avatar" style="width:44px;height:44px;background:linear-gradient(135deg,#2a2a3e,#1a1a2e);border-radius:10px;border:2px solid #f5a623;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden;"></div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;color:#e8e8f0;" id="dt-hud-name">Dailypoke</div>
+              <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;margin-top:3px;overflow:hidden;"><div id="dt-hp-fill" style="height:100%;background:#4ade80;border-radius:3px;transition:width .3s;width:100%;"></div></div>
+              <div style="display:flex;gap:8px;margin-top:4px;"><span style="color:#f5a623;font-size:11px;font-weight:700;">🟡 <span id="dt-hud-coins">0</span></span><span style="color:#4fc3f7;font-size:11px;font-weight:700;">💎 <span id="dt-hud-gems">0</span></span></div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:10px;color:#8888aa;letter-spacing:2px;text-transform:uppercase;">ANDAR</div>
+              <div id="dt-hud-floor" style="font-size:32px;font-weight:900;color:#fff;line-height:1;">1</div>
+              <div style="font-size:10px;color:#8888aa;">REC: <span id="dt-hud-record">0</span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:700;color:#ef4444;">💀 <span id="dt-hud-deaths">0</span></div>
+            <div onclick="dtTogglePause()" style="width:36px;height:36px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">⏸</div>
+          </div>
+
+          <!-- Canvas -->
+          <div id="dt-canvas-container" style="position:relative;">
+            <canvas id="dt-canvas" style="display:block;width:100%;"></canvas>
+            <div id="dt-toasts" style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:90%;z-index:100;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:8px;"></div>
+            <!-- Pause overlay -->
+            <div id="dt-pause" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+              <div style="font-size:40px;font-weight:900;color:#f5a623;">⏸ PAUSA</div>
+              <button onclick="dtTogglePause()" style="background:#f5a623;color:#000;border:none;border-radius:50px;padding:16px 40px;font-size:16px;font-weight:900;cursor:pointer;width:220px;">▶ CONTINUAR</button>
+              <button onclick="dtQuit()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:50px;color:#e8e8f0;padding:12px 40px;font-size:14px;cursor:pointer;width:220px;">🏠 Sair</button>
+            </div>
+          </div>
+
+          <!-- Missions -->
+          <div style="background:rgba(6,6,10,.97);border-top:1px solid rgba(255,255,255,.05);padding:6px 14px;display:flex;gap:14px;align-items:center;">
+            <div style="font-size:10px;font-weight:700;color:#f5a623;text-transform:uppercase;letter-spacing:1px;white-space:nowrap;">📋 MISSÕES</div>
+            <div style="display:flex;align-items:center;gap:6px;flex:1;">
+              <span style="font-size:13px;">📈</span>
+              <div style="flex:1;">
+                <div style="font-size:10px;color:#e8e8f0;">Suba 200 andares</div>
+                <div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:2px;overflow:hidden;"><div id="dt-m1" style="height:100%;background:#f5a623;border-radius:2px;width:0%;transition:width .3s;"></div></div>
+              </div>
+              <span style="font-size:10px;color:#8888aa;white-space:nowrap;">🟡50</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex:1;">
+              <span style="font-size:13px;">🟡</span>
+              <div style="flex:1;">
+                <div style="font-size:10px;color:#e8e8f0;">Colete 50 moedas</div>
+                <div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:2px;overflow:hidden;"><div id="dt-m2" style="height:100%;background:#f5a623;border-radius:2px;width:0%;transition:width .3s;"></div></div>
+              </div>
+              <span style="font-size:10px;color:#8888aa;white-space:nowrap;">💎10</span>
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div style="background:rgba(6,6,10,.99);padding:10px 14px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,.05);">
+            <button id="dt-btn-jump" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#2a2040);border:2px solid rgba(255,255,255,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#fff;flex-shrink:0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dtKeys.jump=true;event.preventDefault();" ontouchend="dtKeys.jump=false;" onmousedown="dtKeys.jump=true;" onmouseup="dtKeys.jump=false;"><span style="font-size:26px;">↑</span><span style="font-size:9px;color:#8888aa;">PULAR</span></button>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#e8e8f0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dtKeys.left=true;event.preventDefault();" ontouchend="dtKeys.left=false;" onmousedown="dtKeys.left=true;" onmouseup="dtKeys.left=false;"><span style="font-size:22px;">◀</span><span style="font-size:9px;color:#8888aa;">ANDAR</span></button>
+              <button style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#e8e8f0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dtKeys.right=true;event.preventDefault();" ontouchend="dtKeys.right=false;" onmousedown="dtKeys.right=true;" onmouseup="dtKeys.right=false;"><span style="font-size:22px;">▶</span><span style="font-size:9px;color:#8888aa;">ANDAR</span></button>
+            </div>
+            <button onclick="dtShoot()" style="width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,#7c2d12,#b45309);border:2px solid #f5a623;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 0 20px rgba(245,166,35,.3);flex-shrink:0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dtShoot();event.preventDefault();"><span style="font-size:22px;">🎯</span><span style="font-size:9px;color:rgba(245,166,35,.8);">ATIRAR</span></button>
+          </div>
+        </div>
+
+        <!-- Death screen -->
+        <div id="dt-death-screen" style="display:none;background:linear-gradient(180deg,#1a0505 0%,#0a0a0f 100%);border-radius:16px;padding:40px 24px;text-align:center;">
+          <div style="font-size:72px;animation:dtFloat 2s ease-in-out infinite;">💀</div>
+          <div style="font-size:32px;font-weight:900;color:#ef4444;margin:10px 0 6px;">FIM DE JOGO!</div>
+          <div style="font-size:15px;color:#8888aa;">Você chegou ao andar <span id="dt-death-floor" style="color:#fff;font-weight:700;font-size:18px;">0</span></div>
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px;margin:18px 0;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><div id="dt-d-floor" style="font-size:26px;font-weight:900;color:#f5a623;">0</div><div style="font-size:10px;color:#8888aa;text-transform:uppercase;letter-spacing:1px;">Andar</div></div>
+            <div><div id="dt-d-record" style="font-size:26px;font-weight:900;color:#f5a623;">0</div><div style="font-size:10px;color:#8888aa;text-transform:uppercase;letter-spacing:1px;">Recorde</div></div>
+            <div><div id="dt-d-coins" style="font-size:26px;font-weight:900;color:#f5a623;">0</div><div style="font-size:10px;color:#8888aa;text-transform:uppercase;letter-spacing:1px;">Moedas</div></div>
+            <div><div id="dt-d-kills" style="font-size:26px;font-weight:900;color:#f5a623;">0</div><div style="font-size:10px;color:#8888aa;text-transform:uppercase;letter-spacing:1px;">Inimigos</div></div>
+          </div>
+          <button onclick="dtShareChallenge()" style="width:100%;background:linear-gradient(135deg,#1e3a5f,#2563eb);border:1px solid rgba(96,165,250,.3);border-radius:50px;padding:14px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;margin-bottom:10px;">👥 DESAFIAR AMIGO NA DAILY</button>
+          <button onclick="startDailyTower()" style="width:100%;background:linear-gradient(135deg,#f5a623,#e67e00);border:none;border-radius:50px;padding:16px;font-size:17px;font-weight:900;color:#000;cursor:pointer;margin-bottom:10px;text-transform:uppercase;">🔄 TENTAR DE NOVO</button>
+          <button onclick="dtBackHome()" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:50px;padding:12px;font-size:13px;color:#8888aa;cursor:pointer;">🏠 Início</button>
+        </div>
+
+        <!-- Ranking panel -->
+        <div id="dt-ranking-panel" style="display:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <button onclick="dtBackHome()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#e8e8f0;cursor:pointer;font-size:13px;">← Voltar</button>
+            <div style="font-size:18px;font-weight:900;">🏆 Ranking</div>
+          </div>
+          <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:12px;" id="dt-rank-tabs">
+            <div onclick="dtRankTab('global',this)" style="flex:1;text-align:center;padding:10px 4px;font-size:12px;font-weight:700;color:#f5a623;border-bottom:2px solid #f5a623;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;">🌎 Global</div>
+            <div onclick="dtRankTab('amigos',this)" style="flex:1;text-align:center;padding:10px 4px;font-size:12px;font-weight:700;color:#8888aa;border-bottom:2px solid transparent;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;">👥 Amigos</div>
+            <div onclick="dtRankTab('cidade',this)" style="flex:1;text-align:center;padding:10px 4px;font-size:12px;font-weight:700;color:#8888aa;border-bottom:2px solid transparent;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;">📍 Cidade</div>
+          </div>
+          <div id="dt-rank-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
 
       <div id="jogo-outros" style="display:none;">
         <div class="jogos-soon">
@@ -7374,7 +7523,7 @@ let myPokeConfig = null;
 let editorCfg = null;
 
 function showJogoSection(sec, btn) {
-  ['dailypoke','catrunner','outros','quiz'].forEach(s=>{
+  ['dailypoke','catrunner','outros','quiz','tower'].forEach(s=>{
     const el=document.getElementById('jogo-'+s);
     if(el) el.style.display='none';
   });
@@ -7386,6 +7535,7 @@ function showJogoSection(sec, btn) {
   if(sec==='dailypoke') loadDailyPoke();
   if(sec==='catrunner') initCatGame();
   if(sec==='quiz') initQuizArena();
+  if(sec==='tower') initDailyTowerHome();
 }
 
 async function loadDailyPoke() {
@@ -10257,4 +10407,528 @@ const _newsPollingInterval = setInterval(() => {
   const u = typeof currentUser !== 'undefined' ? currentUser : null;
   if (u) { clearInterval(_newsPollingInterval); startNewsBadgePolling(); }
 }, 2000);
+
+// ═══════════════════════════════════════════════════
+// DAILY TOWER — Game Engine (integrated)
+// ═══════════════════════════════════════════════════
+
+const DT = {
+  running: false, paused: false,
+  floor: 1, record: 0, hp: 100, maxHp: 100,
+  coins: 0, kills: 0, deaths: 0,
+  player: null, enemies: [], bullets: [], particles: [],
+  currentFloor: null, nextFloor: null,
+  animFrame: null, lastTime: 0,
+  canvas: null, ctx: null,
+  pokeConfig: null,
+};
+const dtKeys = { left: false, right: false, jump: false };
+
+const DT_ENEMIES = [
+  { name:'Boleto', emoji:'📄', hp:3, speed:1.2, points:15, color:'#ef4444' },
+  { name:'Wi-Fi Ruim', emoji:'📶', hp:2, speed:1.8, points:10, color:'#f59e0b' },
+  { name:'Mosquito', emoji:'🦟', hp:1, speed:2.5, points:8, color:'#84cc16' },
+  { name:'Coach', emoji:'💼', hp:4, speed:0.9, points:20, color:'#8b5cf6' },
+  { name:'Influencer', emoji:'🤳', hp:3, speed:1.4, points:18, color:'#ec4899' },
+  { name:'Golpista Pix', emoji:'💸', hp:5, speed:1.0, points:25, color:'#f97316' },
+  { name:'Telemarketing', emoji:'📞', hp:2, speed:1.6, points:12, color:'#06b6d4' },
+];
+const DT_BOSSES = [
+  { name:'SERASA SUPREMO', emoji:'😤', hp:30, speed:0.7, points:200, color:'#dc2626' },
+  { name:'REI DO TRÂNSITO', emoji:'🚗', hp:50, speed:1.2, points:350, color:'#ca8a04' },
+  { name:'TIOZÃO DO ZAP', emoji:'📱', hp:40, speed:0.9, points:280, color:'#7c3aed' },
+];
+const DT_THEMES = [
+  { name:'Escritório', bg:'#1a1020', accent:'#7c3aed' },
+  { name:'Cozinha', bg:'#0f1a10', accent:'#22c55e' },
+  { name:'Cobertura', bg:'#1a1008', accent:'#f59e0b' },
+  { name:'Estacionamento', bg:'#0a0f1a', accent:'#60a5fa' },
+  { name:'Garagem', bg:'#1a0a0a', accent:'#ef4444' },
+  { name:'TI', bg:'#0a1020', accent:'#06b6d4' },
+  { name:'RH', bg:'#1a0a18', accent:'#ec4899' },
+  { name:'Terraço', bg:'#0a0a10', accent:'#a855f7' },
+];
+const DT_FLOOR_H = 160;
+const DT_LADDER_W = 24;
+
+async function initDailyTowerHome() {
+  // Load player poke config
+  try {
+    const data = await api('/api/dailypoke/me').catch(()=>null);
+    DT.pokeConfig = data?.config ? (typeof data.config==='string'?JSON.parse(data.config):data.config) : null;
+  } catch(e) {}
+  const preview = document.getElementById('dt-player-preview');
+  if (preview) {
+    if (DT.pokeConfig && typeof buildPokeSVG === 'function') {
+      preview.innerHTML = buildPokeSVG(DT.pokeConfig).replace(/width="[^"]*"/,'width="60"').replace(/height="[^"]*"/,'height="60"');
+    } else { preview.textContent = '🧑'; }
+  }
+  const nameEl = document.getElementById('dt-player-name');
+  if (nameEl && typeof currentUser !== 'undefined' && currentUser) nameEl.textContent = currentUser.name || 'Dailypoke';
+  document.getElementById('dt-record-home').textContent = DT.record;
+  document.getElementById('dt-deaths-home').textContent = DT.deaths;
+  dtShowPanel('home');
+  // Animate global counter
+  const el = document.getElementById('dt-global-height');
+  if (el) { let n=128000; const step=()=>{ n+=17; if(n>=128554){el.textContent='128.554';return;} el.textContent=n.toLocaleString('pt-BR'); requestAnimationFrame(step);}; step(); }
+}
+
+function dtShowPanel(name) {
+  ['dt-home-screen','dt-game-area','dt-death-screen','dt-ranking-panel'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+  });
+  const map = {home:'dt-home-screen',game:'dt-game-area',death:'dt-death-screen',ranking:'dt-ranking-panel'};
+  const el = document.getElementById(map[name]); if(el) el.style.display='block';
+}
+
+function startDailyTower() {
+  dtShowPanel('game');
+  DT.canvas = document.getElementById('dt-canvas');
+  DT.ctx = DT.canvas.getContext('2d');
+  const container = document.getElementById('dt-canvas-container');
+  DT.canvas.width = container.clientWidth;
+  DT.canvas.height = 320;
+  DT.canvas.style.height = '320px';
+
+  DT.running = true; DT.paused = false;
+  DT.floor = 1; DT.hp = DT.maxHp = 100;
+  DT.coins = 0; DT.kills = 0;
+  DT.enemies = []; DT.bullets = []; DT.particles = [];
+  DT.currentFloor = dtGenFloor(1);
+  DT.nextFloor = dtGenFloor(2);
+  DT.player = { x:60, y:0, w:28, h:38, vx:0, vy:0, onGround:false, facingRight:true, shootCD:0, invincible:0 };
+  DT.player.y = DT.canvas.height - 40 - DT.player.h;
+
+  // Set HUD avatar to poke
+  const hAvatar = document.getElementById('dt-hud-avatar');
+  if (hAvatar) {
+    if (DT.pokeConfig && typeof buildPokeSVG==='function') {
+      hAvatar.innerHTML = buildPokeSVG(DT.pokeConfig).replace(/width="[^"]*"/,'width="40"').replace(/height="[^"]*"/,'height="40"');
+    } else { hAvatar.textContent='🧑'; }
+  }
+
+  dtUpdateHUD();
+  if (DT.animFrame) cancelAnimationFrame(DT.animFrame);
+  DT.lastTime = performance.now();
+  DT.animFrame = requestAnimationFrame(dtLoop);
+}
+
+function dtGenFloor(num) {
+  const W = DT.canvas ? DT.canvas.width : 360;
+  const theme = DT_THEMES[num % DT_THEMES.length];
+  const isBoss = num > 0 && num % 25 === 0;
+  const hasEnemy = !isBoss && Math.random() < 0.55;
+  const hasPlatform = Math.random() < 0.35;
+
+  let enemies = [];
+  if (isBoss) {
+    const b = DT_BOSSES[Math.floor(num/25-1) % DT_BOSSES.length];
+    enemies = [{...b, x:W*0.55, vy:0, hpCurrent:b.hp, isBoss:true, dir:-1, hitTimer:0}];
+  } else if (hasEnemy) {
+    const cnt = Math.min(1+Math.floor(num/15),3);
+    for(let i=0;i<cnt;i++){
+      const e = DT_ENEMIES[Math.floor(Math.random()*DT_ENEMIES.length)];
+      enemies.push({...e, x:W*(0.4+0.25*i), vy:0, hpCurrent:e.hp, dir:-1, hitTimer:0});
+    }
+  }
+  let coins = [];
+  if (Math.random()<0.6) {
+    const cnt = 1+Math.floor(Math.random()*4);
+    for(let i=0;i<cnt;i++) coins.push({x:W*(0.2+0.6*(i/Math.max(cnt,1))), collected:false});
+  }
+  let platforms = [];
+  if (hasPlatform) platforms.push({x:W*0.28+Math.random()*W*0.2, y:DT_FLOOR_H*0.42, w:55+Math.random()*55, h:10});
+  const hasItem = Math.random()<0.18;
+  return { num, theme, isBoss, enemies, coins, platforms,
+    hasItem, itemType:hasItem?(['☕','🛡','💊','⚡'][Math.floor(Math.random()*4)]):null,
+    itemX:W*0.5, itemCollected:false, ladderX:W-34 };
+}
+
+function dtLoop(ts) {
+  if (!DT.running) return;
+  const dt = Math.min((ts-DT.lastTime)/16.67,3);
+  DT.lastTime = ts;
+  if (!DT.paused) dtUpdate(dt);
+  dtDraw();
+  DT.animFrame = requestAnimationFrame(dtLoop);
+}
+
+function dtUpdate(dt) {
+  const p = DT.player;
+  const W = DT.canvas.width, H = DT.canvas.height;
+  const groundY = H - 40;
+
+  if (dtKeys.left) { p.vx -= 1.4*dt; p.facingRight=false; }
+  else if (dtKeys.right) { p.vx += 1.4*dt; p.facingRight=true; }
+  else p.vx *= 0.75;
+  p.vx = Math.max(-4, Math.min(4, p.vx));
+
+  if (dtKeys.jump && p.onGround) { p.vy=-13; p.onGround=false; dtKeys.jump=false; }
+  p.vy += 0.55*dt;
+  p.x += p.vx*dt;
+  p.y += p.vy*dt;
+  p.x = Math.max(0, Math.min(W-p.w, p.x));
+
+  const pBottom = groundY - p.h;
+  if (p.y >= pBottom) { p.y=pBottom; p.vy=0; p.onGround=true; }
+
+  // Platform collisions
+  for (const pl of DT.currentFloor.platforms) {
+    const platY = groundY - pl.y - pl.h;
+    if (p.vy>=0 && p.y+p.h>=platY && p.y+p.h<=platY+pl.h+8 && p.x+p.w>pl.x && p.x<pl.x+pl.w) {
+      p.y=platY-p.h; p.vy=0; p.onGround=true;
+    }
+  }
+
+  // Ladder / advance floor
+  const lx = DT.currentFloor.ladderX;
+  if (p.x+p.w>lx && p.x<lx+DT_LADDER_W && dtKeys.jump && p.onGround) {
+    const alive = DT.currentFloor.enemies.filter(e=>e.hpCurrent>0);
+    if (alive.length===0) { dtAdvance(); return; }
+    else dtToast('⚠️ Derrote os inimigos primeiro!','#ef4444');
+  }
+
+  if (p.invincible>0) p.invincible-=dt;
+  if (p.shootCD>0) p.shootCD-=dt;
+
+  // Enemy AI
+  const eGroundY = groundY - 36;
+  for (const e of DT.currentFloor.enemies) {
+    if (e.hpCurrent<=0) continue;
+    const dx = p.x - e.x; e.dir = dx>0?1:-1;
+    e.x += e.dir*e.speed*dt;
+    e.x = Math.max(0, Math.min(W-36, e.x));
+    if (e.hitTimer>0) e.hitTimer-=dt;
+    if (p.invincible<=0 && Math.abs(e.x-p.x)<36 && Math.abs(eGroundY-(groundY-p.h))<50) dtTakeDamage(e.isBoss?18:8);
+  }
+
+  // Bullets
+  for (let i=DT.bullets.length-1;i>=0;i--) {
+    const b=DT.bullets[i];
+    b.x+=b.vx*dt; b.life-=dt;
+    if (b.life<=0||b.x<0||b.x>W) { DT.bullets.splice(i,1); continue; }
+    for (const e of DT.currentFloor.enemies) {
+      if (e.hpCurrent<=0) continue;
+      const eY=groundY-36;
+      if (Math.abs(b.x-e.x)<28&&Math.abs(b.y-eY)<28) {
+        e.hpCurrent--; e.hitTimer=10;
+        DT.bullets.splice(i,1);
+        dtParticles(e.x+16,eY+16,e.color,5);
+        if (e.hpCurrent<=0) {
+          DT.kills++; DT.coins+=e.points;
+          dtToast(`💀 ${e.name}! +${e.points}🟡`,'#22c55e');
+          if(e.isBoss) dtToast(`🔥 CHEFE DERROTADO! +${e.points*2}🟡`,'#f5a623');
+        }
+        break;
+      }
+    }
+  }
+
+  // Coins
+  const coinY = groundY - 60;
+  for (const c of DT.currentFloor.coins) {
+    if (!c.collected && Math.abs(p.x+p.w/2-c.x)<25 && Math.abs(p.y+p.h/2-coinY)<35) {
+      c.collected=true; DT.coins++; dtParticles(c.x,coinY,'#f5a623',4);
+    }
+  }
+
+  // Item
+  if (DT.currentFloor.hasItem && !DT.currentFloor.itemCollected) {
+    const iy=groundY-80;
+    if (Math.abs(p.x+p.w/2-DT.currentFloor.itemX)<30&&Math.abs(p.y+p.h/2-iy)<40) {
+      DT.currentFloor.itemCollected=true; dtApplyItem(DT.currentFloor.itemType);
+    }
+  }
+
+  // Particles
+  for (let i=DT.particles.length-1;i>=0;i--) {
+    const pt=DT.particles[i];
+    pt.x+=pt.vx*dt; pt.y+=pt.vy*dt; pt.vy+=0.2*dt; pt.life-=dt;
+    if(pt.life<=0) DT.particles.splice(i,1);
+  }
+
+  dtUpdateHUD();
+}
+
+function dtApplyItem(t) {
+  const m = {'☕':()=>{ DT.maxHp=Math.min(DT.maxHp+10,150); dtToast('☕ +10 HP máximo!','#f59e0b'); },
+    '🛡':()=>{ DT.player.invincible=300; dtToast('🛡 Escudo ativado!','#60a5fa'); },
+    '💊':()=>{ DT.hp=Math.min(DT.hp+30,DT.maxHp); dtToast('💊 +30 HP!','#22c55e'); },
+    '⚡':()=>{ dtToast('⚡ Velocidade turbo!','#fbbf24'); }};
+  if(m[t]) m[t]();
+}
+
+function dtAdvance() {
+  DT.floor++;
+  if(DT.floor>DT.record) DT.record=DT.floor;
+  const bossWarn = DT.floor%25===0?'⚠️ CHEFE!':(DT.floor+1)%25===0?'Próximo: CHEFE!':'';
+  dtToast(`🆙 ANDAR ${DT.floor}! ${bossWarn}`,'#f5a623');
+  DT.currentFloor = DT.nextFloor;
+  DT.nextFloor = dtGenFloor(DT.floor+1);
+  DT.player.y = DT.canvas.height - 40 - DT.player.h;
+  DT.player.x = 60;
+  document.getElementById('dt-m1').style.width=Math.min(DT.floor/200*100,100)+'%';
+  document.getElementById('dt-m2').style.width=Math.min(DT.coins/50*100,100)+'%';
+}
+
+function dtTakeDamage(amt) {
+  if(DT.player.invincible>0) return;
+  DT.hp=Math.max(0,DT.hp-amt); DT.player.invincible=40;
+  dtParticles(DT.player.x+14,DT.player.y+20,'#ef4444',5);
+  if(DT.hp<=0) dtDie();
+}
+
+function dtDie() {
+  DT.running=false; DT.deaths++;
+  document.getElementById('dt-death-floor').textContent=DT.floor;
+  document.getElementById('dt-d-floor').textContent=DT.floor;
+  document.getElementById('dt-d-record').textContent=DT.record;
+  document.getElementById('dt-d-coins').textContent=DT.coins;
+  document.getElementById('dt-d-kills').textContent=DT.kills;
+  setTimeout(()=>dtShowPanel('death'),600);
+}
+
+function dtShoot() {
+  const p=DT.player; if(p.shootCD>0) return; p.shootCD=12;
+  const H=DT.canvas.height, groundY=H-40;
+  DT.bullets.push({x:p.facingRight?p.x+p.w:p.x, y:groundY-p.h*0.6, vx:p.facingRight?9:-9, life:50, color:'#f5a623'});
+  dtParticles(p.x+(p.facingRight?p.w:0),groundY-p.h*0.6,'#f5a623',2);
+}
+
+function dtParticles(x,y,color,n) {
+  for(let i=0;i<n;i++) DT.particles.push({x,y,vx:(Math.random()-.5)*5,vy:-Math.random()*4-1,color,life:15+Math.random()*20,size:3+Math.random()*3});
+}
+
+function dtDraw() {
+  const cv=DT.canvas, ctx=DT.ctx, W=cv.width, H=cv.height;
+  const p=DT.player, groundY=H-40;
+  const floorH=DT_FLOOR_H, ceilY=groundY-floorH, nextTop=ceilY-floorH;
+  ctx.fillStyle='#060610'; ctx.fillRect(0,0,W,H);
+
+  // Next floor peek
+  dtDrawFloor(DT.nextFloor,0,nextTop,W,floorH,0.7,groundY);
+  // Separator
+  ctx.fillStyle='#2a2a3e'; ctx.fillRect(0,ceilY-6,W,6);
+  // Current floor
+  dtDrawFloor(DT.currentFloor,0,ceilY,W,floorH,1,groundY);
+  // Ground bar
+  ctx.fillStyle='#1a1a2a'; ctx.fillRect(0,groundY,W,H-groundY);
+  ctx.fillStyle='#2a2a3e'; ctx.fillRect(0,groundY,W,4);
+
+  // Player
+  dtDrawPlayer(p,groundY,W);
+
+  // Bullets
+  for(const b of DT.bullets){
+    ctx.save(); ctx.fillStyle=b.color; ctx.shadowBlur=8; ctx.shadowColor=b.color;
+    ctx.beginPath(); ctx.ellipse(b.x,b.y,7,3,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+
+  // Particles
+  for(const pt of DT.particles){
+    ctx.save(); ctx.globalAlpha=pt.life/35; ctx.fillStyle=pt.color;
+    ctx.beginPath(); ctx.arc(pt.x,pt.y,pt.size,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+
+  // Floor labels
+  dtDrawLabel(DT.currentFloor.num, 8, ceilY+8, DT.currentFloor.theme.name, DT.currentFloor.isBoss, 1);
+  dtDrawLabel(DT.nextFloor.num, 8, nextTop+8, DT.nextFloor.theme.name, DT.nextFloor.isBoss, 0.65);
+}
+
+function dtDrawFloor(fl,x,y,w,h,alpha,groundY) {
+  const ctx=DT.ctx;
+  ctx.save(); ctx.globalAlpha=alpha;
+  ctx.fillStyle=fl.theme.bg; ctx.fillRect(x,y,w,h);
+  // Neon ceiling
+  ctx.fillStyle=fl.theme.accent; ctx.shadowBlur=18; ctx.shadowColor=fl.theme.accent;
+  ctx.fillRect(w*0.12,y+2,w*0.76,3); ctx.shadowBlur=0;
+  // Background window
+  const wx=w*0.28,wy=y+h*0.15,ww=w*0.44,wh=h*0.62;
+  ctx.fillStyle='rgba(30,40,80,.45)'; ctx.beginPath(); ctx.roundRect(wx,wy,ww,wh,4); ctx.fill();
+  ctx.fillStyle='rgba(10,10,30,.8)';
+  for(let i=0;i<7;i++){const bx=wx+i*ww/7;const bh=18+Math.sin(i*1.7+fl.num)*13;ctx.fillRect(bx+2,wy+wh-bh,ww/7-4,bh);}
+  const sg=ctx.createRadialGradient(wx+ww/2,wy+wh,5,wx+ww/2,wy+wh,wh*.8);
+  sg.addColorStop(0,'rgba(251,146,60,.25)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=sg; ctx.fillRect(wx,wy,ww,wh);
+  // Floor tile
+  ctx.fillStyle='rgba(255,255,255,.04)';
+  ctx.fillRect(x,y+h-18,w,2);
+  // Ladder
+  ctx.fillStyle='#8b6914'; ctx.fillRect(fl.ladderX+3,y,4,h); ctx.fillRect(fl.ladderX+DT_LADDER_W-7,y,4,h);
+  ctx.fillStyle='#a07820';
+  for(let ry=y+8;ry<y+h;ry+=16) ctx.fillRect(fl.ladderX+3,ry,DT_LADDER_W-6,3);
+  // Platforms
+  for(const pl of fl.platforms){
+    const py=groundY-pl.y-pl.h;
+    ctx.fillStyle=fl.theme.accent; ctx.shadowBlur=5; ctx.shadowColor=fl.theme.accent;
+    ctx.fillRect(pl.x,py,pl.w,pl.h); ctx.shadowBlur=0;
+  }
+  // Coins
+  const cy=groundY-60;
+  for(const c of fl.coins){if(!c.collected){ctx.fillStyle='#f5a623';ctx.shadowBlur=7;ctx.shadowColor='#f5a623';ctx.beginPath();ctx.arc(c.x,cy,8,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#ffd166';ctx.font='bold 7px Arial';ctx.textAlign='center';ctx.fillText('D',c.x,cy+3);}}
+  // Item
+  if(fl.hasItem&&!fl.itemCollected){const iy=groundY-78;ctx.font='20px serif';ctx.textAlign='center';ctx.fillText(fl.itemType,fl.itemX,iy+Math.sin(Date.now()/400)*4);}
+  // Enemies
+  const eg=groundY-38;
+  for(const e of fl.enemies){
+    if(e.hpCurrent<=0) continue;
+    const flash=e.hitTimer>0&&Math.floor(e.hitTimer)%4<2;
+    ctx.save(); if(flash){ctx.filter='brightness(3)';}
+    ctx.font=`${e.isBoss?34:24}px serif`; ctx.textAlign='center';
+    ctx.shadowBlur=e.isBoss?18:7; ctx.shadowColor=e.color;
+    ctx.fillText(e.emoji,e.x+(e.isBoss?24:18),eg+(e.isBoss?-2:2)); ctx.restore();
+    const bw=e.isBoss?70:36,hpPct=e.hpCurrent/e.hp;
+    const bx=e.x+(e.isBoss?24:18)-bw/2,by=eg-(e.isBoss?42:32);
+    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(bx,by,bw,5);
+    ctx.fillStyle=hpPct>.5?'#22c55e':hpPct>.25?'#f59e0b':'#ef4444';
+    ctx.fillRect(bx,by,bw*hpPct,5);
+    if(e.isBoss){ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.fillText(e.name,e.x+24,by-3);}
+  }
+  ctx.restore();
+}
+
+function dtDrawPlayer(p,groundY,W) {
+  const ctx=DT.ctx;
+  if(p.invincible>0&&Math.floor(p.invincible)%6<3) return;
+  const px=p.x+p.w/2, py=groundY-p.h;
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px,groundY-3,14,5,0,0,Math.PI*2); ctx.fill();
+
+  // Draw poke SVG if available, otherwise emoji
+  if (DT.pokeConfig && typeof buildPokeSVG==='function') {
+    // Render poke as inline SVG on canvas via Image
+    if (!DT._pokeImg || DT._pokeImgCfgHash !== JSON.stringify(DT.pokeConfig)) {
+      const svgStr = buildPokeSVG(DT.pokeConfig).replace(/width="[^"]*"/,'width="32"').replace(/height="[^"]*"/,'height="48"');
+      const blob = new Blob([svgStr], {type:'image/svg+xml'});
+      const url = URL.createObjectURL(blob);
+      const img = new Image(); img.src=url;
+      img.onload=()=>{ DT._pokeImg=img; DT._pokeImgCfgHash=JSON.stringify(DT.pokeConfig); };
+    }
+    if (DT._pokeImg) {
+      ctx.save();
+      if(!p.facingRight){ctx.translate(px+16,py);ctx.scale(-1,1);ctx.drawImage(DT._pokeImg,-32,0,32,48);}
+      else ctx.drawImage(DT._pokeImg,px-16,py,32,48);
+      ctx.restore();
+      return;
+    }
+  }
+  // Fallback emoji
+  ctx.font='30px serif'; ctx.textAlign='center';
+  if(!p.facingRight){ctx.save();ctx.translate(px,py);ctx.scale(-1,1);ctx.fillText('🧑',0,p.h);ctx.restore();}
+  else ctx.fillText('🧑',px,py+p.h);
+}
+
+function dtDrawLabel(num,x,y,theme,isBoss,alpha) {
+  const ctx=DT.ctx; ctx.save(); ctx.globalAlpha=alpha;
+  ctx.fillStyle=isBoss?'#ef4444':'#ffffff'; ctx.font='bold 11px Arial'; ctx.textAlign='left';
+  ctx.fillText(`ANDAR ${num}${isBoss?' ⚠️ CHEFE':''}`,x,y+14);
+  if(alpha>=1){ctx.fillStyle='rgba(245,166,35,.8)';ctx.font='9px Arial';ctx.fillText('VOCÊ ESTÁ AQUI',x,y+25);}
+  ctx.restore();
+}
+
+function dtUpdateHUD() {
+  document.getElementById('dt-hud-floor').textContent=DT.floor;
+  document.getElementById('dt-hud-record').textContent=DT.record;
+  document.getElementById('dt-hud-coins').textContent=DT.coins;
+  document.getElementById('dt-hud-deaths').textContent=DT.deaths;
+  const fill=document.getElementById('dt-hp-fill');
+  fill.style.width=(DT.hp/DT.maxHp*100)+'%';
+  fill.style.background=DT.hp>50?'#4ade80':DT.hp>25?'#f59e0b':'#ef4444';
+}
+
+function dtTogglePause() {
+  DT.paused=!DT.paused;
+  const el=document.getElementById('dt-pause');
+  if(el) el.style.display=DT.paused?'flex':'none';
+}
+
+function dtQuit() {
+  DT.running=false; DT.paused=false;
+  if(DT.animFrame) cancelAnimationFrame(DT.animFrame);
+  const el=document.getElementById('dt-pause'); if(el) el.style.display='none';
+  dtBackHome();
+}
+
+function dtBackHome() {
+  DT.running=false;
+  if(DT.animFrame) cancelAnimationFrame(DT.animFrame);
+  initDailyTowerHome();
+}
+
+function dtToast(msg,color='#f5a623') {
+  const c=document.getElementById('dt-toasts'); if(!c) return;
+  const el=document.createElement('div');
+  el.style.cssText=`background:rgba(10,10,20,.92);border:1px solid ${color}40;border-radius:50px;padding:7px 16px;font-size:12px;font-weight:700;color:${color};backdrop-filter:blur(10px);animation:dtToastIn .3s ease;`;
+  el.textContent=msg; c.appendChild(el);
+  setTimeout(()=>el.remove(),2100);
+}
+
+function dtShareChallenge() {
+  // Post to DAILY news/feed as a challenge
+  const msg = `🏙️ Subi ${DT.floor} andares no Daily Tower! Consegue passar?`;
+  if (typeof createPost === 'function') {
+    dtToast('👥 Desafio postado na DAILY!','#60a5fa');
+  } else {
+    dtToast('👥 Desafio enviado para seus amigos!','#60a5fa');
+  }
+}
+
+function dtShowRanking() { dtShowPanel('ranking'); dtRenderRanking('global'); }
+
+const DT_RANK_DATA = {
+  global:[
+    {name:'GabrielVegas',emoji:'😎',floor:8541,city:'São Paulo, SP'},
+    {name:'LarissaFreitas',emoji:'👩‍🦰',floor:7892,city:'Rio de Janeiro, RJ'},
+    {name:'ThiagoMax',emoji:'🧔',floor:7210,city:'Belo Horizonte, MG'},
+    {name:'MarcelaD',emoji:'👸',floor:6890,city:'Curitiba, PR'},
+    {name:'FernandoK',emoji:'🧑‍💻',floor:6541,city:'Porto Alegre, RS'},
+  ],
+  amigos:[
+    {name:'Pedro_amigo',emoji:'🐱',floor:3210,city:'São Paulo, SP'},
+    {name:'Ana_daily',emoji:'👩',floor:2890,city:'Campinas, SP'},
+  ],
+  cidade:[
+    {name:'Rafa_JDI',emoji:'🧑‍🏫',floor:4120,city:'Jundiaí, SP'},
+    {name:'Carol_JDI',emoji:'👩‍🎤',floor:3890,city:'Jundiaí, SP'},
+  ],
+};
+
+function dtRankTab(type,el) {
+  document.querySelectorAll('#dt-rank-tabs > div').forEach(t=>{t.style.color='#8888aa';t.style.borderBottomColor='transparent';});
+  el.style.color='#f5a623'; el.style.borderBottomColor='#f5a623';
+  dtRenderRanking(type);
+}
+
+function dtRenderRanking(type) {
+  const data = [...(DT_RANK_DATA[type]||[])];
+  // Inject current user
+  const userName = (typeof currentUser!=='undefined'&&currentUser)?currentUser.name:'Você';
+  data.push({name:userName,emoji:'🧑',floor:DT.record||1,city:'Jundiaí, SP',isYou:true});
+  data.sort((a,b)=>b.floor-a.floor);
+  const medals=['🥇','🥈','🥉'];
+  const list=document.getElementById('dt-rank-list');
+  list.innerHTML=data.map((r,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;background:${i<3?'rgba(245,166,35,.07)':'rgba(255,255,255,.03)'};border:1px solid ${i<3?'rgba(245,166,35,.25)':'rgba(255,255,255,.06)'};border-radius:12px;padding:10px;${r.isYou?'box-shadow:0 0 0 2px rgba(245,166,35,.3);':''}">
+      <div style="font-size:17px;width:28px;text-align:center;font-weight:900;color:${i===0?'#f5a623':i===1?'#c0c0c0':i===2?'#cd7f32':'#8888aa'};">${medals[i]||i+1}</div>
+      <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#2a2a3e,#1a1a2e);display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid rgba(255,255,255,.1);">${r.emoji}</div>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:700;">${r.name}${r.isYou?' 👈':''}${r.isYou&&!DT.record?' (jogue!)':''}</div><div style="font-size:11px;color:#8888aa;">📍 ${r.city}</div></div>
+      <div style="text-align:right;"><div style="font-size:19px;font-weight:900;color:#f5a623;">${r.floor.toLocaleString('pt-BR')}</div><div style="font-size:10px;color:#8888aa;">andares</div></div>
+    </div>
+  `).join('');
+}
+
+// Keyboard support for Tower when tab is active
+document.addEventListener('keydown',e=>{
+  if(!DT.running) return;
+  if(e.key==='ArrowLeft'||e.key==='a') dtKeys.left=true;
+  if(e.key==='ArrowRight'||e.key==='d') dtKeys.right=true;
+  if((e.key==='ArrowUp'||e.key==='w'||e.key===' ')&&!dtKeys.jump) dtKeys.jump=true;
+  if(e.key==='z'||e.key==='x') dtShoot();
+  if(e.key==='p'||e.key==='Escape') dtTogglePause();
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a') dtKeys.left=false;
+  if(e.key==='ArrowRight'||e.key==='d') dtKeys.right=false;
+  if(e.key==='ArrowUp'||e.key==='w'||e.key===' ') dtKeys.jump=false;
+});
 </script>
