@@ -10493,8 +10493,8 @@ function startDailyTower() {
   DT.ctx = DT.canvas.getContext('2d');
   const container = document.getElementById('dt-canvas-container');
   DT.canvas.width = container.clientWidth;
-  DT.canvas.height = 320;
-  DT.canvas.style.height = '320px';
+  DT.canvas.height = 360;
+  DT.canvas.style.height = '360px';
 
   DT.running = true; DT.paused = false;
   DT.floor = 1; DT.hp = DT.maxHp = 100;
@@ -10502,7 +10502,8 @@ function startDailyTower() {
   DT.enemies = []; DT.bullets = []; DT.particles = [];
   DT.currentFloor = dtGenFloor(1);
   DT.nextFloor = dtGenFloor(2);
-  DT.player = { x:60, y:0, w:28, h:38, vx:0, vy:0, onGround:false, facingRight:true, shootCD:0, invincible:0 };
+  const tW0 = Math.floor(DT.canvas.width * 0.65);
+  DT.player = { x:Math.floor(tW0*0.2), y:0, w:28, h:38, vx:0, vy:0, onGround:false, facingRight:true, shootCD:0, invincible:0 };
   DT.player.y = DT.canvas.height - 40 - DT.player.h;
 
   // Set HUD avatar to poke
@@ -10527,7 +10528,7 @@ function startDailyTower() {
 }
 
 function dtGenFloor(num) {
-  const W = DT.canvas ? DT.canvas.width : 360;
+  const W = DT.canvas ? Math.floor(DT.canvas.width * 0.65) : 240; // tower-relative width
   const theme = DT_THEMES[num % DT_THEMES.length];
   const isBoss = num > 0 && num % 25 === 0;
   const hasEnemy = !isBoss && Math.random() < 0.55;
@@ -10536,25 +10537,25 @@ function dtGenFloor(num) {
   let enemies = [];
   if (isBoss) {
     const b = DT_BOSSES[Math.floor(num/25-1) % DT_BOSSES.length];
-    enemies = [{...b, x:W*0.55, vy:0, hpCurrent:b.hp, isBoss:true, dir:-1, hitTimer:0}];
+    enemies = [{...b, x:W*0.5, vy:0, hpCurrent:b.hp, isBoss:true, dir:-1, hitTimer:0}];
   } else if (hasEnemy) {
     const cnt = Math.min(1+Math.floor(num/15),3);
     for(let i=0;i<cnt;i++){
       const e = DT_ENEMIES[Math.floor(Math.random()*DT_ENEMIES.length)];
-      enemies.push({...e, x:W*(0.4+0.25*i), vy:0, hpCurrent:e.hp, dir:-1, hitTimer:0});
+      enemies.push({...e, x:W*(0.3+0.2*i), vy:0, hpCurrent:e.hp, dir:-1, hitTimer:0});
     }
   }
   let coins = [];
   if (Math.random()<0.6) {
     const cnt = 1+Math.floor(Math.random()*4);
-    for(let i=0;i<cnt;i++) coins.push({x:W*(0.2+0.6*(i/Math.max(cnt,1))), collected:false});
+    for(let i=0;i<cnt;i++) coins.push({x:W*(0.15+0.65*(i/Math.max(cnt,1))), collected:false});
   }
   let platforms = [];
-  if (hasPlatform) platforms.push({x:W*0.28+Math.random()*W*0.2, y:DT_FLOOR_H*0.42, w:55+Math.random()*55, h:10});
+  if (hasPlatform) platforms.push({x:W*0.2+Math.random()*W*0.25, y:DT_FLOOR_H*0.42, w:50+Math.random()*50, h:10});
   const hasItem = Math.random()<0.18;
   return { num, theme, isBoss, enemies, coins, platforms,
     hasItem, itemType:hasItem?(['☕','🛡','💊','⚡'][Math.floor(Math.random()*4)]):null,
-    itemX:W*0.5, itemCollected:false, ladderX:W-34 };
+    itemX:W*0.45, itemCollected:false, ladderX:W-34 };
 }
 
 function dtLoop(ts) {
@@ -10570,6 +10571,8 @@ function dtUpdate(dt) {
   const p = DT.player;
   const W = DT.canvas.width, H = DT.canvas.height;
   const groundY = H - 40;
+  // Tower bounds (physics always in tower-local coords, 0..towerW)
+  const towerW = Math.floor(W * 0.65);
 
   if (dtKeys.left) { p.vx -= 1.4*dt; p.facingRight=false; }
   else if (dtKeys.right) { p.vx += 1.4*dt; p.facingRight=true; }
@@ -10580,7 +10583,7 @@ function dtUpdate(dt) {
   p.vy += 0.55*dt;
   p.x += p.vx*dt;
   p.y += p.vy*dt;
-  p.x = Math.max(0, Math.min(W-p.w, p.x));
+  p.x = Math.max(0, Math.min(towerW-p.w, p.x));
 
   const pBottom = groundY - p.h;
   if (p.y >= pBottom) { p.y=pBottom; p.vy=0; p.onGround=true; }
@@ -10593,8 +10596,8 @@ function dtUpdate(dt) {
     }
   }
 
-  // Ladder / advance floor
-  const lx = DT.currentFloor.ladderX;
+  // Ladder / advance floor (ladder is at towerW-28)
+  const lx = towerW - 28;
   if (p.x+p.w>lx && p.x<lx+DT_LADDER_W && dtKeys.jump && p.onGround) {
     const alive = DT.currentFloor.enemies.filter(e=>e.hpCurrent>0);
     if (alive.length===0) { dtAdvance(); return; }
@@ -10604,29 +10607,29 @@ function dtUpdate(dt) {
   if (p.invincible>0) p.invincible-=dt;
   if (p.shootCD>0) p.shootCD-=dt;
 
-  // Enemy AI
+  // Enemy AI (x coords tower-relative)
   const eGroundY = groundY - 36;
   for (const e of DT.currentFloor.enemies) {
     if (e.hpCurrent<=0) continue;
     const dx = p.x - e.x; e.dir = dx>0?1:-1;
     e.x += e.dir*e.speed*dt;
-    e.x = Math.max(0, Math.min(W-36, e.x));
+    e.x = Math.max(0, Math.min(towerW-36, e.x));
     if (e.hitTimer>0) e.hitTimer-=dt;
     if (p.invincible<=0 && Math.abs(e.x-p.x)<36 && Math.abs(eGroundY-(groundY-p.h))<50) dtTakeDamage(e.isBoss?18:8);
   }
 
-  // Bullets
+  // Bullets (x tower-relative)
   for (let i=DT.bullets.length-1;i>=0;i--) {
     const b=DT.bullets[i];
     b.x+=b.vx*dt; b.life-=dt;
-    if (b.life<=0||b.x<0||b.x>W) { DT.bullets.splice(i,1); continue; }
+    if (b.life<=0||b.x<0||b.x>towerW) { DT.bullets.splice(i,1); continue; }
     for (const e of DT.currentFloor.enemies) {
       if (e.hpCurrent<=0) continue;
       const eY=groundY-36;
       if (Math.abs(b.x-e.x)<28&&Math.abs(b.y-eY)<28) {
         e.hpCurrent--; e.hitTimer=10;
         DT.bullets.splice(i,1);
-        dtParticles(e.x+16,eY+16,e.color,5);
+        dtParticles(e.x,eY,e.color,5);
         if (e.hpCurrent<=0) {
           DT.kills++; DT.coins+=e.points;
           dtToast(`💀 ${e.name}! +${e.points}🟡`,'#22c55e');
@@ -10682,7 +10685,7 @@ function dtAdvance() {
   DT.currentFloor = DT.nextFloor;
   DT.nextFloor = dtGenFloor(DT.floor+1);
   DT.player.y = DT.canvas.height - 40 - DT.player.h;
-  DT.player.x = 60;
+  DT.player.x = Math.floor(DT.canvas.width * 0.65) * 0.15;
   document.getElementById('dt-m1').style.width=Math.min(DT.floor/200*100,100)+'%';
   document.getElementById('dt-m2').style.width=Math.min(DT.coins/50*100,100)+'%';
   // Announce enemies on new floor
@@ -10727,38 +10730,80 @@ function dtDraw() {
   const cv=DT.canvas, ctx=DT.ctx, W=cv.width, H=cv.height;
   const p=DT.player, groundY=H-40;
   const floorH=DT_FLOOR_H, ceilY=groundY-floorH, nextTop=ceilY-floorH;
-  ctx.fillStyle='#060610'; ctx.fillRect(0,0,W,H);
 
-  // Next floor peek
-  dtDrawFloor(DT.nextFloor,0,nextTop,W,floorH,0.7,groundY);
-  // Separator
-  ctx.fillStyle='#2a2a3e'; ctx.fillRect(0,ceilY-6,W,6);
-  // Current floor
-  dtDrawFloor(DT.currentFloor,0,ceilY,W,floorH,1,groundY);
-  // Ground bar
-  ctx.fillStyle='#1a1a2a'; ctx.fillRect(0,groundY,W,H-groundY);
-  ctx.fillStyle='#2a2a3e'; ctx.fillRect(0,groundY,W,4);
+  // Tower column: 65% of width, centered
+  const towerW = Math.floor(W * 0.65);
+  const towerX = Math.floor((W - towerW) / 2);
 
-  // Player
-  dtDrawPlayer(p,groundY,W);
+  // ── BACKGROUND SIDES (parallax city) ──
+  dtDrawCitySides(ctx, W, H, towerX, towerW, DT.floor);
 
-  // Bullets
-  for(const b of DT.bullets){
-    ctx.save(); ctx.fillStyle=b.color; ctx.shadowBlur=8; ctx.shadowColor=b.color;
-    ctx.beginPath(); ctx.ellipse(b.x,b.y,7,3,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+  // ── TOWER COLUMN BACKGROUND ──
+  ctx.fillStyle='#0a0a14';
+  ctx.fillRect(towerX, 0, towerW, H);
+
+  // Tower structure lines (vertical pipes/columns on edges)
+  dtDrawTowerStructure(ctx, towerX, towerW, H);
+
+  // ── NEXT FLOOR (peek above, inside tower) ──
+  dtDrawFloor(DT.nextFloor, towerX, nextTop, towerW, floorH, 0.72, groundY, towerX, towerW);
+  // Floor divider beam
+  ctx.fillStyle='#2a2a3e';
+  ctx.fillRect(towerX, ceilY-8, towerW, 8);
+  // Structural rivets on beam
+  for(let rx=towerX+16; rx<towerX+towerW-16; rx+=32) {
+    ctx.fillStyle='#4a4a5e'; ctx.beginPath(); ctx.arc(rx,ceilY-4,3,0,Math.PI*2); ctx.fill();
   }
 
-  // Particles
+  // ── CURRENT FLOOR (inside tower) ──
+  dtDrawFloor(DT.currentFloor, towerX, ceilY, towerW, floorH, 1, groundY, towerX, towerW);
+
+  // ── GROUND BEAM ──
+  ctx.fillStyle='#1a1a2a'; ctx.fillRect(towerX, groundY, towerW, H-groundY);
+  ctx.fillStyle='#2a2a3e'; ctx.fillRect(towerX, groundY, towerW, 6);
+  for(let rx=towerX+16; rx<towerX+towerW-16; rx+=32) {
+    ctx.fillStyle='#4a4a5e'; ctx.beginPath(); ctx.arc(rx,groundY+3,3,0,Math.PI*2); ctx.fill();
+  }
+
+  // ── PLAYER (clipped to tower area) ──
+  ctx.save();
+  ctx.beginPath(); ctx.rect(towerX, 0, towerW, H); ctx.clip();
+  dtDrawPlayer(p, groundY, towerW, towerX);
+  ctx.restore();
+
+  // ── BULLETS ──
+  ctx.save();
+  ctx.beginPath(); ctx.rect(towerX, 0, towerW, H); ctx.clip();
+  for(const b of DT.bullets){
+    ctx.fillStyle=b.color; ctx.shadowBlur=8; ctx.shadowColor=b.color;
+    ctx.beginPath(); ctx.ellipse(b.x+towerX,b.y,7,3,0,0,Math.PI*2); ctx.fill();
+  }
+  ctx.shadowBlur=0;
+  ctx.restore();
+
+  // ── PARTICLES ──
+  ctx.save();
+  ctx.beginPath(); ctx.rect(towerX, 0, towerW, H); ctx.clip();
   for(const pt of DT.particles){
     ctx.save(); ctx.globalAlpha=pt.life/35; ctx.fillStyle=pt.color;
-    ctx.beginPath(); ctx.arc(pt.x,pt.y,pt.size,0,Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.beginPath(); ctx.arc(pt.x+towerX,pt.y,pt.size,0,Math.PI*2); ctx.fill(); ctx.restore();
   }
+  ctx.restore();
 
-  // Floor labels
-  dtDrawLabel(DT.currentFloor.num, 8, ceilY+8, DT.currentFloor.theme.name, DT.currentFloor.isBoss, 1);
-  dtDrawLabel(DT.nextFloor.num, 8, nextTop+8, DT.nextFloor.theme.name, DT.nextFloor.isBoss, 0.65);
+  // ── TOWER EDGE SHADOWS (depth effect) ──
+  const edgeShadowW = 18;
+  const leftGrad = ctx.createLinearGradient(towerX,0,towerX+edgeShadowW,0);
+  leftGrad.addColorStop(0,'rgba(0,0,0,0.6)'); leftGrad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=leftGrad; ctx.fillRect(towerX,0,edgeShadowW,H);
+  const rightGrad = ctx.createLinearGradient(towerX+towerW-edgeShadowW,0,towerX+towerW,0);
+  rightGrad.addColorStop(0,'rgba(0,0,0,0)'); rightGrad.addColorStop(1,'rgba(0,0,0,0.6)');
+  ctx.fillStyle=rightGrad; ctx.fillRect(towerX+towerW-edgeShadowW,0,edgeShadowW,H);
 
-  // Enemy announce banner (4 seconds = ~240 frames)
+  // ── FLOOR LABELS ──
+  dtDrawLabel(DT.currentFloor.num, towerX+8, ceilY+8, DT.currentFloor.theme.name, DT.currentFloor.isBoss, 1);
+  dtDrawLabel(DT.nextFloor.num, towerX+8, nextTop+8, DT.nextFloor.theme.name, DT.nextFloor.isBoss, 0.65);
+
+  // ── ENEMY ANNOUNCE ──
   if(DT.enemyAnnounce && DT.enemyAnnounce.timer>0) {
     const ann = DT.enemyAnnounce;
     const fadeIn = Math.min(1, (240-ann.timer+30)/30);
@@ -10766,125 +10811,386 @@ function dtDraw() {
     const alpha = Math.min(fadeIn, fadeOut);
     const bannerH = ann.isBoss ? 70 : 54;
     const bannerY = ceilY + floorH*0.5 - bannerH/2;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    // Dark overlay behind banner
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.beginPath(); ctx.roundRect(W*0.08, bannerY, W*0.84, bannerH, 10); ctx.fill();
-    // Accent border
-    ctx.strokeStyle = ann.isBoss ? '#ef4444' : ann.color;
-    ctx.lineWidth = ann.isBoss ? 2.5 : 1.5;
-    ctx.shadowBlur = ann.isBoss ? 16 : 8;
-    ctx.shadowColor = ann.isBoss ? '#ef4444' : ann.color;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    // Boss badge
-    if(ann.isBoss) {
-      ctx.fillStyle='#ef4444'; ctx.font='bold 9px Arial'; ctx.textAlign='center';
-      ctx.fillText('⚠️ CHEFE DO ANDAR', W/2, bannerY+14);
-    }
-    // Emoji
-    ctx.font = ann.isBoss?'28px serif':'22px serif';
-    ctx.textAlign='center';
-    ctx.fillText(ann.emoji, W/2 - 36, bannerY+(ann.isBoss?42:34));
-    // Name
+    const bx = towerX + towerW*0.08, bw = towerW*0.84;
+    ctx.save(); ctx.globalAlpha=alpha;
+    ctx.fillStyle='rgba(0,0,0,0.82)';
+    ctx.beginPath(); ctx.roundRect(bx,bannerY,bw,bannerH,10); ctx.fill();
+    ctx.strokeStyle=ann.isBoss?'#ef4444':ann.color; ctx.lineWidth=ann.isBoss?2.5:1.5;
+    ctx.shadowBlur=ann.isBoss?16:8; ctx.shadowColor=ann.isBoss?'#ef4444':ann.color; ctx.stroke(); ctx.shadowBlur=0;
+    if(ann.isBoss){ctx.fillStyle='#ef4444';ctx.font='bold 9px Arial';ctx.textAlign='center';ctx.fillText('⚠️ CHEFE DO ANDAR',towerX+towerW/2,bannerY+14);}
+    ctx.font=ann.isBoss?'28px serif':'22px serif'; ctx.textAlign='center';
+    ctx.fillText(ann.emoji,towerX+towerW/2-36,bannerY+(ann.isBoss?42:34));
     ctx.fillStyle='#fff'; ctx.font=`bold ${ann.isBoss?18:15}px Arial`; ctx.textAlign='center';
-    ctx.fillText(ann.name, W/2 + 12, bannerY+(ann.isBoss?38:30));
-    // HP stars
-    const hpDots = Math.min(ann.isBoss?5:3, 5);
-    for(let i=0;i<hpDots;i++){ctx.fillStyle=ann.color;ctx.beginPath();ctx.arc(W/2+12-((hpDots-1)*7)+i*14,bannerY+(ann.isBoss?52:44),3,0,Math.PI*2);ctx.fill();}
+    ctx.fillText(ann.name,towerX+towerW/2+12,bannerY+(ann.isBoss?38:30));
+    const hpDots=Math.min(ann.isBoss?5:3,5);
+    for(let i=0;i<hpDots;i++){ctx.fillStyle=ann.color;ctx.beginPath();ctx.arc(towerX+towerW/2+12-((hpDots-1)*7)+i*14,bannerY+(ann.isBoss?52:44),3,0,Math.PI*2);ctx.fill();}
     ctx.restore();
   }
 }
 
-function dtDrawFloor(fl,x,y,w,h,alpha,groundY) {
+// ── PARALLAX CITY SIDES ──────────────────────────────────────
+function dtDrawCitySides(ctx, W, H, towerX, towerW, floor) {
+  const t = Date.now();
+  // Height stage based on floor
+  const stage = Math.min(Math.floor(floor / 30), 5); // 0-5
+  // 0=street, 1=mid, 2=high, 3=very high, 4=clouds, 5=space
+
+  // Sky gradient based on stage
+  const skyGrads = [
+    // street level - warm city night
+    ['#0a0520','#1a0535','#0d1a3a'],
+    // mid - dusk
+    ['#0a1020','#1a2040','#302060'],
+    // high - twilight
+    ['#0a1535','#152550','#2a4080'],
+    // very high - blue hour
+    ['#060820','#0e1540','#1a3060'],
+    // clouds - above city
+    ['#0a0518','#200a40','#0a1530'],
+    // space
+    ['#000008','#05000f','#000510'],
+  ][stage];
+
+  const skyGrad = ctx.createLinearGradient(0,0,0,H);
+  skyGrad.addColorStop(0, skyGrads[0]);
+  skyGrad.addColorStop(0.5, skyGrads[1]);
+  skyGrad.addColorStop(1, skyGrads[2]);
+  ctx.fillStyle=skyGrad; ctx.fillRect(0,0,W,H);
+
+  // Draw each side
+  for(const side of ['left','right']) {
+    const sideX = side==='left' ? 0 : towerX+towerW;
+    const sideW = side==='left' ? towerX : W-(towerX+towerW);
+    if(sideW<=0) continue;
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(sideX,0,sideW,H); ctx.clip();
+
+    dtDrawCityLayer(ctx,sideX,sideW,H,floor,stage,t,side);
+
+    ctx.restore();
+  }
+}
+
+function dtDrawCityLayer(ctx,sx,sw,H,floor,stage,t,side) {
+  const floorOffset = floor * 0.6; // parallax scroll
+  const seed = side==='left' ? 7 : 13;
+
+  // ── Layer 4: Stars (high floors) ──
+  if(stage>=3) {
+    const starAlpha = Math.min((stage-3)/2, 0.9);
+    ctx.globalAlpha=starAlpha;
+    const rand = (n)=>((n*2654435761)>>>0)/4294967296;
+    for(let i=0;i<40;i++){
+      const sx2=rand(i*seed+1)*sw;
+      const sy=rand(i*seed+2)*H*0.7;
+      const r=rand(i*seed+3)*1.5+0.4;
+      const twinkle=0.5+0.5*Math.sin(t/800+i);
+      ctx.fillStyle=`rgba(255,255,255,${0.4+twinkle*0.6})`;
+      ctx.beginPath(); ctx.arc(sx+sx2,sy,r,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // ── Layer 3: Distant mountains / horizon ──
+  if(stage<4) {
+    const mAlpha = Math.max(0, 1-stage*0.3);
+    ctx.globalAlpha = mAlpha;
+    ctx.fillStyle = stage<2?'#1a1a3a':'#0d1028';
+    const mH = H * 0.3;
+    ctx.beginPath(); ctx.moveTo(sx,H);
+    const mSegs = Math.ceil(sw/20)+2;
+    for(let i=0;i<=mSegs;i++){
+      const mx=sx+i*(sw/mSegs);
+      const my=H-mH*(0.4+0.6*Math.sin(i*0.8+seed));
+      i===0?ctx.moveTo(mx,my):ctx.lineTo(mx,my);
+    }
+    ctx.lineTo(sx+sw,H); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  // ── Layer 2: Distant buildings ──
+  if(stage<4) {
+    const distAlpha = Math.max(0, 1-(stage*0.35));
+    ctx.globalAlpha = distAlpha;
+    const rand=(n)=>((n*1664525+seed)>>>0)/4294967296;
+    const bCount = Math.ceil(sw/18);
+    const scale = Math.max(0.2, 1-(stage*0.18)); // shrink with height
+    for(let i=0;i<bCount;i++){
+      const bx=sx+i*(sw/bCount)+rand(i*5)*8-4;
+      const bh=H*(0.15+rand(i*5+1)*0.25)*scale;
+      const bw2=(8+rand(i*5+2)*12)*scale;
+      const col=stage<2?'#1a1830':'#111228';
+      ctx.fillStyle=col;
+      ctx.fillRect(bx-bw2/2, H-bh, bw2, bh);
+      // windows
+      if(stage<3 && rand(i*5+3)>0.3) {
+        for(let wy=H-bh+4;wy<H-8;wy+=8){
+          for(let wx2=bx-bw2/2+3;wx2<bx+bw2/2-3;wx2+=6){
+            if(rand(wx2*1.3+wy)>0.55){
+              const wc = rand(wx2+wy*2)>0.7?`rgba(245,166,35,0.6)`:`rgba(150,200,255,0.4)`;
+              ctx.fillStyle=wc; ctx.fillRect(wx2,wy,3,4);
+            }
+          }
+        }
+      }
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // ── Layer 1: Close buildings ──
+  if(stage<3) {
+    const closeAlpha = Math.max(0, 1-(stage*0.5));
+    ctx.globalAlpha = closeAlpha;
+    const rand=(n)=>((n*22695477+seed*3)>>>0)/4294967296;
+    const bCount = Math.ceil(sw/28);
+    const scale = Math.max(0.15, 1-(stage*0.3));
+    for(let i=0;i<bCount;i++){
+      const bx=sx+(i+0.5)*(sw/bCount);
+      const bh=H*(0.25+rand(i*7)*0.45)*scale;
+      const bw2=(14+rand(i*7+1)*20)*scale;
+      const baseCol=`hsl(${220+rand(i*7+2)*40},30%,${8+rand(i*7+3)*8}%)`;
+      ctx.fillStyle=baseCol; ctx.fillRect(bx-bw2/2,H-bh,bw2,bh);
+      // neon roof strip
+      if(rand(i*7+4)>0.5){
+        const nc=`hsl(${rand(i*7+5)*360},80%,60%)`;
+        ctx.fillStyle=nc; ctx.shadowBlur=6; ctx.shadowColor=nc;
+        ctx.fillRect(bx-bw2/2,H-bh,bw2,2); ctx.shadowBlur=0;
+      }
+      // windows with lights
+      for(let wy=H-bh+5;wy<H-6;wy+=7){
+        for(let wx2=bx-bw2/2+3;wx2<bx+bw2/2-3;wx2+=5){
+          if(rand(wx2*1.7+wy*0.9+floor)>0.5){
+            const lit=rand(wx2+wy+t/3000)>0.3;
+            if(lit){ctx.fillStyle=rand(wx2*2+wy)>0.6?'rgba(255,220,100,0.9)':'rgba(150,210,255,0.7)';ctx.fillRect(wx2,wy,3,4);}
+          }
+        }
+      }
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // ── Clouds ──
+  if(stage>=1 && stage<=5) {
+    const cAlpha = stage<=3 ? (stage-1)*0.25 : 0.6;
+    ctx.globalAlpha = Math.min(cAlpha, 0.7);
+    const rand=(n)=>((n*134775813+seed)>>>0)/4294967296;
+    const scrollX = (t/6000)%1;
+    for(let i=0;i<4;i++){
+      const cx=sx+(rand(i*11)+scrollX)%1*sw;
+      const cy=H*(0.05+rand(i*11+1)*0.4);
+      const cr=(20+rand(i*11+2)*30)*(stage>=3?1.5:1);
+      const cg=ctx.createRadialGradient(cx,cy,2,cx,cy,cr);
+      const cCol=stage>=4?'rgba(200,160,255,0.4)':'rgba(220,230,255,0.3)';
+      cg.addColorStop(0,cCol); cg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(cx,cy,cr,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // ── Aurora / Space effects ──
+  if(stage>=4) {
+    const aAlpha = (stage-4)*0.5;
+    ctx.globalAlpha = Math.min(aAlpha, 0.6);
+    const ag=ctx.createLinearGradient(sx,0,sx+sw,0);
+    ag.addColorStop(0,'rgba(80,0,200,0)');
+    ag.addColorStop(0.3,`rgba(100,0,255,${0.15+0.1*Math.sin(t/2000)})`);
+    ag.addColorStop(0.7,`rgba(0,200,150,${0.1+0.1*Math.cos(t/2500)})`);
+    ag.addColorStop(1,'rgba(0,150,200,0)');
+    ctx.fillStyle=ag; ctx.fillRect(sx,0,sw,H*0.6);
+    ctx.globalAlpha=1;
+  }
+
+  // ── Flying elements ──
+  if(stage<4 && sw>30) {
+    const flyT = t/1000;
+    // Drone / helicopter
+    const flyX = sx + ((flyT*0.07)%(1.2))*sw - sw*0.1;
+    const flyY = H*(0.08+0.04*Math.sin(flyT*0.3));
+    if(flyX>sx-10 && flyX<sx+sw+10) {
+      ctx.font='13px serif'; ctx.textAlign='center'; ctx.globalAlpha=0.85;
+      ctx.fillText(stage<2?'🚁':'🛸', flyX, flyY);
+      ctx.globalAlpha=1;
+    }
+    // Airship on left side only
+    if(side==='left' && stage>=1) {
+      const asX=sx+((flyT*0.03+0.5)%1)*sw;
+      const asY=H*(0.15+0.03*Math.sin(flyT*0.2+1));
+      ctx.font='18px serif'; ctx.textAlign='center'; ctx.globalAlpha=0.7;
+      ctx.fillText('🪂',asX,asY); ctx.globalAlpha=1;
+    }
+    // Billboard
+    if(sw>50 && stage<2) {
+      const billX=sx+sw*0.5, billY=H*0.55;
+      ctx.globalAlpha=0.5;
+      ctx.fillStyle='rgba(20,20,40,0.8)'; ctx.fillRect(billX-20,billY,40,20);
+      ctx.strokeStyle='rgba(245,166,35,0.6)'; ctx.lineWidth=1; ctx.strokeRect(billX-20,billY,40,20);
+      ctx.fillStyle='#f5a623'; ctx.font='bold 7px Arial'; ctx.textAlign='center';
+      ctx.fillText('DAILY',billX,billY+13);
+      ctx.globalAlpha=1;
+    }
+  }
+}
+
+// ── TOWER STRUCTURAL ELEMENTS ──────────────────────────────────
+function dtDrawTowerStructure(ctx, towerX, towerW, H) {
+  // Left pillar
+  const pilW = 8;
+  ctx.fillStyle='#1e1e2e'; ctx.fillRect(towerX,0,pilW,H);
+  ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fillRect(towerX+pilW-1,0,1,H);
+  // Right pillar
+  ctx.fillStyle='#1e1e2e'; ctx.fillRect(towerX+towerW-pilW,0,pilW,H);
+  ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fillRect(towerX+towerW-pilW,0,1,H);
+  // Pipe accents
+  ctx.fillStyle='#252535'; ctx.fillRect(towerX+3,0,3,H);
+  ctx.fillStyle='#252535'; ctx.fillRect(towerX+towerW-6,0,3,H);
+}
+
+function dtDrawFloor(fl, x, y, w, h, alpha, groundY, towerX, towerW) {
   const ctx=DT.ctx;
   ctx.save(); ctx.globalAlpha=alpha;
+  // Clip to tower column
+  ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
+
   ctx.fillStyle=fl.theme.bg; ctx.fillRect(x,y,w,h);
-  // Neon ceiling
-  ctx.fillStyle=fl.theme.accent; ctx.shadowBlur=18; ctx.shadowColor=fl.theme.accent;
-  ctx.fillRect(w*0.12,y+2,w*0.76,3); ctx.shadowBlur=0;
-  // Background window
-  const wx=w*0.28,wy=y+h*0.15,ww=w*0.44,wh=h*0.62;
-  ctx.fillStyle='rgba(30,40,80,.45)'; ctx.beginPath(); ctx.roundRect(wx,wy,ww,wh,4); ctx.fill();
-  ctx.fillStyle='rgba(10,10,30,.8)';
-  for(let i=0;i<7;i++){const bx=wx+i*ww/7;const bh=18+Math.sin(i*1.7+fl.num)*13;ctx.fillRect(bx+2,wy+wh-bh,ww/7-4,bh);}
-  const sg=ctx.createRadialGradient(wx+ww/2,wy+wh,5,wx+ww/2,wy+wh,wh*.8);
-  sg.addColorStop(0,'rgba(251,146,60,.25)'); sg.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=sg; ctx.fillRect(wx,wy,ww,wh);
-  // Floor tile
-  ctx.fillStyle='rgba(255,255,255,.04)';
-  ctx.fillRect(x,y+h-18,w,2);
-  // Ladder
-  ctx.fillStyle='#8b6914'; ctx.fillRect(fl.ladderX+3,y,4,h); ctx.fillRect(fl.ladderX+DT_LADDER_W-7,y,4,h);
-  ctx.fillStyle='#a07820';
-  for(let ry=y+8;ry<y+h;ry+=16) ctx.fillRect(fl.ladderX+3,ry,DT_LADDER_W-6,3);
+
+  // Neon ceiling strip
+  ctx.fillStyle=fl.theme.accent; ctx.shadowBlur=20; ctx.shadowColor=fl.theme.accent;
+  ctx.fillRect(x+w*0.1,y+2,w*0.8,3); ctx.shadowBlur=0;
+  // Ceiling panels
+  ctx.fillStyle='rgba(255,255,255,0.03)';
+  const panW=w/6;
+  for(let i=0;i<6;i++) ctx.fillRect(x+i*panW+1,y+2,panW-2,10);
+
+  // Room interior with urban details
+  dtDrawRoomDetail(ctx, fl, x, y, w, h, groundY);
+
+  // Floor tiles
+  ctx.fillStyle='rgba(255,255,255,0.03)';
+  const tileW=w/8;
+  for(let i=0;i<8;i++) { ctx.fillRect(x+i*tileW,y+h-18,tileW-1,18); }
+  ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(x,y+h-18,w,1);
+
+  // Ladder (right side, attached to pillar)
+  const ladX = x + w - 28;
+  ctx.fillStyle='#8b6914'; ctx.fillRect(ladX+3,y,5,h); ctx.fillRect(ladX+19,y,5,h);
+  ctx.fillStyle='#c49a1c';
+  for(let ry=y+8;ry<y+h;ry+=14) {
+    ctx.fillRect(ladX+3,ry,21,3);
+    // rung highlight
+    ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(ladX+3,ry,21,1); ctx.fillStyle='#c49a1c';
+  }
+
   // Platforms
   for(const pl of fl.platforms){
     const py=groundY-pl.y-pl.h;
-    ctx.fillStyle=fl.theme.accent; ctx.shadowBlur=5; ctx.shadowColor=fl.theme.accent;
-    ctx.fillRect(pl.x,py,pl.w,pl.h); ctx.shadowBlur=0;
+    ctx.fillStyle=fl.theme.accent; ctx.shadowBlur=6; ctx.shadowColor=fl.theme.accent;
+    ctx.fillRect(x+pl.x,py,pl.w,pl.h);
+    ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillRect(x+pl.x,py,pl.w,2);
+    ctx.shadowBlur=0;
   }
+
   // Coins
   const cy=groundY-60;
-  for(const c of fl.coins){if(!c.collected){ctx.fillStyle='#f5a623';ctx.shadowBlur=7;ctx.shadowColor='#f5a623';ctx.beginPath();ctx.arc(c.x,cy,8,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#ffd166';ctx.font='bold 7px Arial';ctx.textAlign='center';ctx.fillText('D',c.x,cy+3);}}
+  for(const c of fl.coins){
+    if(!c.collected){
+      ctx.fillStyle='#f5a623'; ctx.shadowBlur=8; ctx.shadowColor='#f5a623';
+      ctx.beginPath(); ctx.arc(x+c.x,cy,9,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+      ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.arc(x+c.x,cy,9,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#ffd166'; ctx.font='bold 8px Arial'; ctx.textAlign='center'; ctx.fillText('D',x+c.x,cy+3);
+    }
+  }
+
   // Item
-  if(fl.hasItem&&!fl.itemCollected){const iy=groundY-78;ctx.font='20px serif';ctx.textAlign='center';ctx.fillText(fl.itemType,fl.itemX,iy+Math.sin(Date.now()/400)*4);}
+  if(fl.hasItem&&!fl.itemCollected){
+    const iy=groundY-80;
+    const pulse=Math.sin(Date.now()/300)*4;
+    ctx.font='22px serif'; ctx.textAlign='center'; ctx.fillText(fl.itemType,x+fl.itemX,iy+pulse);
+    ctx.fillStyle='rgba(245,166,35,0.12)'; ctx.beginPath(); ctx.arc(x+fl.itemX,iy,18,0,Math.PI*2); ctx.fill();
+  }
+
   // Enemies
   const eg=groundY-38;
   for(const e of fl.enemies){
     if(e.hpCurrent<=0) continue;
     const flash=e.hitTimer>0&&Math.floor(e.hitTimer)%4<2;
-    ctx.save(); if(flash){ctx.filter='brightness(3)';}
-    ctx.font=`${e.isBoss?34:24}px serif`; ctx.textAlign='center';
-    ctx.shadowBlur=e.isBoss?18:7; ctx.shadowColor=e.color;
-    ctx.fillText(e.emoji,e.x+(e.isBoss?24:18),eg+(e.isBoss?-2:2)); ctx.restore();
-    const bw=e.isBoss?70:36,hpPct=e.hpCurrent/e.hp;
-    const bx=e.x+(e.isBoss?24:18)-bw/2,by=eg-(e.isBoss?42:32);
-    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(bx,by,bw,5);
-    ctx.fillStyle=hpPct>.5?'#22c55e':hpPct>.25?'#f59e0b':'#ef4444';
-    ctx.fillRect(bx,by,bw*hpPct,5);
-    if(e.isBoss){ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.fillText(e.name,e.x+24,by-3);}
+    ctx.save(); if(flash)ctx.filter='brightness(3)';
+    const es=e.isBoss?36:26;
+    ctx.font=`${es}px serif`; ctx.textAlign='center';
+    ctx.shadowBlur=e.isBoss?20:9; ctx.shadowColor=e.color;
+    ctx.fillText(e.emoji,x+e.x+(e.isBoss?22:16),eg+(e.isBoss?-4:0)); ctx.restore();
+    const bw=e.isBoss?72:38, hpPct=e.hpCurrent/e.hp;
+    const bx2=x+e.x+(e.isBoss?22:16)-bw/2, by=eg-(e.isBoss?44:34);
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(bx2,by,bw,6);
+    ctx.fillStyle=hpPct>.5?'#22c55e':hpPct>.25?'#f59e0b':'#ef4444'; ctx.fillRect(bx2,by,bw*hpPct,6);
+    ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(bx2,by,bw,2);
+    if(e.isBoss){ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.fillText(e.name,x+e.x+22,by-4);}
   }
   ctx.restore();
 }
 
-function dtDrawPlayer(p,groundY,W) {
+// Room interior details per theme
+function dtDrawRoomDetail(ctx, fl, x, y, w, h, groundY) {
+  const roomMidY = y+h*0.5;
+  const theme = fl.theme.name;
+
+  // Wall texture
+  ctx.fillStyle='rgba(255,255,255,0.015)';
+  for(let wy=y+12;wy<y+h-20;wy+=24) ctx.fillRect(x+8,wy,w-16,1);
+
+  // Theme-specific props (simplified urban props)
+  const props = {
+    'Escritório': ()=>{
+      // monitor glow
+      ctx.fillStyle='rgba(96,165,250,0.15)'; ctx.fillRect(x+20,roomMidY-15,32,22);
+      ctx.fillStyle='rgba(96,165,250,0.4)'; ctx.fillRect(x+20,roomMidY-15,32,2);
+      ctx.fillStyle='rgba(245,166,35,0.08)'; ctx.fillRect(x+w-50,roomMidY-10,28,18);
+    },
+    'TI': ()=>{
+      // server rack glow
+      ctx.fillStyle='rgba(6,182,212,0.15)'; ctx.fillRect(x+16,y+h*0.3,18,h*0.5);
+      ctx.fillStyle='rgba(6,182,212,0.6)'; ctx.fillRect(x+16,y+h*0.3+Math.sin(Date.now()/400)*4,4,3);
+      ctx.fillStyle='rgba(34,197,94,0.5)'; ctx.fillRect(x+22,y+h*0.4,3,2);
+    },
+    'Terraço': ()=>{
+      // open sky hint
+      ctx.fillStyle='rgba(96,165,250,0.05)'; ctx.fillRect(x+w*0.2,y+10,w*0.6,h*0.4);
+    },
+  };
+  if(props[theme]) props[theme]();
+}
+
+function dtDrawPlayer(p, groundY, towerW, towerX) {
   const ctx=DT.ctx;
   if(p.invincible>0&&Math.floor(p.invincible)%6<3) return;
-  const px=p.x+p.w/2, py=groundY-p.h;
-  // Shadow
-  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px,groundY-3,14,5,0,0,Math.PI*2); ctx.fill();
+  const px=(towerX||0)+p.x+p.w/2, py=groundY-p.h;
+  ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(px,groundY-3,14,5,0,0,Math.PI*2); ctx.fill();
 
-  // Draw poke SVG if available, otherwise emoji
-  if (DT.pokeConfig && typeof buildPokeSVG==='function') {
-    // Render poke as inline SVG on canvas via Image
-    if (!DT._pokeImg || DT._pokeImgCfgHash !== JSON.stringify(DT.pokeConfig)) {
-      const svgStr = buildPokeSVG(DT.pokeConfig).replace(/width="[^"]*"/,'width="32"').replace(/height="[^"]*"/,'height="48"');
-      const blob = new Blob([svgStr], {type:'image/svg+xml'});
-      const url = URL.createObjectURL(blob);
-      const img = new Image(); img.src=url;
-      img.onload=()=>{ DT._pokeImg=img; DT._pokeImgCfgHash=JSON.stringify(DT.pokeConfig); };
+  if(DT.pokeConfig && typeof buildPokeSVG==='function'){
+    if(!DT._pokeImg || DT._pokeImgCfgHash!==JSON.stringify(DT.pokeConfig)){
+      const svgStr=buildPokeSVG(DT.pokeConfig).replace(/width="[^"]*"/,'width="32"').replace(/height="[^"]*"/,'height="48"');
+      const blob=new Blob([svgStr],{type:'image/svg+xml'});
+      const url=URL.createObjectURL(blob);
+      const img=new Image(); img.src=url;
+      img.onload=()=>{DT._pokeImg=img;DT._pokeImgCfgHash=JSON.stringify(DT.pokeConfig);};
     }
-    if (DT._pokeImg) {
+    if(DT._pokeImg){
       ctx.save();
       if(!p.facingRight){ctx.translate(px+16,py);ctx.scale(-1,1);ctx.drawImage(DT._pokeImg,-32,0,32,48);}
       else ctx.drawImage(DT._pokeImg,px-16,py,32,48);
-      ctx.restore();
-      return;
+      ctx.restore(); return;
     }
   }
-  // Fallback emoji
   ctx.font='30px serif'; ctx.textAlign='center';
   if(!p.facingRight){ctx.save();ctx.translate(px,py);ctx.scale(-1,1);ctx.fillText('🧑',0,p.h);ctx.restore();}
   else ctx.fillText('🧑',px,py+p.h);
 }
 
-function dtDrawLabel(num,x,y,theme,isBoss,alpha) {
+function dtDrawLabel(num, x, y, theme, isBoss, alpha) {
   const ctx=DT.ctx; ctx.save(); ctx.globalAlpha=alpha;
-  ctx.fillStyle=isBoss?'#ef4444':'#ffffff'; ctx.font='bold 11px Arial'; ctx.textAlign='left';
+  ctx.fillStyle=isBoss?'#ef4444':'rgba(255,255,255,0.9)'; ctx.font='bold 11px Arial'; ctx.textAlign='left';
   ctx.fillText(`ANDAR ${num}${isBoss?' ⚠️ CHEFE':''}`,x,y+14);
-  if(alpha>=1){ctx.fillStyle='rgba(245,166,35,.8)';ctx.font='9px Arial';ctx.fillText('VOCÊ ESTÁ AQUI',x,y+25);}
+  if(alpha>=1){ctx.fillStyle='rgba(245,166,35,0.9)';ctx.font='bold 9px Arial';ctx.fillText('▼ VOCÊ ESTÁ AQUI',x,y+26);}
   ctx.restore();
 }
 
