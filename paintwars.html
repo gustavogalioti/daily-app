@@ -245,7 +245,7 @@
     <div id="xp-label">0 / 500 XP</div>
   </div>
 
-  <button id="back-btn" onclick="goToMenu()">← Menu</button>
+  <button id="back-btn">← Menu</button>
 
   <div id="minimap"><canvas id="minimap-canvas" width="110" height="110"></canvas></div>
 
@@ -289,7 +289,7 @@
       <div class="mc-title">Livre</div>
       <div class="mc-badge">Exploração</div>
       <div class="mc-sub">Mapa aberto. Pinte o que quiser, conquiste territórios e descubra cores raras.</div>
-      <button class="mc-enter-btn" onclick="enterMode('livre')">ENTRAR</button>
+      <button class="mc-enter-btn" id="btn-livre">ENTRAR</button>
     </div>
     <!-- PvE -->
     <div class="mode-card pve">
@@ -297,7 +297,7 @@
       <div class="mc-title">Dailers × Monstros</div>
       <div class="mc-badge">Cooperativo</div>
       <div class="mc-sub">Cooperativo. Sobreviva às ondas de monstros com outros jogadores e derrote o Boss.</div>
-      <button class="mc-enter-btn" onclick="enterMode('pve')">ENTRAR</button>
+      <button class="mc-enter-btn" id="btn-pve">ENTRAR</button>
     </div>
     <!-- PvP -->
     <div class="mode-card pvp">
@@ -305,7 +305,7 @@
       <div class="mc-title">Dailers × Dailers</div>
       <div class="mc-badge">Competitivo</div>
       <div class="mc-sub">Time Azul vs Time Vermelho. Elimine os inimigos com tinta. Último time vivo vence.</div>
-      <button class="mc-enter-btn" onclick="enterMode('pvp')">ENTRAR</button>
+      <button class="mc-enter-btn" id="btn-pvp">ENTRAR</button>
     </div>
   </div>
 
@@ -865,7 +865,13 @@ function loop(time) {
 requestAnimationFrame(loop);
 
 // ─── Menu / Mode Entry ────────────────────────────────────────────────
-window.enterMode = function(mode) {
+// Wire buttons — inside async IIFE, no timing issues
+document.getElementById('btn-livre').addEventListener('click', () => enterMode('livre'));
+document.getElementById('btn-pve').addEventListener('click',   () => enterMode('pve'));
+document.getElementById('btn-pvp').addEventListener('click',   () => enterMode('pvp'));
+document.getElementById('back-btn').addEventListener('click',  () => goToMenu());
+
+function enterMode(mode) {
   state.mode = mode;
   state.running = true;
 
@@ -897,7 +903,7 @@ window.enterMode = function(mode) {
   if (mode === 'pvp')    startPvP();
 };
 
-window.goToMenu = function() {
+function goToMenu() {
   document.exitPointerLock?.();
   state.running = false;
   state.mouseDown = false;
