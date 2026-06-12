@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAILY Paint Wars</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; color: #fff; }
+
+  #canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
+
+  /* HUD */
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+
+  /* Crosshair */
+  #crosshair {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px; height: 20px;
+  }
+  #crosshair::before, #crosshair::after {
+    content: ''; position: absolute; background: rgba(255,255,255,0.85);
+    border-radius: 2px;
+  }
+  #crosshair::before { width: 2px; height: 20px; left: 9px; top: 0; }
+  #crosshair::after { width: 20px; height: 2px; top: 9px; left: 0; }
+
+  /* Top bar */
+  #topbar {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+  }
+  #logo { font-size: 18px; font-weight: 900; letter-spacing: 1px; }
+  #logo span { color: #ff6b35; }
+
+  #player-info { display: flex; align-items: center; gap: 10px; }
+  #avatar-hud {
+    width: 40px; height: 40px; border-radius: 6px;
+    background: linear-gradient(135deg, #ff6b35, #ffd700);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; border: 2px solid rgba(255,255,255,0.3);
+  }
+  #xp-bar-wrap { display: flex; flex-direction: column; gap: 2px; }
+  #xp-label { font-size: 11px; opacity: 0.8; }
+  #xp-bar { width: 120px; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; }
+  #xp-fill { height: 100%; background: linear-gradient(90deg, #ff6b35, #ffd700); border-radius: 3px; width: 65%; transition: width 0.5s; }
+
+  /* Toolbar bottom */
+  #toolbar {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    pointer-events: all;
+  }
+
+  #tools-row {
+    display: flex; gap: 8px;
+  }
+  .tool-btn {
+    width: 52px; height: 52px; border-radius: 10px;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(20,20,20,0.85); backdrop-filter: blur(6px);
+    cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
+    font-size: 18px; transition: all 0.15s; color: #fff;
+    pointer-events: all;
+  }
+  .tool-btn span { font-size: 8px; opacity: 0.7; }
+  .tool-btn:hover { border-color: #ff6b35; transform: translateY(-3px); }
+  .tool-btn.active { border-color: #ffd700; background: rgba(255,107,53,0.3); box-shadow: 0 0 12px rgba(255,107,53,0.5); }
+
+  #palette-row {
+    display: flex; gap: 6px; align-items: center;
+    background: rgba(10,10,10,0.85); backdrop-filter: blur(8px);
+    padding: 8px 14px; border-radius: 50px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .color-swatch {
+    width: 34px; height: 34px; border-radius: 50%;
+    cursor: pointer; border: 3px solid transparent;
+    transition: all 0.15s; pointer-events: all;
+  }
+  .color-swatch:hover { transform: scale(1.2); }
+  .color-swatch.active { border-color: #fff; transform: scale(1.25); box-shadow: 0 0 10px currentColor; }
+
+  #color-sep { width: 1px; height: 30px; background: rgba(255,255,255,0.2); margin: 0 4px; }
+
+  /* Left panel */
+  #left-panel {
+    position: absolute; top: 70px; left: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: all;
+  }
+  .panel-btn {
+    width: 44px; height: 44px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(10,10,10,0.8); backdrop-filter: blur(6px);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; transition: all 0.15s; color: #fff;
+  }
+  .panel-btn:hover { border-color: #ff6b35; background: rgba(255,107,53,0.2); }
+
+  /* Right panel */
+  #right-panel {
+    position: absolute; top: 70px; right: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: all;
+  }
+
+  /* Modals */
+  .modal {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal.open { opacity: 1; pointer-events: all; }
+  .modal-box {
+    background: #111; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px; padding: 24px; max-width: 520px; width: 90%;
+    max-height: 80vh; overflow-y: auto;
+  }
+  .modal-box h2 { font-size: 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .modal-box h2 span { color: #ff6b35; }
+
+  /* Lab */
+  #lab-slots { display: flex; gap: 16px; align-items: center; justify-content: center; margin: 20px 0; }
+  .lab-slot {
+    width: 70px; height: 70px; border-radius: 12px;
+    border: 2px dashed rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; cursor: pointer; transition: all 0.15s;
+  }
+  .lab-slot.filled { border-style: solid; border-color: rgba(255,255,255,0.5); }
+  .lab-slot:hover { border-color: #ff6b35; }
+  #lab-colors { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px; }
+  .lab-color {
+    width: 44px; height: 44px; border-radius: 8px;
+    cursor: pointer; border: 2px solid transparent;
+    transition: all 0.15s; position: relative;
+  }
+  .lab-color:hover { transform: scale(1.15); border-color: #fff; }
+  .lab-color span { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 9px; white-space: nowrap; }
+  #lab-result { text-align: center; margin-top: 20px; }
+  #lab-result-swatch { width: 80px; height: 80px; border-radius: 12px; margin: 8px auto; border: 3px solid rgba(255,255,255,0.3); }
+  #lab-result-name { font-size: 16px; font-weight: 700; color: #ffd700; }
+  #lab-mix-btn {
+    margin-top: 12px; padding: 10px 28px; border-radius: 50px;
+    background: linear-gradient(135deg, #ff6b35, #ffd700);
+    border: none; color: #000; font-weight: 800; font-size: 14px;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  #lab-mix-btn:hover { transform: scale(1.05); }
+
+  /* Gallery */
+  #gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+  .gallery-card {
+    border-radius: 10px; overflow: hidden; background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.08); cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .gallery-card:hover { transform: scale(1.03); border-color: #ff6b35; }
+  .gallery-canvas { width: 100%; aspect-ratio: 1; }
+  .gallery-meta { padding: 6px 8px; font-size: 10px; opacity: 0.7; }
+  .gallery-likes { color: #ff6b35; font-weight: 700; }
+
+  /* Events panel */
+  #events-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .event-card {
+    background: #1a1a1a; border-radius: 10px; padding: 12px;
+    border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px;
+  }
+  .event-icon { font-size: 28px; }
+  .event-info { flex: 1; }
+  .event-name { font-weight: 700; font-size: 14px; }
+  .event-desc { font-size: 11px; opacity: 0.6; margin-top: 2px; }
+  .event-badge {
+    padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
+    background: rgba(255,107,53,0.2); color: #ff6b35; border: 1px solid #ff6b35;
+  }
+
+  /* Ranking */
+  #ranking-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .rank-item {
+    display: flex; align-items: center; gap: 12px;
+    background: #1a1a1a; border-radius: 10px; padding: 10px 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .rank-num { font-size: 18px; font-weight: 900; color: #ffd700; width: 28px; }
+  .rank-avatar { width: 36px; height: 36px; border-radius: 8px; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+  .rank-info { flex: 1; }
+  .rank-name { font-size: 13px; font-weight: 700; }
+  .rank-pts { font-size: 11px; opacity: 0.6; }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,107,53,0.9); backdrop-filter: blur(8px);
+    padding: 10px 24px; border-radius: 50px; font-weight: 700; font-size: 14px;
+    z-index: 200; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+
+  /* Splash screen */
+  #splash {
+    position: fixed; inset: 0; z-index: 500;
+    background: #0a0a0a; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 24px;
+  }
+  #splash-logo { font-size: 48px; font-weight: 900; text-align: center; line-height: 1.1; }
+  #splash-logo .daily { color: #fff; }
+  #splash-logo .paint { color: #ff6b35; }
+  #splash-logo .wars { color: #ffd700; }
+  #splash-sub { font-size: 16px; opacity: 0.6; letter-spacing: 3px; text-transform: uppercase; }
+  #splash-btn {
+    margin-top: 16px; padding: 14px 48px; border-radius: 50px;
+    background: linear-gradient(135deg, #ff6b35, #ffd700);
+    border: none; color: #000; font-weight: 900; font-size: 18px;
+    cursor: pointer; letter-spacing: 1px; transition: transform 0.15s, box-shadow 0.15s;
+  }
+  #splash-btn:hover { transform: scale(1.06); box-shadow: 0 0 30px rgba(255,107,53,0.5); }
+  #splash-controls { font-size: 13px; opacity: 0.45; text-align: center; line-height: 1.8; }
+
+  /* Captured art preview */
+  #capture-preview {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 300; background: #111; border-radius: 16px; padding: 20px;
+    border: 2px solid #ff6b35; display: none;
+    flex-direction: column; align-items: center; gap: 12px; max-width: 400px;
+  }
+  #capture-preview h3 { color: #ffd700; }
+  #capture-canvas { border-radius: 8px; max-width: 100%; }
+  #capture-actions { display: flex; gap: 10px; }
+  .cap-btn {
+    padding: 8px 20px; border-radius: 50px; border: none;
+    font-weight: 700; cursor: pointer; font-size: 13px;
+  }
+  .cap-btn.primary { background: linear-gradient(135deg, #ff6b35, #ffd700); color: #000; }
+  .cap-btn.secondary { background: rgba(255,255,255,0.1); color: #fff; }
+
+  /* Progress bar for pigmento aprisionado */
+  #global-event {
+    position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(10,10,10,0.85); backdrop-filter: blur(8px);
+    border-radius: 12px; padding: 10px 20px; border: 1px solid rgba(255,107,53,0.3);
+    display: flex; align-items: center; gap: 12px; pointer-events: none;
+  }
+  #event-progress-wrap { display: flex; flex-direction: column; gap: 4px; }
+  #event-title { font-size: 11px; color: #ffd700; font-weight: 700; letter-spacing: 1px; }
+  #event-bar { width: 200px; height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; }
+  #event-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #ff6b35); border-radius: 3px; transition: width 1s; }
+  #event-count { font-size: 11px; opacity: 0.7; }
+
+  /* Ammo indicator (spray burst) */
+  #tool-indicator {
+    position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+    font-size: 12px; opacity: 0.6; letter-spacing: 2px; text-transform: uppercase;
+  }
+
+  /* Mini-map */
+  #minimap {
+    position: absolute; bottom: 100px; right: 16px;
+    width: 100px; height: 80px; border-radius: 8px;
+    background: rgba(10,10,10,0.8); border: 1px solid rgba(255,255,255,0.15);
+    overflow: hidden; pointer-events: none;
+  }
+  #minimap canvas { width: 100%; height: 100%; }
+
+  /* Cursor paint splat effect */
+  .splat {
+    position: fixed; width: 16px; height: 16px; border-radius: 50%;
+    pointer-events: none; z-index: 50; transform: translate(-50%, -50%);
+    animation: splatAnim 0.4s forwards;
+  }
+  @keyframes splatAnim {
+    0% { transform: translate(-50%,-50%) scale(0); opacity: 1; }
+    60% { transform: translate(-50%,-50%) scale(1.5); opacity: 0.8; }
+    100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Splash -->
+<div id="splash">
+  <div id="splash-logo">
+    <div class="daily">DAILY</div>
+    <div class="paint">PAINT</div>
+    <div class="wars">WARS</div>
+  </div>
+  <div id="splash-sub">Crie. Pinte. Conquiste.</div>
+  <button id="splash-btn" onclick="startGame()">ENTRAR NO MUNDO</button>
+  <div id="splash-controls">
+    WASD / Setas — Mover &nbsp;·&nbsp; Mouse — Olhar<br>
+    Clique — Pintar &nbsp;·&nbsp; Scroll — Zoom ferramenta<br>
+    E — Galeria &nbsp;·&nbsp; L — Laboratório &nbsp;·&nbsp; Tab — Eventos
+  </div>
+</div>
+
+<!-- Canvas 3D -->
+<canvas id="canvas"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="crosshair"></div>
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <div id="logo">DAILY <span>PAINT WARS</span></div>
+    <div id="player-info">
+      <div id="avatar-hud">🐱</div>
+      <div id="xp-bar-wrap">
+        <div id="xp-label">Nível 42 · <span id="xp-text">6.280 / 10.000 XP</span></div>
+        <div id="xp-bar"><div id="xp-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global event bar -->
+  <div id="global-event">
+    <span style="font-size:24px">💜</span>
+    <div id="event-progress-wrap">
+      <div id="event-title">⚡ PIGMENTO COSMOS APRISIONADO</div>
+      <div id="event-bar"><div id="event-fill" style="width:52.7%"></div></div>
+      <div id="event-count"><span id="hit-count">263.720.500</span> / 500.000.000 hits</div>
+    </div>
+  </div>
+
+  <!-- Tool indicator -->
+  <div id="tool-indicator">Spray</div>
+
+  <!-- Left panel -->
+  <div id="left-panel">
+    <button class="panel-btn" onclick="openModal('lab-modal')" title="Laboratório">🧪</button>
+    <button class="panel-btn" onclick="openModal('gallery-modal')" title="Galeria">🖼️</button>
+    <button class="panel-btn" onclick="openModal('events-modal')" title="Eventos">⚡</button>
+    <button class="panel-btn" onclick="openModal('ranking-modal')" title="Ranking">🏆</button>
+    <button class="panel-btn" onclick="captureArt()" title="Capturar Arte">📸</button>
+  </div>
+
+  <!-- Right panel coords -->
+  <div id="right-panel">
+    <div style="background:rgba(10,10,10,0.8);backdrop-filter:blur(6px);border-radius:10px;padding:10px;border:1px solid rgba(255,255,255,0.1);font-size:11px;line-height:1.8;">
+      <div style="opacity:0.5;margin-bottom:4px;letter-spacing:1px">COORDENADAS</div>
+      <div>X: <span id="coord-x" style="color:#ff6b35;font-weight:700">0</span></div>
+      <div>Y: <span id="coord-y" style="color:#ffd700;font-weight:700">0</span></div>
+      <div>Z: <span id="coord-z" style="color:#a3e635;font-weight:700">0</span></div>
+    </div>
+  </div>
+
+  <!-- Minimap -->
+  <div id="minimap"><canvas id="minimap-canvas" width="100" height="80"></canvas></div>
+
+  <!-- Bottom toolbar -->
+  <div id="toolbar">
+    <div id="tools-row">
+      <button class="tool-btn" data-tool="pistola" onclick="setTool(this,'pistola')">🔫<span>Pistola</span></button>
+      <button class="tool-btn active" data-tool="spray" onclick="setTool(this,'spray')">🎨<span>Spray</span></button>
+      <button class="tool-btn" data-tool="shotgun" onclick="setTool(this,'shotgun')">💥<span>Shotgun</span></button>
+      <button class="tool-btn" data-tool="rolo" onclick="setTool(this,'rolo')">🖌️<span>Rolo</span></button>
+      <button class="tool-btn" data-tool="balde" onclick="setTool(this,'balde')">🪣<span>Balde</span></button>
+      <button class="tool-btn" data-tool="canhao" onclick="setTool(this,'canhao')">💣<span>Canhão</span></button>
+    </div>
+    <div id="palette-row">
+      <!-- Base colors -->
+      <div class="color-swatch active" style="background:#111111" data-color="#111111" onclick="setColor(this)"></div>
+      <div class="color-swatch" style="background:#ffffff" data-color="#ffffff" onclick="setColor(this)"></div>
+      <div class="color-swatch" style="background:#e53e3e" data-color="#e53e3e" onclick="setColor(this)"></div>
+      <div class="color-swatch" style="background:#3182ce" data-color="#3182ce" onclick="setColor(this)"></div>
+      <div id="color-sep"></div>
+      <!-- Unlocked colors -->
+      <div class="color-swatch" style="background:#805ad5" data-color="#805ad5" onclick="setColor(this)"></div>
+      <div class="color-swatch" style="background:#38a169" data-color="#38a169" onclick="setColor(this)"></div>
+      <div class="color-swatch" style="background:#d69e2e" data-color="#d69e2e" onclick="setColor(this)"></div>
+      <div class="color-swatch" style="background:#ed64a6" data-color="#ed64a6" onclick="setColor(this)"></div>
+      <div class="color-swatch" style="background:#ff6b35" data-color="#ff6b35" onclick="setColor(this)"></div>
+      <!-- Rare -->
+      <div id="color-sep2" class="color-sep"></div>
+      <div class="color-swatch" style="background:linear-gradient(135deg,#ff0080,#00ffff,#ffff00)" data-color="neon" onclick="setColor(this)" title="Neon ✨"></div>
+      <div class="color-swatch" style="background:linear-gradient(135deg,#0f0c29,#302b63,#24243e)" data-color="galaxy" onclick="setColor(this)" title="Galáxia 🌌"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Capture preview -->
+<div id="capture-preview">
+  <h3>📸 Arte Capturada!</h3>
+  <canvas id="capture-canvas" width="300" height="200"></canvas>
+  <div id="capture-actions">
+    <button class="cap-btn primary" onclick="publishArt()">Publicar na Galeria ❤️</button>
+    <button class="cap-btn secondary" onclick="closeCapturePreview()">Fechar</button>
+  </div>
+</div>
+
+<!-- Lab Modal -->
+<div class="modal" id="lab-modal">
+  <div class="modal-box">
+    <h2>🧪 Laboratório de <span>Tintas</span></h2>
+    <p style="opacity:0.6;font-size:13px">Combine duas cores para descobrir novas. Algumas combinações são secretas!</p>
+    <div id="lab-slots">
+      <div class="lab-slot" id="lab-slot-a" onclick="selectLabSlot('a')">➕</div>
+      <span style="font-size:24px">+</span>
+      <div class="lab-slot" id="lab-slot-b" onclick="selectLabSlot('b')">➕</div>
+      <span style="font-size:24px">=</span>
+      <div id="lab-result-swatch" style="width:60px;height:60px;border-radius:12px;background:#222;border:2px solid rgba(255,255,255,0.2)"></div>
+    </div>
+    <div id="lab-result">
+      <div id="lab-result-name" style="font-size:13px;opacity:0.5">Escolha duas cores</div>
+      <button id="lab-mix-btn" onclick="mixColors()">⚗️ MISTURAR</button>
+    </div>
+    <div style="margin-top:20px;font-size:12px;opacity:0.5;margin-bottom:8px">Suas cores disponíveis:</div>
+    <div id="lab-colors"></div>
+  </div>
+  <div style="position:absolute;inset:0;z-index:-1" onclick="closeModal('lab-modal')"></div>
+</div>
+
+<!-- Gallery Modal -->
+<div class="modal" id="gallery-modal">
+  <div class="modal-box" style="max-width:600px">
+    <h2>🖼️ Galeria de <span>Arte</span></h2>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button onclick="filterGallery('hot')" class="gallery-filter active-filter" style="padding:6px 14px;border-radius:20px;border:1px solid #ff6b35;background:rgba(255,107,53,0.2);color:#ff6b35;cursor:pointer;font-size:12px;font-weight:700">Em Alta</button>
+      <button onclick="filterGallery('new')" class="gallery-filter" style="padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:#fff;cursor:pointer;font-size:12px">Recentes</button>
+      <button onclick="filterGallery('liked')" class="gallery-filter" style="padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:#fff;cursor:pointer;font-size:12px">Mais Curtidas</button>
+    </div>
+    <div id="gallery-grid"></div>
+  </div>
+  <div style="position:absolute;inset:0;z-index:-1" onclick="closeModal('gallery-modal')"></div>
+</div>
+
+<!-- Events Modal -->
+<div class="modal" id="events-modal">
+  <div class="modal-box">
+    <h2>⚡ Eventos <span>Ativos</span></h2>
+    <div id="events-list">
+      <div class="event-card">
+        <div class="event-icon">🧱</div>
+        <div class="event-info">
+          <div class="event-name">Parede Limpa</div>
+          <div class="event-desc">Nova área liberada — setor X:1200 a X:1400. Seja o primeiro a pintar!</div>
+        </div>
+        <div class="event-badge">ATIVO</div>
+      </div>
+      <div class="event-card">
+        <div class="event-icon">🌌</div>
+        <div class="event-info">
+          <div class="event-name">Tema da Semana: Espaço Sideral</div>
+          <div class="event-desc">Pinte com tema espacial e ganhe 2x XP. Encerra em 2d 14h.</div>
+        </div>
+        <div class="event-badge">2x XP</div>
+      </div>
+      <div class="event-card">
+        <div class="event-icon">💜</div>
+        <div class="event-info">
+          <div class="event-name">Pigmento Cosmos Aprisionado</div>
+          <div class="event-desc">263.720.500 / 500.000.000 hits. Todos recebem o pigmento ao quebrar!</div>
+        </div>
+        <div class="event-badge">GLOBAL</div>
+      </div>
+      <div class="event-card">
+        <div class="event-icon">🔴🔵</div>
+        <div class="event-info">
+          <div class="event-name">Guerra das Cores</div>
+          <div class="event-desc">Azul vs Vermelho. Sua equipe: <strong style="color:#3182ce">Azul</strong>. Controle mais território!</div>
+        </div>
+        <div class="event-badge">EM GUERRA</div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;z-index:-1" onclick="closeModal('events-modal')"></div>
+</div>
+
+<!-- Ranking Modal -->
+<div class="modal" id="ranking-modal">
+  <div class="modal-box">
+    <h2>🏆 Ranking de <span>Pintores</span></h2>
+    <div id="ranking-list">
+      <div class="rank-item" style="border-color:rgba(255,215,0,0.3)">
+        <div class="rank-num">1</div>
+        <div class="rank-avatar" style="background:linear-gradient(135deg,#ffd700,#ff6b35)">🐱</div>
+        <div class="rank-info"><div class="rank-name">PixelMaster</div><div class="rank-pts">125.430 XP · 87 artes</div></div>
+        <span style="color:#ffd700">👑</span>
+      </div>
+      <div class="rank-item">
+        <div class="rank-num" style="color:#c0c0c0">2</div>
+        <div class="rank-avatar" style="background:linear-gradient(135deg,#805ad5,#3182ce)">🎨</div>
+        <div class="rank-info"><div class="rank-name">ArtQueen</div><div class="rank-pts">98.210 XP · 64 artes</div></div>
+      </div>
+      <div class="rank-item">
+        <div class="rank-num" style="color:#cd7f32">3</div>
+        <div class="rank-avatar" style="background:linear-gradient(135deg,#ed64a6,#ff6b35)">✨</div>
+        <div class="rank-info"><div class="rank-name">NeonClan</div><div class="rank-pts">76.550 XP · 51 artes</div></div>
+      </div>
+      <div class="rank-item">
+        <div class="rank-num">4</div>
+        <div class="rank-avatar" style="background:linear-gradient(135deg,#38a169,#3182ce)">🌿</div>
+        <div class="rank-info"><div class="rank-name">VibeCreator</div><div class="rank-pts">54.330 XP · 38 artes</div></div>
+      </div>
+      <div class="rank-item" style="border-color:rgba(255,107,53,0.4);background:rgba(255,107,53,0.05)">
+        <div class="rank-num">42</div>
+        <div class="rank-avatar" style="background:linear-gradient(135deg,#ff6b35,#ffd700)">🐱</div>
+        <div class="rank-info"><div class="rank-name">Você (Dailypoke)</div><div class="rank-pts">6.280 XP · 12 artes</div></div>
+        <span style="color:#ff6b35;font-size:12px">VOCÊ</span>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;z-index:-1" onclick="closeModal('ranking-modal')"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const state = {
+  tool: 'spray',
+  color: '#111111',
+  xp: 6280,
+  hits: 263720500,
+  labSlotA: null,
+  labSlotB: null,
+  gallery: [],
+  capturedPixels: null,
+  pointerLocked: false,
+  keys: {},
+  yaw: 0,
+  pitch: 0,
+  playerPos: { x: 0, y: 1.7, z: 30 },
+  wallPixels: new Map(), // "x,y" -> color
+};
+
+// Color recipes (lab)
+const RECIPES = {
+  '#e53e3e+#3182ce': { name: 'Roxo Profundo', color: '#805ad5' },
+  '#3182ce+#e53e3e': { name: 'Roxo Profundo', color: '#805ad5' },
+  '#3182ce+#d69e2e': { name: 'Verde Esmeralda', color: '#38a169' },
+  '#d69e2e+#3182ce': { name: 'Verde Esmeralda', color: '#38a169' },
+  '#e53e3e+#ffffff': { name: 'Rosa Coral', color: '#ed64a6' },
+  '#ffffff+#e53e3e': { name: 'Rosa Coral', color: '#ed64a6' },
+  '#e53e3e+#d69e2e': { name: 'Laranja Fogo 🔥', color: '#ff6b35' },
+  '#d69e2e+#e53e3e': { name: 'Laranja Fogo 🔥', color: '#ff6b35' },
+  '#111111+#3182ce': { name: 'Azul Noturno', color: '#1a365d' },
+  '#805ad5+#3182ce': { name: '💫 Neon Secreto!', color: 'neon', secret: true },
+};
+
+const TOOL_SIZES = { pistola: 1, spray: 2, shotgun: 4, rolo: 6, balde: 12, canhao: 9 };
+
+// ─── THREE.JS SETUP ───────────────────────────────────────────────────────────
+let scene, camera, renderer, wallMesh, wallTexture, wallCanvas, wallCtx;
+const WALL_WIDTH = 2000; // pixels
+const WALL_HEIGHT = 500;
+const WALL_WORLD_W = 200;
+const WALL_WORLD_H = 50;
+
+function initThree() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87ceeb); // sky blue
+  scene.fog = new THREE.Fog(0xc8e6ff, 80, 300);
+
+  camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 500);
+  camera.position.set(0, 1.7, 30);
+
+  renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = true;
+
+  // Ground
+  const groundGeo = new THREE.PlaneGeometry(1000, 1000);
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0xf0f0f0 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Wall texture (paintable canvas)
+  wallCanvas = document.createElement('canvas');
+  wallCanvas.width = WALL_WIDTH;
+  wallCanvas.height = WALL_HEIGHT;
+  wallCtx = wallCanvas.getContext('2d');
+  wallCtx.fillStyle = '#f8f8f8';
+  wallCtx.fillRect(0, 0, WALL_WIDTH, WALL_HEIGHT);
+
+  // Draw some example art on wall
+  drawSampleWallArt();
+
+  wallTexture = new THREE.CanvasTexture(wallCanvas);
+  wallTexture.needsUpdate = true;
+
+  const wallGeo = new THREE.PlaneGeometry(WALL_WORLD_W, WALL_WORLD_H);
+  const wallMat = new THREE.MeshLambertMaterial({ map: wallTexture });
+  wallMesh = new THREE.Mesh(wallGeo, wallMat);
+  wallMesh.position.set(0, WALL_WORLD_H / 2, 0);
+  wallMesh.receiveShadow = true;
+  scene.add(wallMesh);
+
+  // Wall back solid
+  const backGeo = new THREE.BoxGeometry(WALL_WORLD_W, WALL_WORLD_H, 1);
+  const backMat = new THREE.MeshLambertMaterial({ color: 0xdddddd });
+  const back = new THREE.Mesh(backGeo, backMat);
+  back.position.set(0, WALL_WORLD_H / 2, -0.6);
+  scene.add(back);
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight(0xffeedd, 1.2);
+  sun.position.set(50, 100, 50);
+  sun.castShadow = true;
+  scene.add(sun);
+
+  // Spawn pillars (decorative)
+  for (let i = -4; i <= 4; i++) {
+    if (i === 0) continue;
+    const pillarGeo = new THREE.BoxGeometry(1.5, 8, 1.5);
+    const pillarMat = new THREE.MeshLambertMaterial({ color: 0xe0e0e0 });
+    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+    pillar.position.set(i * 25, 4, 25);
+    scene.add(pillar);
+  }
+}
+
+function drawSampleWallArt() {
+  const ctx = wallCtx;
+
+  // Background gradient sky effect
+  const grad = ctx.createLinearGradient(0, 0, 0, WALL_HEIGHT);
+  grad.addColorStop(0, '#f0f8ff');
+  grad.addColorStop(1, '#f8f8f8');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, WALL_WIDTH, WALL_HEIGHT);
+
+  // DAILY logo painted big
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 120px monospace';
+  ctx.fillText('DAILY', 50, 200);
+  ctx.fillStyle = '#ff6b35';
+  ctx.fillText('PAINT', 50, 330);
+  ctx.fillStyle = '#ffd700';
+  ctx.fillText('WARS', 50, 460);
+
+  // Pixel art - pikachu-like (yellow blob)
+  drawPixelChar(ctx, 450, 80, 'pikachu');
+  // Heart
+  drawHeart(ctx, 750, 120);
+  // Smiley
+  drawSmiley(ctx, 920, 80);
+
+  // Vibe text
+  ctx.fillStyle = '#805ad5';
+  ctx.font = 'bold 80px monospace';
+  ctx.fillText('VIBE', 1100, 200);
+  ctx.fillStyle = '#3182ce';
+  ctx.fillText('ALTA', 1100, 300);
+  ctx.fillStyle = '#e53e3e';
+  ctx.fillText('SEMPRE', 1050, 400);
+
+  // Some random colored blocks
+  const colors = ['#e53e3e','#3182ce','#38a169','#805ad5','#d69e2e','#ed64a6'];
+  for (let i = 0; i < 80; i++) {
+    ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+    const x = 1550 + Math.floor(Math.random() * 400);
+    const y = Math.floor(Math.random() * 480);
+    const s = (Math.floor(Math.random() * 3) + 1) * 8;
+    ctx.fillRect(x, y, s, s);
+  }
+}
+
+function drawPixelChar(ctx, ox, oy, type) {
+  const pixels = [
+    [0,0,1,1,1,1,0,0],
+    [0,1,1,1,1,1,1,0],
+    [1,1,0,1,1,0,1,1],
+    [1,1,1,1,1,1,1,1],
+    [0,1,1,1,1,1,1,0],
+    [0,0,1,0,0,1,0,0],
+    [0,1,1,0,0,1,1,0],
+    [1,1,0,0,0,0,1,1],
+  ];
+  const S = 20;
+  pixels.forEach((row, ry) => {
+    row.forEach((v, rx) => {
+      if (v) {
+        ctx.fillStyle = '#f6e05e';
+        ctx.fillRect(ox + rx * S, oy + ry * S, S, S);
+      }
+    });
+  });
+  // Eyes
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(ox + 2*S, oy + 2*S, S, S);
+  ctx.fillRect(ox + 5*S, oy + 2*S, S, S);
+}
+
+function drawHeart(ctx, ox, oy) {
+  const S = 16;
+  const h = [
+    [0,1,1,0,1,1,0],
+    [1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1],
+    [0,1,1,1,1,1,0],
+    [0,0,1,1,1,0,0],
+    [0,0,0,1,0,0,0],
+  ];
+  h.forEach((row, ry) => row.forEach((v, rx) => {
+    if (v) { ctx.fillStyle = '#e53e3e'; ctx.fillRect(ox + rx*S, oy + ry*S, S, S); }
+  }));
+}
+
+function drawSmiley(ctx, ox, oy) {
+  const S = 16;
+  const s = [
+    [0,0,1,1,1,1,0,0],
+    [0,1,0,0,0,0,1,0],
+    [1,0,1,0,0,1,0,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,1,0,0,1,0,1],
+    [1,0,0,1,1,0,0,1],
+    [0,1,0,0,0,0,1,0],
+    [0,0,1,1,1,1,0,0],
+  ];
+  s.forEach((row, ry) => row.forEach((v, rx) => {
+    if (v) { ctx.fillStyle = '#ffd700'; ctx.fillRect(ox + rx*S, oy + ry*S, S, S); }
+  }));
+}
+
+// ─── CONTROLS ─────────────────────────────────────────────────────────────────
+function initControls() {
+  const canvas = document.getElementById('canvas');
+
+  canvas.addEventListener('click', () => {
+    if (!state.pointerLocked) canvas.requestPointerLock();
+  });
+
+  document.addEventListener('pointerlockchange', () => {
+    state.pointerLocked = document.pointerLockElement === canvas;
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!state.pointerLocked) return;
+    state.yaw -= e.movementX * 0.002;
+    state.pitch -= e.movementY * 0.002;
+    state.pitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, state.pitch));
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    if (!state.pointerLocked) return;
+    if (e.button === 0) paintWall();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    state.keys[e.code] = true;
+    if (e.code === 'KeyE') { e.preventDefault(); openModal('gallery-modal'); }
+    if (e.code === 'KeyL') { e.preventDefault(); openModal('lab-modal'); }
+    if (e.code === 'Tab') { e.preventDefault(); openModal('events-modal'); }
+    if (e.code === 'Escape') closeAllModals();
+  });
+  document.addEventListener('keyup', (e) => { state.keys[e.code] = false; });
+}
+
+// ─── PAINTING ─────────────────────────────────────────────────────────────────
+let lastPaintTime = 0;
+function paintWall() {
+  const now = Date.now();
+  if (now - lastPaintTime < 80) return;
+  lastPaintTime = now;
+
+  // Raycast to wall
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const hits = raycaster.intersectObject(wallMesh);
+  if (!hits.length) return;
+
+  const uv = hits[0].uv;
+  const px = Math.floor(uv.x * WALL_WIDTH);
+  const py = Math.floor((1 - uv.y) * WALL_HEIGHT);
+
+  const size = TOOL_SIZES[state.tool] * 8;
+  const color = state.color;
+
+  if (state.tool === 'spray') paintSpray(px, py, size, color);
+  else if (state.tool === 'balde') paintFlood(px, py, color);
+  else paintRect(px, py, size, color);
+
+  wallTexture.needsUpdate = true;
+  addXP(2);
+  incrementHits();
+  spawnSplat(color);
+}
+
+function paintRect(px, py, size, color) {
+  const ctx = wallCtx;
+  if (color === 'neon') {
+    const grad = ctx.createRadialGradient(px, py, 0, px, py, size);
+    grad.addColorStop(0, '#ff00ff');
+    grad.addColorStop(0.5, '#00ffff');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+  } else if (color === 'galaxy') {
+    ctx.fillStyle = '#0f0c29';
+    ctx.fillRect(px - size/2, py - size/2, size, size);
+    for (let i = 0; i < 8; i++) {
+      ctx.fillStyle = `hsl(${Math.random()*360},100%,80%)`;
+      const sx = px - size/2 + Math.random() * size;
+      const sy = py - size/2 + Math.random() * size;
+      ctx.fillRect(sx, sy, 2, 2);
+    }
+    return;
+  } else {
+    ctx.fillStyle = color;
+  }
+  ctx.fillRect(px - size/2, py - size/2, size, size);
+}
+
+function paintSpray(px, py, size, color) {
+  const count = state.tool === 'shotgun' ? 30 : 12;
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = Math.random() * size;
+    const sx = px + Math.cos(angle) * r;
+    const sy = py + Math.sin(angle) * r;
+    const s = Math.max(2, size / 6);
+    paintRect(sx, sy, s, color);
+  }
+}
+
+function paintFlood(px, py, color) {
+  // Simplified flood: paint large area
+  const size = 80;
+  wallCtx.fillStyle = color === 'neon' ? '#ff00ff' : color;
+  wallCtx.fillRect(px - size/2, py - size/2, size, size);
+}
+
+// ─── PLAYER MOVEMENT ──────────────────────────────────────────────────────────
+function updatePlayer(dt) {
+  const speed = 8 * dt;
+  const fwd = new THREE.Vector3(-Math.sin(state.yaw), 0, -Math.cos(state.yaw));
+  const right = new THREE.Vector3(Math.cos(state.yaw), 0, -Math.sin(state.yaw));
+
+  if (state.keys['KeyW'] || state.keys['ArrowUp']) camera.position.addScaledVector(fwd, speed);
+  if (state.keys['KeyS'] || state.keys['ArrowDown']) camera.position.addScaledVector(fwd, -speed);
+  if (state.keys['KeyA'] || state.keys['ArrowLeft']) camera.position.addScaledVector(right, -speed);
+  if (state.keys['KeyD'] || state.keys['ArrowRight']) camera.position.addScaledVector(right, speed);
+
+  // Clamp distance
+  camera.position.z = Math.max(2, Math.min(80, camera.position.z));
+  camera.position.x = Math.max(-95, Math.min(95, camera.position.x));
+  camera.position.y = 1.7;
+
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = state.yaw;
+  camera.rotation.x = state.pitch;
+
+  // Update coords
+  document.getElementById('coord-x').textContent = Math.round(camera.position.x * 10);
+  document.getElementById('coord-y').textContent = Math.round(camera.position.y * 10);
+  document.getElementById('coord-z').textContent = Math.round(camera.position.z * 10);
+
+  // Minimap
+  updateMinimap();
+}
+
+function updateMinimap() {
+  const mc = document.getElementById('minimap-canvas');
+  const mctx = mc.getContext('2d');
+  mctx.fillStyle = '#1a1a1a';
+  mctx.fillRect(0, 0, 100, 80);
+
+  // Wall
+  mctx.fillStyle = '#555';
+  mctx.fillRect(0, 0, 100, 8);
+
+  // Player dot
+  const px = ((camera.position.x + 100) / 200) * 100;
+  const pz = (camera.position.z / 80) * 80;
+  mctx.fillStyle = '#ff6b35';
+  mctx.beginPath();
+  mctx.arc(px, pz, 3, 0, Math.PI * 2);
+  mctx.fill();
+
+  // Direction arrow
+  const dx = -Math.sin(state.yaw) * 8;
+  const dz = -Math.cos(state.yaw) * 8;
+  mctx.strokeStyle = '#ffd700';
+  mctx.lineWidth = 1.5;
+  mctx.beginPath();
+  mctx.moveTo(px, pz);
+  mctx.lineTo(px + dx, pz + dz);
+  mctx.stroke();
+}
+
+// ─── GAME LOOP ────────────────────────────────────────────────────────────────
+let lastFrame = performance.now();
+function loop() {
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  const dt = Math.min((now - lastFrame) / 1000, 0.05);
+  lastFrame = now;
+
+  // Continuous painting while mouse held
+  if (state.pointerLocked && state.keys['mouse0']) paintWall();
+
+  updatePlayer(dt);
+  renderer.render(scene, camera);
+}
+
+// Track mouse button as key
+document.addEventListener('mousedown', e => { if(e.button===0) state.keys['mouse0'] = true; });
+document.addEventListener('mouseup', e => { if(e.button===0) state.keys['mouse0'] = false; });
+
+// ─── XP / HITS ────────────────────────────────────────────────────────────────
+function addXP(amount) {
+  state.xp += amount;
+  const fill = Math.min(100, (state.xp / 10000) * 100);
+  document.getElementById('xp-fill').style.width = fill + '%';
+  document.getElementById('xp-text').textContent = `${state.xp.toLocaleString('pt-BR')} / 10.000 XP`;
+}
+
+function incrementHits() {
+  state.hits += Math.floor(Math.random() * 50) + 1;
+  document.getElementById('hit-count').textContent = state.hits.toLocaleString('pt-BR');
+  const pct = Math.min(100, (state.hits / 500000000) * 100);
+  document.getElementById('event-fill').style.width = pct + '%';
+}
+
+// Simulate other players painting (hits grow)
+setInterval(() => {
+  state.hits += Math.floor(Math.random() * 500) + 100;
+  document.getElementById('hit-count').textContent = state.hits.toLocaleString('pt-BR');
+  const pct = Math.min(100, (state.hits / 500000000) * 100);
+  document.getElementById('event-fill').style.width = pct + '%';
+}, 2000);
+
+// ─── TOOLS & COLORS ──────────────────────────────────────────────────────────
+function setTool(btn, tool) {
+  state.tool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tool-indicator').textContent = btn.querySelector('span').textContent;
+}
+
+function setColor(swatch) {
+  state.color = swatch.dataset.color;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  swatch.classList.add('active');
+}
+
+// ─── LAB ─────────────────────────────────────────────────────────────────────
+const BASE_COLORS = [
+  { hex: '#111111', name: 'Preto' }, { hex: '#ffffff', name: 'Branco' },
+  { hex: '#e53e3e', name: 'Vermelho' }, { hex: '#3182ce', name: 'Azul' },
+  { hex: '#d69e2e', name: 'Amarelo' }, { hex: '#805ad5', name: 'Roxo' },
+  { hex: '#38a169', name: 'Verde' }, { hex: '#ed64a6', name: 'Rosa' },
+  { hex: '#ff6b35', name: 'Laranja' },
+];
+
+function openModal(id) {
+  if (id === 'lab-modal') renderLab();
+  if (id === 'gallery-modal') renderGallery();
+  document.getElementById(id).classList.add('open');
+  if (state.pointerLocked) document.exitPointerLock();
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeAllModals() {
+  document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
+}
+
+function renderLab() {
+  const cont = document.getElementById('lab-colors');
+  cont.innerHTML = '';
+  BASE_COLORS.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'lab-color';
+    d.style.background = c.hex;
+    d.title = c.name;
+    d.onclick = () => assignLabColor(c.hex, c.name);
+    cont.appendChild(d);
+  });
+}
+
+let labTarget = 'a';
+function selectLabSlot(slot) { labTarget = slot; toast('Agora clique em uma cor abaixo!'); }
+function assignLabColor(hex, name) {
+  state['labSlot' + labTarget.toUpperCase()] = hex;
+  const slot = document.getElementById('lab-slot-' + labTarget);
+  slot.style.background = hex;
+  slot.style.borderStyle = 'solid';
+  slot.innerHTML = '';
+  slot.classList.add('filled');
+}
+
+function mixColors() {
+  const a = state.labSlotA, b = state.labSlotB;
+  if (!a || !b) { toast('Escolha duas cores primeiro!'); return; }
+  const key = `${a}+${b}`;
+  const recipe = RECIPES[key];
+  const swatch = document.getElementById('lab-result-swatch');
+  const name = document.getElementById('lab-result-name');
+  if (recipe) {
+    swatch.style.background = recipe.color === 'neon'
+      ? 'linear-gradient(135deg,#ff0080,#00ffff,#ffff00)'
+      : recipe.color;
+    name.textContent = recipe.name;
+    name.style.color = '#ffd700';
+    addXP(50);
+    if (recipe.secret) {
+      toast('🌟 COMBINAÇÃO SECRETA DESCOBERTA! +200 XP');
+      addXP(200);
+    } else {
+      toast(`✨ ${recipe.name} descoberto! +50 XP`);
+    }
+    // Add to palette
+    addColorToPalette(recipe.color === 'neon' ? 'neon' : recipe.color, recipe.name);
+  } else {
+    swatch.style.background = '#333';
+    name.textContent = 'Combinação sem resultado...';
+    name.style.color = '#999';
+  }
+}
+
+function addColorToPalette(hex, name) {
+  const palette = document.getElementById('palette-row');
+  const existing = palette.querySelector(`[data-color="${hex}"]`);
+  if (existing) return;
+  const swatch = document.createElement('div');
+  swatch.className = 'color-swatch';
+  swatch.dataset.color = hex;
+  swatch.title = name;
+  if (hex === 'neon') swatch.style.background = 'linear-gradient(135deg,#ff0080,#00ffff,#ffff00)';
+  else swatch.style.background = hex;
+  swatch.onclick = () => setColor(swatch);
+  palette.appendChild(swatch);
+}
+
+// ─── GALLERY ──────────────────────────────────────────────────────────────────
+const SAMPLE_ARTS = [
+  { author: 'PixelMaster', likes: 2345, coords: 'X:1250', color: '#ff6b35' },
+  { author: 'ArtQueen', likes: 1892, coords: 'X:890', color: '#805ad5' },
+  { author: 'NeonClan', likes: 1234, coords: 'X:450', color: '#3182ce' },
+  { author: 'VibeCreator', likes: 987, coords: 'X:2100', color: '#38a169' },
+  { author: 'Dailypoke', likes: 542, coords: 'X:0', color: '#ffd700' },
+  { author: 'GalaxyPaint', likes: 333, coords: 'X:1700', color: '#ed64a6' },
+];
+
+function renderGallery() {
+  const grid = document.getElementById('gallery-grid');
+  grid.innerHTML = '';
+  state.gallery.concat(SAMPLE_ARTS).forEach((art, i) => {
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+    const c = document.createElement('canvas');
+    c.className = 'gallery-canvas';
+    c.width = 100; c.height = 100;
+    const ctx = c.getContext('2d');
+    // Mini painting
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, 100, 100);
+    if (art.pixels) {
+      ctx.putImageData(art.pixels, 0, 0);
+    } else {
+      // Generate a random mini pixel art
+      const colors = [art.color, '#fff', '#111'];
+      for (let py = 0; py < 100; py += 8) {
+        for (let px = 0; px < 100; px += 8) {
+          if (Math.random() > 0.6) {
+            ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+            ctx.fillRect(px, py, 8, 8);
+          }
+        }
+      }
+    }
+    const meta = document.createElement('div');
+    meta.className = 'gallery-meta';
+    meta.innerHTML = `<b>@${art.author}</b><br><span class="gallery-likes">❤️ ${art.likes}</span> · ${art.coords}`;
+    card.appendChild(c);
+    card.appendChild(meta);
+    grid.appendChild(card);
+  });
+}
+
+function filterGallery(type) {
+  document.querySelectorAll('.gallery-filter').forEach(b => {
+    b.style.borderColor = 'rgba(255,255,255,0.2)';
+    b.style.background = 'transparent';
+    b.style.color = '#fff';
+  });
+  event.target.style.borderColor = '#ff6b35';
+  event.target.style.background = 'rgba(255,107,53,0.2)';
+  event.target.style.color = '#ff6b35';
+  renderGallery();
+}
+
+// ─── CAPTURE ART ─────────────────────────────────────────────────────────────
+function captureArt() {
+  const preview = document.getElementById('capture-preview');
+  const cap = document.getElementById('capture-canvas');
+  const ctx = cap.getContext('2d');
+
+  // Grab center section of wall
+  const sx = Math.max(0, Math.floor(WALL_WIDTH/2) - 150);
+  const sy = Math.max(0, Math.floor(WALL_HEIGHT/2) - 100);
+  ctx.drawImage(wallCanvas, sx, sy, 300, 200, 0, 0, 300, 200);
+
+  state.capturedPixels = ctx.getImageData(0, 0, 300, 200);
+  preview.style.display = 'flex';
+  if (state.pointerLocked) document.exitPointerLock();
+  toast('Arte capturada! Publique na galeria 🎨');
+}
+
+function closeCapturePreview() {
+  document.getElementById('capture-preview').style.display = 'none';
+}
+
+function publishArt() {
+  state.gallery.unshift({
+    author: 'Você',
+    likes: 0,
+    coords: `X:${Math.round(camera.position.x * 10)}`,
+    color: state.color,
+    pixels: state.capturedPixels,
+  });
+  closeCapturePreview();
+  addXP(100);
+  toast('🎉 Arte publicada na galeria! +100 XP');
+}
+
+// ─── SPLAT EFFECT ─────────────────────────────────────────────────────────────
+function spawnSplat(color) {
+  const div = document.createElement('div');
+  div.className = 'splat';
+  div.style.left = '50%';
+  div.style.top = '50%';
+  div.style.background = color === 'neon' ? '#ff00ff' : color === 'galaxy' ? '#7c3aed' : color;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 400);
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
+}
+
+// ─── START ────────────────────────────────────────────────────────────────────
+function startGame() {
+  document.getElementById('splash').style.display = 'none';
+  initThree();
+  initControls();
+  loop();
+  setTimeout(() => toast('Bem-vindo ao DAILY Paint Wars! Clique na tela para pintar 🎨'), 500);
+}
+
+// Resize
+window.addEventListener('resize', () => {
+  if (!renderer) return;
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
