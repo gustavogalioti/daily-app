@@ -1383,7 +1383,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <div class="profile-tab" onclick="showProfileSec('comunidades',this)" style="flex-shrink:0;">🏘️ Comunidades</div>
         <div class="profile-tab" onclick="showProfileSec('depoimentos',this)" style="flex-shrink:0;">💬 Depoi.</div>
         <div class="profile-tab" onclick="showProfileSec('conquistas',this)" style="flex-shrink:0;">🏆 Conquistas</div>
-        <div class="profile-tab" onclick="showProfileSec('agenda',this)" style="flex-shrink:0;">📆 Agenda</div>
+        <div class="profile-tab" onclick="openAgendaScreen()" style="flex-shrink:0;">📆 Eventos</div>
       </div>
       <div id="ps-feed">
         <!-- Sub-abas Feed -->
@@ -1422,7 +1422,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <!-- AGENDA -->
       <div id="ps-agenda" class="hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">📆 Minha Agenda</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">📆 Meus Eventos</div>
           <button class="btn btn-primary btn-sm" onclick="openCreateAgenda()">+ Criar</button>
         </div>
         <div id="agenda-list" style="display:flex;flex-direction:column;gap:10px;"></div>
@@ -6272,7 +6272,7 @@ async function submitVisitorTestimonial(username) {
 <div class="modal-overlay" id="modal-create-agenda" onclick="if(event.target===this)closeModal('modal-create-agenda')">
   <div class="modal-box" style="max-width:460px;background:var(--surface);">
     <div class="modal-header">
-      <div class="modal-title">📆 Nova agenda</div>
+      <div class="modal-title">📆 Novo Evento</div>
       <button class="modal-close" onclick="closeModal('modal-create-agenda')">×</button>
     </div>
     <div style="padding:20px;display:flex;flex-direction:column;gap:12px;">
@@ -6360,15 +6360,11 @@ async function createAgenda() {
 }
 
 async function loadAgenda() {
-  const el = document.getElementById('agenda-list');
+  const el = document.getElementById('agenda-screen-body');
   if (!el) return;
   el.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
   try {
     const { mine, invited } = await api('/api/agenda');
-    if (!mine.length && !invited.length) {
-      el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);">Nenhum evento ainda.<br>Crie o primeiro! 📆</div>';
-      return;
-    }
     const renderCard = (a, isOwner) => {
       const d = new Date(a.event_date);
       const dateStr = d.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short' });
@@ -6385,13 +6381,31 @@ async function loadAgenda() {
         </div>
       </div>`;
     };
-    let html = mine.map(a => renderCard(a, true)).join('');
-    if (invited.length) {
-      html += '<div style="font-size:12px;color:var(--muted);margin:14px 0 8px;font-weight:700;">CONVIDADO</div>';
-      html += invited.map(a => renderCard(a, false)).join('');
+    let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-primary btn-sm" onclick="openCreateAgenda()">+ Criar Evento</button>
+    </div>`;
+    if (!mine.length && !invited.length) {
+      html += '<div style="text-align:center;padding:40px;color:var(--muted);">Nenhum evento ainda.<br>Crie o primeiro! 📆</div>';
+    } else {
+      html += '<div style="display:flex;flex-direction:column;gap:10px;">';
+      html += mine.map(a => renderCard(a, true)).join('');
+      if (invited.length) {
+        html += '<div style="font-size:12px;color:var(--muted);margin:14px 0 8px;font-weight:700;">CONVIDADO</div>';
+        html += invited.map(a => renderCard(a, false)).join('');
+      }
+      html += '</div>';
     }
     el.innerHTML = html;
   } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
+}
+
+function openAgendaScreen() {
+  const sc = document.getElementById('screen-agenda');
+  if (!sc) return;
+  sc.style.display = 'flex';
+  sc.style.flexDirection = 'column';
+  sc.scrollTop = 0;
+  loadAgenda();
 }
 
 function closeAgendaScreen() {
@@ -7042,7 +7056,7 @@ async function submitDQPhoto(qid) {
 <div id="screen-agenda" style="display:none;position:fixed;inset:0;z-index:650;flex-direction:column;background:var(--surface2);overflow-y:auto;">
   <div style="background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
     <button onclick="closeAgendaScreen()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--text);line-height:1;padding:0 8px 0 0;">‹</button>
-    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;" id="agenda-screen-title">Agenda</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;" id="agenda-screen-title">Eventos</div>
   </div>
   <div id="agenda-screen-body" style="max-width:760px;margin:0 auto;width:100%;padding:16px;"></div>
 </div>
