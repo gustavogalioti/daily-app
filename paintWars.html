@@ -513,6 +513,154 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+// ─── GUN SCENE (FPS weapon overlay) ──────────────────────────────────────────
+let gunScene, gunCamera, gunMesh, gunGroup, gunKickT = 0, gunSwayT = 0;
+
+function initGun() {
+  gunScene = new THREE.Scene();
+  gunCamera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.01, 10);
+
+  const gunLight = new THREE.AmbientLight(0xffffff, 1.0);
+  gunScene.add(gunLight);
+  const gunPoint = new THREE.DirectionalLight(0xffeedd, 0.8);
+  gunPoint.position.set(1, 2, 1);
+  gunScene.add(gunPoint);
+
+  gunGroup = new THREE.Group();
+
+  // ── Body (main box) ─────────────────────────────────────
+  const bodyGeo = new THREE.BoxGeometry(0.09, 0.065, 0.36);
+  const bodyMat = new THREE.MeshLambertMaterial({ color: 0x1a0a2e }); // deep purple-black
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  gunGroup.add(body);
+
+  // ── Purple accent panels ─────────────────────────────────
+  const panelMat = new THREE.MeshLambertMaterial({ color: 0x6b21a8 });
+  const panel1Geo = new THREE.BoxGeometry(0.092, 0.02, 0.28);
+  const panel1 = new THREE.Mesh(panel1Geo, panelMat);
+  panel1.position.set(0, 0.023, -0.02);
+  gunGroup.add(panel1);
+
+  const panel2Geo = new THREE.BoxGeometry(0.092, 0.02, 0.28);
+  const panel2 = new THREE.Mesh(panel2Geo, panelMat);
+  panel2.position.set(0, -0.023, -0.02);
+  gunGroup.add(panel2);
+
+  // ── Gold/yellow voxel accents ─────────────────────────────
+  const goldMat = new THREE.MeshLambertMaterial({ color: 0xffd700 });
+  const goldGeo = new THREE.BoxGeometry(0.093, 0.012, 0.04);
+
+  for (let i = 0; i < 5; i++) {
+    const g = new THREE.Mesh(goldGeo, goldMat);
+    g.position.set(0, 0.039, 0.08 - i * 0.07);
+    gunGroup.add(g);
+    const g2 = new THREE.Mesh(goldGeo, goldMat);
+    g2.position.set(0, -0.039, 0.08 - i * 0.07);
+    gunGroup.add(g2);
+  }
+
+  // ── Barrel (dark cylinder approximated with box) ──────────
+  const barrelGeo = new THREE.BoxGeometry(0.028, 0.028, 0.22);
+  const barrelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+  const barrel = new THREE.Mesh(barrelGeo, barrelMat);
+  barrel.position.set(0, 0.01, -0.27);
+  gunGroup.add(barrel);
+
+  // Barrel tip ring (gold)
+  const tipGeo = new THREE.BoxGeometry(0.038, 0.038, 0.015);
+  const tip = new THREE.Mesh(tipGeo, goldMat);
+  tip.position.set(0, 0.01, -0.375);
+  gunGroup.add(tip);
+
+  // ── Handle/grip ───────────────────────────────────────────
+  const gripGeo = new THREE.BoxGeometry(0.055, 0.1, 0.065);
+  const gripMat = new THREE.MeshLambertMaterial({ color: 0x2d1654 });
+  const grip = new THREE.Mesh(gripGeo, gripMat);
+  grip.position.set(0, -0.077, 0.06);
+  grip.rotation.x = 0.22;
+  gunGroup.add(grip);
+
+  // Grip bottom
+  const gripBotGeo = new THREE.BoxGeometry(0.055, 0.015, 0.065);
+  const gripBot = new THREE.Mesh(gripBotGeo, goldMat);
+  gripBot.position.set(0, -0.13, 0.075);
+  gripBot.rotation.x = 0.22;
+  gunGroup.add(gripBot);
+
+  // ── Trigger guard ─────────────────────────────────────────
+  const tgGeo = new THREE.BoxGeometry(0.008, 0.03, 0.06);
+  const tgMat = new THREE.MeshLambertMaterial({ color: 0x6b21a8 });
+  const tgL = new THREE.Mesh(tgGeo, tgMat);
+  tgL.position.set(-0.028, -0.05, 0.025);
+  gunGroup.add(tgL);
+  const tgR = new THREE.Mesh(tgGeo, tgMat);
+  tgR.position.set(0.028, -0.05, 0.025);
+  gunGroup.add(tgR);
+
+  // ── Scope/sight ───────────────────────────────────────────
+  const sightGeo = new THREE.BoxGeometry(0.016, 0.022, 0.06);
+  const sightMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+  const sight = new THREE.Mesh(sightGeo, sightMat);
+  sight.position.set(0, 0.045, -0.05);
+  gunGroup.add(sight);
+
+  // ── Paint canister (side) ─────────────────────────────────
+  const canGeo = new THREE.BoxGeometry(0.04, 0.04, 0.12);
+  const canMat = new THREE.MeshLambertMaterial({ color: 0xff6b35 });
+  const can = new THREE.Mesh(canGeo, canMat);
+  can.position.set(0.068, 0.0, 0.0);
+  gunGroup.add(can);
+
+  const canCapGeo = new THREE.BoxGeometry(0.04, 0.04, 0.012);
+  const canCap = new THREE.Mesh(canCapGeo, goldMat);
+  canCap.position.set(0.068, 0.0, -0.066);
+  gunGroup.add(canCap);
+
+  // Position gun: bottom-right corner, angled like FPS
+  gunGroup.position.set(0.13, -0.1, -0.28);
+  gunGroup.rotation.y = -0.08;
+  gunGroup.rotation.x = 0.04;
+
+  gunScene.add(gunGroup);
+  gunMesh = gunGroup;
+}
+
+function updateGun(dt) {
+  if (!gunMesh) return;
+
+  // Bob while moving
+  const moving = state.keys['KeyW'] || state.keys['KeyS'] || state.keys['KeyA'] || state.keys['KeyD']
+               || state.keys['ArrowUp'] || state.keys['ArrowDown'] || state.keys['ArrowLeft'] || state.keys['ArrowRight'];
+
+  gunSwayT += dt * (moving ? 6 : 1.5);
+  const swayY = Math.sin(gunSwayT) * (moving ? 0.006 : 0.0015);
+  const swayX = Math.cos(gunSwayT * 0.5) * (moving ? 0.003 : 0.001);
+
+  // Kick recoil when shooting
+  if (state.keys['mouse0'] && state.pointerLocked) {
+    gunKickT = Math.min(gunKickT + dt * 14, 1);
+  } else {
+    gunKickT = Math.max(gunKickT - dt * 8, 0);
+  }
+  const kick = Math.sin(gunKickT * Math.PI) * 0.018;
+
+  // Update gun color to match selected color
+  const paintColor = state.color === 'neon' ? 0xff00ff : state.color === 'galaxy' ? 0x7c3aed : parseInt(state.color.replace('#',''), 16);
+  if (gunGroup.children[14]) gunGroup.children[14].material.color.setHex(paintColor); // canister
+
+  gunGroup.position.set(0.13 + swayX, -0.1 + swayY, -0.28 + kick);
+  gunGroup.rotation.y = -0.08 + swayX * 2;
+  gunGroup.rotation.x = 0.04 - kick * 0.5;
+}
+
+function renderGun() {
+  if (!gunScene) return;
+  renderer.autoClear = false;
+  renderer.clearDepth();
+  renderer.render(gunScene, gunCamera);
+  renderer.autoClear = true;
+}
+
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const state = {
   tool: 'spray',
@@ -566,9 +714,31 @@ function initThree() {
   renderer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.enabled = true;
 
-  // Ground
+  // Ground — white with subtle grid texture
+  const groundTexCanvas = document.createElement('canvas');
+  groundTexCanvas.width = 256; groundTexCanvas.height = 256;
+  const gtx = groundTexCanvas.getContext('2d');
+  gtx.fillStyle = '#f5f5f5';
+  gtx.fillRect(0, 0, 256, 256);
+  // Subtle grid lines
+  gtx.strokeStyle = '#e0e0e0';
+  gtx.lineWidth = 1;
+  for (let g = 0; g <= 256; g += 32) {
+    gtx.beginPath(); gtx.moveTo(g, 0); gtx.lineTo(g, 256); gtx.stroke();
+    gtx.beginPath(); gtx.moveTo(0, g); gtx.lineTo(256, g); gtx.stroke();
+  }
+  // Very faint diagonal hatch for depth
+  gtx.strokeStyle = 'rgba(180,180,180,0.18)';
+  gtx.lineWidth = 0.5;
+  for (let g = -256; g <= 512; g += 48) {
+    gtx.beginPath(); gtx.moveTo(g, 0); gtx.lineTo(g + 256, 256); gtx.stroke();
+  }
+  const groundTex = new THREE.CanvasTexture(groundTexCanvas);
+  groundTex.wrapS = THREE.RepeatWrapping;
+  groundTex.wrapT = THREE.RepeatWrapping;
+  groundTex.repeat.set(80, 80);
   const groundGeo = new THREE.PlaneGeometry(1000, 1000);
-  const groundMat = new THREE.MeshLambertMaterial({ color: 0xf0f0f0 });
+  const groundMat = new THREE.MeshLambertMaterial({ map: groundTex });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
@@ -902,7 +1072,9 @@ function loop() {
   if (state.pointerLocked && state.keys['mouse0']) paintWall();
 
   updatePlayer(dt);
+  updateGun(dt);
   renderer.render(scene, camera);
+  renderGun();
 }
 
 // Track mouse button as key
@@ -1150,6 +1322,7 @@ function toast(msg) {
 function startGame() {
   document.getElementById('splash').style.display = 'none';
   initThree();
+  initGun();
   initControls();
   loop();
   setTimeout(() => toast('Bem-vindo ao DAILY Paint Wars! Clique na tela para pintar 🎨'), 500);
@@ -1160,6 +1333,7 @@ window.addEventListener('resize', () => {
   if (!renderer) return;
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
+  if (gunCamera) { gunCamera.aspect = innerWidth / innerHeight; gunCamera.updateProjectionMatrix(); }
   renderer.setSize(innerWidth, innerHeight);
 });
 </script>
