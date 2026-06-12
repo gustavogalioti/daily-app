@@ -2370,15 +2370,20 @@ function renderCard(p){
   const dmBadge=p.tab==='daily_mandou'?'<span class="badge-pill" style="font-size:10px;">⚡ Daily</span>':'';;
   if(p.type==='photo'&&p.image_url){
     return`<div class="photo-card">
-      <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')">
       <div class="photo-card-body">
         <!-- Autor: bolinha redonda + @username em linha -->
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;" onclick="openUserProfile('${p.author?.username}')">
-          <img src="${av}" style="width:28px;height:28px;min-width:28px;min-height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--accent);">
-          <span style="font-size:12px;font-weight:700;color:var(--accent);">@${p.author?.username||'anon'}</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;" onclick="openUserProfile('${p.author?.username}')">
+          <img src="${av}" style="width:32px;height:32px;min-width:32px;min-height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--accent);">
+          <div style="display:flex;flex-direction:column;gap:1px;">
+            <span style="font-size:13px;font-weight:700;color:var(--accent);">@${p.author?.username||'anon'}</span>
+            <span style="font-size:11px;color:var(--muted);">${timeAgo(p.created_at)}</span>
+          </div>
           ${dmBadge}
         </div>
-        ${p.caption?`<p style="font-size:12px;color:var(--text2);margin-bottom:6px;">${p.caption}</p>`:''}
+        ${p.caption?`<p style="font-size:14px;color:var(--text1);margin-bottom:10px;line-height:1.5;">${p.caption}</p>`:''}
+      </div>
+      <img src="${p.image_url}" alt="" loading="lazy" onclick="openPostDetail('${p.id}')" style="cursor:pointer;">
+      <div class="photo-card-body" style="padding-top:10px;">
         <div class="reactions-row">${reactions}${addEmojis}</div>
         ${pedro}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
