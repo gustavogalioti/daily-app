@@ -1388,8 +1388,8 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div id="ps-feed">
         <!-- Sub-abas Feed -->
         <div style="display:flex;gap:6px;margin-bottom:14px;">
-          <button id="feed-tab-meus" class="btn btn-primary btn-sm" onclick="switchFeedTab('meus')" style="flex:1;font-size:12px;">📝 Meus Posts</button>
-          <button id="feed-tab-amigos" class="btn btn-ghost btn-sm" onclick="switchFeedTab('amigos')" style="flex:1;font-size:12px;">👥 Feed</button>
+          <button id="feed-tab-amigos" class="btn btn-primary btn-sm" onclick="switchFeedTab('amigos')" style="flex:1;font-size:12px;">👥 Feed</button>
+          <button id="feed-tab-meus" class="btn btn-ghost btn-sm" onclick="switchFeedTab('meus')" style="flex:1;font-size:12px;">📝 Meus Posts</button>
         </div>
         <!-- Box de publicação (só aparece em Meus Posts) -->
         <div id="feed-compose" style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;margin-bottom:14px;">
@@ -2881,7 +2881,7 @@ async function loadProfile(){
     document.querySelectorAll('body > div[style*="display: none"]').forEach(el => {
       if (el.children.length === 0) el.remove();
     });
-    loadFeedTab('meus');
+    loadFeedTab('amigos');
     loadTimelineSidebar();
     loadProfileFriendsMini();
     loadProfileCommMini();
@@ -3024,7 +3024,7 @@ async function loadProfileFriends(){
 
 // ── TIMELINE — TODOS OS POSTS ──
 // ═══ FEED DE AMIGOS ═══
-let currentFeedTab = 'meus';
+let currentFeedTab = 'amigos';
 
 function switchFeedTab(tab) {
   currentFeedTab = tab;
