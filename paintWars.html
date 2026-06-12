@@ -290,11 +290,27 @@
     <div class="wars">WARS</div>
   </div>
   <div id="splash-sub">Crie. Pinte. Conquiste.</div>
-  <button id="splash-btn" onclick="startGame()">ENTRAR NO MUNDO</button>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+    <button id="splash-btn" onclick="startGame()">ENTRAR NO MUNDO</button>
+    <button onclick="showSplashRanking()" style="
+      padding:14px 32px; border-radius:50px;
+      background:rgba(255,215,0,0.12); border:2px solid rgba(255,215,0,0.5);
+      color:#ffd700; font-weight:900; font-size:16px; cursor:pointer; letter-spacing:1px;
+      transition:all 0.15s;
+    " onmouseover="this.style.background='rgba(255,215,0,0.25)'" onmouseout="this.style.background='rgba(255,215,0,0.12)'">🏆 RANKING</button>
+  </div>
   <div id="splash-controls">
     WASD / Setas — Mover &nbsp;·&nbsp; Mouse — Olhar<br>
-    Clique — Pintar &nbsp;·&nbsp; Scroll — Zoom ferramenta<br>
+    Clique — Pintar &nbsp;·&nbsp; ESC — Menu<br>
     E — Galeria &nbsp;·&nbsp; L — Laboratório &nbsp;·&nbsp; Tab — Eventos
+  </div>
+  <!-- Splash Ranking Panel -->
+  <div id="splash-ranking" style="display:none;background:rgba(10,10,10,0.95);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px;margin-top:8px;min-width:320px;max-width:420px;width:90%;">
+    <div style="font-size:16px;font-weight:900;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+      🏆 Ranking de Pintores
+      <span onclick="document.getElementById('splash-ranking').style.display='none'" style="cursor:pointer;opacity:0.5;font-size:20px;">✕</span>
+    </div>
+    <div id="splash-ranking-list" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
 </div>
 
@@ -479,36 +495,59 @@
   <div class="modal-box">
     <h2>🏆 Ranking de <span>Pintores</span></h2>
     <div id="ranking-list">
-      <div class="rank-item" style="border-color:rgba(255,215,0,0.3)">
-        <div class="rank-num">1</div>
-        <div class="rank-avatar" style="background:linear-gradient(135deg,#ffd700,#ff6b35)">🐱</div>
-        <div class="rank-info"><div class="rank-name">PixelMaster</div><div class="rank-pts">125.430 XP · 87 artes</div></div>
-        <span style="color:#ffd700">👑</span>
-      </div>
-      <div class="rank-item">
-        <div class="rank-num" style="color:#c0c0c0">2</div>
-        <div class="rank-avatar" style="background:linear-gradient(135deg,#805ad5,#3182ce)">🎨</div>
-        <div class="rank-info"><div class="rank-name">ArtQueen</div><div class="rank-pts">98.210 XP · 64 artes</div></div>
-      </div>
-      <div class="rank-item">
-        <div class="rank-num" style="color:#cd7f32">3</div>
-        <div class="rank-avatar" style="background:linear-gradient(135deg,#ed64a6,#ff6b35)">✨</div>
-        <div class="rank-info"><div class="rank-name">NeonClan</div><div class="rank-pts">76.550 XP · 51 artes</div></div>
-      </div>
-      <div class="rank-item">
-        <div class="rank-num">4</div>
-        <div class="rank-avatar" style="background:linear-gradient(135deg,#38a169,#3182ce)">🌿</div>
-        <div class="rank-info"><div class="rank-name">VibeCreator</div><div class="rank-pts">54.330 XP · 38 artes</div></div>
-      </div>
-      <div class="rank-item" style="border-color:rgba(255,107,53,0.4);background:rgba(255,107,53,0.05)">
-        <div class="rank-num">42</div>
-        <div class="rank-avatar" style="background:linear-gradient(135deg,#ff6b35,#ffd700)">🐱</div>
-        <div class="rank-info"><div class="rank-name">Você (Dailypoke)</div><div class="rank-pts">6.280 XP · 12 artes</div></div>
-        <span style="color:#ff6b35;font-size:12px">VOCÊ</span>
-      </div>
+      <!-- populated by renderRanking() -->
     </div>
   </div>
   <div style="position:absolute;inset:0;z-index:-1" onclick="closeModal('ranking-modal')"></div>
+</div>
+
+<!-- ESC Pause Menu -->
+<div id="pause-menu" style="
+  display:none; position:fixed; inset:0; z-index:400;
+  background:rgba(0,0,0,0.75); backdrop-filter:blur(8px);
+  align-items:center; justify-content:center; flex-direction:column; gap:0;
+">
+  <div style="
+    background:#111; border:1px solid rgba(255,255,255,0.1);
+    border-radius:20px; padding:36px 48px; min-width:300px;
+    display:flex; flex-direction:column; align-items:center; gap:16px;
+    box-shadow: 0 0 60px rgba(255,107,53,0.2);
+  ">
+    <div style="font-size:14px;opacity:0.4;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;">Pausado</div>
+    <div style="font-size:28px;font-weight:900;letter-spacing:1px;">DAILY <span style="color:#ff6b35;">PAINT</span> <span style="color:#ffd700;">WARS</span></div>
+    <button onclick="resumeGame()" style="
+      width:100%; padding:13px; border-radius:50px;
+      background:linear-gradient(135deg,#ff6b35,#ffd700);
+      border:none; color:#000; font-weight:900; font-size:15px;
+      cursor:pointer; letter-spacing:1px; margin-top:8px;
+    ">▶ CONTINUAR</button>
+    <button onclick="openModal('gallery-modal');hidePause()" style="
+      width:100%; padding:11px; border-radius:50px;
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
+      color:#fff; font-weight:700; font-size:14px; cursor:pointer;
+    ">🖼️ Galeria de Arte</button>
+    <button onclick="openModal('lab-modal');hidePause()" style="
+      width:100%; padding:11px; border-radius:50px;
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
+      color:#fff; font-weight:700; font-size:14px; cursor:pointer;
+    ">🧪 Laboratório de Tintas</button>
+    <button onclick="openModal('events-modal');hidePause()" style="
+      width:100%; padding:11px; border-radius:50px;
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
+      color:#fff; font-weight:700; font-size:14px; cursor:pointer;
+    ">⚡ Eventos Ativos</button>
+    <button onclick="showPauseRanking()" style="
+      width:100%; padding:11px; border-radius:50px;
+      background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3);
+      color:#ffd700; font-weight:700; font-size:14px; cursor:pointer;
+    ">🏆 Ranking</button>
+    <div style="width:100%;height:1px;background:rgba(255,255,255,0.08);margin:4px 0;"></div>
+    <button onclick="goToMenu()" style="
+      width:100%; padding:11px; border-radius:50px;
+      background:transparent; border:1px solid rgba(255,100,50,0.3);
+      color:#ff6b35; font-weight:700; font-size:14px; cursor:pointer;
+    ">🏠 Voltar ao Menu</button>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -697,9 +736,9 @@ const TOOL_SIZES = { pistola: 1, spray: 2, shotgun: 4, rolo: 6, balde: 12, canha
 
 // ─── THREE.JS SETUP ───────────────────────────────────────────────────────────
 let scene, camera, renderer, wallMesh, wallTexture, wallCanvas, wallCtx;
-const WALL_WIDTH = 2000; // pixels
+const WALL_WIDTH = 4000; // pixels — muralha mais larga
 const WALL_HEIGHT = 500;
-const WALL_WORLD_W = 200;
+const WALL_WORLD_W = 400;
 const WALL_WORLD_H = 50;
 
 function initThree() {
@@ -714,31 +753,9 @@ function initThree() {
   renderer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.enabled = true;
 
-  // Ground — white with subtle grid texture
-  const groundTexCanvas = document.createElement('canvas');
-  groundTexCanvas.width = 256; groundTexCanvas.height = 256;
-  const gtx = groundTexCanvas.getContext('2d');
-  gtx.fillStyle = '#f5f5f5';
-  gtx.fillRect(0, 0, 256, 256);
-  // Subtle grid lines
-  gtx.strokeStyle = '#e0e0e0';
-  gtx.lineWidth = 1;
-  for (let g = 0; g <= 256; g += 32) {
-    gtx.beginPath(); gtx.moveTo(g, 0); gtx.lineTo(g, 256); gtx.stroke();
-    gtx.beginPath(); gtx.moveTo(0, g); gtx.lineTo(256, g); gtx.stroke();
-  }
-  // Very faint diagonal hatch for depth
-  gtx.strokeStyle = 'rgba(180,180,180,0.18)';
-  gtx.lineWidth = 0.5;
-  for (let g = -256; g <= 512; g += 48) {
-    gtx.beginPath(); gtx.moveTo(g, 0); gtx.lineTo(g + 256, 256); gtx.stroke();
-  }
-  const groundTex = new THREE.CanvasTexture(groundTexCanvas);
-  groundTex.wrapS = THREE.RepeatWrapping;
-  groundTex.wrapT = THREE.RepeatWrapping;
-  groundTex.repeat.set(80, 80);
+  // Ground — light grey solid (clean, não confunde com a muralha)
   const groundGeo = new THREE.PlaneGeometry(1000, 1000);
-  const groundMat = new THREE.MeshLambertMaterial({ map: groundTex });
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0xd8d8d8 });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
@@ -794,14 +811,14 @@ function initThree() {
 function drawSampleWallArt() {
   const ctx = wallCtx;
 
-  // Background gradient sky effect
+  // Background
   const grad = ctx.createLinearGradient(0, 0, 0, WALL_HEIGHT);
   grad.addColorStop(0, '#f0f8ff');
   grad.addColorStop(1, '#f8f8f8');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, WALL_WIDTH, WALL_HEIGHT);
 
-  // DAILY logo painted big
+  // DAILY logo painted big (left)
   ctx.fillStyle = '#1a1a2e';
   ctx.font = 'bold 120px monospace';
   ctx.fillText('DAILY', 50, 200);
@@ -810,14 +827,12 @@ function drawSampleWallArt() {
   ctx.fillStyle = '#ffd700';
   ctx.fillText('WARS', 50, 460);
 
-  // Pixel art - pikachu-like (yellow blob)
+  // Pixel art
   drawPixelChar(ctx, 450, 80, 'pikachu');
-  // Heart
   drawHeart(ctx, 750, 120);
-  // Smiley
   drawSmiley(ctx, 920, 80);
 
-  // Vibe text
+  // Vibe text (center-left)
   ctx.fillStyle = '#805ad5';
   ctx.font = 'bold 80px monospace';
   ctx.fillText('VIBE', 1100, 200);
@@ -826,15 +841,50 @@ function drawSampleWallArt() {
   ctx.fillStyle = '#e53e3e';
   ctx.fillText('SEMPRE', 1050, 400);
 
-  // Some random colored blocks
+  // ── BRASIL HEXA 2026 ── (destaque verde amarelo, centro)
+  const bx = 1600, by = 140;
+  // Bandeira verde de fundo
+  ctx.fillStyle = '#009c3b';
+  ctx.fillRect(bx - 20, by - 100, 700, 180);
+  // Losango amarelo
+  ctx.fillStyle = '#ffdf00';
+  ctx.beginPath();
+  ctx.moveTo(bx + 330, by - 100);
+  ctx.lineTo(bx + 660, by - 10);
+  ctx.lineTo(bx + 330, by + 80);
+  ctx.lineTo(bx, by - 10);
+  ctx.closePath();
+  ctx.fill();
+  // Texto
+  ctx.fillStyle = '#009c3b';
+  ctx.font = 'bold 54px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('BRASIL', bx + 330, by - 10);
+  ctx.fillStyle = '#002776';
+  ctx.font = 'bold 44px monospace';
+  ctx.fillText('HEXA 2026 ⭐', bx + 330, by + 60);
+  ctx.textAlign = 'left';
+
+  // Random colored blocks - spread across full width
   const colors = ['#e53e3e','#3182ce','#38a169','#805ad5','#d69e2e','#ed64a6'];
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 200; i++) {
     ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-    const x = 1550 + Math.floor(Math.random() * 400);
+    const x = 2400 + Math.floor(Math.random() * 1500);
     const y = Math.floor(Math.random() * 480);
     const s = (Math.floor(Math.random() * 3) + 1) * 8;
     ctx.fillRect(x, y, s, s);
   }
+
+  // Right side — more pixel art spread out
+  drawHeart(ctx, 2600, 80);
+  ctx.fillStyle = '#ff6b35';
+  ctx.font = 'bold 70px monospace';
+  ctx.fillText('DAILY', 2800, 200);
+  ctx.fillStyle = '#ffd700';
+  ctx.fillText('2026', 2850, 290);
+  drawSmiley(ctx, 3200, 100);
+  drawHeart(ctx, 3450, 200);
+  drawPixelChar(ctx, 3700, 80, 'pikachu');
 }
 
 function drawPixelChar(ctx, ox, oy, type) {
@@ -924,7 +974,10 @@ function initControls() {
     if (e.code === 'KeyE') { e.preventDefault(); openModal('gallery-modal'); }
     if (e.code === 'KeyL') { e.preventDefault(); openModal('lab-modal'); }
     if (e.code === 'Tab') { e.preventDefault(); openModal('events-modal'); }
-    if (e.code === 'Escape') closeAllModals();
+    if (e.code === 'Escape') {
+      if (document.querySelectorAll('.modal.open').length) { closeAllModals(); }
+      else { togglePause(); }
+    }
   });
   document.addEventListener('keyup', (e) => { state.keys[e.code] = false; });
 }
@@ -1015,7 +1068,7 @@ function updatePlayer(dt) {
 
   // Clamp distance
   camera.position.z = Math.max(2, Math.min(80, camera.position.z));
-  camera.position.x = Math.max(-95, Math.min(95, camera.position.x));
+  camera.position.x = Math.max(-195, Math.min(195, camera.position.x));
   camera.position.y = 1.7;
 
   camera.rotation.order = 'YXZ';
@@ -1096,13 +1149,7 @@ function incrementHits() {
   document.getElementById('event-fill').style.width = pct + '%';
 }
 
-// Simulate other players painting (hits grow)
-setInterval(() => {
-  state.hits += Math.floor(Math.random() * 500) + 100;
-  document.getElementById('hit-count').textContent = state.hits.toLocaleString('pt-BR');
-  const pct = Math.min(100, (state.hits / 500000000) * 100);
-  document.getElementById('event-fill').style.width = pct + '%';
-}, 2000);
+// Hits grow only from real painting actions (incrementHits called on each paint)
 
 // ─── TOOLS & COLORS ──────────────────────────────────────────────────────────
 function setTool(btn, tool) {
@@ -1130,6 +1177,7 @@ const BASE_COLORS = [
 function openModal(id) {
   if (id === 'lab-modal') renderLab();
   if (id === 'gallery-modal') renderGallery();
+  if (id === 'ranking-modal') renderRanking();
   document.getElementById(id).classList.add('open');
   if (state.pointerLocked) document.exitPointerLock();
 }
@@ -1294,6 +1342,9 @@ function publishArt() {
   });
   closeCapturePreview();
   addXP(100);
+  // Update registry
+  const me = playerRegistry.find(p => p.isYou);
+  if (me) { me.xp = state.xp; me.arts = state.gallery.length; }
   toast('🎉 Arte publicada na galeria! +100 XP');
 }
 
@@ -1318,12 +1369,104 @@ function toast(msg) {
   toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
 }
 
+// ─── PLAYER REGISTRY (real players only) ─────────────────────────────────────
+// Loads from /api/users/paintwars-ranking if available, falls back to just current user
+const playerRegistry = [];
+
+function registerCurrentPlayer() {
+  // Try to get session user from the parent DAILY app
+  let name = 'Você', avatar = '🐱';
+  try {
+    const tok = window.parent && window.parent.localStorage ? window.parent.localStorage : localStorage;
+    const u = JSON.parse(tok.getItem('daily_user') || tok.getItem('user') || '{}');
+    if (u.username) name = '@' + u.username;
+    if (u.name) name = u.name;
+  } catch(e) {}
+  playerRegistry.push({ name, avatar, xp: state.xp, arts: state.gallery.length, isYou: true });
+}
+
+function renderRanking() {
+  const list = document.getElementById('ranking-list');
+  if (!list) return;
+  renderRankingInto(list);
+}
+
+function renderRankingInto(container) {
+  // Sort by XP desc
+  const sorted = [...playerRegistry].sort((a, b) => b.xp - a.xp);
+  if (sorted.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;opacity:0.5;">Nenhum jogador ainda.<br>Seja o primeiro a pintar!</div>';
+    return;
+  }
+  const medals = ['👑', '🥈', '🥉'];
+  container.innerHTML = sorted.map((p, i) => {
+    const isYou = p.isYou;
+    const medal = medals[i] || '';
+    const numColor = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#fff';
+    return `
+      <div class="rank-item" style="${isYou ? 'border-color:rgba(255,107,53,0.5);background:rgba(255,107,53,0.07);' : ''}">
+        <div class="rank-num" style="color:${numColor}">${i + 1}</div>
+        <div class="rank-avatar" style="background:linear-gradient(135deg,#ff6b35,#ffd700)">${p.avatar}</div>
+        <div class="rank-info">
+          <div class="rank-name">${p.name} ${isYou ? '<span style="color:#ff6b35;font-size:10px;">VOCÊ</span>' : ''}</div>
+          <div class="rank-pts">${p.xp.toLocaleString('pt-BR')} XP · ${p.arts} artes publicadas</div>
+        </div>
+        <span>${medal}</span>
+      </div>`;
+  }).join('');
+}
+
+function showSplashRanking() {
+  const panel = document.getElementById('splash-ranking');
+  const list = document.getElementById('splash-ranking-list');
+  panel.style.display = 'block';
+  renderRankingInto(list);
+}
+
+function showPauseRanking() {
+  renderRanking();
+  hidePause();
+  openModal('ranking-modal');
+}
+
+// ─── PAUSE MENU ───────────────────────────────────────────────────────────────
+let paused = false;
+
+function togglePause() {
+  paused ? resumeGame() : showPause();
+}
+
+function showPause() {
+  paused = true;
+  if (state.pointerLocked) document.exitPointerLock();
+  document.getElementById('pause-menu').style.display = 'flex';
+}
+
+function hidePause() {
+  document.getElementById('pause-menu').style.display = 'none';
+  paused = false;
+}
+
+function resumeGame() {
+  hidePause();
+  setTimeout(() => {
+    document.getElementById('canvas').requestPointerLock();
+  }, 100);
+}
+
+function goToMenu() {
+  hidePause();
+  document.getElementById('splash').style.display = 'flex';
+  if (state.pointerLocked) document.exitPointerLock();
+}
+
 // ─── START ────────────────────────────────────────────────────────────────────
 function startGame() {
   document.getElementById('splash').style.display = 'none';
   initThree();
   initGun();
   initControls();
+  registerCurrentPlayer();
   loop();
   setTimeout(() => toast('Bem-vindo ao DAILY Paint Wars! Clique na tela para pintar 🎨'), 500);
 }
