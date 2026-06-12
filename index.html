@@ -7568,19 +7568,34 @@ let myPokeConfig = null;
 let editorCfg = null;
 
 function showJogoSection(sec, btn) {
-  ['dailypoke','catrunner','outros','quiz','tower'].forEach(s=>{
-    const el=document.getElementById('jogo-'+s);
-    if(el) el.style.display='none';
+  // Parar jogos ativos antes de trocar
+  if (typeof catGame !== 'undefined' && catGame && sec !== 'catrunner') {
+    try { catGame.stop?.(); catGame.running = false; } catch(e) {}
+  }
+  if (sec !== 'tower') {
+    try { if (typeof dtLoop !== 'undefined') cancelAnimationFrame(dtLoop); } catch(e) {}
+  }
+
+  // Esconder TODAS as seções
+  ['dailypoke','catrunner','outros','quiz','tower'].forEach(s => {
+    const el = document.getElementById('jogo-' + s);
+    if (el) { el.style.display = 'none'; el.style.visibility = 'hidden'; }
   });
-  const target=document.getElementById('jogo-'+sec);
-  if(target) target.style.display='block';
-  // update nav buttons
-  document.querySelectorAll('#tab-jogos > div:first-child .btn').forEach(b=>b.className=b.className.replace('btn-primary','btn-ghost'));
-  if(btn) { btn.className=btn.className.replace('btn-ghost','btn-primary'); }
-  if(sec==='dailypoke') loadDailyPoke();
-  if(sec==='catrunner') initCatGame();
-  if(sec==='quiz') initQuizArena();
-  if(sec==='tower') initDailyTowerHome();
+
+  // Mostrar só a selecionada
+  const target = document.getElementById('jogo-' + sec);
+  if (target) { target.style.display = 'block'; target.style.visibility = 'visible'; }
+
+  // Atualizar botões nav
+  document.querySelectorAll('#tab-jogos > div:first-child .btn').forEach(b => {
+    b.className = b.className.replace('btn-primary', 'btn-ghost');
+  });
+  if (btn) btn.className = btn.className.replace('btn-ghost', 'btn-primary');
+
+  if (sec === 'dailypoke') loadDailyPoke();
+  if (sec === 'catrunner') initCatGame();
+  if (sec === 'quiz') initQuizArena();
+  if (sec === 'tower') initDailyTowerHome();
 }
 
 async function loadDailyPoke() {
