@@ -327,7 +327,11 @@
     <div id="player-info">
       <div id="avatar-hud">🐱</div>
       <div id="xp-bar-wrap">
-        <div id="xp-label">Nível 42 · <span id="xp-text">6.280 / 10.000 XP</span></div>
+        <div id="xp-label"><span id="player-name-hud">Jogador</span> · <span id="xp-text">0 XP</span></div>
+        <div style="display:flex;gap:10px;margin-top:2px;font-size:10px;opacity:0.7;">
+          <span>🎨 <span id="hud-arts">0</span> artes</span>
+          <span>🖌️ <span id="hud-paints">0</span> pinturas</span>
+        </div>
         <div id="xp-bar"><div id="xp-fill"></div></div>
       </div>
     </div>
@@ -704,8 +708,9 @@ function renderGun() {
 const state = {
   tool: 'spray',
   color: '#111111',
-  xp: 6280,
-  hits: 263720500,
+  xp: 0,
+  paintCount: 0,
+  hits: 0,
   labSlotA: null,
   labSlotB: null,
   gallery: [],
@@ -715,7 +720,8 @@ const state = {
   yaw: 0,
   pitch: 0,
   playerPos: { x: 0, y: 1.7, z: 30 },
-  wallPixels: new Map(), // "x,y" -> color
+  wallPixels: new Map(),
+  playerName: 'Jogador',
 };
 
 // Color recipes (lab)
@@ -753,9 +759,33 @@ function initThree() {
   renderer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.enabled = true;
 
-  // Ground — light grey solid (clean, não confunde com a muralha)
+  // Ground — linen texture (white with subtle noise, matching reference image)
+  const groundTexCanvas = document.createElement('canvas');
+  groundTexCanvas.width = 512; groundTexCanvas.height = 512;
+  const gtx = groundTexCanvas.getContext('2d');
+  // Base: off-white
+  gtx.fillStyle = '#efefef';
+  gtx.fillRect(0, 0, 512, 512);
+  // Linen noise pattern
+  const imgData = gtx.getImageData(0, 0, 512, 512);
+  const d = imgData.data;
+  // Simple pseudo-random seeded noise
+  let seed = 42;
+  function rand() { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; }
+  for (let i = 0; i < d.length; i += 4) {
+    const n = rand();
+    const v = Math.floor(235 + n * 20); // 235-255 range → very light grey noise
+    d[i] = v; d[i+1] = v; d[i+2] = v; d[i+3] = 255;
+    // Occasional slightly darker speck for linen weave feel
+    if (n < 0.04) { const dv = v - 18; d[i] = dv; d[i+1] = dv; d[i+2] = dv; }
+  }
+  gtx.putImageData(imgData, 0, 0);
+  const groundTex = new THREE.CanvasTexture(groundTexCanvas);
+  groundTex.wrapS = THREE.RepeatWrapping;
+  groundTex.wrapT = THREE.RepeatWrapping;
+  groundTex.repeat.set(60, 60);
   const groundGeo = new THREE.PlaneGeometry(1000, 1000);
-  const groundMat = new THREE.MeshLambertMaterial({ color: 0xd8d8d8 });
+  const groundMat = new THREE.MeshLambertMaterial({ map: groundTex });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
@@ -954,7 +984,13 @@ function initControls() {
   });
 
   document.addEventListener('pointerlockchange', () => {
+    const wasLocked = state.pointerLocked;
     state.pointerLocked = document.pointerLockElement === canvas;
+    // ESC releases pointer lock — show pause menu if game is running and no modal open
+    if (wasLocked && !state.pointerLocked && !paused) {
+      const anyModalOpen = document.querySelectorAll('.modal.open').length > 0;
+      if (!anyModalOpen) showPause();
+    }
   });
 
   document.addEventListener('mousemove', (e) => {
@@ -974,10 +1010,7 @@ function initControls() {
     if (e.code === 'KeyE') { e.preventDefault(); openModal('gallery-modal'); }
     if (e.code === 'KeyL') { e.preventDefault(); openModal('lab-modal'); }
     if (e.code === 'Tab') { e.preventDefault(); openModal('events-modal'); }
-    if (e.code === 'Escape') {
-      if (document.querySelectorAll('.modal.open').length) { closeAllModals(); }
-      else { togglePause(); }
-    }
+    // ESC is handled via pointerlockchange event
   });
   document.addEventListener('keyup', (e) => { state.keys[e.code] = false; });
 }
@@ -1137,16 +1170,25 @@ document.addEventListener('mouseup', e => { if(e.button===0) state.keys['mouse0'
 // ─── XP / HITS ────────────────────────────────────────────────────────────────
 function addXP(amount) {
   state.xp += amount;
-  const fill = Math.min(100, (state.xp / 10000) * 100);
+  const nextLevel = Math.floor(state.xp / 1000) + 1;
+  const levelXp = state.xp % 1000;
+  const fill = (levelXp / 1000) * 100;
   document.getElementById('xp-fill').style.width = fill + '%';
-  document.getElementById('xp-text').textContent = `${state.xp.toLocaleString('pt-BR')} / 10.000 XP`;
+  document.getElementById('xp-text').textContent = `${state.xp.toLocaleString('pt-BR')} XP total`;
+  document.getElementById('hud-paints').textContent = state.paintCount;
+  document.getElementById('hud-arts').textContent = state.gallery.length;
+  // sync registry
+  const me = playerRegistry.find(p => p.isYou);
+  if (me) { me.xp = state.xp; me.arts = state.gallery.length; }
 }
 
 function incrementHits() {
-  state.hits += Math.floor(Math.random() * 50) + 1;
+  state.hits += 1;
+  state.paintCount += 1;
   document.getElementById('hit-count').textContent = state.hits.toLocaleString('pt-BR');
   const pct = Math.min(100, (state.hits / 500000000) * 100);
   document.getElementById('event-fill').style.width = pct + '%';
+  document.getElementById('hud-paints').textContent = state.paintCount;
 }
 
 // Hits grow only from real painting actions (incrementHits called on each paint)
@@ -1334,7 +1376,7 @@ function closeCapturePreview() {
 
 function publishArt() {
   state.gallery.unshift({
-    author: 'Você',
+    author: state.playerName,
     likes: 0,
     coords: `X:${Math.round(camera.position.x * 10)}`,
     color: state.color,
@@ -1342,9 +1384,7 @@ function publishArt() {
   });
   closeCapturePreview();
   addXP(100);
-  // Update registry
-  const me = playerRegistry.find(p => p.isYou);
-  if (me) { me.xp = state.xp; me.arts = state.gallery.length; }
+  document.getElementById('hud-arts').textContent = state.gallery.length;
   toast('🎉 Arte publicada na galeria! +100 XP');
 }
 
@@ -1374,15 +1414,20 @@ function toast(msg) {
 const playerRegistry = [];
 
 function registerCurrentPlayer() {
-  // Try to get session user from the parent DAILY app
-  let name = 'Você', avatar = '🐱';
+  let name = 'Jogador', avatar = '🐱';
   try {
-    const tok = window.parent && window.parent.localStorage ? window.parent.localStorage : localStorage;
-    const u = JSON.parse(tok.getItem('daily_user') || tok.getItem('user') || '{}');
-    if (u.username) name = '@' + u.username;
+    // Try parent frame (when inside DAILY iframe)
+    const store = (window.parent !== window ? window.parent.localStorage : null) || localStorage;
+    const raw = store.getItem('daily_user') || store.getItem('user') || '{}';
+    const u = JSON.parse(raw);
     if (u.name) name = u.name;
+    else if (u.username) name = '@' + u.username;
   } catch(e) {}
-  playerRegistry.push({ name, avatar, xp: state.xp, arts: state.gallery.length, isYou: true });
+  state.playerName = name;
+  // Update HUD
+  document.getElementById('player-name-hud').textContent = name;
+  document.getElementById('xp-text').textContent = '0 XP total';
+  playerRegistry.push({ name, avatar, xp: 0, arts: 0, isYou: true });
 }
 
 function renderRanking() {
