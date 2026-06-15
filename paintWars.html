@@ -1666,6 +1666,7 @@ const coopState = {
   round: 0,
   countdown: 120,
   countdownInterval: null,
+  pendingSpawns: 0,   // quantos spawns via setTimeout ainda não executaram
 };
 
 function startCoopMode() {
@@ -1845,11 +1846,16 @@ function waveSpawn(round) {
   const composition = waveComposition(round);
   waveAnnounce(round, composition);
 
+  // Rastreia quantos spawns ainda estão pendentes (via setTimeout)
+  // Sem isso, os Grunts morrem antes do Brute spawnar e a rodada termina prematuramente
+  coopState.pendingSpawns = composition.length;
+
   composition.forEach(({ type, delay }) => {
     setTimeout(() => {
       if (!coopState.active || coopState.phase !== 'wave') return;
       const pos = waveRandomSpawnPos();
       spawnEnemy(type, pos.x, pos.z, round);
+      coopState.pendingSpawns = Math.max(0, coopState.pendingSpawns - 1);
     }, delay);
   });
 
@@ -2071,8 +2077,9 @@ function updateEnemies(dt) {
   }
 
   // Checa se todos morreram → próxima rodada
+  // Só dispara se não há mais spawns pendentes (evita terminar rodada antes do Brute aparecer)
   const alive = enemies.filter(e => !e.dead);
-  if (alive.length === 0 && enemies.length > 0) {
+  if (alive.length === 0 && enemies.length > 0 && coopState.pendingSpawns === 0) {
     allEnemiesDefeated();
   }
 }
@@ -2104,6 +2111,7 @@ function killEnemy(enemy) {
 function allEnemiesDefeated() {
   const round = coopState.round;
   enemies.length = 0;
+  coopState.pendingSpawns = 0;
   coopState.phase = 'prep';
   coopUpdatePhaseBadge('RODADA ' + round + ' CONCLUÍDA ✓', '#ffd700');
   coopUpdateEnemyCount(0);
@@ -2171,6 +2179,7 @@ function coopRestart() {
   // Limpa tudo e reinicia o modo coop do zero
   enemies.forEach(e => { scene.remove(e.mesh); e.hpBar.remove(); });
   enemies.length = 0;
+  coopState.pendingSpawns = 0;
   coopPlayer.hp = 100;
   coopPlayer.dead = false;
   updateCoopHealthBar();
@@ -2234,6 +2243,7 @@ goToMenu = function() {
       e.hpBar.remove();
     });
     enemies.length = 0;
+    coopState.pendingSpawns = 0;
     document.getElementById('coop-hud').style.display = 'none';
     document.getElementById('coop-gameover').style.display = 'none';
     document.getElementById('toolbar').style.display = 'flex';
