@@ -628,6 +628,61 @@
     color:#fff; text-transform:uppercase;
     pointer-events:none;
   ">⚔️ MODO COOP</div>
+
+  <!-- Barra de HP do jogador (inferior centro) -->
+  <div style="
+    position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    pointer-events:none;
+  ">
+    <div id="coop-hp-text" style="font-size:11px;font-weight:800;color:#fff;text-shadow:0 1px 3px #000;">100 HP</div>
+    <div style="width:160px;height:10px;background:rgba(0,0,0,0.5);border-radius:5px;border:1px solid rgba(255,255,255,0.2);">
+      <div id="coop-hp-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#4ade80,#16a34a);border-radius:4px;transition:width 0.2s;"></div>
+    </div>
+    <div style="font-size:9px;opacity:0.5;letter-spacing:1px;">VIDA</div>
+  </div>
+
+  <!-- Flash de dano (tela vermelha) -->
+  <div id="coop-dmg-flash" style="
+    position:absolute; inset:0; pointer-events:none;
+    background:rgba(220,38,38,0.0);
+    border:4px solid rgba(220,38,38,0);
+    transition:opacity 0.15s; opacity:0;
+    box-shadow:inset 0 0 80px rgba(220,38,38,0.6);
+  "></div>
+</div>
+
+<!-- COOP GAME OVER -->
+<div id="coop-gameover" style="
+  display:none; position:fixed; inset:0; z-index:500;
+  background:rgba(0,0,0,0.85); backdrop-filter:blur(10px);
+  align-items:center; justify-content:center; flex-direction:column; gap:0;
+">
+  <div style="
+    background:#111; border:2px solid rgba(220,38,38,0.5);
+    border-radius:20px; padding:40px 56px; min-width:320px;
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    box-shadow:0 0 60px rgba(220,38,38,0.3);
+  ">
+    <div style="font-size:48px;">💀</div>
+    <div style="font-size:32px;font-weight:900;color:#f87171;letter-spacing:2px;">GAME OVER</div>
+    <div style="width:100%;height:1px;background:rgba(255,255,255,0.08);margin:4px 0;"></div>
+    <div style="font-size:13px;opacity:0.6;text-align:center;line-height:1.8;">
+      Você foi eliminado pelos goblins!<br>
+      Rodada alcançada: <span id="go-round" style="color:#ffd700;font-weight:700;">1</span>
+    </div>
+    <button onclick="coopRestart()" style="
+      width:100%; padding:13px; border-radius:50px; margin-top:8px;
+      background:linear-gradient(135deg,#16a34a,#4ade80);
+      border:none; color:#000; font-weight:900; font-size:15px;
+      cursor:pointer; letter-spacing:1px;
+    ">🔄 JOGAR NOVAMENTE</button>
+    <button onclick="goToMenu()" style="
+      width:100%; padding:11px; border-radius:50px;
+      background:transparent; border:1px solid rgba(255,100,50,0.4);
+      color:#ff6b35; font-weight:700; font-size:14px; cursor:pointer;
+    ">🏠 Voltar ao Menu</button>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1235,6 +1290,7 @@ function loop() {
 
   updatePlayer(dt);
   updateGun(dt);
+  updateEnemies(dt);
   renderer.render(scene, camera);
   renderGun();
 }
@@ -1643,7 +1699,8 @@ function startCoopMode() {
     coopState.round = 1;
     coopUpdatePhaseBadge('RODADA 1', '#4ade80');
     coopUpdateRound(1);
-    toast('⚔️ Rodada 1 iniciada! Monstros chegando em breve...');
+    toast('⚔️ Rodada 1 iniciada! Goblins chegando!');
+    waveSpawn(1);
   });
 
   toast('🛡️ MODO COOP — Prepare-se! 120s até os monstros chegarem.');
@@ -1687,13 +1744,350 @@ function coopUpdateRound(n) {
   el.textContent = n === 0 ? '— Preparação —' : 'Rodada ' + n;
 }
 
+// ─── ENEMY SYSTEM — Goblin Grunt ─────────────────────────────────────────────
+// Arquitetura extensível: cada inimigo é um objeto com mesh, hp, ai tick.
+// Futuramente: GoblinBrute, GoblinWarrior, GoblinBoss seguem a mesma estrutura.
+
+const enemies = [];          // lista de inimigos ativos
+const ENEMY_RAYCASTER = new THREE.Raycaster();
+
+// Config por tipo — fácil de expandir
+const ENEMY_CONFIG = {
+  grunt: {
+    hp: 30, speed: 2.5, damage: 5, size: 0.9,
+    color: 0x4ade80, eyeColor: 0x111111, armorColor: 0x7c3aed,
+    xpReward: 20,
+  },
+};
+
+function buildGoblinMesh(cfg) {
+  const g = new THREE.Group();
+
+  // Corpo principal
+  const bodyGeo = new THREE.BoxGeometry(cfg.size * 0.7, cfg.size * 0.8, cfg.size * 0.5);
+  const bodyMat = new THREE.MeshLambertMaterial({ color: cfg.color });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = cfg.size * 0.4;
+  g.add(body);
+
+  // Cabeça
+  const headGeo = new THREE.BoxGeometry(cfg.size * 0.65, cfg.size * 0.65, cfg.size * 0.55);
+  const headMat = new THREE.MeshLambertMaterial({ color: cfg.color });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = cfg.size * 1.05;
+  g.add(head);
+
+  // Olhos (pretos)
+  const eyeGeo = new THREE.BoxGeometry(0.09, 0.09, 0.06);
+  const eyeMat = new THREE.MeshLambertMaterial({ color: cfg.eyeColor });
+  const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeL.position.set(-0.14, cfg.size * 1.1, cfg.size * 0.28);
+  g.add(eyeL);
+  const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeR.position.set(0.14, cfg.size * 1.1, cfg.size * 0.28);
+  g.add(eyeR);
+
+  // Ombreira (armadura simples)
+  const armGeo = new THREE.BoxGeometry(cfg.size * 0.85, 0.12, cfg.size * 0.55);
+  const armMat = new THREE.MeshLambertMaterial({ color: cfg.armorColor });
+  const armor = new THREE.Mesh(armGeo, armMat);
+  armor.position.y = cfg.size * 0.75;
+  g.add(armor);
+
+  // Pernas
+  const legGeo = new THREE.BoxGeometry(0.2, cfg.size * 0.35, 0.2);
+  const legMat = new THREE.MeshLambertMaterial({ color: 0x5a3e1b });
+  const legL = new THREE.Mesh(legGeo, legMat);
+  legL.position.set(-0.17, 0, 0);
+  g.add(legL);
+  const legR = new THREE.Mesh(legGeo, legMat);
+  legR.position.set(0.17, 0, 0);
+  g.add(legR);
+
+  // Arma simples (bastão)
+  const weapGeo = new THREE.BoxGeometry(0.08, 0.6, 0.08);
+  const weapMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+  const weap = new THREE.Mesh(weapGeo, weapMat);
+  weap.position.set(cfg.size * 0.42, cfg.size * 0.45, 0.1);
+  weap.rotation.z = 0.3;
+  g.add(weap);
+
+  return g;
+}
+
+function spawnEnemy(type, x, z) {
+  const cfg = ENEMY_CONFIG[type];
+  if (!cfg) return;
+
+  const mesh = buildGoblinMesh(cfg);
+  mesh.position.set(x, 0, z);
+  scene.add(mesh);
+
+  // Barra de vida HTML
+  const hpBar = document.createElement('div');
+  hpBar.style.cssText = `
+    position:fixed; pointer-events:none; z-index:20;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    transform:translateX(-50%);
+  `;
+  hpBar.innerHTML = `
+    <div style="font-size:9px;color:#fff;font-weight:700;text-shadow:0 1px 3px #000;letter-spacing:1px;">GOBLIN</div>
+    <div style="width:52px;height:7px;background:rgba(0,0,0,0.5);border-radius:4px;border:1px solid rgba(255,255,255,0.2);">
+      <div class="hp-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#4ade80,#16a34a);border-radius:3px;transition:width 0.15s;"></div>
+    </div>
+  `;
+  document.body.appendChild(hpBar);
+
+  const enemy = {
+    type, mesh, hpBar,
+    hp: cfg.hp, maxHp: cfg.hp,
+    speed: cfg.speed, damage: cfg.damage,
+    cfg,
+    dead: false,
+    walkT: 0,       // para animação de andar
+    lastDamageT: 0, // cooldown de dano ao jogador
+  };
+
+  enemies.push(enemy);
+  return enemy;
+}
+
+function waveSpawn(round) {
+  // Rodada 1: 3 grunts para validar — depois escalamos
+  const count = 2 + round * 2;
+  for (let i = 0; i < count; i++) {
+    // Spawn espalhado atrás e nas laterais do jogador
+    const angle = (i / count) * Math.PI * 2;
+    const dist = 25 + Math.random() * 15;
+    const ex = camera.position.x + Math.cos(angle) * dist;
+    const ez = camera.position.z + Math.sin(angle) * dist;
+    // Clamp dentro do mapa
+    const cx = Math.max(-190, Math.min(190, ex));
+    const cz = Math.max(3, Math.min(75, ez));
+    setTimeout(() => spawnEnemy('grunt', cx, cz), i * 400);
+  }
+}
+
+function updateEnemies(dt) {
+  if (!coopState.active || coopState.phase !== 'wave') return;
+
+  const playerPos = camera.position;
+
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    if (e.dead) continue;
+
+    // ── Movimento em direção ao jogador ──────────────────
+    const dx = playerPos.x - e.mesh.position.x;
+    const dz = playerPos.z - e.mesh.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist > 1.2) {
+      const nx = dx / dist;
+      const nz = dz / dist;
+      e.mesh.position.x += nx * e.speed * dt;
+      e.mesh.position.z += nz * e.speed * dt;
+
+      // Roda para encarar o jogador
+      e.mesh.rotation.y = Math.atan2(nx, nz);
+
+      // Animação de caminhada (pernas)
+      e.walkT += dt * 6;
+      const legSwing = Math.sin(e.walkT) * 0.3;
+      if (e.mesh.children[5]) e.mesh.children[5].rotation.x = legSwing;
+      if (e.mesh.children[6]) e.mesh.children[6].rotation.x = -legSwing;
+    }
+
+    // ── Dano ao jogador por contato ───────────────────────
+    if (dist < 1.5) {
+      const now = Date.now();
+      if (now - e.lastDamageT > 1000) {
+        e.lastDamageT = now;
+        coopPlayerTakeDamage(e.damage);
+      }
+    }
+
+    // ── Projeta barra de vida na tela ────────────────────
+    const pos3d = e.mesh.position.clone();
+    pos3d.y += 2.2;
+    const projected = pos3d.project(camera);
+    const screenX = (projected.x * 0.5 + 0.5) * window.innerWidth;
+    const screenY = (-projected.y * 0.5 + 0.5) * window.innerHeight;
+
+    // Só mostra se estiver na frente da câmera
+    if (projected.z < 1) {
+      e.hpBar.style.display = 'flex';
+      e.hpBar.style.left = screenX + 'px';
+      e.hpBar.style.top = screenY + 'px';
+      const pct = (e.hp / e.maxHp) * 100;
+      const fill = e.hpBar.querySelector('.hp-fill');
+      if (fill) {
+        fill.style.width = pct + '%';
+        fill.style.background = pct > 50
+          ? 'linear-gradient(90deg,#4ade80,#16a34a)'
+          : pct > 25
+            ? 'linear-gradient(90deg,#fbbf24,#d97706)'
+            : 'linear-gradient(90deg,#f87171,#dc2626)';
+      }
+    } else {
+      e.hpBar.style.display = 'none';
+    }
+  }
+
+  // Checa se todos morreram → próxima rodada
+  const alive = enemies.filter(e => !e.dead);
+  if (alive.length === 0 && enemies.length > 0) {
+    allEnemiesDefeated();
+  }
+}
+
+function damageEnemy(enemy, dmg) {
+  if (enemy.dead) return;
+  enemy.hp -= dmg;
+  // Flash vermelho no mesh
+  enemy.mesh.traverse(m => {
+    if (m.isMesh && m.material.color) {
+      const orig = m.material.color.getHex();
+      m.material.color.setHex(0xff4444);
+      setTimeout(() => { if (m.material) m.material.color.setHex(orig); }, 120);
+    }
+  });
+  if (enemy.hp <= 0) killEnemy(enemy);
+}
+
+function killEnemy(enemy) {
+  enemy.dead = true;
+  scene.remove(enemy.mesh);
+  enemy.hpBar.remove();
+  addXP(enemy.cfg.xpReward);
+  toast('💀 Goblin eliminado! +' + enemy.cfg.xpReward + ' XP');
+}
+
+function allEnemiesDefeated() {
+  enemies.length = 0;
+  coopState.phase = 'prep';
+  coopUpdatePhaseBadge('RODADA CONCLUÍDA! ✓', '#ffd700');
+  toast('✅ Todos os goblins eliminados! Próxima rodada em 20s...');
+  // Pausa 20s e inicia próxima rodada
+  setTimeout(() => {
+    coopState.round++;
+    coopStartCountdown(20, () => {
+      coopState.phase = 'wave';
+      coopUpdatePhaseBadge('RODADA ' + coopState.round, '#4ade80');
+      coopUpdateRound(coopState.round);
+      toast('⚔️ Rodada ' + coopState.round + ' iniciada!');
+      waveSpawn(coopState.round);
+    });
+  }, 1000);
+}
+
+// ── Vida do jogador no coop ───────────────────────────────
+const coopPlayer = { hp: 100, maxHp: 100, dead: false };
+
+function coopPlayerTakeDamage(dmg) {
+  if (coopPlayer.dead) return;
+  coopPlayer.hp = Math.max(0, coopPlayer.hp - dmg);
+  updateCoopHealthBar();
+  // Flash vermelho na tela
+  const flash = document.getElementById('coop-dmg-flash');
+  if (flash) {
+    flash.style.opacity = '0.45';
+    setTimeout(() => { flash.style.opacity = '0'; }, 200);
+  }
+  if (coopPlayer.hp <= 0) coopGameOver();
+}
+
+function updateCoopHealthBar() {
+  const fill = document.getElementById('coop-hp-fill');
+  const txt = document.getElementById('coop-hp-text');
+  if (!fill || !txt) return;
+  const pct = (coopPlayer.hp / coopPlayer.maxHp) * 100;
+  fill.style.width = pct + '%';
+  fill.style.background = pct > 50
+    ? 'linear-gradient(90deg,#4ade80,#16a34a)'
+    : pct > 25
+      ? 'linear-gradient(90deg,#fbbf24,#d97706)'
+      : 'linear-gradient(90deg,#f87171,#dc2626)';
+  txt.textContent = coopPlayer.hp + ' HP';
+}
+
+function coopGameOver() {
+  coopPlayer.dead = true;
+  clearInterval(coopState.countdownInterval);
+  coopState.phase = 'gameover';
+  document.getElementById('go-round').textContent = coopState.round;
+  document.getElementById('coop-gameover').style.display = 'flex';
+}
+
+function coopRestart() {
+  // Limpa tudo e reinicia o modo coop do zero
+  enemies.forEach(e => { scene.remove(e.mesh); e.hpBar.remove(); });
+  enemies.length = 0;
+  coopPlayer.hp = 100;
+  coopPlayer.dead = false;
+  updateCoopHealthBar();
+  document.getElementById('coop-gameover').style.display = 'none';
+  coopState.phase = 'prep';
+  coopState.round = 0;
+  coopState.countdown = 120;
+  coopUpdatePhaseBadge('FASE DE PREPARAÇÃO', '#ffd700');
+  coopUpdateRound(0);
+  coopStartCountdown(120, () => {
+    coopState.phase = 'wave';
+    coopState.round = 1;
+    coopUpdatePhaseBadge('RODADA 1', '#4ade80');
+    coopUpdateRound(1);
+    toast('⚔️ Rodada 1 iniciada! Goblins chegando!');
+    waveSpawn(1);
+  });
+  toast('🔄 Nova partida iniciada!');
+}
+
+// ── Tiro nos inimigos (raycast) ───────────────────────────
+// Intercepta o clique do modo coop para causar dano
+const _origMouseDown = document.onmousedown;
+document.addEventListener('mousedown', (e) => {
+  if (!coopState.active || coopState.phase !== 'wave') return;
+  if (e.button !== 0 || !state.pointerLocked) return;
+  coopShoot();
+});
+
+function coopShoot() {
+  ENEMY_RAYCASTER.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const meshes = enemies.filter(e => !e.dead).map(e => e.mesh);
+  // Raycast contra todos os meshes (incluindo filhos)
+  const allChildren = [];
+  meshes.forEach(m => m.traverse(c => { if (c.isMesh) allChildren.push(c); }));
+  const hits = ENEMY_RAYCASTER.intersectObjects(allChildren);
+  if (hits.length > 0) {
+    // Encontra o inimigo dono desse mesh
+    const hitObj = hits[0].object;
+    const enemy = enemies.find(en => {
+      let found = false;
+      en.mesh.traverse(c => { if (c === hitObj) found = true; });
+      return found;
+    });
+    if (enemy) damageEnemy(enemy, 10);
+  }
+}
+
 // Override goToMenu para limpar estado coop ao voltar
 const _origGoToMenu = goToMenu;
 goToMenu = function() {
   if (coopState.active) {
     clearInterval(coopState.countdownInterval);
     coopState.active = false;
+    coopState.phase = 'prep';
+    coopPlayer.hp = 100;
+    coopPlayer.dead = false;
+    // Remove todos os inimigos
+    enemies.forEach(e => {
+      scene.remove(e.mesh);
+      e.hpBar.remove();
+    });
+    enemies.length = 0;
     document.getElementById('coop-hud').style.display = 'none';
+    document.getElementById('coop-gameover').style.display = 'none';
     document.getElementById('toolbar').style.display = 'flex';
     document.getElementById('left-panel').style.display = 'flex';
     document.getElementById('global-event').style.display = 'flex';
