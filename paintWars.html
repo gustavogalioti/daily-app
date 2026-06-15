@@ -1876,55 +1876,91 @@ function coopRefreshEnemyCount() {
 
 function buildGoblinMesh(cfg) {
   const g = new THREE.Group();
+  const isBrute = cfg.size >= 1.2;
 
   // Corpo principal
-  const bodyGeo = new THREE.BoxGeometry(cfg.size * 0.7, cfg.size * 0.8, cfg.size * 0.5);
+  const bodyGeo = new THREE.BoxGeometry(cfg.size * 0.75, cfg.size * 0.85, cfg.size * 0.55);
   const bodyMat = new THREE.MeshLambertMaterial({ color: cfg.color });
   const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.position.y = cfg.size * 0.4;
+  body.position.y = cfg.size * 0.42;
   g.add(body);
 
-  // Cabeça
-  const headGeo = new THREE.BoxGeometry(cfg.size * 0.65, cfg.size * 0.65, cfg.size * 0.55);
+  // Cabeça (Brute tem cabeça maior e mais quadrada)
+  const hScale = isBrute ? 0.75 : 0.65;
+  const headGeo = new THREE.BoxGeometry(cfg.size * hScale, cfg.size * hScale, cfg.size * 0.6);
   const headMat = new THREE.MeshLambertMaterial({ color: cfg.color });
   const head = new THREE.Mesh(headGeo, headMat);
-  head.position.y = cfg.size * 1.05;
+  head.position.y = cfg.size * 1.08;
   g.add(head);
 
-  // Olhos (pretos)
-  const eyeGeo = new THREE.BoxGeometry(0.09, 0.09, 0.06);
+  // Olhos
+  const eyeSize = isBrute ? 0.13 : 0.09;
+  const eyeGeo = new THREE.BoxGeometry(eyeSize, eyeSize, 0.07);
   const eyeMat = new THREE.MeshLambertMaterial({ color: cfg.eyeColor });
+  const eyeSpread = isBrute ? 0.2 : 0.14;
   const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeL.position.set(-0.14, cfg.size * 1.1, cfg.size * 0.28);
+  eyeL.position.set(-eyeSpread, cfg.size * 1.12, cfg.size * 0.3);
   g.add(eyeL);
   const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeR.position.set(0.14, cfg.size * 1.1, cfg.size * 0.28);
+  eyeR.position.set(eyeSpread, cfg.size * 1.12, cfg.size * 0.3);
   g.add(eyeR);
 
-  // Ombreira (armadura simples)
-  const armGeo = new THREE.BoxGeometry(cfg.size * 0.85, 0.12, cfg.size * 0.55);
+  // Ombreira — Brute tem duas ombreiras mais grossas
   const armMat = new THREE.MeshLambertMaterial({ color: cfg.armorColor });
-  const armor = new THREE.Mesh(armGeo, armMat);
-  armor.position.y = cfg.size * 0.75;
-  g.add(armor);
+  if (isBrute) {
+    // Ombreiras duplas
+    const sh1Geo = new THREE.BoxGeometry(cfg.size * 0.45, 0.22, cfg.size * 0.5);
+    const shL = new THREE.Mesh(sh1Geo, armMat);
+    shL.position.set(-cfg.size * 0.38, cfg.size * 0.85, 0);
+    g.add(shL);
+    const shR = new THREE.Mesh(sh1Geo, armMat);
+    shR.position.set(cfg.size * 0.38, cfg.size * 0.85, 0);
+    g.add(shR);
+    // Cinto
+    const beltGeo = new THREE.BoxGeometry(cfg.size * 0.78, 0.14, cfg.size * 0.58);
+    const beltMat = new THREE.MeshLambertMaterial({ color: 0x7c4a00 });
+    const belt = new THREE.Mesh(beltGeo, beltMat);
+    belt.position.y = cfg.size * 0.22;
+    g.add(belt);
+  } else {
+    const armGeo = new THREE.BoxGeometry(cfg.size * 0.88, 0.12, cfg.size * 0.55);
+    const armor = new THREE.Mesh(armGeo, armMat);
+    armor.position.y = cfg.size * 0.75;
+    g.add(armor);
+  }
 
   // Pernas
-  const legGeo = new THREE.BoxGeometry(0.2, cfg.size * 0.35, 0.2);
+  const legW = isBrute ? 0.28 : 0.2;
+  const legGeo = new THREE.BoxGeometry(legW, cfg.size * 0.38, legW);
   const legMat = new THREE.MeshLambertMaterial({ color: 0x5a3e1b });
+  const legSpread = isBrute ? 0.24 : 0.17;
   const legL = new THREE.Mesh(legGeo, legMat);
-  legL.position.set(-0.17, 0, 0);
+  legL.position.set(-legSpread, 0, 0);
   g.add(legL);
   const legR = new THREE.Mesh(legGeo, legMat);
-  legR.position.set(0.17, 0, 0);
+  legR.position.set(legSpread, 0, 0);
   g.add(legR);
 
-  // Arma simples (bastão)
-  const weapGeo = new THREE.BoxGeometry(0.08, 0.6, 0.08);
-  const weapMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
-  const weap = new THREE.Mesh(weapGeo, weapMat);
-  weap.position.set(cfg.size * 0.42, cfg.size * 0.45, 0.1);
-  weap.rotation.z = 0.3;
-  g.add(weap);
+  // Arma — Brute tem machado (caixa larga), Grunt tem bastão
+  if (isBrute) {
+    const axeHandleGeo = new THREE.BoxGeometry(0.1, 0.75, 0.1);
+    const axeHandleMat = new THREE.MeshLambertMaterial({ color: 0x7c4a00 });
+    const axeHandle = new THREE.Mesh(axeHandleGeo, axeHandleMat);
+    axeHandle.position.set(cfg.size * 0.5, cfg.size * 0.55, 0.1);
+    g.add(axeHandle);
+    const axeBladeGeo = new THREE.BoxGeometry(0.08, 0.45, 0.35);
+    const axeBladeMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa });
+    const axeBlade = new THREE.Mesh(axeBladeGeo, axeBladeMat);
+    axeBlade.position.set(cfg.size * 0.5, cfg.size * 0.85, 0.1);
+    g.add(axeBlade);
+  } else {
+    const weapGeo = new THREE.BoxGeometry(0.08, 0.6, 0.08);
+    const weapMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+    const weap = new THREE.Mesh(weapGeo, weapMat);
+    weap.position.set(cfg.size * 0.42, cfg.size * 0.45, 0.1);
+    weap.rotation.z = 0.3;
+    g.add(weap);
+  }
 
   return g;
 }
@@ -1966,22 +2002,6 @@ function spawnEnemy(type, x, z, round) {
   enemies.push(enemy);
   coopRefreshEnemyCount();
   return enemy;
-}
-
-function waveSpawn(round) {
-  // Rodada 1: 3 grunts para validar — depois escalamos
-  const count = 2 + round * 2;
-  for (let i = 0; i < count; i++) {
-    // Spawn espalhado atrás e nas laterais do jogador
-    const angle = (i / count) * Math.PI * 2;
-    const dist = 25 + Math.random() * 15;
-    const ex = camera.position.x + Math.cos(angle) * dist;
-    const ez = camera.position.z + Math.sin(angle) * dist;
-    // Clamp dentro do mapa
-    const cx = Math.max(-190, Math.min(190, ex));
-    const cz = Math.max(3, Math.min(75, ez));
-    setTimeout(() => spawnEnemy('grunt', cx, cz), i * 400);
-  }
 }
 
 function updateEnemies(dt) {
