@@ -290,12 +290,45 @@
     <div class="wars">WARS</div>
   </div>
   <div id="splash-sub">Crie. Pinte. Conquiste.</div>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-    <button id="splash-btn" onclick="startGame()">ENTRAR NO MUNDO</button>
+  <!-- Mode selection buttons -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:420px;">
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;width:100%;">
+      <!-- MODO LIVRE — chama exatamente a função original, sem alteração -->
+      <button id="splash-btn" onclick="startGame()" style="
+        padding:14px 36px; border-radius:50px;
+        background:linear-gradient(135deg,#ff6b35,#ffd700);
+        border:none; color:#000; font-weight:900; font-size:17px;
+        cursor:pointer; letter-spacing:1px; transition:transform 0.15s,box-shadow 0.15s;
+        flex:1; min-width:160px;
+      " onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 0 28px rgba(255,107,53,0.5)'"
+         onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'">
+        🎨 MODO LIVRE
+      </button>
+      <!-- MODO COOP — nova função, código novo, não toca no código existente -->
+      <button onclick="startCoopMode()" style="
+        padding:14px 36px; border-radius:50px;
+        background:linear-gradient(135deg,#16a34a,#4ade80);
+        border:none; color:#000; font-weight:900; font-size:17px;
+        cursor:pointer; letter-spacing:1px; transition:transform 0.15s,box-shadow 0.15s;
+        flex:1; min-width:160px;
+      " onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 0 28px rgba(74,222,128,0.5)'"
+         onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'">
+        ⚔️ MODO COOP
+      </button>
+    </div>
+    <!-- Descriptions under buttons -->
+    <div style="display:flex;gap:12px;width:100%;justify-content:center;">
+      <div style="flex:1;min-width:160px;text-align:center;font-size:11px;opacity:0.45;line-height:1.5;">
+        Pinte livremente.<br>Sem monstros, sem rodadas.
+      </div>
+      <div style="flex:1;min-width:160px;text-align:center;font-size:11px;opacity:0.45;line-height:1.5;">
+        Sobreviva em equipe.<br>Ondas de inimigos. Até 10 jogadores.
+      </div>
+    </div>
     <button onclick="showSplashRanking()" style="
-      padding:14px 32px; border-radius:50px;
+      padding:11px 32px; border-radius:50px;
       background:rgba(255,215,0,0.12); border:2px solid rgba(255,215,0,0.5);
-      color:#ffd700; font-weight:900; font-size:16px; cursor:pointer; letter-spacing:1px;
+      color:#ffd700; font-weight:900; font-size:15px; cursor:pointer; letter-spacing:1px;
       transition:all 0.15s;
     " onmouseover="this.style.background='rgba(255,215,0,0.25)'" onmouseout="this.style.background='rgba(255,215,0,0.12)'">🏆 RANKING</button>
   </div>
@@ -552,6 +585,49 @@
       color:#ff6b35; font-weight:700; font-size:14px; cursor:pointer;
     ">🏠 Voltar ao Menu</button>
   </div>
+</div>
+
+<!-- ═══ COOP HUD (oculto por padrão, ativo só no modo coop) ═══ -->
+<div id="coop-hud" style="
+  display:none; position:fixed; inset:0; pointer-events:none; z-index:15;
+  flex-direction:column; align-items:center;
+">
+  <!-- Contador central (topo) -->
+  <div style="
+    margin-top:18px;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    background:rgba(0,0,0,0.6); backdrop-filter:blur(8px);
+    border-radius:16px; padding:12px 32px;
+    border:1px solid rgba(255,255,255,0.12);
+  ">
+    <!-- Fase -->
+    <div id="coop-phase" style="
+      font-size:11px; font-weight:800; letter-spacing:3px;
+      text-transform:uppercase; color:#ffd700;
+    ">FASE DE PREPARAÇÃO</div>
+    <!-- Contador grande -->
+    <div id="coop-countdown" style="
+      font-size:52px; font-weight:900; line-height:1;
+      color:#ffffff; font-family:'Segoe UI',sans-serif;
+      transition:transform 0.1s, color 0.3s;
+      text-shadow:0 0 20px rgba(255,255,255,0.3);
+    ">2:00</div>
+    <!-- Rodada -->
+    <div id="coop-round" style="
+      font-size:13px; font-weight:700; opacity:0.6; color:#fff;
+    ">— Preparação —</div>
+  </div>
+
+  <!-- Badge inferior esquerdo: modo -->
+  <div style="
+    position:absolute; bottom:24px; left:16px;
+    background:rgba(22,163,74,0.85); backdrop-filter:blur(6px);
+    border-radius:10px; padding:8px 16px;
+    border:1px solid rgba(74,222,128,0.4);
+    font-size:12px; font-weight:800; letter-spacing:2px;
+    color:#fff; text-transform:uppercase;
+    pointer-events:none;
+  ">⚔️ MODO COOP</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1513,8 +1589,119 @@ function startGame() {
   initControls();
   registerCurrentPlayer();
   loop();
+  window._threeReady = true;
   setTimeout(() => toast('Bem-vindo ao DAILY Paint Wars! Clique na tela para pintar 🎨'), 500);
 }
+
+// ─── COOP MODE ───────────────────────────────────────────────────────────────
+// Completamente separado do modo livre.
+// Usa o mesmo renderer/scene/camera/gun/controls já inicializados.
+// Não toca em nenhuma função existente.
+
+const coopState = {
+  active: false,
+  phase: 'prep',      // 'prep' | 'wave' | 'gameover'
+  round: 0,
+  countdown: 120,
+  countdownInterval: null,
+};
+
+function startCoopMode() {
+  // Esconde splash
+  document.getElementById('splash').style.display = 'none';
+
+  // Inicia os mesmos sistemas do modo livre sem chamar startGame()
+  if (!window._threeReady) {
+    initThree();
+    initGun();
+    initControls();
+    registerCurrentPlayer();
+    loop();
+    window._threeReady = true;
+  }
+
+  // Marca coop como ativo
+  coopState.active = true;
+  coopState.phase = 'prep';
+  coopState.round = 0;
+  coopState.countdown = 120;
+
+  // Mostra HUD do coop
+  document.getElementById('coop-hud').style.display = 'flex';
+  // Esconde elementos do modo livre que não fazem sentido no coop
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('left-panel').style.display = 'none';
+  document.getElementById('global-event').style.display = 'none';
+
+  // Atualiza badge de fase e rodada
+  coopUpdatePhaseBadge('FASE DE PREPARAÇÃO', '#ffd700');
+  coopUpdateRound(0);
+
+  // Inicia contagem regressiva de 120s
+  coopStartCountdown(120, () => {
+    coopState.phase = 'wave';
+    coopState.round = 1;
+    coopUpdatePhaseBadge('RODADA 1', '#4ade80');
+    coopUpdateRound(1);
+    toast('⚔️ Rodada 1 iniciada! Monstros chegando em breve...');
+  });
+
+  toast('🛡️ MODO COOP — Prepare-se! 120s até os monstros chegarem.');
+}
+
+function coopStartCountdown(seconds, onComplete) {
+  clearInterval(coopState.countdownInterval);
+  coopState.countdown = seconds;
+  coopUpdateCountdown(coopState.countdown);
+
+  coopState.countdownInterval = setInterval(() => {
+    coopState.countdown--;
+    coopUpdateCountdown(coopState.countdown);
+    if (coopState.countdown <= 0) {
+      clearInterval(coopState.countdownInterval);
+      onComplete();
+    }
+  }, 1000);
+}
+
+function coopUpdateCountdown(secs) {
+  const el = document.getElementById('coop-countdown');
+  if (!el) return;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  el.textContent = m + ':' + String(s).padStart(2, '0');
+  el.style.color = secs <= 10 ? '#f87171' : '#ffffff';
+  el.style.transform = (secs <= 10 && secs % 2 === 0) ? 'scale(1.15)' : 'scale(1)';
+}
+
+function coopUpdatePhaseBadge(text, color) {
+  const el = document.getElementById('coop-phase');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = color;
+}
+
+function coopUpdateRound(n) {
+  const el = document.getElementById('coop-round');
+  if (!el) return;
+  el.textContent = n === 0 ? '— Preparação —' : 'Rodada ' + n;
+}
+
+// Override goToMenu para limpar estado coop ao voltar
+const _origGoToMenu = goToMenu;
+goToMenu = function() {
+  if (coopState.active) {
+    clearInterval(coopState.countdownInterval);
+    coopState.active = false;
+    document.getElementById('coop-hud').style.display = 'none';
+    document.getElementById('toolbar').style.display = 'flex';
+    document.getElementById('left-panel').style.display = 'flex';
+    document.getElementById('global-event').style.display = 'flex';
+  }
+  hidePause();
+  document.getElementById('splash').style.display = 'flex';
+  if (state.pointerLocked) document.exitPointerLock();
+};
 
 // Resize
 window.addEventListener('resize', () => {
