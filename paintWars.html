@@ -2186,15 +2186,21 @@ function killEnemy(enemy) {
 }
 
 function allEnemiesDefeated() {
-  const round = coopState.round;
+  // Guard: impede chamada dupla (updateEnemies roda 60fps)
+  if (coopState.phase !== 'wave') return;
+
+  const completedRound = coopState.round;
+  const nextRound = completedRound + 1;
+
   enemies.length = 0;
   coopState.pendingSpawns = 0;
   coopState.phase = 'prep';
-  coopUpdatePhaseBadge('RODADA ' + round + ' CONCLUÍDA ✓', '#ffd700');
-  coopUpdateEnemyCount(0);
-  toast('✅ Rodada ' + round + ' limpa! Próxima em 20s...');
 
-  // Restaura HP parcialmente entre rodadas (bônus de sobrevivência)
+  coopUpdatePhaseBadge('RODADA ' + completedRound + ' CONCLUÍDA ✓', '#ffd700');
+  coopUpdateEnemyCount(0);
+  toast('✅ Rodada ' + completedRound + ' limpa! Próxima em 20s...');
+
+  // Restaura HP parcialmente entre rodadas
   const healAmt = Math.min(20, coopPlayer.maxHp - coopPlayer.hp);
   if (healAmt > 0) {
     coopPlayer.hp += healAmt;
@@ -2202,15 +2208,15 @@ function allEnemiesDefeated() {
     setTimeout(() => toast('💉 +' + healAmt + ' HP recuperado!'), 1500);
   }
 
-  setTimeout(() => {
-    coopState.round++;
-    coopStartCountdown(20, () => {
-      coopState.phase = 'wave';
-      coopUpdatePhaseBadge('RODADA ' + coopState.round, '#4ade80');
-      coopUpdateRound(coopState.round);
-      waveSpawn(coopState.round);
-    });
-  }, 800);
+  // nextRound calculado AGORA (síncrono), passado diretamente para waveSpawn
+  // Sem setTimeout aninhado que poderia ler coopState.round em estado inconsistente
+  coopStartCountdown(20, () => {
+    coopState.round = nextRound;
+    coopState.phase = 'wave';
+    coopUpdatePhaseBadge('RODADA ' + nextRound, '#4ade80');
+    coopUpdateRound(nextRound);
+    waveSpawn(nextRound);
+  });
 }
 
 // ── Vida do jogador no coop ───────────────────────────────
@@ -2253,22 +2259,20 @@ function coopGameOver() {
 }
 
 function coopRestart() {
-  // Limpa tudo e reinicia o modo coop do zero
   enemies.forEach(e => { scene.remove(e.mesh); e.hpBar.remove(); });
   enemies.length = 0;
   coopState.pendingSpawns = 0;
+  coopState.phase = 'prep';
+  coopState.round = 0;
   coopPlayer.hp = 100;
   coopPlayer.dead = false;
   updateCoopHealthBar();
   document.getElementById('coop-gameover').style.display = 'none';
-  coopState.phase = 'prep';
-  coopState.round = 0;
-  coopState.countdown = 120;
   coopUpdatePhaseBadge('FASE DE PREPARAÇÃO', '#ffd700');
   coopUpdateRound(0);
   coopStartCountdown(120, () => {
-    coopState.phase = 'wave';
     coopState.round = 1;
+    coopState.phase = 'wave';
     coopUpdatePhaseBadge('RODADA 1', '#4ade80');
     coopUpdateRound(1);
     toast('⚔️ Rodada 1 iniciada! Goblins chegando!');
