@@ -1773,13 +1773,23 @@ const ENEMY_CONFIG = {
     color: 0x22c55e, eyeColor: 0xff0000, armorColor: 0x4f46e5,
     xpReward: 50, label: 'BRUTE',
   },
+  warrior: {
+    hp: 55, speed: 2.1, damage: 9, size: 1.05,
+    color: 0x16a34a, eyeColor: 0xffff00, armorColor: 0x1d4ed8,
+    xpReward: 35, label: 'WARRIOR',
+  },
+  boss: {
+    hp: 300, speed: 1.2, damage: 20, size: 1.8,
+    color: 0x15803d, eyeColor: 0xff0000, armorColor: 0x7f1d1d,
+    xpReward: 200, label: 'BOSS',
+  },
 };
 
 // Retorna config escalonada para a rodada atual
 function waveGetConfig(type, round) {
   const base = ENEMY_CONFIG[type];
   if (!base) return null;
-  const scale = round - 1; // rodada 1 = sem escala
+  const scale = round - 1;
   return {
     ...base,
     hp:     Math.round(base.hp    * (1 + scale * 0.35)),
@@ -1788,46 +1798,63 @@ function waveGetConfig(type, round) {
   };
 }
 
-// Composição da onda por rodada
-// Retorna array de { type, delay_ms }
+// Composição da onda por rodada — todos os tipos usam o mesmo pendingSpawns
 function waveComposition(round) {
   const spawns = [];
   let delay = 0;
 
   if (round === 1) {
-    // Tutorial: 4 grunts lentos
-    for (let i = 0; i < 4; i++) {
-      spawns.push({ type: 'grunt', delay });
-      delay += 600;
-    }
+    for (let i = 0; i < 4; i++) { spawns.push({ type:'grunt', delay }); delay += 600; }
+
   } else if (round === 2) {
-    // 6 grunts
-    for (let i = 0; i < 6; i++) {
-      spawns.push({ type: 'grunt', delay });
-      delay += 500;
-    }
+    for (let i = 0; i < 6; i++) { spawns.push({ type:'grunt', delay }); delay += 500; }
+
   } else if (round === 3) {
-    // 6 grunts + 1 brute
-    for (let i = 0; i < 6; i++) { spawns.push({ type: 'grunt', delay }); delay += 500; }
-    spawns.push({ type: 'brute', delay });
+    for (let i = 0; i < 6; i++) { spawns.push({ type:'grunt', delay }); delay += 500; }
+    spawns.push({ type:'brute', delay });
+
+  } else if (round === 4) {
+    for (let i = 0; i < 8; i++) { spawns.push({ type:'grunt', delay }); delay += 450; }
+    spawns.push({ type:'brute', delay }); delay += 800;
+    spawns.push({ type:'brute', delay });
+
+  } else if (round === 5) {
+    for (let i = 0; i < 6; i++) { spawns.push({ type:'grunt', delay }); delay += 400; }
+    for (let i = 0; i < 2; i++) { spawns.push({ type:'brute', delay }); delay += 700; }
+    spawns.push({ type:'warrior', delay });                   // warrior estreia
+
+  } else if (round === 6) {
+    for (let i = 0; i < 8; i++) { spawns.push({ type:'grunt', delay }); delay += 400; }
+    for (let i = 0; i < 2; i++) { spawns.push({ type:'brute', delay }); delay += 700; }
+    for (let i = 0; i < 2; i++) { spawns.push({ type:'warrior', delay }); delay += 800; }
+
+  } else if (round === 7) {
+    for (let i = 0; i < 8; i++) { spawns.push({ type:'grunt', delay }); delay += 400; }
+    for (let i = 0; i < 3; i++) { spawns.push({ type:'brute', delay }); delay += 700; }
+    for (let i = 0; i < 2; i++) { spawns.push({ type:'warrior', delay }); delay += 800; }
+    spawns.push({ type:'boss', delay });                      // boss estreia
+
   } else {
-    // Rodada 4+: fórmula progressiva
-    const gruntCount = 5 + round * 2;
-    const bruteCount = Math.floor(round / 2);
-    for (let i = 0; i < gruntCount; i++) { spawns.push({ type: 'grunt', delay }); delay += 400; }
-    for (let i = 0; i < bruteCount; i++) { spawns.push({ type: 'brute', delay }); delay += 700; }
+    // Rodada 8+: escala progressiva com todos os tipos
+    const gruntCount   = 6 + round;
+    const bruteCount   = Math.floor(round / 2);
+    const warriorCount = Math.max(1, round - 5);
+    const bossCount    = 1;
+    for (let i = 0; i < gruntCount;   i++) { spawns.push({ type:'grunt',   delay }); delay += 380; }
+    for (let i = 0; i < bruteCount;   i++) { spawns.push({ type:'brute',   delay }); delay += 650; }
+    for (let i = 0; i < warriorCount; i++) { spawns.push({ type:'warrior', delay }); delay += 750; }
+    for (let i = 0; i < bossCount;    i++) { spawns.push({ type:'boss',    delay }); delay += 1200; }
   }
   return spawns;
 }
 
-// HUD: mostra resumo da onda antes de spawnar
+// HUD: anúncio da onda com todos os tipos
 function waveAnnounce(round, composition) {
-  const grunts = composition.filter(s => s.type === 'grunt').length;
-  const brutes = composition.filter(s => s.type === 'brute').length;
-  let msg = '⚔️ Rodada ' + round + ' — ';
-  if (grunts) msg += grunts + ' Grunts ';
-  if (brutes) msg += '+ ' + brutes + ' Brutes ';
-  toast(msg.trim());
+  const counts = {};
+  composition.forEach(s => { counts[s.type] = (counts[s.type] || 0) + 1; });
+  const labels = { grunt:'Grunts', brute:'Brutes', warrior:'Warriors', boss:'BOSS' };
+  const parts = Object.entries(counts).map(([t,n]) => n + ' ' + (labels[t]||t));
+  toast('⚔️ Rodada ' + round + ' — ' + parts.join(' + '));
 }
 
 // Spawn de posição aleatória ao redor do jogador, fora de alcance visual
@@ -1882,90 +1909,138 @@ function coopRefreshEnemyCount() {
 
 function buildGoblinMesh(cfg) {
   const g = new THREE.Group();
-  const isBrute = cfg.size >= 1.2;
+  const type = cfg.label.toLowerCase(); // 'grunt','brute','warrior','boss'
+  const s = cfg.size;
 
-  // Corpo principal
-  const bodyGeo = new THREE.BoxGeometry(cfg.size * 0.75, cfg.size * 0.85, cfg.size * 0.55);
+  // ── CORPO ────────────────────────────────────────────────
+  const bodyGeo = new THREE.BoxGeometry(s * 0.75, s * 0.85, s * 0.55);
   const bodyMat = new THREE.MeshLambertMaterial({ color: cfg.color });
   const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.position.y = cfg.size * 0.42;
+  body.position.y = s * 0.42;
   g.add(body);
 
-  // Cabeça (Brute tem cabeça maior e mais quadrada)
-  const hScale = isBrute ? 0.75 : 0.65;
-  const headGeo = new THREE.BoxGeometry(cfg.size * hScale, cfg.size * hScale, cfg.size * 0.6);
+  // ── CABEÇA ───────────────────────────────────────────────
+  const hScale = (type === 'boss') ? 0.8 : (type === 'brute') ? 0.75 : 0.65;
+  const headGeo = new THREE.BoxGeometry(s * hScale, s * hScale, s * 0.6);
   const headMat = new THREE.MeshLambertMaterial({ color: cfg.color });
   const head = new THREE.Mesh(headGeo, headMat);
-  head.position.y = cfg.size * 1.08;
+  head.position.y = s * 1.08;
   g.add(head);
 
-  // Olhos
-  const eyeSize = isBrute ? 0.13 : 0.09;
+  // ── OLHOS ────────────────────────────────────────────────
+  const eyeSize = (type === 'boss') ? 0.18 : (type === 'brute') ? 0.13 : 0.09;
+  const eyeSpread = (type === 'boss') ? 0.28 : (type === 'brute') ? 0.2 : 0.14;
   const eyeGeo = new THREE.BoxGeometry(eyeSize, eyeSize, 0.07);
   const eyeMat = new THREE.MeshLambertMaterial({ color: cfg.eyeColor });
-  const eyeSpread = isBrute ? 0.2 : 0.14;
   const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeL.position.set(-eyeSpread, cfg.size * 1.12, cfg.size * 0.3);
+  eyeL.position.set(-eyeSpread, s * 1.12, s * 0.3);
   g.add(eyeL);
   const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeR.position.set(eyeSpread, cfg.size * 1.12, cfg.size * 0.3);
+  eyeR.position.set(eyeSpread, s * 1.12, s * 0.3);
   g.add(eyeR);
 
-  // Ombreira — Brute tem duas ombreiras mais grossas
+  // ── ARMADURA / DETALHES por tipo ─────────────────────────
   const armMat = new THREE.MeshLambertMaterial({ color: cfg.armorColor });
-  if (isBrute) {
-    // Ombreiras duplas
-    const sh1Geo = new THREE.BoxGeometry(cfg.size * 0.45, 0.22, cfg.size * 0.5);
-    const shL = new THREE.Mesh(sh1Geo, armMat);
-    shL.position.set(-cfg.size * 0.38, cfg.size * 0.85, 0);
-    g.add(shL);
-    const shR = new THREE.Mesh(sh1Geo, armMat);
-    shR.position.set(cfg.size * 0.38, cfg.size * 0.85, 0);
-    g.add(shR);
-    // Cinto
-    const beltGeo = new THREE.BoxGeometry(cfg.size * 0.78, 0.14, cfg.size * 0.58);
-    const beltMat = new THREE.MeshLambertMaterial({ color: 0x7c4a00 });
-    const belt = new THREE.Mesh(beltGeo, beltMat);
-    belt.position.y = cfg.size * 0.22;
-    g.add(belt);
-  } else {
-    const armGeo = new THREE.BoxGeometry(cfg.size * 0.88, 0.12, cfg.size * 0.55);
+
+  if (type === 'grunt') {
+    // Ombreira simples
+    const armGeo = new THREE.BoxGeometry(s * 0.88, 0.12, s * 0.55);
     const armor = new THREE.Mesh(armGeo, armMat);
-    armor.position.y = cfg.size * 0.75;
+    armor.position.y = s * 0.75;
     g.add(armor);
+
+  } else if (type === 'brute') {
+    // Ombreiras duplas + cinto
+    const shGeo = new THREE.BoxGeometry(s * 0.42, 0.22, s * 0.5);
+    const shL = new THREE.Mesh(shGeo, armMat); shL.position.set(-s*0.38, s*0.85, 0); g.add(shL);
+    const shR = new THREE.Mesh(shGeo, armMat); shR.position.set( s*0.38, s*0.85, 0); g.add(shR);
+    const beltMat = new THREE.MeshLambertMaterial({ color: 0x7c4a00 });
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(s*0.78, 0.14, s*0.58), beltMat);
+    belt.position.y = s * 0.22; g.add(belt);
+
+  } else if (type === 'warrior') {
+    // Escudo lateral + elmo
+    const shieldMat = new THREE.MeshLambertMaterial({ color: cfg.armorColor });
+    const shieldGeo = new THREE.BoxGeometry(0.12, s * 0.7, s * 0.5);
+    const shield = new THREE.Mesh(shieldGeo, shieldMat);
+    shield.position.set(-s * 0.5, s * 0.45, 0);
+    g.add(shield);
+    // Cruz no escudo
+    const crossMatW = new THREE.MeshLambertMaterial({ color: 0xffd700 });
+    const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.08, s*0.3), crossMatW);
+    crossH.position.set(-s*0.5, s*0.45, 0); g.add(crossH);
+    // Elmo
+    const helmetGeo = new THREE.BoxGeometry(s * 0.72, s * 0.18, s * 0.65);
+    const helmet = new THREE.Mesh(helmetGeo, armMat);
+    helmet.position.y = s * 1.42; g.add(helmet);
+    // Ombreira
+    const armGeo = new THREE.BoxGeometry(s * 0.88, 0.14, s * 0.55);
+    const armor = new THREE.Mesh(armGeo, armMat); armor.position.y = s * 0.78; g.add(armor);
+
+  } else if (type === 'boss') {
+    // Capa vermelha (dois painéis laterais)
+    const capeMat = new THREE.MeshLambertMaterial({ color: 0x991b1b });
+    const capeL = new THREE.Mesh(new THREE.BoxGeometry(0.18, s*1.0, s*0.5), capeMat);
+    capeL.position.set(-s*0.48, s*0.55, -s*0.1); g.add(capeL);
+    const capeR = new THREE.Mesh(new THREE.BoxGeometry(0.18, s*1.0, s*0.5), capeMat);
+    capeR.position.set( s*0.48, s*0.55, -s*0.1); g.add(capeR);
+    // Broche dourado
+    const brocheMat = new THREE.MeshLambertMaterial({ color: 0xffd700 });
+    const broche = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.12), brocheMat);
+    broche.position.set(0, s*0.85, s*0.28); g.add(broche);
+    // Ombreiras grandes
+    const bigShGeo = new THREE.BoxGeometry(s*0.5, 0.28, s*0.55);
+    const shL = new THREE.Mesh(bigShGeo, armMat); shL.position.set(-s*0.42, s*0.92, 0); g.add(shL);
+    const shR = new THREE.Mesh(bigShGeo, armMat); shR.position.set( s*0.42, s*0.92, 0); g.add(shR);
+    // Cinto com fivela
+    const beltMat = new THREE.MeshLambertMaterial({ color: 0x7c4a00 });
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(s*0.78, 0.18, s*0.58), beltMat);
+    belt.position.y = s*0.2; g.add(belt);
+    const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.14), brocheMat);
+    buckle.position.set(0, s*0.2, s*0.3); g.add(buckle);
   }
 
-  // Pernas
-  const legW = isBrute ? 0.28 : 0.2;
-  const legGeo = new THREE.BoxGeometry(legW, cfg.size * 0.38, legW);
+  // ── PERNAS ───────────────────────────────────────────────
+  const legW = (type === 'boss') ? 0.38 : (type === 'brute') ? 0.28 : 0.2;
+  const legSpread = (type === 'boss') ? 0.32 : (type === 'brute') ? 0.24 : 0.17;
+  const legGeo = new THREE.BoxGeometry(legW, s * 0.38, legW);
   const legMat = new THREE.MeshLambertMaterial({ color: 0x5a3e1b });
-  const legSpread = isBrute ? 0.24 : 0.17;
-  const legL = new THREE.Mesh(legGeo, legMat);
-  legL.position.set(-legSpread, 0, 0);
-  g.add(legL);
-  const legR = new THREE.Mesh(legGeo, legMat);
-  legR.position.set(legSpread, 0, 0);
-  g.add(legR);
+  const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-legSpread, 0, 0); g.add(legL);
+  const legR = new THREE.Mesh(legGeo, legMat); legR.position.set( legSpread, 0, 0); g.add(legR);
 
-  // Arma — Brute tem machado (caixa larga), Grunt tem bastão
-  if (isBrute) {
-    const axeHandleGeo = new THREE.BoxGeometry(0.1, 0.75, 0.1);
-    const axeHandleMat = new THREE.MeshLambertMaterial({ color: 0x7c4a00 });
-    const axeHandle = new THREE.Mesh(axeHandleGeo, axeHandleMat);
-    axeHandle.position.set(cfg.size * 0.5, cfg.size * 0.55, 0.1);
-    g.add(axeHandle);
-    const axeBladeGeo = new THREE.BoxGeometry(0.08, 0.45, 0.35);
-    const axeBladeMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa });
-    const axeBlade = new THREE.Mesh(axeBladeGeo, axeBladeMat);
-    axeBlade.position.set(cfg.size * 0.5, cfg.size * 0.85, 0.1);
-    g.add(axeBlade);
-  } else {
-    const weapGeo = new THREE.BoxGeometry(0.08, 0.6, 0.08);
-    const weapMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
-    const weap = new THREE.Mesh(weapGeo, weapMat);
-    weap.position.set(cfg.size * 0.42, cfg.size * 0.45, 0.1);
-    weap.rotation.z = 0.3;
-    g.add(weap);
+  // ── ARMA por tipo ────────────────────────────────────────
+  const woodMat  = new THREE.MeshLambertMaterial({ color: 0x7c4a00 });
+  const metalMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa });
+  const goldMat  = new THREE.MeshLambertMaterial({ color: 0xffd700 });
+
+  if (type === 'grunt') {
+    // Bastão simples
+    const weap = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.08), metalMat);
+    weap.position.set(s*0.42, s*0.45, 0.1); weap.rotation.z = 0.3; g.add(weap);
+
+  } else if (type === 'brute') {
+    // Machado
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.75, 0.1), woodMat);
+    handle.position.set(s*0.5, s*0.55, 0.1); g.add(handle);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, 0.35), metalMat);
+    blade.position.set(s*0.5, s*0.85, 0.1); g.add(blade);
+
+  } else if (type === 'warrior') {
+    // Espada (longa e fina)
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.9, 0.07), metalMat);
+    blade.position.set(s*0.5, s*0.6, 0.1); g.add(blade);
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.08), goldMat);
+    guard.position.set(s*0.5, s*0.22, 0.1); g.add(guard);
+
+  } else if (type === 'boss') {
+    // Clava enorme
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.1, 0.14), woodMat);
+    handle.position.set(s*0.55, s*0.55, 0.1); g.add(handle);
+    const head2 = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.42, 0.32), metalMat);
+    head2.position.set(s*0.55, s*1.05, 0.1); g.add(head2);
+    // Spikes dourados na clava
+    const spike = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.18, 0.1), goldMat);
+    spike.position.set(s*0.55, s*1.22, 0.1); g.add(spike);
   }
 
   return g;
@@ -1986,10 +2061,12 @@ function spawnEnemy(type, x, z, round) {
     display:flex; flex-direction:column; align-items:center; gap:2px;
     transform:translateX(-50%);
   `;
-  const labelColor = type === 'brute' ? '#f87171' : '#4ade80';
-  hpBar.innerHTML = `
+  const labelColors = { grunt:'#4ade80', brute:'#f87171', warrior:'#facc15', boss:'#ff6b35' };
+  const barWidths   = { grunt:52, brute:70, warrior:60, boss:100 };
+  const labelColor  = labelColors[type] || '#fff';
+  const barWidth    = barWidths[type] || 52;  hpBar.innerHTML = `
     <div style="font-size:9px;color:${labelColor};font-weight:700;text-shadow:0 1px 3px #000;letter-spacing:1px;">${cfg.label}</div>
-    <div style="width:${type === 'brute' ? 70 : 52}px;height:7px;background:rgba(0,0,0,0.5);border-radius:4px;border:1px solid rgba(255,255,255,0.2);">
+    <div style="width:${barWidth}px;height:7px;background:rgba(0,0,0,0.5);border-radius:4px;border:1px solid rgba(255,255,255,0.2);">
       <div class="hp-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#4ade80,#16a34a);border-radius:3px;transition:width 0.15s;"></div>
     </div>
   `;
@@ -2103,8 +2180,8 @@ function killEnemy(enemy) {
   scene.remove(enemy.mesh);
   enemy.hpBar.remove();
   addXP(enemy.cfg.xpReward);
-  const label = enemy.type === 'brute' ? '💪 Brute' : '💀 Grunt';
-  toast(label + ' eliminado! +' + enemy.cfg.xpReward + ' XP');
+  const killLabels = { grunt:'💀 Grunt', brute:'💪 Brute', warrior:'⚔️ Warrior', boss:'👑 BOSS' };
+  toast((killLabels[enemy.type] || '💀 Inimigo') + ' eliminado! +' + enemy.cfg.xpReward + ' XP');
   coopRefreshEnemyCount();
 }
 
