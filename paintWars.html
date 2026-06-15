@@ -913,31 +913,133 @@ function initThree() {
   renderer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.enabled = true;
 
-  // Ground — linen texture (white with subtle noise, matching reference image)
+  // Ground — textura procedural de paralelepípedo/pedra estilo cartoon
   const groundTexCanvas = document.createElement('canvas');
   groundTexCanvas.width = 512; groundTexCanvas.height = 512;
   const gtx = groundTexCanvas.getContext('2d');
-  // Base: off-white
-  gtx.fillStyle = '#efefef';
+
+  // Semente para ruído determinístico
+  let gseed = 137;
+  function grand() { gseed = (gseed * 1664525 + 1013904223) & 0xffffffff; return (gseed >>> 0) / 0xffffffff; }
+
+  // ── Base: tom de areia/concreto claro ──────────────────────────────────────
+  gtx.fillStyle = '#d4c9a8';
   gtx.fillRect(0, 0, 512, 512);
-  // Linen noise pattern
-  const imgData = gtx.getImageData(0, 0, 512, 512);
-  const d = imgData.data;
-  // Simple pseudo-random seeded noise
-  let seed = 42;
-  function rand() { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; }
-  for (let i = 0; i < d.length; i += 4) {
-    const n = rand();
-    const v = Math.floor(235 + n * 20); // 235-255 range → very light grey noise
-    d[i] = v; d[i+1] = v; d[i+2] = v; d[i+3] = 255;
-    // Occasional slightly darker speck for linen weave feel
-    if (n < 0.04) { const dv = v - 18; d[i] = dv; d[i+1] = dv; d[i+2] = dv; }
+
+  // ── Grade de pedras (paralelepípedo irregular) ────────────────────────────
+  // Definir blocos com tamanhos variados para parecer natural
+  const COLS = 8;
+  const ROWS = 6;
+  const baseW = 512 / COLS;
+  const baseH = 512 / ROWS;
+
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      // Variação no tamanho e posição de cada pedra
+      const jitterX = (grand() - 0.5) * baseW * 0.25;
+      const jitterY = (grand() - 0.5) * baseH * 0.25;
+      const jitterW = (grand() - 0.5) * baseW * 0.3;
+      const jitterH = (grand() - 0.5) * baseH * 0.3;
+
+      const x = col * baseW + jitterX + 4;
+      const y = row * baseH + jitterY + 4;
+      const w = baseW + jitterW - 8;
+      const h = baseH + jitterH - 8;
+
+      // Cor base da pedra — variação entre tons de bege/cinza/areia
+      const lightness = 0.78 + grand() * 0.16;
+      const warmth    = grand() * 0.06;
+      const r = Math.floor((lightness + warmth) * 210);
+      const g = Math.floor(lightness * 195);
+      const b = Math.floor((lightness - warmth) * 175);
+      gtx.fillStyle = `rgb(${r},${g},${b})`;
+
+      // Pedra com cantos arredondados (estilo cartoon)
+      const radius = 4;
+      gtx.beginPath();
+      gtx.moveTo(x + radius, y);
+      gtx.lineTo(x + w - radius, y);
+      gtx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      gtx.lineTo(x + w, y + h - radius);
+      gtx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      gtx.lineTo(x + radius, y + h);
+      gtx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      gtx.lineTo(x, y + radius);
+      gtx.quadraticCurveTo(x, y, x + radius, y);
+      gtx.closePath();
+      gtx.fill();
+
+      // Highlight (borda superior esquerda — luz simulada)
+      gtx.strokeStyle = `rgba(255,255,255,0.45)`;
+      gtx.lineWidth = 1.5;
+      gtx.beginPath();
+      gtx.moveTo(x + radius, y + 1);
+      gtx.lineTo(x + w - radius, y + 1);
+      gtx.stroke();
+      gtx.beginPath();
+      gtx.moveTo(x + 1, y + radius);
+      gtx.lineTo(x + 1, y + h - radius);
+      gtx.stroke();
+
+      // Sombra (borda inferior direita)
+      gtx.strokeStyle = `rgba(0,0,0,0.18)`;
+      gtx.lineWidth = 1.5;
+      gtx.beginPath();
+      gtx.moveTo(x + radius, y + h - 1);
+      gtx.lineTo(x + w - radius, y + h - 1);
+      gtx.stroke();
+      gtx.beginPath();
+      gtx.moveTo(x + w - 1, y + radius);
+      gtx.lineTo(x + w - 1, y + h - radius);
+      gtx.stroke();
+
+      // Variação de textura interna (pequenas manchas)
+      for (let s = 0; s < 4; s++) {
+        const sx = x + grand() * w;
+        const sy = y + grand() * h;
+        const sr = 1 + grand() * 3;
+        const sa = grand() * 0.08;
+        gtx.fillStyle = `rgba(0,0,0,${sa})`;
+        gtx.beginPath();
+        gtx.arc(sx, sy, sr, 0, Math.PI * 2);
+        gtx.fill();
+      }
+    }
   }
-  gtx.putImageData(imgData, 0, 0);
+
+  // ── Rejuntes (linhas de separação) — escuro entre pedras ──────────────────
+  gtx.strokeStyle = 'rgba(80,65,45,0.55)';
+  gtx.lineWidth = 3;
+  // Linhas horizontais
+  for (let row = 1; row < ROWS; row++) {
+    gtx.beginPath();
+    gtx.moveTo(0, row * baseH);
+    gtx.lineTo(512, row * baseH);
+    gtx.stroke();
+  }
+  // Linhas verticais (alternadas por linha para parecer paralelepípedo)
+  for (let row = 0; row < ROWS; row++) {
+    const offset = (row % 2) * (baseW * 0.5);
+    for (let col = 1; col < COLS + 1; col++) {
+      const x = col * baseW + offset;
+      gtx.beginPath();
+      gtx.moveTo(x, row * baseH + 2);
+      gtx.lineTo(x, (row + 1) * baseH - 2);
+      gtx.stroke();
+    }
+  }
+
+  // ── Vinheta sutil nas bordas da textura ────────────────────────────────────
+  const vigGrad = gtx.createRadialGradient(256, 256, 160, 256, 256, 360);
+  vigGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  vigGrad.addColorStop(1, 'rgba(0,0,0,0.12)');
+  gtx.fillStyle = vigGrad;
+  gtx.fillRect(0, 0, 512, 512);
+
   const groundTex = new THREE.CanvasTexture(groundTexCanvas);
   groundTex.wrapS = THREE.RepeatWrapping;
   groundTex.wrapT = THREE.RepeatWrapping;
-  groundTex.repeat.set(60, 60);
+  groundTex.repeat.set(24, 24); // tile mais visível que o anterior
   const groundGeo = new THREE.PlaneGeometry(1000, 1000);
   const groundMat = new THREE.MeshLambertMaterial({ map: groundTex });
   const ground = new THREE.Mesh(groundGeo, groundMat);
