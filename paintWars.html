@@ -873,6 +873,9 @@ const state = {
   keys: {},
   yaw: 0,
   pitch: 0,
+  jumpVY: 0,
+  onGround: true,
+  groundY: 1.7,
   playerPos: { x: 0, y: 1.7, z: 30 },
   wallPixels: new Map(),
   playerName: 'Jogador',
@@ -1354,17 +1357,35 @@ function updatePlayer(dt) {
   const fwd = new THREE.Vector3(-Math.sin(state.yaw), 0, -Math.cos(state.yaw));
   const right = new THREE.Vector3(Math.cos(state.yaw), 0, -Math.sin(state.yaw));
 
-  if (state.keys['KeyW'] || state.keys['ArrowUp']) camera.position.addScaledVector(fwd, speed);
-  if (state.keys['KeyS'] || state.keys['ArrowDown']) camera.position.addScaledVector(fwd, -speed);
-  if (state.keys['KeyA'] || state.keys['ArrowLeft']) camera.position.addScaledVector(right, -speed);
+  if (state.keys['KeyW'] || state.keys['ArrowUp'])    camera.position.addScaledVector(fwd, speed);
+  if (state.keys['KeyS'] || state.keys['ArrowDown'])  camera.position.addScaledVector(fwd, -speed);
+  if (state.keys['KeyA'] || state.keys['ArrowLeft'])  camera.position.addScaledVector(right, -speed);
   if (state.keys['KeyD'] || state.keys['ArrowRight']) camera.position.addScaledVector(right, speed);
 
-  // Clamp distance
+  // ── PULO (Space) ──────────────────────────────────────────────────────────
+  if (state.keys['Space'] && state.onGround) {
+    state.jumpVY = 8;
+    state.onGround = false;
+  }
+
+  if (!state.onGround) {
+    state.jumpVY -= 22 * dt; // gravidade
+    camera.position.y += state.jumpVY * dt;
+  }
+
+  // Clamp horizontal
   camera.position.z = Math.max(2, Math.min(80, camera.position.z));
   camera.position.x = Math.max(-195, Math.min(195, camera.position.x));
 
-  // Colisão com estruturas do mapa (blocos e escadas)
+  // Colisão com estruturas (define state.groundY e state.onGround)
   resolveStructureCollisions();
+
+  // Pousar no chão
+  if (camera.position.y <= state.groundY) {
+    camera.position.y = state.groundY;
+    state.jumpVY = 0;
+    state.onGround = true;
+  }
 
   camera.rotation.order = 'YXZ';
   camera.rotation.y = state.yaw;
@@ -2640,15 +2661,15 @@ function buildStructures() {
 
   // ── BLOCOS DE COBERTURA ──────────────────────────────────────────────────
   const blockDefs = [
-    { x:-60, z:35, w:5, h:3, d:5 },
-    { x:-50, z:35, w:5, h:3, d:5 },
-    { x: 50, z:35, w:5, h:3, d:5 },
-    { x: 60, z:35, w:5, h:3, d:5 },
-    { x:-80, z:50, w:5, h:3, d:8 },
-    { x: 80, z:50, w:5, h:3, d:8 },
-    { x:-30, z:55, w:8, h:3, d:5 },
-    { x: 30, z:55, w:8, h:3, d:5 },
-    { x:  0, z:45, w:6, h:3, d:6 },
+    { x:-60, z:42, w:5, h:3, d:5 },
+    { x:-50, z:42, w:5, h:3, d:5 },
+    { x: 50, z:42, w:5, h:3, d:5 },
+    { x: 60, z:42, w:5, h:3, d:5 },
+    { x:-80, z:58, w:5, h:3, d:8 },
+    { x: 80, z:58, w:5, h:3, d:8 },
+    { x:-30, z:62, w:8, h:3, d:5 },
+    { x: 30, z:62, w:8, h:3, d:5 },
+    { x:  0, z:52, w:6, h:3, d:6 },
   ];
 
   blockDefs.forEach(def => {
@@ -2695,10 +2716,12 @@ function buildStructures() {
   });
 
   // ── ESCADAS / PLATAFORMAS ────────────────────────────────────────────────
+  // Degraus no lado Z+ (jogador vem de z alto, encontra degraus primeiro)
+  // i=0 = degrau mais longe e mais baixo; i=2 = mais perto e mais alto
   const stairDefs = [
-    { x:-100, z:30, pw:10, pd:10, ph:4 },
-    { x: 100, z:30, pw:10, pd:10, ph:4 },
-    { x:   0, z:62, pw:12, pd:10, ph:4 },
+    { x:-100, z:50, pw:10, pd:10, ph:4 },
+    { x: 100, z:50, pw:10, pd:10, ph:4 },
+    { x:   0, z:65, pw:12, pd:10, ph:4 },
   ];
 
   stairDefs.forEach(def => {
@@ -2720,16 +2743,19 @@ function buildStructures() {
     ptop.position.y = ph / 2 + 0.11;
     group.add(ptop);
 
-    // 3 degraus à frente
+    // 3 degraus no lado Z+ — jogador vem de z alto, encontra primeiro o degrau mais baixo
     const stepH = ph / 4;
     const stepD = 1.6;
     for (let i = 0; i < 3; i++) {
+      // i=0: degrau mais longe do muro (z maior) e mais baixo
+      // i=2: degrau mais perto da plataforma (z menor) e mais alto
       const stepHeight = stepH * (i + 1);
+      const stepZoffset = pd / 2 + stepD / 2 + (2 - i) * stepD; // invertido: 2,1,0
       const step = new THREE.Mesh(
         new THREE.BoxGeometry(pw, stepHeight, stepD),
         new THREE.MeshLambertMaterial({ color: 0x9a6032 })
       );
-      step.position.set(0, -ph / 2 + stepHeight / 2, pd / 2 + stepD / 2 + i * stepD);
+      step.position.set(0, -ph / 2 + stepHeight / 2, stepZoffset);
       group.add(step);
 
       // Borda do degrau — amarelo
@@ -2737,7 +2763,7 @@ function buildStructures() {
         new THREE.BoxGeometry(pw + 0.1, 0.14, stepD + 0.1),
         new THREE.MeshLambertMaterial({ color: 0xfbbf24 })
       );
-      sedge.position.set(0, -ph / 2 + stepHeight + 0.07, pd / 2 + stepD / 2 + i * stepD);
+      sedge.position.set(0, -ph / 2 + stepHeight + 0.07, stepZoffset);
       group.add(sedge);
     }
 
@@ -2752,7 +2778,7 @@ function buildStructures() {
     group.position.set(def.x, ph / 2, def.z);
     scene.add(group);
 
-    const rampLen = 3 * stepD; // comprimento total dos degraus
+    const rampLen = 3 * stepD;
     mapStructures.push({ mesh: group, x: def.x, z: def.z,
       w: pw, h: ph, d: pd, type: 'stair', rampLen });
   });
@@ -2761,39 +2787,42 @@ function buildStructures() {
 // Colisão AABB jogador x estruturas
 function resolveStructureCollisions() {
   const PR = 0.5;
-  let onPlatform = false;
+  state.groundY = 1.7; // chão padrão
+  let onElevated = false;
 
   for (const s of mapStructures) {
     const px = camera.position.x;
     const pz = camera.position.z;
 
     if (s.type === 'stair') {
-      const rampZstart = s.z + s.d / 2;
+      const rampZstart = s.z + s.d / 2;       // início dos degraus (z maior = lado do jogador)
       const rampZend   = rampZstart + s.rampLen;
       const platXmin   = s.x - s.w / 2;
       const platXmax   = s.x + s.w / 2;
       const platZmin   = s.z - s.d / 2;
       const platZmax   = s.z + s.d / 2;
 
-      // Na rampa → sobe gradualmente
+      // Na rampa → groundY sobe gradualmente
       if (px > platXmin - PR && px < platXmax + PR &&
-          pz >= rampZstart && pz <= rampZend + PR) {
+          pz >= rampZstart - PR && pz <= rampZend + PR) {
         const t = Math.max(0, Math.min(1, (pz - rampZstart) / s.rampLen));
-        const targetY = 1.7 + t * s.h;
-        camera.position.y = Math.max(camera.position.y, targetY);
-        onPlatform = true;
+        // t=0 → pé da rampa (y=1.7), t=1 → topo (y=1.7+ph)
+        // Mas jogador vem de z alto (t cresce ao diminuir z)
+        const rampY = 1.7 + (1 - t) * s.h;
+        state.groundY = Math.max(state.groundY, rampY);
+        onElevated = true;
         continue;
       }
 
       // No topo da plataforma
       if (px > platXmin - PR && px < platXmax + PR &&
           pz >= platZmin && pz <= platZmax) {
-        camera.position.y = Math.max(camera.position.y, s.h + 1.7);
-        onPlatform = true;
+        state.groundY = Math.max(state.groundY, s.h + 1.7);
+        onElevated = true;
         continue;
       }
 
-      // Colisão lateral com a plataforma (paredes laterais e fundo)
+      // Colisão lateral com a plataforma
       const inX = Math.abs(px - s.x) < s.w / 2 + PR;
       const inZ = pz > platZmin - PR && pz < platZmax;
       const inY = camera.position.y < s.h + 0.5;
@@ -2817,8 +2846,6 @@ function resolveStructureCollisions() {
     if (ox < oz) camera.position.x += (camera.position.x < s.x ? -ox : ox);
     else camera.position.z += (camera.position.z < s.z ? -oz : oz);
   }
-
-  if (!onPlatform) camera.position.y = 1.7;
 }
 
 // Config de armas — escalonadas por rodada mínima
