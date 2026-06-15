@@ -1372,6 +1372,19 @@ function setTool(btn, tool) {
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('tool-indicator').textContent = btn.querySelector('span').textContent;
+
+  // Atualiza visual da arma 3D conforme ferramenta selecionada
+  // Mapeamento: nome da tool no modo livre → tipo do updateGunVisual
+  const toolToGun = {
+    'pistola': 'pistol',
+    'shotgun': 'shotgun',
+    'spray':   'pistol',   // spray usa visual de pistola
+    'rolo':    'pistol',
+    'balde':   'pistol',
+    'canhao':  'sniper',   // canhão usa visual de sniper (mais pesado)
+  };
+  const gunType = toolToGun[tool] || 'pistol';
+  updateGunVisual(gunType);
 }
 
 function setColor(swatch) {
@@ -1679,14 +1692,38 @@ function goToMenu() {
 }
 
 // ─── START ────────────────────────────────────────────────────────────────────
+// Limpa o mapa (parede + posição do jogador) ao trocar de modo
+// Garante que Modo Livre e Modo Coop começam sempre com mapa limpo
+function resetMap() {
+  // Limpar wallCanvas — volta ao branco com arte de exemplo
+  if (wallCtx && wallCanvas) {
+    wallCtx.fillStyle = '#f8f8f8';
+    wallCtx.fillRect(0, 0, WALL_WIDTH, WALL_HEIGHT);
+    drawSampleWallArt();
+    if (wallTexture) wallTexture.needsUpdate = true;
+  }
+  // Resetar posição da câmera (jogador)
+  if (camera) {
+    camera.position.set(0, 1.7, 30);
+    camera.rotation.set(0, 0, 0);
+  }
+  // Resetar visual da arma para pistola
+  updateGunVisual('pistol');
+}
+
 function startGame() {
   document.getElementById('splash').style.display = 'none';
-  initThree();
-  initGun();
-  initControls();
-  registerCurrentPlayer();
-  loop();
-  window._threeReady = true;
+  if (!window._threeReady) {
+    initThree();
+    initGun();
+    initControls();
+    registerCurrentPlayer();
+    loop();
+    window._threeReady = true;
+  } else {
+    // Já inicializado — só limpa o mapa para começar fresh
+    resetMap();
+  }
   setTimeout(() => toast('Bem-vindo ao DAILY Paint Wars! Clique na tela para pintar 🎨'), 500);
 }
 
@@ -1717,6 +1754,9 @@ function startCoopMode() {
     loop();
     window._threeReady = true;
   }
+
+  // Limpa o mapa — parede e posição do jogador sempre frescos no coop
+  resetMap();
 
   // Marca coop como ativo
   coopState.active = true;
