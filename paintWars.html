@@ -634,7 +634,21 @@
     pointer-events:none;
   ">⚔️ MODO COOP</div>
 
-  <!-- Barra de HP do jogador (inferior centro) -->
+  <!-- Inventário (inferior direito) -->
+  <div style="
+    position:absolute; bottom:24px; right:16px;
+    background:rgba(0,0,0,0.65); backdrop-filter:blur(6px);
+    border-radius:12px; padding:10px 16px;
+    border:1px solid rgba(255,255,255,0.1);
+    display:flex; flex-direction:column; gap:4px; min-width:140px;
+    pointer-events:none;
+  ">
+    <div style="font-size:9px;letter-spacing:2px;opacity:0.45;font-weight:700;">INVENTÁRIO</div>
+    <div id="coop-inv-weapon" style="font-size:13px;font-weight:800;color:#ffd700;">🔫 Pistola</div>
+    <div id="coop-inv-ammo"   style="font-size:11px;opacity:0.6;">∞ balas</div>
+    <div id="coop-inv-powers" style="display:flex;flex-direction:column;gap:3px;margin-top:4px;"></div>
+    <div style="font-size:9px;opacity:0.35;margin-top:4px;">[Q] trocar arma · [E] usar poder</div>
+  </div>
   <div style="
     position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
     display:flex; flex-direction:column; align-items:center; gap:4px;
@@ -1297,6 +1311,7 @@ function loop() {
   updatePlayer(dt);
   updateGun(dt);
   updateEnemies(dt);
+  updateLoot(dt);
   renderer.render(scene, camera);
   renderGun();
 }
@@ -1708,6 +1723,7 @@ function startCoopMode() {
     coopUpdateRound(1);
     toast('⚔️ Rodada 1 iniciada! Goblins chegando!');
     waveSpawn(1);
+    lootSpawnForRound(1);
   });
 
   toast('🛡️ MODO COOP — Prepare-se! 120s até os monstros chegarem.');
@@ -2216,6 +2232,7 @@ function allEnemiesDefeated() {
     coopUpdatePhaseBadge('RODADA ' + nextRound, '#4ade80');
     coopUpdateRound(nextRound);
     waveSpawn(nextRound);
+    lootSpawnForRound(nextRound);
   });
 }
 
@@ -2262,6 +2279,7 @@ function coopRestart() {
   enemies.forEach(e => { scene.remove(e.mesh); e.hpBar.remove(); });
   enemies.length = 0;
   coopState.pendingSpawns = 0;
+  clearAllLoot();
   coopState.phase = 'prep';
   coopState.round = 0;
   coopPlayer.hp = 100;
@@ -2277,6 +2295,7 @@ function coopRestart() {
     coopUpdateRound(1);
     toast('⚔️ Rodada 1 iniciada! Goblins chegando!');
     waveSpawn(1);
+    lootSpawnForRound(1);
   });
   toast('🔄 Nova partida iniciada!');
 }
@@ -2287,7 +2306,7 @@ const _origMouseDown = document.onmousedown;
 document.addEventListener('mousedown', (e) => {
   if (!coopState.active || coopState.phase !== 'wave') return;
   if (e.button !== 0 || !state.pointerLocked) return;
-  coopShoot();
+  coopShootWithWeapon();
 });
 
 function coopShoot() {
@@ -2309,6 +2328,377 @@ function coopShoot() {
   }
 }
 
+// ─── LOOT SYSTEM ─────────────────────────────────────────────────────────────
+
+// Config de armas — escalonadas por rodada mínima
+const WEAPON_CONFIG = {
+  pistol:  { label:'Pistola',  color:0x888888, minRound:1, damage:10, fireRate:0.4,  ammo:Infinity, aoeDmg:0, aoeRadius:0 },
+  shotgun: { label:'Shotgun',  color:0xff8800, minRound:3, damage:25, fireRate:0.8,  ammo:6,        aoeDmg:0, aoeRadius:0 },
+  rifle:   { label:'Rifle',    color:0x2563eb, minRound:5, damage:18, fireRate:0.12, ammo:30,       aoeDmg:0, aoeRadius:0 },
+  sniper:  { label:'Sniper',   color:0x7c3aed, minRound:7, damage:80, fireRate:1.5,  ammo:5,        aoeDmg:0, aoeRadius:0 },
+};
+
+// Config de poderes
+const POWER_CONFIG = {
+  bomb:    { label:'Bomba',    color:0xef4444, minRound:3, maxCarry:2, aoeDmg:60, aoeRadius:8  },
+  grenade: { label:'Granada',  color:0x22c55e, minRound:5, maxCarry:2, aoeDmg:40, aoeRadius:5  },
+};
+
+// 8 pontos fixos de spawn no mapa
+const LOOT_SPAWN_POINTS = [
+  {x:-40, z:20}, {x:40,  z:20}, {x:-80, z:35}, {x:80,  z:35},
+  {x:-20, z:50}, {x:20,  z:50}, {x:-60, z:55}, {x:60,  z:55},
+];
+
+// Itens ativos no mapa
+const lootItems = [];
+
+// Inventário do jogador
+const playerInventory = {
+  weapon: 'pistol',           // arma equipada
+  weaponAmmo: Infinity,       // munição atual
+  weapons: ['pistol'],        // armas coletadas
+  powers: [],                 // poderes coletados: [{type, count}]
+  lastShot: 0,                // timestamp último tiro
+};
+
+// HUD de inventário — atualiza o painel na tela
+function inventoryUpdateHUD() {
+  const wEl = document.getElementById('coop-inv-weapon');
+  const aEl = document.getElementById('coop-inv-ammo');
+  const pEl = document.getElementById('coop-inv-powers');
+  if (!wEl || !aEl || !pEl) return;
+
+  const wcfg = WEAPON_CONFIG[playerInventory.weapon];
+  wEl.textContent = '🔫 ' + (wcfg ? wcfg.label : 'Pistola');
+  aEl.textContent = playerInventory.weaponAmmo === Infinity
+    ? '∞' : playerInventory.weaponAmmo + ' balas';
+
+  pEl.innerHTML = '';
+  playerInventory.powers.forEach(p => {
+    const cfg = POWER_CONFIG[p.type];
+    if (!cfg) return;
+    const span = document.createElement('span');
+    span.style.cssText = 'background:rgba(0,0,0,0.4);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;';
+    span.textContent = (p.type === 'bomb' ? '💣' : '💥') + ' ' + cfg.label + ' x' + p.count;
+    pEl.appendChild(span);
+  });
+}
+
+// Spawn de item no mapa
+function spawnLootItem(type, x, z) {
+  const isMeleeWeapon = WEAPON_CONFIG[type] !== undefined;
+  const isPower = POWER_CONFIG[type] !== undefined;
+  const cfg = isMeleeWeapon ? WEAPON_CONFIG[type] : POWER_CONFIG[type];
+  if (!cfg) return;
+
+  // Mesh: caixa colorida flutuando
+  const geo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+  const mat = new THREE.MeshLambertMaterial({ color: cfg.color });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, 0.6, z);
+
+  // Brilho: borda branca (segundo mesh ligeiramente maior)
+  const glowGeo = new THREE.BoxGeometry(0.72, 0.72, 0.72);
+  const glowMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  mesh.add(glow);
+
+  scene.add(mesh);
+
+  // Label flutuante HTML
+  const label = document.createElement('div');
+  label.style.cssText = `
+    position:fixed; pointer-events:none; z-index:20;
+    display:flex; flex-direction:column; align-items:center; gap:1px;
+    transform:translateX(-50%);
+  `;
+  const emoji = isPower ? (type === 'bomb' ? '💣' : '💥') : '🔫';
+  label.innerHTML = `
+    <div style="font-size:10px;font-weight:800;color:#ffd700;text-shadow:0 1px 3px #000;letter-spacing:1px;">${emoji} ${cfg.label.toUpperCase()}</div>
+  `;
+  document.body.appendChild(label);
+
+  const item = {
+    type, mesh, label, cfg,
+    spawnedAt: Date.now(),
+    collected: false,
+    rotT: Math.random() * Math.PI * 2,
+  };
+  lootItems.push(item);
+  return item;
+}
+
+// Spawnar loot no início de cada rodada
+function lootSpawnForRound(round) {
+  // Determinar quais tipos estão disponíveis
+  const availWeapons = Object.entries(WEAPON_CONFIG)
+    .filter(([k, v]) => k !== 'pistol' && v.minRound <= round)
+    .map(([k]) => k);
+  const availPowers = Object.entries(POWER_CONFIG)
+    .filter(([k, v]) => v.minRound <= round)
+    .map(([k]) => k);
+
+  if (availWeapons.length === 0 && availPowers.length === 0) return;
+
+  // Sortear pontos de spawn (sem repetição)
+  const shuffled = [...LOOT_SPAWN_POINTS].sort(() => Math.random() - 0.5);
+  let idx = 0;
+
+  // Spawnar até 2 armas
+  const weaponCount = Math.min(2, availWeapons.length);
+  for (let i = 0; i < weaponCount && idx < shuffled.length; i++) {
+    const type = availWeapons[Math.floor(Math.random() * availWeapons.length)];
+    const pt = shuffled[idx++];
+    setTimeout(() => {
+      if (!coopState.active) return;
+      spawnLootItem(type, pt.x, pt.z);
+    }, i * 800);
+  }
+
+  // Spawnar até 1 poder
+  const powerCount = Math.min(1, availPowers.length);
+  for (let i = 0; i < powerCount && idx < shuffled.length; i++) {
+    const type = availPowers[Math.floor(Math.random() * availPowers.length)];
+    const pt = shuffled[idx++];
+    setTimeout(() => {
+      if (!coopState.active) return;
+      spawnLootItem(type, pt.x, pt.z);
+    }, weaponCount * 800 + i * 800);
+  }
+}
+
+// Remover item do mapa
+function removeLootItem(item) {
+  item.collected = true;
+  scene.remove(item.mesh);
+  item.label.remove();
+}
+
+// Coleta de item pelo jogador (por proximidade)
+function tryCollectLoot() {
+  const px = camera.position.x;
+  const pz = camera.position.z;
+
+  for (const item of lootItems) {
+    if (item.collected) continue;
+    const dx = item.mesh.position.x - px;
+    const dz = item.mesh.position.z - pz;
+    const dist = Math.sqrt(dx*dx + dz*dz);
+
+    if (dist <= 2.5) {
+      const type = item.type;
+
+      if (WEAPON_CONFIG[type]) {
+        // É uma arma
+        if (!playerInventory.weapons.includes(type)) {
+          playerInventory.weapons.push(type);
+        }
+        // Equipa automaticamente se for mais forte que a atual
+        const currentDmg = WEAPON_CONFIG[playerInventory.weapon]?.damage || 0;
+        const newDmg = WEAPON_CONFIG[type]?.damage || 0;
+        if (newDmg > currentDmg) {
+          playerInventory.weapon = type;
+          playerInventory.weaponAmmo = WEAPON_CONFIG[type].ammo;
+        }
+        removeLootItem(item);
+        inventoryUpdateHUD();
+        toast('🔫 ' + WEAPON_CONFIG[type].label + ' coletada!');
+
+      } else if (POWER_CONFIG[type]) {
+        // É um poder — respeitar limite de carregamento
+        const cfg = POWER_CONFIG[type];
+        const existing = playerInventory.powers.find(p => p.type === type);
+        const currentCount = existing ? existing.count : 0;
+
+        if (currentCount >= cfg.maxCarry) {
+          toast('⚠️ Limite de ' + cfg.label + ' atingido (' + cfg.maxCarry + ')!');
+          continue;
+        }
+
+        if (existing) {
+          existing.count++;
+        } else {
+          playerInventory.powers.push({ type, count: 1 });
+        }
+        removeLootItem(item);
+        inventoryUpdateHUD();
+        toast((type === 'bomb' ? '💣' : '💥') + ' ' + cfg.label + ' coletada! (' + (currentCount+1) + '/' + cfg.maxCarry + ')');
+      }
+      break; // coleta um por vez
+    }
+  }
+}
+
+// Usar poder (tecla E)
+function useActivePower() {
+  if (playerInventory.powers.length === 0) {
+    toast('⚠️ Nenhum poder disponível!'); return;
+  }
+  const powerSlot = playerInventory.powers[0];
+  const cfg = POWER_CONFIG[powerSlot.type];
+  if (!cfg) return;
+
+  // Explodir na posição do jogador (AoE ao redor)
+  const px = camera.position.x;
+  const pz = camera.position.z;
+
+  let hit = 0;
+  enemies.forEach(e => {
+    if (e.dead) return;
+    const dx = e.mesh.position.x - px;
+    const dz = e.mesh.position.z - pz;
+    const dist = Math.sqrt(dx*dx + dz*dz);
+    if (dist <= cfg.aoeRadius) {
+      damageEnemy(e, cfg.aoeDmg);
+      hit++;
+    }
+  });
+
+  // Flash de explosão na tela
+  const flash = document.getElementById('coop-dmg-flash');
+  if (flash) {
+    flash.style.background = 'rgba(251,191,36,0.35)';
+    flash.style.opacity = '1';
+    setTimeout(() => { flash.style.opacity='0'; flash.style.background='rgba(220,38,38,0)'; }, 300);
+  }
+
+  powerSlot.count--;
+  if (powerSlot.count <= 0) {
+    playerInventory.powers.shift();
+  }
+  inventoryUpdateHUD();
+  toast((powerSlot.type === 'bomb' ? '💣' : '💥') + ' ' + cfg.label + ' usada! ' + (hit > 0 ? hit + ' inimigos atingidos!' : 'Nenhum inimigo no raio.'));
+}
+
+// Ciclar arma equipada (tecla Q)
+function cycleWeapon() {
+  if (playerInventory.weapons.length <= 1) {
+    toast('⚠️ Você só tem a Pistola!'); return;
+  }
+  const idx = playerInventory.weapons.indexOf(playerInventory.weapon);
+  const next = (idx + 1) % playerInventory.weapons.length;
+  const newWeapon = playerInventory.weapons[next];
+  playerInventory.weapon = newWeapon;
+  playerInventory.weaponAmmo = WEAPON_CONFIG[newWeapon].ammo;
+  inventoryUpdateHUD();
+  toast('🔫 Trocou para: ' + WEAPON_CONFIG[newWeapon].label);
+}
+
+// Loop de loot: rotação dos itens, expiração, proximidade
+function updateLoot(dt) {
+  if (!coopState.active) return;
+
+  const now = Date.now();
+
+  for (let i = lootItems.length - 1; i >= 0; i--) {
+    const item = lootItems[i];
+    if (item.collected) { lootItems.splice(i, 1); continue; }
+
+    // Expirar após 30s
+    if (now - item.spawnedAt > 30000) {
+      removeLootItem(item);
+      lootItems.splice(i, 1);
+      continue;
+    }
+
+    // Rotação e flutuação
+    item.rotT += dt * 1.8;
+    item.mesh.rotation.y = item.rotT;
+    item.mesh.position.y = 0.6 + Math.sin(item.rotT * 1.2) * 0.12;
+
+    // Projetar label na tela
+    const pos3d = item.mesh.position.clone();
+    pos3d.y += 0.7;
+    const proj = pos3d.project(camera);
+    const sx = (proj.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-proj.y * 0.5 + 0.5) * window.innerHeight;
+
+    if (proj.z < 1) {
+      item.label.style.display = 'flex';
+      item.label.style.left = sx + 'px';
+      item.label.style.top  = sy + 'px';
+    } else {
+      item.label.style.display = 'none';
+    }
+  }
+
+  // Checar coleta por proximidade a cada frame
+  tryCollectLoot();
+}
+
+// Integrar loot ao disparo: usar dano e fireRate da arma equipada
+// (sobrescreve o coopShoot existente)
+function coopShootWithWeapon() {
+  const wcfg = WEAPON_CONFIG[playerInventory.weapon];
+  if (!wcfg) return;
+
+  const now = performance.now() / 1000;
+  if (now - playerInventory.lastShot < wcfg.fireRate) return;
+  playerInventory.lastShot = now;
+
+  // Verificar munição
+  if (playerInventory.weaponAmmo !== Infinity) {
+    if (playerInventory.weaponAmmo <= 0) {
+      toast('🔫 Sem munição! Troque de arma (Q).');
+      // Auto-troca para pistola
+      playerInventory.weapon = 'pistol';
+      playerInventory.weaponAmmo = Infinity;
+      inventoryUpdateHUD();
+      return;
+    }
+    playerInventory.weaponAmmo--;
+    inventoryUpdateHUD();
+  }
+
+  // Raycast
+  ENEMY_RAYCASTER.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const allChildren = [];
+  enemies.filter(e => !e.dead).forEach(e => e.mesh.traverse(c => { if (c.isMesh) allChildren.push(c); }));
+  const hits = ENEMY_RAYCASTER.intersectObjects(allChildren);
+
+  if (hits.length > 0) {
+    const hitObj = hits[0].object;
+    const enemy = enemies.find(en => {
+      let found = false;
+      en.mesh.traverse(c => { if (c === hitObj) found = true; });
+      return found;
+    });
+    if (enemy) {
+      // Shotgun: múltiplos projéteis com spread (simulado com dano variável)
+      const dmg = playerInventory.weapon === 'shotgun'
+        ? wcfg.damage * (0.7 + Math.random() * 0.6)
+        : wcfg.damage;
+      damageEnemy(enemy, Math.round(dmg));
+    }
+  }
+}
+
+// Tecla Q = ciclar arma, tecla E = usar poder
+document.addEventListener('keydown', e => {
+  if (!coopState.active) return;
+  if (e.code === 'KeyQ') cycleWeapon();
+  if (e.code === 'KeyE') useActivePower();
+});
+
+// Limpar loot no resetar/sair
+function clearAllLoot() {
+  lootItems.forEach(item => {
+    if (!item.collected) {
+      scene.remove(item.mesh);
+      item.label.remove();
+    }
+  });
+  lootItems.length = 0;
+  // Resetar inventário
+  playerInventory.weapon = 'pistol';
+  playerInventory.weaponAmmo = Infinity;
+  playerInventory.weapons = ['pistol'];
+  playerInventory.powers = [];
+  playerInventory.lastShot = 0;
+  inventoryUpdateHUD();
+}
+
 // Override goToMenu para limpar estado coop ao voltar
 const _origGoToMenu = goToMenu;
 goToMenu = function() {
@@ -2325,7 +2715,7 @@ goToMenu = function() {
     });
     enemies.length = 0;
     coopState.pendingSpawns = 0;
-    document.getElementById('coop-hud').style.display = 'none';
+    clearAllLoot();
     document.getElementById('coop-gameover').style.display = 'none';
     document.getElementById('toolbar').style.display = 'flex';
     document.getElementById('left-panel').style.display = 'flex';
