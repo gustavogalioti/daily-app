@@ -408,12 +408,12 @@
   <!-- Bottom toolbar -->
   <div id="toolbar">
     <div id="tools-row">
-      <button class="tool-btn" data-tool="pistola" onclick="setTool(this,'pistola')">🔫<span>Pistola</span></button>
-      <button class="tool-btn active" data-tool="spray" onclick="setTool(this,'spray')">🎨<span>Spray</span></button>
-      <button class="tool-btn" data-tool="shotgun" onclick="setTool(this,'shotgun')">💥<span>Shotgun</span></button>
-      <button class="tool-btn" data-tool="rolo" onclick="setTool(this,'rolo')">🖌️<span>Rolo</span></button>
-      <button class="tool-btn" data-tool="balde" onclick="setTool(this,'balde')">🪣<span>Balde</span></button>
-      <button class="tool-btn" data-tool="canhao" onclick="setTool(this,'canhao')">💣<span>Canhão</span></button>
+      <button class="tool-btn" data-tool="pistola" onclick="setTool(this,'pistola')">🔫<span>1·Pistola</span></button>
+      <button class="tool-btn active" data-tool="spray" onclick="setTool(this,'spray')">🎨<span>2·Spray</span></button>
+      <button class="tool-btn" data-tool="shotgun" onclick="setTool(this,'shotgun')">💥<span>3·Shotgun</span></button>
+      <button class="tool-btn" data-tool="rolo" onclick="setTool(this,'rolo')">🖌️<span>4·Rolo</span></button>
+      <button class="tool-btn" data-tool="balde" onclick="setTool(this,'balde')">🪣<span>5·Balde</span></button>
+      <button class="tool-btn" data-tool="canhao" onclick="setTool(this,'canhao')">💣<span>6·Canhão</span></button>
     </div>
     <div id="palette-row">
       <!-- Base colors -->
@@ -1164,6 +1164,23 @@ function initControls() {
     if (e.code === 'KeyG') { e.preventDefault(); openModal('gallery-modal'); }
     if (e.code === 'KeyL') { e.preventDefault(); openModal('lab-modal'); }
     if (e.code === 'Tab') { e.preventDefault(); openModal('events-modal'); }
+
+    // Teclas 1-6 selecionam ferramentas no modo livre
+    if (!coopState.active) {
+      const toolMap = {
+        'Digit1': 'pistola',
+        'Digit2': 'spray',
+        'Digit3': 'shotgun',
+        'Digit4': 'rolo',
+        'Digit5': 'balde',
+        'Digit6': 'canhao',
+      };
+      if (toolMap[e.code]) {
+        const tool = toolMap[e.code];
+        const btn = document.querySelector(`.tool-btn[data-tool="${tool}"]`);
+        if (btn) setTool(btn, tool);
+      }
+    }
     // ESC is handled via pointerlockchange event
   });
   document.addEventListener('keyup', (e) => { state.keys[e.code] = false; });
@@ -2861,18 +2878,20 @@ goToMenu = function() {
     coopState.phase = 'prep';
     coopPlayer.hp = 100;
     coopPlayer.dead = false;
-    // Remove todos os inimigos
-    enemies.forEach(e => {
-      scene.remove(e.mesh);
-      e.hpBar.remove();
-    });
+    enemies.forEach(e => { scene.remove(e.mesh); e.hpBar.remove(); });
     enemies.length = 0;
     coopState.pendingSpawns = 0;
     clearAllLoot();
+    document.getElementById('coop-hud').style.display = 'none';
     document.getElementById('coop-gameover').style.display = 'none';
     document.getElementById('toolbar').style.display = 'flex';
     document.getElementById('left-panel').style.display = 'flex';
     document.getElementById('global-event').style.display = 'flex';
+  } else {
+    // Mesmo sem coop ativo, garantir que o HUD coop fique oculto
+    clearInterval(coopState.countdownInterval);
+    document.getElementById('coop-hud').style.display = 'none';
+    document.getElementById('coop-gameover').style.display = 'none';
   }
   hidePause();
   document.getElementById('splash').style.display = 'flex';
