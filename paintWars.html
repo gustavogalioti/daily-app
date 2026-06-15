@@ -1076,6 +1076,9 @@ function initThree() {
     pillar.position.set(i * 25, 4, 25);
     scene.add(pillar);
   }
+
+  // Estruturas do mapa (blocos e escadas)
+  buildStructures();
 }
 
 function drawSampleWallArt() {
@@ -1359,7 +1362,9 @@ function updatePlayer(dt) {
   // Clamp distance
   camera.position.z = Math.max(2, Math.min(80, camera.position.z));
   camera.position.x = Math.max(-195, Math.min(195, camera.position.x));
-  camera.position.y = 1.7;
+
+  // Colisão com estruturas do mapa (blocos e escadas)
+  resolveStructureCollisions();
 
   camera.rotation.order = 'YXZ';
   camera.rotation.y = state.yaw;
@@ -2622,6 +2627,199 @@ function updateGunVisual(weaponType) {
   }
 }
 
+
+// ─── ESTRUTURAS DO MAPA ───────────────────────────────────────────────────────
+// Blocos de cobertura e escadas/plataformas.
+// Usadas em ambos os modos (Livre e Coop) — inicializadas junto com initThree.
+
+const mapStructures = [];
+
+function buildStructures() {
+  mapStructures.forEach(s => scene.remove(s.mesh));
+  mapStructures.length = 0;
+
+  // ── BLOCOS DE COBERTURA ──────────────────────────────────────────────────
+  const blockDefs = [
+    { x:-60, z:35, w:5, h:3, d:5 },
+    { x:-50, z:35, w:5, h:3, d:5 },
+    { x: 50, z:35, w:5, h:3, d:5 },
+    { x: 60, z:35, w:5, h:3, d:5 },
+    { x:-80, z:50, w:5, h:3, d:8 },
+    { x: 80, z:50, w:5, h:3, d:8 },
+    { x:-30, z:55, w:8, h:3, d:5 },
+    { x: 30, z:55, w:8, h:3, d:5 },
+    { x:  0, z:45, w:6, h:3, d:6 },
+  ];
+
+  blockDefs.forEach(def => {
+    const group = new THREE.Group();
+
+    // Corpo — cinza escuro
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(def.w, def.h, def.d),
+      new THREE.MeshLambertMaterial({ color: 0x4a4a5a })
+    );
+    group.add(body);
+
+    // Borda superior laranja (destaque)
+    const top = new THREE.Mesh(
+      new THREE.BoxGeometry(def.w + 0.1, 0.2, def.d + 0.1),
+      new THREE.MeshLambertMaterial({ color: 0xff6b35 })
+    );
+    top.position.y = def.h / 2 + 0.1;
+    group.add(top);
+
+    // Listras amarelas nas laterais
+    const stripeMat = new THREE.MeshLambertMaterial({ color: 0xffd700 });
+    [-def.w / 2 + 0.5, def.w / 2 - 0.5].forEach(sx => {
+      const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22, def.h * 0.55, def.d + 0.12), stripeMat
+      );
+      stripe.position.x = sx;
+      group.add(stripe);
+    });
+
+    // Sombra base
+    const base = new THREE.Mesh(
+      new THREE.BoxGeometry(def.w + 0.15, 0.15, def.d + 0.15),
+      new THREE.MeshLambertMaterial({ color: 0x222233 })
+    );
+    base.position.y = -def.h / 2 - 0.07;
+    group.add(base);
+
+    group.position.set(def.x, def.h / 2, def.z);
+    scene.add(group);
+
+    mapStructures.push({ mesh: group, x: def.x, z: def.z,
+      w: def.w, h: def.h, d: def.d, type: 'block' });
+  });
+
+  // ── ESCADAS / PLATAFORMAS ────────────────────────────────────────────────
+  const stairDefs = [
+    { x:-100, z:30, pw:10, pd:10, ph:4 },
+    { x: 100, z:30, pw:10, pd:10, ph:4 },
+    { x:   0, z:62, pw:12, pd:10, ph:4 },
+  ];
+
+  stairDefs.forEach(def => {
+    const group = new THREE.Group();
+    const { pw, pd, ph } = def;
+
+    // Plataforma — marrom
+    const plat = new THREE.Mesh(
+      new THREE.BoxGeometry(pw, ph, pd),
+      new THREE.MeshLambertMaterial({ color: 0x7c4a1e })
+    );
+    group.add(plat);
+
+    // Borda superior verde (distingue de blocos)
+    const ptop = new THREE.Mesh(
+      new THREE.BoxGeometry(pw + 0.1, 0.22, pd + 0.1),
+      new THREE.MeshLambertMaterial({ color: 0x22c55e })
+    );
+    ptop.position.y = ph / 2 + 0.11;
+    group.add(ptop);
+
+    // 3 degraus à frente
+    const stepH = ph / 4;
+    const stepD = 1.6;
+    for (let i = 0; i < 3; i++) {
+      const stepHeight = stepH * (i + 1);
+      const step = new THREE.Mesh(
+        new THREE.BoxGeometry(pw, stepHeight, stepD),
+        new THREE.MeshLambertMaterial({ color: 0x9a6032 })
+      );
+      step.position.set(0, -ph / 2 + stepHeight / 2, pd / 2 + stepD / 2 + i * stepD);
+      group.add(step);
+
+      // Borda do degrau — amarelo
+      const sedge = new THREE.Mesh(
+        new THREE.BoxGeometry(pw + 0.1, 0.14, stepD + 0.1),
+        new THREE.MeshLambertMaterial({ color: 0xfbbf24 })
+      );
+      sedge.position.set(0, -ph / 2 + stepHeight + 0.07, pd / 2 + stepD / 2 + i * stepD);
+      group.add(sedge);
+    }
+
+    // Sombra base
+    const sbase = new THREE.Mesh(
+      new THREE.BoxGeometry(pw + 0.2, 0.15, pd + 0.2),
+      new THREE.MeshLambertMaterial({ color: 0x3a2010 })
+    );
+    sbase.position.y = -ph / 2 - 0.07;
+    group.add(sbase);
+
+    group.position.set(def.x, ph / 2, def.z);
+    scene.add(group);
+
+    const rampLen = 3 * stepD; // comprimento total dos degraus
+    mapStructures.push({ mesh: group, x: def.x, z: def.z,
+      w: pw, h: ph, d: pd, type: 'stair', rampLen });
+  });
+}
+
+// Colisão AABB jogador x estruturas
+function resolveStructureCollisions() {
+  const PR = 0.5;
+  let onPlatform = false;
+
+  for (const s of mapStructures) {
+    const px = camera.position.x;
+    const pz = camera.position.z;
+
+    if (s.type === 'stair') {
+      const rampZstart = s.z + s.d / 2;
+      const rampZend   = rampZstart + s.rampLen;
+      const platXmin   = s.x - s.w / 2;
+      const platXmax   = s.x + s.w / 2;
+      const platZmin   = s.z - s.d / 2;
+      const platZmax   = s.z + s.d / 2;
+
+      // Na rampa → sobe gradualmente
+      if (px > platXmin - PR && px < platXmax + PR &&
+          pz >= rampZstart && pz <= rampZend + PR) {
+        const t = Math.max(0, Math.min(1, (pz - rampZstart) / s.rampLen));
+        const targetY = 1.7 + t * s.h;
+        camera.position.y = Math.max(camera.position.y, targetY);
+        onPlatform = true;
+        continue;
+      }
+
+      // No topo da plataforma
+      if (px > platXmin - PR && px < platXmax + PR &&
+          pz >= platZmin && pz <= platZmax) {
+        camera.position.y = Math.max(camera.position.y, s.h + 1.7);
+        onPlatform = true;
+        continue;
+      }
+
+      // Colisão lateral com a plataforma (paredes laterais e fundo)
+      const inX = Math.abs(px - s.x) < s.w / 2 + PR;
+      const inZ = pz > platZmin - PR && pz < platZmax;
+      const inY = camera.position.y < s.h + 0.5;
+      if (inX && inZ && inY) {
+        const ox = (s.w / 2 + PR) - Math.abs(px - s.x);
+        const oz = (s.d / 2 + PR) - Math.abs(pz - s.z);
+        if (ox < oz) camera.position.x += (px < s.x ? -ox : ox);
+        else camera.position.z += (pz < s.z ? -oz : oz);
+      }
+      continue;
+    }
+
+    // BLOCO: push-out simples
+    const inX = Math.abs(camera.position.x - s.x) < s.w / 2 + PR;
+    const inZ = Math.abs(camera.position.z - s.z) < s.d / 2 + PR;
+    const inY = camera.position.y < s.h + 0.2;
+    if (!inX || !inZ || !inY) continue;
+
+    const ox = (s.w / 2 + PR) - Math.abs(camera.position.x - s.x);
+    const oz = (s.d / 2 + PR) - Math.abs(camera.position.z - s.z);
+    if (ox < oz) camera.position.x += (camera.position.x < s.x ? -ox : ox);
+    else camera.position.z += (camera.position.z < s.z ? -oz : oz);
+  }
+
+  if (!onPlatform) camera.position.y = 1.7;
+}
 
 // Config de armas — escalonadas por rodada mínima
 const WEAPON_CONFIG = {
