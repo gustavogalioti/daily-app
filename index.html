@@ -374,6 +374,43 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   .profile-sidebar-btn{flex:1;min-width:80px;justify-content:center;padding:8px;font-size:11px;}
 }
 
+/* ── MOBILE PROFILE TOPBAR ── */
+#mobile-profile-topbar{display:none;}
+@media(max-width:600px){
+  #mobile-profile-topbar{
+    display:flex;
+    gap:0;
+    background:var(--surface);
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    padding:4px;
+    margin-bottom:14px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    flex-wrap:nowrap;
+  }
+  #mobile-profile-topbar::-webkit-scrollbar{display:none;}
+  .mob-ptab{
+    flex-shrink:0;
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:12px;
+    font-weight:600;
+    color:var(--muted);
+    transition:all .18s;
+    white-space:nowrap;
+    border:none;
+    background:none;
+  }
+  .mob-ptab.active{background:var(--accent);color:#fff;}
+  #profile-col-left{display:none!important;}
+  #profile-col-right{display:none!important;}
+  #profile-col-left.mob-visible{display:flex!important;flex-direction:column;gap:10px;}
+  #profile-tabs-row{display:none!important;}
+}
+
 /* ── RESPONSIVE ── */
 @media(max-width:900px){
   .nav-btn span{display:none;}
@@ -2803,7 +2840,7 @@ async function loadProfile(){
       <div style="display:grid;grid-template-columns:150px 1fr 150px;gap:10px;align-items:start;">
 
         <!-- ── COLUNA ESQUERDA: foto + stats + poke ── -->
-        <div style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
+        <div id="profile-col-left" style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
 
           <!-- Avatar + nome + botões -->
           <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:14px;text-align:center;">
@@ -2860,11 +2897,20 @@ async function loadProfile(){
 
         <!-- ── COLUNA CENTRAL: conteúdo / timeline ── -->
         <div>
+          <!-- TOPBAR MOBILE DO PERFIL (só aparece em telas <=600px) -->
+          <div id="mobile-profile-topbar">
+            <button class="mob-ptab active" onclick="mobProfileTab('feed',this)">📰 Feed</button>
+            <button class="mob-ptab" onclick="mobProfileTab('amigos',this)">👥 Amigos</button>
+            <button class="mob-ptab" onclick="mobProfileTab('depoimentos',this)">💬 Depoi.</button>
+            <button class="mob-ptab" onclick="mobProfileTab('conquistas',this)">🏆 Conquistas</button>
+            <button class="mob-ptab" onclick="mobProfileTab('eventos',this)">📆 Eventos</button>
+            <button class="mob-ptab" onclick="mobProfileTab('perfil-info',this)">👤 Perfil</button>
+          </div>
           <div id="profile-tabs-row-wrap"></div>
         </div>
 
         <!-- ── COLUNA DIREITA: amigos + conquistas ── -->
-        <div style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
+        <div id="profile-col-right" style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
 
           <!-- Amigos (6 miniaturas) -->
           <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:12px;">
@@ -2915,7 +2961,38 @@ async function loadProfile(){
     loadProfileFriendsMini();
     loadProfileCommMini();
     loadProfileProfSidebar(user);
+    // Mobile: esconder colunas, mostrar só feed central
+    if (window.innerWidth <= 600) {
+      const cl = document.getElementById('profile-col-left');
+      const cr = document.getElementById('profile-col-right');
+      if (cl) cl.style.display = 'none';
+      if (cr) cr.style.display = 'none';
+    }
   }catch(e){w.innerHTML='<p class="text-muted">Erro ao carregar perfil.</p>';}
+}
+
+function mobProfileTab(sec, btn) {
+  // Só age em mobile (<=600px)
+  if (window.innerWidth > 600) return;
+  // Atualizar botões ativos
+  document.querySelectorAll('#mobile-profile-topbar .mob-ptab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const colLeft = document.getElementById('profile-col-left');
+  const colRight = document.getElementById('profile-col-right');
+  const tabsWrap = document.getElementById('profile-tabs-row-wrap');
+
+  if (sec === 'perfil-info') {
+    // Mostrar coluna esquerda (info do perfil), esconder conteúdo central
+    if (colLeft) { colLeft.style.display = 'flex'; colLeft.style.flexDirection = 'column'; colLeft.style.gap = '10px'; }
+    if (tabsWrap) tabsWrap.style.display = 'none';
+  } else {
+    // Esconder coluna esquerda, mostrar conteúdo central
+    if (colLeft) colLeft.style.display = 'none';
+    if (tabsWrap) tabsWrap.style.display = '';
+    // Navegar para a seção correta
+    showProfileSec(sec === 'eventos' ? 'agenda' : sec, null);
+  }
 }
 
 function showProfileSec(sec,btn){
