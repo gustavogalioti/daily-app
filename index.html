@@ -405,9 +405,21 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     background:none;
   }
   .mob-ptab.active{background:var(--accent);color:#fff;}
+  /* Wrap central e seções de perfil ocupam 100% no mobile */
+  #profile-tabs-row-wrap, #ps-feed, #ps-amigos, #ps-depoimentos, #ps-conquistas, #ps-agenda{
+    width:100%!important;
+    box-sizing:border-box;
+  }
+  /* Grid do perfil vira coluna única no mobile */
+  #tab-profile .profile-grid-3col{
+    display:flex!important;
+    flex-direction:column!important;
+  }
   #profile-col-left{display:none!important;}
   #profile-col-right{display:none!important;}
-  #profile-col-left.mob-visible{display:flex!important;flex-direction:column;gap:10px;}
+  /* Coluna central ocupa 100% */
+  #profile-col-center{width:100%!important;min-width:0!important;}
+  #profile-col-left.mob-visible{display:flex!important;flex-direction:column;gap:10px;width:100%!important;}
   #profile-tabs-row{display:none!important;}
 }
 
@@ -2837,7 +2849,7 @@ async function loadProfile(){
     const av=user.avatar_url||avatarUrl(user.name);
     const badges=user.featured_badges?.map(b=>`<div class="profile-badge-chip">${b.icon} ${b.name}</div>`).join('')||'';
     w.innerHTML=`
-      <div style="display:grid;grid-template-columns:150px 1fr 150px;gap:10px;align-items:start;">
+      <div class="profile-grid-3col" style="display:grid;grid-template-columns:150px 1fr 150px;gap:10px;align-items:start;">
 
         <!-- ── COLUNA ESQUERDA: foto + stats + poke ── -->
         <div id="profile-col-left" style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
@@ -2896,7 +2908,7 @@ async function loadProfile(){
         </div>
 
         <!-- ── COLUNA CENTRAL: conteúdo / timeline ── -->
-        <div>
+        <div id="profile-col-center">
           <!-- TOPBAR MOBILE DO PERFIL (só aparece em telas <=600px) -->
           <div id="mobile-profile-topbar">
             <button class="mob-ptab active" onclick="mobProfileTab('feed',this)">📰 Feed</button>
