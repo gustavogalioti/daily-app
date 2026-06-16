@@ -364,6 +364,7 @@
         <div style="display:flex;gap:10px;margin-top:2px;font-size:10px;opacity:0.7;">
           <span>🎨 <span id="hud-arts">0</span> artes</span>
           <span>🖌️ <span id="hud-paints">0</span> pinturas</span>
+          <span id="free-room-badge" style="color:#4ade80;font-weight:700;">🌍 Conectando...</span>
         </div>
         <div id="xp-bar"><div id="xp-fill"></div></div>
       </div>
@@ -1321,6 +1322,9 @@ function paintWall() {
   addXP(2);
   incrementHits();
   spawnSplat(color);
+
+  // Sincronizar pintura com outros jogadores via WS
+  wsBroadcastPaint(px, py, size, color, state.tool);
 }
 
 function paintRect(px, py, size, color) {
@@ -1459,7 +1463,7 @@ function loop() {
   updateGun(dt);
   updateEnemies(dt);
   updateLoot(dt);
-  updateCoopPeers(dt);
+  updatePeers(dt);
   renderer.render(scene, camera);
   renderGun();
 }
@@ -1730,15 +1734,27 @@ const playerRegistry = [];
 function registerCurrentPlayer() {
   let name = 'Jogador', avatar = '🐱';
   try {
-    // Try parent frame (when inside DAILY iframe)
+    // Tenta parent frame (quando dentro do iframe do DAILY)
     const store = (window.parent !== window ? window.parent.localStorage : null) || localStorage;
+    // daily_user pode ter name ou username
     const raw = store.getItem('daily_user') || store.getItem('user') || '{}';
     const u = JSON.parse(raw);
-    if (u.name) name = u.name;
-    else if (u.username) name = '@' + u.username;
+    if (u.name && u.name.trim()) name = u.name.trim();
+    else if (u.username && u.username.trim()) name = u.username.trim();
   } catch(e) {}
+  // Fallback: tentar pegar do token JWT (sem decodificar, só o payload)
+  if (name === 'Jogador') {
+    try {
+      const store = (window.parent !== window ? window.parent.localStorage : null) || localStorage;
+      const token = store.getItem('daily_token') || '';
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.username) name = payload.username;
+        else if (payload.name) name = payload.name;
+      }
+    } catch(e) {}
+  }
   state.playerName = name;
-  // Update HUD
   document.getElementById('player-name-hud').textContent = name;
   document.getElementById('xp-text').textContent = '0 XP total';
   playerRegistry.push({ name, avatar, xp: 0, arts: 0, isYou: true });
@@ -1849,9 +1865,11 @@ function startGame() {
     loop();
     window._threeReady = true;
   } else {
-    // Já inicializado — só limpa o mapa para começar fresh
     resetMap();
   }
+  // Conectar ao WS no modo livre
+  wsDisconnect();
+  wsConnect('free');
   setTimeout(() => toast('Bem-vindo ao DAILY Paint Wars! Clique na tela para pintar 🎨'), 500);
 }
 
@@ -1916,8 +1934,9 @@ function startCoopMode() {
 
   toast('🛡️ MODO COOP — Prepare-se! 120s até os monstros chegarem.');
 
-  // Conectar ao WebSocket Coop
-  coopWsConnect();
+  // Conectar ao WS no modo coop
+  wsDisconnect();
+  wsConnect('coop');
 }
 
 function coopStartCountdown(seconds, onComplete) {
@@ -3240,190 +3259,155 @@ function clearAllLoot() {
   inventoryUpdateHUD();
 }
 
-// ─── COOP WEBSOCKET CLIENT ────────────────────────────────────────────────────
-// Nível 1: presença visual — ver outros jogadores em tempo real
+// ─── WEBSOCKET CLIENT (Modo Livre + Modo Coop) ────────────────────────────────
+// Mesmo servidor, mesmo código — modo define a sala
+// Modo Livre: sala global ilimitada
+// Modo Coop: salas de até 10 jogadores
 
-let coopWs = null;
-let coopMyId = null;
-let coopRoomId = null;
-let coopWasConnected = false; // flag: só reconecta se já tinha conectado
-const coopPeers = new Map(); // playerId → { mesh, label, x,y,z,yaw }
+let gameWs = null;           // WebSocket ativo
+let gameWsMode = null;       // 'free' | 'coop'
+let gameWsConnected = false; // true após receber 'joined'
+let gameMyId = null;
+let gameRoomId = null;
+const gamePeers = new Map(); // id → {mesh, label, username, x,y,z,yaw,walkT}
 
-// Cores para avatares dos outros jogadores
 const PEER_COLORS = [0xff6b35,0xffd700,0x4ade80,0x60a5fa,0xf472b6,0xa78bfa,0xfb923c,0x34d399,0xf87171,0x38bdf8];
 let peerColorIdx = 0;
 
-function coopWsConnect() {
+function wsConnect(mode) {
+  gameWsMode = mode;
   const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/coop';
-  coopWs = new WebSocket(wsUrl);
+  gameWs = new WebSocket(wsUrl);
 
-  coopWs.onopen = () => {
-    // Usa state.playerName que já foi resolvido pelo registerCurrentPlayer
+  gameWs.onopen = () => {
     const username = state.playerName || 'Jogador';
-    const color    = state.color || '#ff6b35';
-    coopWs.send(JSON.stringify({ type: 'join', username, color }));
-    coopWs._ping = setInterval(() => {
-      if (coopWs && coopWs.readyState === WebSocket.OPEN)
-        coopWs.send(JSON.stringify({ type: 'ping' }));
+    gameWs.send(JSON.stringify({ type: 'join', mode, username }));
+    gameWs._ping = setInterval(() => {
+      if (gameWs?.readyState === WebSocket.OPEN) gameWs.send('{"type":"ping"}');
     }, 25000);
   };
 
-  coopWs.onmessage = (e) => {
-    let msg;
-    try { msg = JSON.parse(e.data); } catch { return; }
-
-    switch (msg.type) {
+  gameWs.onmessage = (e) => {
+    let msg; try { msg = JSON.parse(e.data); } catch { return; }
+    switch(msg.type) {
 
       case 'joined':
-        coopMyId   = msg.playerId;
-        coopRoomId = msg.roomId;
-        coopWasConnected = true; // conexão confirmada
-        // Adiciona jogadores já na sala
-        msg.players.forEach(p => coopAddPeer(p));
-        document.getElementById('coop-room-badge').textContent =
-          '🏠 Sala ' + msg.roomId.slice(-4).toUpperCase() + ' · ' + msg.roomCount + '/10';
-        toast('✅ Conectado! ' + msg.roomCount + ' jogador(es) nesta sala.');
+        gameMyId = msg.playerId;
+        gameRoomId = msg.roomId;
+        gameWsConnected = true;
+        msg.players.forEach(p => addPeer(p));
+        updateRoomBadge(msg.roomCount, msg.limit);
+        toast('✅ ' + msg.roomCount + ' jogador(es) nesta sala.');
         break;
 
       case 'player_joined':
-        coopAddPeer(msg.player);
-        document.getElementById('coop-room-badge').textContent =
-          '🏠 Sala ' + coopRoomId?.slice(-4).toUpperCase() + ' · ' + msg.roomCount + '/10';
-        toast('👤 ' + msg.player.username + ' entrou na sala!');
+        addPeer(msg.player);
+        updateRoomBadge(msg.roomCount, msg.limit);
+        toast('👤 ' + msg.player.username + ' entrou!');
         break;
 
       case 'player_moved':
-        coopMovePeer(msg.id, msg.x, msg.y, msg.z, msg.yaw);
+        movePeer(msg.id, msg.x, msg.y, msg.z, msg.yaw);
         break;
 
       case 'player_left':
-        coopRemovePeer(msg.id);
-        document.getElementById('coop-room-badge').textContent =
-          '🏠 Sala ' + coopRoomId?.slice(-4).toUpperCase() + ' · ' + msg.roomCount + '/10';
+        removePeer(msg.id);
+        updateRoomBadge(msg.roomCount, msg.limit);
         break;
 
-      case 'pong': break;
+      case 'paint':
+        // Aplicar pintura de outro jogador na parede
+        applyRemotePaint(msg.px, msg.py, msg.size, msg.color, msg.tool);
+        break;
     }
   };
 
-  coopWs.onclose = () => {
-    clearInterval(coopWs?._ping);
-    if (!coopState.active) return;
-    if (coopWasConnected) {
-      // Já tinha conectado — avisa e tenta reconectar
-      toast('⚠️ Conexão perdida. Reconectando...');
-      document.getElementById('coop-room-badge').textContent = '🏠 Reconectando...';
-      setTimeout(() => { if (coopState.active) coopWsConnect(); }, 3000);
+  gameWs.onclose = () => {
+    clearInterval(gameWs?._ping);
+    if (!gameWsConnected) {
+      updateRoomBadge(null, null); // silencioso na primeira tentativa
     } else {
-      // Nunca chegou a conectar — tenta silenciosamente
-      document.getElementById('coop-room-badge').textContent = '🏠 Conectando...';
-      setTimeout(() => { if (coopState.active) coopWsConnect(); }, 3000);
+      toast('⚠️ Conexão perdida. Reconectando...');
     }
+    setTimeout(() => {
+      const stillActive = gameWsMode === 'free'
+        ? window._threeReady && !coopState.active
+        : coopState.active;
+      if (stillActive) wsConnect(gameWsMode);
+    }, 3000);
   };
 
-  coopWs.onerror = () => {
-    clearInterval(coopWs?._ping);
-    // Erro silencioso — onclose vai tratar
-  };
+  gameWs.onerror = () => clearInterval(gameWs?._ping);
 }
 
-function coopWsDisconnect() {
-  if (!coopWs) return;
-  clearInterval(coopWs._ping);
-  coopWs.onclose = null;
-  coopWs.close();
-  coopWs = null;
-  coopMyId = null;
-  coopRoomId = null;
-  coopWasConnected = false;
-  coopPeers.forEach((_, id) => coopRemovePeer(id));
+function wsDisconnect() {
+  if (!gameWs) return;
+  clearInterval(gameWs._ping);
+  gameWs.onclose = null;
+  gameWs.close();
+  gameWs = null;
+  gameMyId = null;
+  gameRoomId = null;
+  gameWsConnected = false;
+  gameWsMode = null;
+  gamePeers.forEach((_, id) => removePeer(id));
 }
 
-// Adiciona avatar 3D de outro jogador
-function coopAddPeer(p) {
-  if (coopPeers.has(p.id)) return;
-
-  const color = PEER_COLORS[peerColorIdx % PEER_COLORS.length];
-  peerColorIdx++;
-
-  const group = new THREE.Group();
-
-  // Corpo
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.9, 0.4),
-    new THREE.MeshLambertMaterial({ color })
-  );
-  body.position.y = 0.45;
-  group.add(body);
-
-  // Cabeça
-  const head = new THREE.Mesh(
-    new THREE.BoxGeometry(0.5, 0.5, 0.5),
-    new THREE.MeshLambertMaterial({ color })
-  );
-  head.position.y = 1.15;
-  group.add(head);
-
-  // Olhos brancos
-  const eyeGeo = new THREE.BoxGeometry(0.1, 0.1, 0.06);
-  const eyeMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.12, 1.18, 0.26); group.add(eyeL);
-  const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set( 0.12, 1.18, 0.26); group.add(eyeR);
-
-  // Pernas
-  const legMat = new THREE.MeshLambertMaterial({ color: 0x1e3a5f });
-  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.5, 0.22), legMat);
-  legL.position.set(-0.16, -0.25, 0); group.add(legL);
-  const legR = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.5, 0.22), legMat);
-  legR.position.set( 0.16, -0.25, 0); group.add(legR);
-
-  group.position.set(p.x || 0, p.y || 1.7, p.z || 30);
-  scene.add(group);
-
-  // Label HTML com nome
-  const label = document.createElement('div');
-  label.style.cssText = `
-    position:fixed; pointer-events:none; z-index:25;
-    transform:translateX(-50%);
-    display:flex; flex-direction:column; align-items:center; gap:2px;
-  `;
-  label.innerHTML = `
-    <div style="background:rgba(0,0,0,0.7);border-radius:6px;padding:2px 8px;
-      font-size:11px;font-weight:700;color:#fff;white-space:nowrap;
-      border:1px solid rgba(255,255,255,0.2);">
-      ${p.username}
-    </div>
-  `;
-  document.body.appendChild(label);
-
-  coopPeers.set(p.id, { mesh: group, label, username: p.username || 'Jogador', x: p.x||0, y: p.y||1.7, z: p.z||30, yaw: p.yaw||0, walkT: 0 });
+// ── Badge de sala ────────────────────────────────────────────────────────────
+function updateRoomBadge(count, limit) {
+  // Coop HUD badge
+  const coopBadge = document.getElementById('coop-room-badge');
+  if (coopBadge) {
+    if (count === null) {
+      coopBadge.textContent = '🏠 Conectando...';
+    } else {
+      const roomShort = gameRoomId?.slice(-4).toUpperCase() || '----';
+      const lim = limit === '∞' ? '∞' : (limit || 10);
+      coopBadge.textContent = `🏠 Sala ${roomShort} · ${count}/${lim}`;
+    }
+  }
+  // Modo Livre badge
+  const freeBadge = document.getElementById('free-room-badge');
+  if (freeBadge) {
+    if (count === null) {
+      freeBadge.textContent = '🌍 Conectando...';
+    } else {
+      freeBadge.textContent = `🌍 ${count} jogador(es) online`;
+    }
+  }
 }
 
-// Move avatar de outro jogador (interpolação suave)
-function coopMovePeer(id, x, y, z, yaw) {
-  const peer = coopPeers.get(id);
-  if (!peer) return;
-  peer.targetX = x; peer.targetY = y; peer.targetZ = z; peer.targetYaw = yaw;
-  peer.moving = true;
+// ── Enviar pintura via WS ────────────────────────────────────────────────────
+let wsPaintThrottle = 0;
+function wsBroadcastPaint(px, py, size, color, tool) {
+  if (!gameWs || gameWs.readyState !== WebSocket.OPEN) return;
+  const now = Date.now();
+  if (now - wsPaintThrottle < 30) return; // throttle 30ms (~33hz)
+  wsPaintThrottle = now;
+  gameWs.send(JSON.stringify({ type:'paint', px, py, size, color, tool }));
 }
 
-// Remove avatar de outro jogador
-function coopRemovePeer(id) {
-  const peer = coopPeers.get(id);
-  if (!peer) return;
-  scene.remove(peer.mesh);
-  peer.label.remove();
-  coopPeers.delete(id);
+// ── Aplicar pintura remota ───────────────────────────────────────────────────
+function applyRemotePaint(px, py, size, color, tool) {
+  if (!wallCtx || !wallTexture) return;
+  if (tool === 'spray' || tool === 'shotgun') {
+    paintSpray(px, py, size, color);
+  } else if (tool === 'balde') {
+    paintFlood(px, py, color);
+  } else {
+    paintRect(px, py, size, color);
+  }
+  wallTexture.needsUpdate = true;
 }
 
-// Envia posição local a cada frame (throttled a 20hz)
-let coopLastSend = 0;
-function coopSendPosition() {
-  if (!coopWs || coopWs.readyState !== WebSocket.OPEN) return;
+// ── Enviar posição local ─────────────────────────────────────────────────────
+let wsMoveLast = 0;
+function wsSendPosition() {
+  if (!gameWs || gameWs.readyState !== WebSocket.OPEN) return;
   const now = performance.now();
-  if (now - coopLastSend < 50) return; // 20hz
-  coopLastSend = now;
-  coopWs.send(JSON.stringify({
+  if (now - wsMoveLast < 50) return; // 20hz
+  wsMoveLast = now;
+  gameWs.send(JSON.stringify({
     type: 'move',
     x: parseFloat(camera.position.x.toFixed(2)),
     y: parseFloat(camera.position.y.toFixed(2)),
@@ -3432,103 +3416,116 @@ function coopSendPosition() {
   }));
 }
 
-// Atualiza avatares dos peers no loop (interpolação + label projetada)
-function updateCoopPeers(dt) {
-  if (!coopState.active) return;
+// ── Avatar de outro jogador ──────────────────────────────────────────────────
+function addPeer(p) {
+  if (gamePeers.has(p.id)) return;
+  const color = PEER_COLORS[peerColorIdx % PEER_COLORS.length];
+  peerColorIdx++;
 
-  // Envia posição local
-  coopSendPosition();
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.9,0.4), new THREE.MeshLambertMaterial({color}));
+  body.position.y = 0.45; group.add(body);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), new THREE.MeshLambertMaterial({color}));
+  head.position.y = 1.15; group.add(head);
+  const eyeMat = new THREE.MeshLambertMaterial({color:0xffffff});
+  const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.06),eyeMat); eyeL.position.set(-0.12,1.18,0.26); group.add(eyeL);
+  const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.06),eyeMat); eyeR.position.set(0.12,1.18,0.26); group.add(eyeR);
+  const legMat = new THREE.MeshLambertMaterial({color:0x1e3a5f});
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.5,0.22),legMat); legL.position.set(-0.16,-0.25,0); group.add(legL);
+  const legR = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.5,0.22),legMat); legR.position.set(0.16,-0.25,0); group.add(legR);
+  group.position.set(p.x||0, (p.y||1.7)-1.7, p.z||30);
+  scene.add(group);
 
-  // Atualiza cada peer
-  coopPeers.forEach((peer) => {
-    if (peer.targetX !== undefined) {
-      // Interpolação suave
-      const LERP = Math.min(1, dt * 12);
-      peer.x += (peer.targetX - peer.x) * LERP;
-      peer.y += (peer.targetY - peer.y) * LERP;
-      peer.z += (peer.targetZ - peer.z) * LERP;
-      // Interpola yaw (ângulo)
-      let dy = peer.targetYaw - peer.yaw;
-      if (dy > Math.PI) dy -= Math.PI * 2;
-      if (dy < -Math.PI) dy += Math.PI * 2;
-      peer.yaw += dy * LERP;
+  const label = document.createElement('div');
+  label.style.cssText = 'position:fixed;pointer-events:none;z-index:25;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;';
+  label.innerHTML = `<div style="background:rgba(0,0,0,0.75);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;border:1px solid rgba(255,255,255,0.2);">${p.username||'Jogador'}</div>`;
+  document.body.appendChild(label);
 
-      // Animação de caminhada
-      const dx = peer.targetX - peer.mesh.position.x;
-      const dz = peer.targetZ - peer.mesh.position.z;
-      const moving = Math.sqrt(dx*dx+dz*dz) > 0.01;
-      if (moving) {
-        peer.walkT = (peer.walkT || 0) + dt * 7;
-        const swing = Math.sin(peer.walkT) * 0.35;
-        if (peer.mesh.children[4]) peer.mesh.children[4].rotation.x =  swing;
-        if (peer.mesh.children[5]) peer.mesh.children[5].rotation.x = -swing;
-      }
+  gamePeers.set(p.id, {mesh:group, label, username:p.username||'Jogador', x:p.x||0, y:p.y||1.7, z:p.z||30, yaw:p.yaw||0, walkT:0});
+}
 
-      peer.mesh.position.set(peer.x, peer.y - 1.7, peer.z);
-      peer.mesh.rotation.y = peer.yaw + Math.PI;
+function movePeer(id, x, y, z, yaw) {
+  const peer = gamePeers.get(id);
+  if (!peer) return;
+  peer.targetX=x; peer.targetY=y; peer.targetZ=z; peer.targetYaw=yaw;
+}
+
+function removePeer(id) {
+  const peer = gamePeers.get(id);
+  if (!peer) return;
+  scene.remove(peer.mesh);
+  peer.label.remove();
+  gamePeers.delete(id);
+}
+
+// ── Update loop: interpola peers + projeta labels + envia posição ─────────────
+function updatePeers(dt) {
+  if (!window._threeReady) return;
+  wsSendPosition();
+  gamePeers.forEach(peer => {
+    if (peer.targetX === undefined) return;
+    const L = Math.min(1, dt * 12);
+    peer.x += (peer.targetX - peer.x)*L;
+    peer.y += (peer.targetY - peer.y)*L;
+    peer.z += (peer.targetZ - peer.z)*L;
+    let dy = peer.targetYaw - peer.yaw;
+    if (dy > Math.PI) dy -= Math.PI*2;
+    if (dy < -Math.PI) dy += Math.PI*2;
+    peer.yaw += dy*L;
+
+    const dx = peer.targetX - peer.mesh.position.x;
+    const dz = peer.targetZ - peer.mesh.position.z;
+    if (Math.sqrt(dx*dx+dz*dz) > 0.01) {
+      peer.walkT += dt*7;
+      if (peer.mesh.children[4]) peer.mesh.children[4].rotation.x = Math.sin(peer.walkT)*0.35;
+      if (peer.mesh.children[5]) peer.mesh.children[5].rotation.x = -Math.sin(peer.walkT)*0.35;
     }
+    peer.mesh.position.set(peer.x, peer.y-1.7, peer.z);
+    peer.mesh.rotation.y = peer.yaw + Math.PI;
 
-    // Projeta label na tela
-    const pos3d = peer.mesh.position.clone();
-    pos3d.y += 2.0;
+    const pos3d = peer.mesh.position.clone(); pos3d.y += 2.0;
     const proj = pos3d.project(camera);
     if (proj.z < 1) {
       peer.label.style.display = 'flex';
-      peer.label.style.left = ((proj.x * 0.5 + 0.5) * window.innerWidth) + 'px';
-      peer.label.style.top  = ((-proj.y * 0.5 + 0.5) * window.innerHeight) + 'px';
+      peer.label.style.left = ((proj.x*0.5+0.5)*window.innerWidth)+'px';
+      peer.label.style.top = ((-proj.y*0.5+0.5)*window.innerHeight)+'px';
     } else {
       peer.label.style.display = 'none';
     }
   });
 }
 
+// ── Lista de jogadores (tecla P) ─────────────────────────────────────────────
 function coopTogglePlayerList() {
   const panel = document.getElementById('coop-playerlist');
   if (!panel) return;
-  const visible = panel.style.display !== 'none';
-  if (visible) {
-    panel.style.display = 'none';
-  } else {
-    coopUpdatePlayerList();
-    panel.style.display = 'block';
-  }
+  if (panel.style.display !== 'none') { panel.style.display='none'; return; }
+  coopUpdatePlayerList();
+  panel.style.display = 'block';
 }
 
 function coopUpdatePlayerList() {
   const container = document.getElementById('coop-playerlist-items');
   if (!container) return;
   container.innerHTML = '';
-
-  // Jogador local
   const myDiv = document.createElement('div');
   myDiv.style.cssText = 'display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);';
-  myDiv.innerHTML = `
-    <div style="width:10px;height:10px;border-radius:50%;background:#ffd700;flex-shrink:0;"></div>
-    <div style="font-size:13px;font-weight:700;color:#ffd700;">${state.playerName || 'Você'} <span style="font-size:10px;opacity:0.5;">(você)</span></div>
-  `;
+  myDiv.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:#ffd700;flex-shrink:0;"></div><div style="font-size:13px;font-weight:700;color:#ffd700;">${state.playerName||'Você'} <span style="font-size:10px;opacity:0.5;">(você)</span></div>`;
   container.appendChild(myDiv);
-
-  // Outros jogadores
-  coopPeers.forEach((peer, id) => {
+  gamePeers.forEach(peer => {
     const div = document.createElement('div');
     div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);';
-    const colorHex = '#' + (PEER_COLORS[Array.from(coopPeers.keys()).indexOf(id) % PEER_COLORS.length]).toString(16).padStart(6,'0');
-    div.innerHTML = `
-      <div style="width:10px;height:10px;border-radius:50%;background:${colorHex};flex-shrink:0;"></div>
-      <div style="font-size:13px;font-weight:600;color:#fff;">${peer.username || 'Jogador'}</div>
-    `;
+    div.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:#4ade80;flex-shrink:0;"></div><div style="font-size:13px;font-weight:600;color:#fff;">${peer.username}</div>`;
     container.appendChild(div);
   });
-
-  // Contador
-  const total = 1 + coopPeers.size;
-  const header = document.querySelector('#coop-playerlist > div:first-child');
-  if (header) header.textContent = `JOGADORES NA SALA (${total}/10)`;
+  const h = document.querySelector('#coop-playerlist > div:first-child');
+  if (h) h.textContent = `JOGADORES NA SALA (${1+gamePeers.size})`;
 }
 
 // Override goToMenu para limpar estado coop ao voltar
 const _origGoToMenu = goToMenu;
 goToMenu = function() {
+  wsDisconnect();
   if (coopState.active) {
     clearInterval(coopState.countdownInterval);
     coopState.active = false;
@@ -3539,15 +3536,12 @@ goToMenu = function() {
     enemies.length = 0;
     coopState.pendingSpawns = 0;
     clearAllLoot();
-    coopWsDisconnect();
     document.getElementById('coop-hud').style.display = 'none';
     document.getElementById('coop-gameover').style.display = 'none';
     document.getElementById('toolbar').style.display = 'flex';
     document.getElementById('left-panel').style.display = 'flex';
     document.getElementById('global-event').style.display = 'flex';
   } else {
-    clearInterval(coopState.countdownInterval);
-    coopWsDisconnect();
     document.getElementById('coop-hud').style.display = 'none';
     document.getElementById('coop-gameover').style.display = 'none';
   }
