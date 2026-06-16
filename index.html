@@ -7912,9 +7912,16 @@ function showJogoSection(sec, btn) {
   if (sec !== 'tower') {
     try { if (typeof dtLoop !== 'undefined') cancelAnimationFrame(dtLoop); } catch(e) {}
   }
+  // Pausar iframe do Paint Wars ao sair
+  if (sec !== 'paintwars') {
+    try {
+      const pwIframe = document.getElementById('paintwars-iframe');
+      if (pwIframe) pwIframe.src = pwIframe.src;
+    } catch(e) {}
+  }
 
   // Esconder TODAS as seções (incluindo crossing)
-  ['dailypoke','catrunner','outros','quiz','tower','crossing'].forEach(s => {
+  ['dailypoke','catrunner','outros','quiz','tower','crossing','paintwars'].forEach(s => {
     const el = document.getElementById('jogo-' + s);
     if (el) { el.style.display = 'none'; el.style.visibility = 'hidden'; }
   });
