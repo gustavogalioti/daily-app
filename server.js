@@ -64,6 +64,13 @@ process.on('uncaughtException', (err) => {
     catch(e) { console.error('ROTA FALHOU', path, e.message); }
   }
 
+  // Inicializar tabelas dos turnos após DB pronto
+  try {
+    const { initTurnosDB } = require('./turnos');
+    await initTurnosDB();
+    console.log('  ✓ turnos DB inicializado');
+  } catch(e) { console.error('turnos DB erro:', e.message); }
+
   app.get('/api/health', (req, res) => res.json({ status:'ok', app:'DAILY', version:'3.0.0' }));
   app.get('/test', (req, res) => {
     res.sendFile(path.join(__dirname, 'test.html'));

@@ -417,10 +417,10 @@ async function gerarResumoDiario() {
   }
 }
 
-// Inicializar tabelas no require
-initTurnosDB().catch(e => console.error('initTurnosDB:', e));
+// Tabelas inicializadas pelo server.js após initDB()
 
 module.exports = router;
 module.exports.getTurnoAtivo = getTurnoAtivo;
 module.exports.gerarResumoDiario = gerarResumoDiario;
+module.exports.initTurnosDB = initTurnosDB;
 module.exports.TURNOS = TURNOS;
