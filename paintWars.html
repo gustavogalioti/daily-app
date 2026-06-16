@@ -623,16 +623,19 @@
     "></div>
   </div>
 
-  <!-- Badge inferior esquerdo: modo -->
-  <div style="
-    position:absolute; bottom:24px; left:16px;
-    background:rgba(22,163,74,0.85); backdrop-filter:blur(6px);
-    border-radius:10px; padding:8px 16px;
-    border:1px solid rgba(74,222,128,0.4);
-    font-size:12px; font-weight:800; letter-spacing:2px;
-    color:#fff; text-transform:uppercase;
-    pointer-events:none;
-  ">⚔️ MODO COOP</div>
+  <!-- Badge inferior esquerdo: modo + sala -->
+  <div style="position:absolute;bottom:24px;left:16px;display:flex;flex-direction:column;gap:6px;">
+    <div style="
+      background:rgba(22,163,74,0.85);backdrop-filter:blur(6px);
+      border-radius:10px;padding:8px 16px;border:1px solid rgba(74,222,128,0.4);
+      font-size:12px;font-weight:800;letter-spacing:2px;color:#fff;
+      pointer-events:none;">⚔️ MODO COOP</div>
+    <div id="coop-room-badge" style="
+      background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);
+      border-radius:10px;padding:6px 14px;border:1px solid rgba(255,255,255,0.1);
+      font-size:11px;font-weight:700;color:#ffd700;letter-spacing:1px;
+      pointer-events:none;">🏠 Conectando...</div>
+  </div>
 
   <!-- Inventário (inferior direito) -->
   <div style="
@@ -1444,6 +1447,7 @@ function loop() {
   updateGun(dt);
   updateEnemies(dt);
   updateLoot(dt);
+  updateCoopPeers(dt);
   renderer.render(scene, camera);
   renderGun();
 }
@@ -1899,6 +1903,9 @@ function startCoopMode() {
   });
 
   toast('🛡️ MODO COOP — Prepare-se! 120s até os monstros chegarem.');
+
+  // Conectar ao WebSocket Coop
+  coopWsConnect();
 }
 
 function coopStartCountdown(seconds, onComplete) {
@@ -3220,6 +3227,238 @@ function clearAllLoot() {
   inventoryUpdateHUD();
 }
 
+// ─── COOP WEBSOCKET CLIENT ────────────────────────────────────────────────────
+// Nível 1: presença visual — ver outros jogadores em tempo real
+
+let coopWs = null;
+let coopMyId = null;
+let coopRoomId = null;
+const coopPeers = new Map(); // playerId → { mesh, label, x,y,z,yaw }
+
+// Cores para avatares dos outros jogadores
+const PEER_COLORS = [0xff6b35,0xffd700,0x4ade80,0x60a5fa,0xf472b6,0xa78bfa,0xfb923c,0x34d399,0xf87171,0x38bdf8];
+let peerColorIdx = 0;
+
+function coopWsConnect() {
+  const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/coop';
+  coopWs = new WebSocket(wsUrl);
+
+  coopWs.onopen = () => {
+    // Envia join com username e cor do jogador
+    const username = window.currentUser?.username || localStorage.getItem('daily_username') || 'Jogador';
+    const color    = state.color || '#ff6b35';
+    coopWs.send(JSON.stringify({ type: 'join', username, color }));
+    // Keepalive a cada 25s
+    coopWs._ping = setInterval(() => {
+      if (coopWs && coopWs.readyState === WebSocket.OPEN)
+        coopWs.send(JSON.stringify({ type: 'ping' }));
+    }, 25000);
+  };
+
+  coopWs.onmessage = (e) => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+
+    switch (msg.type) {
+
+      case 'joined':
+        coopMyId   = msg.playerId;
+        coopRoomId = msg.roomId;
+        // Adiciona jogadores já na sala
+        msg.players.forEach(p => coopAddPeer(p));
+        document.getElementById('coop-room-badge').textContent =
+          '🏠 Sala ' + msg.roomId.slice(-4).toUpperCase() + ' · ' + msg.roomCount + '/10';
+        toast('✅ Conectado! ' + msg.roomCount + ' jogador(es) nesta sala.');
+        break;
+
+      case 'player_joined':
+        coopAddPeer(msg.player);
+        document.getElementById('coop-room-badge').textContent =
+          '🏠 Sala ' + coopRoomId?.slice(-4).toUpperCase() + ' · ' + msg.roomCount + '/10';
+        toast('👤 ' + msg.player.username + ' entrou na sala!');
+        break;
+
+      case 'player_moved':
+        coopMovePeer(msg.id, msg.x, msg.y, msg.z, msg.yaw);
+        break;
+
+      case 'player_left':
+        coopRemovePeer(msg.id);
+        document.getElementById('coop-room-badge').textContent =
+          '🏠 Sala ' + coopRoomId?.slice(-4).toUpperCase() + ' · ' + msg.roomCount + '/10';
+        break;
+
+      case 'pong': break;
+    }
+  };
+
+  coopWs.onclose = () => {
+    clearInterval(coopWs?._ping);
+    if (coopState.active) toast('⚠️ Conexão perdida. Reconectando...');
+    // Tenta reconectar após 3s se ainda no coop
+    setTimeout(() => { if (coopState.active) coopWsConnect(); }, 3000);
+  };
+
+  coopWs.onerror = () => {
+    clearInterval(coopWs?._ping);
+  };
+}
+
+function coopWsDisconnect() {
+  if (!coopWs) return;
+  clearInterval(coopWs._ping);
+  coopWs.onclose = null; // evita reconexão automática
+  coopWs.close();
+  coopWs = null;
+  coopMyId = null;
+  coopRoomId = null;
+  // Remove todos os peers
+  coopPeers.forEach((_, id) => coopRemovePeer(id));
+}
+
+// Adiciona avatar 3D de outro jogador
+function coopAddPeer(p) {
+  if (coopPeers.has(p.id)) return;
+
+  const color = PEER_COLORS[peerColorIdx % PEER_COLORS.length];
+  peerColorIdx++;
+
+  const group = new THREE.Group();
+
+  // Corpo
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.6, 0.9, 0.4),
+    new THREE.MeshLambertMaterial({ color })
+  );
+  body.position.y = 0.45;
+  group.add(body);
+
+  // Cabeça
+  const head = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.5, 0.5),
+    new THREE.MeshLambertMaterial({ color })
+  );
+  head.position.y = 1.15;
+  group.add(head);
+
+  // Olhos brancos
+  const eyeGeo = new THREE.BoxGeometry(0.1, 0.1, 0.06);
+  const eyeMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.12, 1.18, 0.26); group.add(eyeL);
+  const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set( 0.12, 1.18, 0.26); group.add(eyeR);
+
+  // Pernas
+  const legMat = new THREE.MeshLambertMaterial({ color: 0x1e3a5f });
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.5, 0.22), legMat);
+  legL.position.set(-0.16, -0.25, 0); group.add(legL);
+  const legR = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.5, 0.22), legMat);
+  legR.position.set( 0.16, -0.25, 0); group.add(legR);
+
+  group.position.set(p.x || 0, p.y || 1.7, p.z || 30);
+  scene.add(group);
+
+  // Label HTML com nome
+  const label = document.createElement('div');
+  label.style.cssText = `
+    position:fixed; pointer-events:none; z-index:25;
+    transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+  `;
+  label.innerHTML = `
+    <div style="background:rgba(0,0,0,0.7);border-radius:6px;padding:2px 8px;
+      font-size:11px;font-weight:700;color:#fff;white-space:nowrap;
+      border:1px solid rgba(255,255,255,0.2);">
+      ${p.username}
+    </div>
+  `;
+  document.body.appendChild(label);
+
+  coopPeers.set(p.id, { mesh: group, label, x: p.x||0, y: p.y||1.7, z: p.z||30, yaw: p.yaw||0, walkT: 0 });
+}
+
+// Move avatar de outro jogador (interpolação suave)
+function coopMovePeer(id, x, y, z, yaw) {
+  const peer = coopPeers.get(id);
+  if (!peer) return;
+  peer.targetX = x; peer.targetY = y; peer.targetZ = z; peer.targetYaw = yaw;
+  peer.moving = true;
+}
+
+// Remove avatar de outro jogador
+function coopRemovePeer(id) {
+  const peer = coopPeers.get(id);
+  if (!peer) return;
+  scene.remove(peer.mesh);
+  peer.label.remove();
+  coopPeers.delete(id);
+}
+
+// Envia posição local a cada frame (throttled a 20hz)
+let coopLastSend = 0;
+function coopSendPosition() {
+  if (!coopWs || coopWs.readyState !== WebSocket.OPEN) return;
+  const now = performance.now();
+  if (now - coopLastSend < 50) return; // 20hz
+  coopLastSend = now;
+  coopWs.send(JSON.stringify({
+    type: 'move',
+    x: parseFloat(camera.position.x.toFixed(2)),
+    y: parseFloat(camera.position.y.toFixed(2)),
+    z: parseFloat(camera.position.z.toFixed(2)),
+    yaw: parseFloat(state.yaw.toFixed(3)),
+  }));
+}
+
+// Atualiza avatares dos peers no loop (interpolação + label projetada)
+function updateCoopPeers(dt) {
+  if (!coopState.active) return;
+
+  // Envia posição local
+  coopSendPosition();
+
+  // Atualiza cada peer
+  coopPeers.forEach((peer) => {
+    if (peer.targetX !== undefined) {
+      // Interpolação suave
+      const LERP = Math.min(1, dt * 12);
+      peer.x += (peer.targetX - peer.x) * LERP;
+      peer.y += (peer.targetY - peer.y) * LERP;
+      peer.z += (peer.targetZ - peer.z) * LERP;
+      // Interpola yaw (ângulo)
+      let dy = peer.targetYaw - peer.yaw;
+      if (dy > Math.PI) dy -= Math.PI * 2;
+      if (dy < -Math.PI) dy += Math.PI * 2;
+      peer.yaw += dy * LERP;
+
+      // Animação de caminhada
+      const dx = peer.targetX - peer.mesh.position.x;
+      const dz = peer.targetZ - peer.mesh.position.z;
+      const moving = Math.sqrt(dx*dx+dz*dz) > 0.01;
+      if (moving) {
+        peer.walkT = (peer.walkT || 0) + dt * 7;
+        const swing = Math.sin(peer.walkT) * 0.35;
+        if (peer.mesh.children[4]) peer.mesh.children[4].rotation.x =  swing;
+        if (peer.mesh.children[5]) peer.mesh.children[5].rotation.x = -swing;
+      }
+
+      peer.mesh.position.set(peer.x, peer.y - 1.7, peer.z);
+      peer.mesh.rotation.y = peer.yaw + Math.PI;
+    }
+
+    // Projeta label na tela
+    const pos3d = peer.mesh.position.clone();
+    pos3d.y += 2.0;
+    const proj = pos3d.project(camera);
+    if (proj.z < 1) {
+      peer.label.style.display = 'flex';
+      peer.label.style.left = ((proj.x * 0.5 + 0.5) * window.innerWidth) + 'px';
+      peer.label.style.top  = ((-proj.y * 0.5 + 0.5) * window.innerHeight) + 'px';
+    } else {
+      peer.label.style.display = 'none';
+    }
+  });
+}
+
 // Override goToMenu para limpar estado coop ao voltar
 const _origGoToMenu = goToMenu;
 goToMenu = function() {
@@ -3233,14 +3472,15 @@ goToMenu = function() {
     enemies.length = 0;
     coopState.pendingSpawns = 0;
     clearAllLoot();
+    coopWsDisconnect();
     document.getElementById('coop-hud').style.display = 'none';
     document.getElementById('coop-gameover').style.display = 'none';
     document.getElementById('toolbar').style.display = 'flex';
     document.getElementById('left-panel').style.display = 'flex';
     document.getElementById('global-event').style.display = 'flex';
   } else {
-    // Mesmo sem coop ativo, garantir que o HUD coop fique oculto
     clearInterval(coopState.countdownInterval);
+    coopWsDisconnect();
     document.getElementById('coop-hud').style.display = 'none';
     document.getElementById('coop-gameover').style.display = 'none';
   }
