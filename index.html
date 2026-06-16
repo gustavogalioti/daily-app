@@ -2448,6 +2448,24 @@ async function loadTurnoAtivo() {
   } catch(e) { return null; }
 }
 
+function buildPedroPinnedBanner(t) {
+  if (!t) return '';
+  const HASHTAGS = {
+    madrugadores:'#trend5AM', manha:'#trendManha',
+    almoco:'#trendAlmoco', tarde:'#trendTarde', corujas:'#trendCorujas'
+  };
+  const ht = HASHTAGS[t.id] || '#trendDaily';
+  return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;
+    background:linear-gradient(90deg,#fff7ed,#ffedd5);border-radius:12px;
+    border:1.5px solid #fed7aa;font-size:12px;color:var(--text2);">
+    <span style="font-size:16px;">📌</span>
+    <span><strong style="color:var(--accent);">Pedro Daily</strong> está perguntando:
+    está rolando a trend <strong>${ht}</strong>!
+    ${t.participantes_hoje > 0 ? `<strong>${t.participantes_hoje}</strong> ${t.participantes_hoje===1?'pessoa participou':'pessoas participaram'} —` : ''}
+    você viu?</span>
+  </div>`;
+}
+
 function buildPedroTurnoCard(data) {
   if (!data?.turno || !data?.card) return '';
   const t = data.turno;
@@ -2475,17 +2493,7 @@ function buildPedroTurnoCard(data) {
     almoco:'#trendAlmoco', tarde:'#trendTarde', corujas:'#trendCorujas'
   }[t.id] || '#trendDaily';
 
-  const pinnedBanner = t.participantes_hoje > 0 ? `
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;
-      background:linear-gradient(90deg,#fff7ed,#ffedd5);border-radius:12px;
-      border:1.5px solid #fed7aa;margin-bottom:6px;font-size:12px;color:var(--text2);">
-      <span style="font-size:16px;">📌</span>
-      <span><strong style="color:var(--accent);">Pedro Daily</strong> está perguntando:
-      está rolando a trend <strong>${hashtag}</strong>! 
-      ${t.participantes_hoje} ${t.participantes_hoje===1?'pessoa participou':'pessoas participaram'} — você viu?</span>
-    </div>` : '';
-
-  return pinnedBanner + `<div id="pedro-turno-card" style="
+  return `<div id="pedro-turno-card" style="
     background:linear-gradient(135deg,#fff7ed 0%,#fff 100%);
     border:2.5px solid var(--accent);
     border-radius:18px;
@@ -2546,11 +2554,11 @@ async function loadGlobal(){
         : api('/api/posts?limit=80&exclude_tab=agora&type=photo')
     ]);
     const posts = postsData.posts || [];
-    // Pedro card e banner ficam FORA do grid, na área fixa acima
+    // Só o banner fixo (faixa pequena) aparece no Global — o card completo fica no Feed do Perfil
     const bannerArea = document.getElementById('pedro-turno-banner-area');
     if (bannerArea) {
       if (globalFilter !== 'destaques' && turnoData?.turno) {
-        bannerArea.innerHTML = buildPedroTurnoCard(turnoData);
+        bannerArea.innerHTML = buildPedroPinnedBanner(turnoData.turno);
         bannerArea.style.display = 'block';
       } else {
         bannerArea.innerHTML = '';
