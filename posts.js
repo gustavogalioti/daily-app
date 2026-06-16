@@ -19,22 +19,19 @@ async function enrich(p, userId) {
   if (!p.is_anonymous) {
     author = await db.prepare('SELECT id,name,username,avatar_url FROM users WHERE id=$1').get(p.user_id);
   }
-  // Badge de turno
+  // Badge de turno — inline para evitar require circular
   let turno_badge = null;
-  try {
-    const { TURNOS } = require('./turnos');
-    if (p.created_at) {
-      const postDate = new Date(p.created_at);
-      const hora = (postDate.getUTCHours() - 3 + 24) % 24;
-      for (const t of TURNOS) {
-        if (t.hora_fim > t.hora_inicio) {
-          if (hora >= t.hora_inicio && hora < t.hora_fim) { turno_badge = t.badge; break; }
-        } else {
-          if (hora >= t.hora_inicio || hora < t.hora_fim) { turno_badge = t.badge; break; }
-        }
-      }
+  if (p.created_at) {
+    const TURNO_MAP = [
+      {h0:5,h1:6,badge:'🌅'},{h0:7,h1:9,badge:'☕'},
+      {h0:11,h1:14,badge:'🍽️'},{h0:17,h1:19,badge:'🌇'},
+      {h0:22,h1:1,badge:'🌙'}
+    ];
+    const hora = (new Date(p.created_at).getUTCHours() - 3 + 24) % 24;
+    for (const t of TURNO_MAP) {
+      if (t.h1 > t.h0 ? (hora>=t.h0&&hora<t.h1) : (hora>=t.h0||hora<t.h1)) { turno_badge=t.badge; break; }
     }
-  } catch(e) {}
+  }
   return { ...p, author: author || { name:'Usuário anônimo', username:'anonimo', avatar_url:'' }, reactions, comment_count, pedro_comment: pedro?.content || null, turno_badge };
 }
 
