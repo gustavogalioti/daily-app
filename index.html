@@ -415,7 +415,8 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     display:flex!important;
     flex-direction:column!important;
   }
-  #profile-col-left{display:none!important;}
+  /* Colunas laterais ocultas no mobile — JS controla via classe */
+  #profile-col-left:not(.mob-visible){display:none;}
   #profile-col-right{display:none!important;}
   /* Coluna central ocupa 100% */
   #profile-col-center{width:100%!important;min-width:0!important;}
@@ -2973,37 +2974,38 @@ async function loadProfile(){
     loadProfileFriendsMini();
     loadProfileCommMini();
     loadProfileProfSidebar(user);
-    // Mobile: esconder colunas, mostrar só feed central
+    // Mobile: esconder coluna esquerda por padrão (CSS cuida da direita)
     if (window.innerWidth <= 600) {
       const cl = document.getElementById('profile-col-left');
-      const cr = document.getElementById('profile-col-right');
-      if (cl) cl.style.display = 'none';
-      if (cr) cr.style.display = 'none';
+      if (cl) cl.classList.remove('mob-visible');
     }
   }catch(e){w.innerHTML='<p class="text-muted">Erro ao carregar perfil.</p>';}
 }
 
 function mobProfileTab(sec, btn) {
-  // Só age em mobile (<=600px)
   if (window.innerWidth > 600) return;
-  // Atualizar botões ativos
   document.querySelectorAll('#mobile-profile-topbar .mob-ptab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
   const colLeft = document.getElementById('profile-col-left');
-  const colRight = document.getElementById('profile-col-right');
   const tabsWrap = document.getElementById('profile-tabs-row-wrap');
 
   if (sec === 'perfil-info') {
-    // Mostrar coluna esquerda (info do perfil), esconder conteúdo central
-    if (colLeft) { colLeft.style.display = 'flex'; colLeft.style.flexDirection = 'column'; colLeft.style.gap = '10px'; }
+    // Mostrar coluna esquerda com infos do perfil
+    if (colLeft) colLeft.classList.add('mob-visible');
     if (tabsWrap) tabsWrap.style.display = 'none';
   } else {
-    // Esconder coluna esquerda, mostrar conteúdo central
-    if (colLeft) colLeft.style.display = 'none';
+    // Esconder coluna esquerda, mostrar seção central
+    if (colLeft) colLeft.classList.remove('mob-visible');
     if (tabsWrap) tabsWrap.style.display = '';
-    // Navegar para a seção correta
-    showProfileSec(sec === 'eventos' ? 'agenda' : sec, null);
+
+    // Garantir que ps-agenda está dentro do wrap antes de navegar
+    const realSec = sec === 'eventos' ? 'agenda' : sec;
+    const psEl = document.getElementById('ps-' + realSec);
+    if (psEl && tabsWrap && !tabsWrap.contains(psEl)) {
+      tabsWrap.appendChild(psEl);
+    }
+    showProfileSec(realSec, null);
   }
 }
 
