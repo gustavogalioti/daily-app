@@ -2132,8 +2132,8 @@ function bootApp(){
     const na=document.getElementById('nav-admin'); if(na) na.classList.remove('hidden');
     const ma=document.getElementById('more-admin-btn'); if(ma) ma.style.display='flex';
   }
-  loadMundo();
   loadDailyMandou();
+  switchTab('profile', document.querySelector('.nav-btn[onclick*="profile"]'));
   checkNotif();
   setInterval(checkNotif,10000);
   loadFriendRequests();
