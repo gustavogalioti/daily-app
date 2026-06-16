@@ -181,32 +181,36 @@ process.on('uncaughtException', (err) => {
 
     const PORT = process.env.PORT || 3000;
   const httpServer = http.createServer(app);
-  // WebSocket — único servidor com roteamento por URL
-  // (dois WebSocketServer no mesmo httpServer causam conflito)
+  // WebSocket — dois WSS independentes, cada um com seu próprio handleUpgrade
+  // (compartilhar um único WSS fazia o Truco fechar conexões do Coop)
   try {
     if (WebSocketServer) {
-      const wss = new WebSocketServer({ noServer: true });
-      const { setupTrucoWS } = require('./truco');
-      const { setupCoopWS  } = require('./coop');
-      setupTrucoWS(wss);  // registra handlers internos do Truco
-      setupCoopWS(wss);   // registra handlers internos do Coop
+      const wssTruco = new WebSocketServer({ noServer: true });
+      const wssCoop  = new WebSocketServer({ noServer: true });
 
-      // Roteamento manual do upgrade HTTP → WS
+      try {
+        const { setupTrucoWS } = require('./truco');
+        setupTrucoWS(wssTruco);
+        console.log('  ✓ Truco WS pronto');
+      } catch(e) { console.warn('Truco WS erro:', e.message); }
+
+      try {
+        const { setupCoopWS } = require('./coop');
+        setupCoopWS(wssCoop);
+        console.log('  ✓ Coop WS pronto');
+      } catch(e) { console.warn('Coop WS erro:', e.message); }
+
       httpServer.on('upgrade', (req, socket, head) => {
-        if (req.url === '/ws/truco') {
-          wss.handleUpgrade(req, socket, head, (ws) => {
-            ws._path = '/ws/truco';
-            wss.emit('connection', ws, req);
-          });
-        } else if (req.url === '/ws/coop') {
-          wss.handleUpgrade(req, socket, head, (ws) => {
-            ws._path = '/ws/coop';
-            wss.emit('connection', ws, req);
-          });
+        const path = req.url.split('?')[0];
+        if (path === '/ws/truco') {
+          wssTruco.handleUpgrade(req, socket, head, ws => wssTruco.emit('connection', ws, req));
+        } else if (path === '/ws/coop') {
+          wssCoop.handleUpgrade(req, socket, head, ws => wssCoop.emit('connection', ws, req));
         } else {
           socket.destroy();
         }
       });
+
       console.log('  ✓ WebSocket ativo: /ws/truco + /ws/coop');
     }
   } catch(e) { console.warn('WS erro:', e.message); }
