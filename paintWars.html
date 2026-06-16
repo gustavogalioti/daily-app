@@ -650,7 +650,7 @@
     <div id="coop-inv-weapon" style="font-size:13px;font-weight:800;color:#ffd700;">🔫 Pistola</div>
     <div id="coop-inv-ammo"   style="font-size:11px;opacity:0.6;">∞ balas</div>
     <div id="coop-inv-powers" style="display:flex;flex-direction:column;gap:3px;margin-top:4px;"></div>
-    <div style="font-size:9px;opacity:0.35;margin-top:4px;">[Q] trocar arma · [E] usar poder</div>
+    <div style="font-size:9px;opacity:0.35;margin-top:4px;">[Q] trocar arma · [E] usar poder · [P] jogadores</div>
   </div>
   <div style="
     position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
@@ -706,6 +706,18 @@
       color:#ff6b35; font-weight:700; font-size:14px; cursor:pointer;
     ">🏠 Voltar ao Menu</button>
   </div>
+</div>
+
+<!-- COOP PLAYER LIST (tecla P) -->
+<div id="coop-playerlist" style="
+  display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  z-index:200; background:rgba(10,10,10,0.92); backdrop-filter:blur(12px);
+  border-radius:16px; padding:20px 28px; min-width:280px; max-width:360px;
+  border:1px solid rgba(255,255,255,0.12); pointer-events:none;
+">
+  <div style="font-size:11px;letter-spacing:3px;opacity:0.45;font-weight:700;margin-bottom:12px;">JOGADORES NA SALA</div>
+  <div id="coop-playerlist-items" style="display:flex;flex-direction:column;gap:8px;"></div>
+  <div style="font-size:10px;opacity:0.3;margin-top:14px;text-align:center;">[P] para fechar</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -3207,6 +3219,7 @@ document.addEventListener('keydown', e => {
   if (!coopState.active) return;
   if (e.code === 'KeyQ') cycleWeapon();
   if (e.code === 'KeyE') useActivePower();
+  if (e.code === 'KeyP') coopTogglePlayerList();
 });
 
 // Limpar loot no resetar/sair
@@ -3245,11 +3258,10 @@ function coopWsConnect() {
   coopWs = new WebSocket(wsUrl);
 
   coopWs.onopen = () => {
-    // Envia join com username e cor do jogador
-    const username = window.currentUser?.username || localStorage.getItem('daily_username') || 'Jogador';
+    // Usa state.playerName que já foi resolvido pelo registerCurrentPlayer
+    const username = state.playerName || 'Jogador';
     const color    = state.color || '#ff6b35';
     coopWs.send(JSON.stringify({ type: 'join', username, color }));
-    // Keepalive a cada 25s
     coopWs._ping = setInterval(() => {
       if (coopWs && coopWs.readyState === WebSocket.OPEN)
         coopWs.send(JSON.stringify({ type: 'ping' }));
@@ -3384,7 +3396,7 @@ function coopAddPeer(p) {
   `;
   document.body.appendChild(label);
 
-  coopPeers.set(p.id, { mesh: group, label, x: p.x||0, y: p.y||1.7, z: p.z||30, yaw: p.yaw||0, walkT: 0 });
+  coopPeers.set(p.id, { mesh: group, label, username: p.username || 'Jogador', x: p.x||0, y: p.y||1.7, z: p.z||30, yaw: p.yaw||0, walkT: 0 });
 }
 
 // Move avatar de outro jogador (interpolação suave)
@@ -3468,6 +3480,50 @@ function updateCoopPeers(dt) {
       peer.label.style.display = 'none';
     }
   });
+}
+
+function coopTogglePlayerList() {
+  const panel = document.getElementById('coop-playerlist');
+  if (!panel) return;
+  const visible = panel.style.display !== 'none';
+  if (visible) {
+    panel.style.display = 'none';
+  } else {
+    coopUpdatePlayerList();
+    panel.style.display = 'block';
+  }
+}
+
+function coopUpdatePlayerList() {
+  const container = document.getElementById('coop-playerlist-items');
+  if (!container) return;
+  container.innerHTML = '';
+
+  // Jogador local
+  const myDiv = document.createElement('div');
+  myDiv.style.cssText = 'display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);';
+  myDiv.innerHTML = `
+    <div style="width:10px;height:10px;border-radius:50%;background:#ffd700;flex-shrink:0;"></div>
+    <div style="font-size:13px;font-weight:700;color:#ffd700;">${state.playerName || 'Você'} <span style="font-size:10px;opacity:0.5;">(você)</span></div>
+  `;
+  container.appendChild(myDiv);
+
+  // Outros jogadores
+  coopPeers.forEach((peer, id) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);';
+    const colorHex = '#' + (PEER_COLORS[Array.from(coopPeers.keys()).indexOf(id) % PEER_COLORS.length]).toString(16).padStart(6,'0');
+    div.innerHTML = `
+      <div style="width:10px;height:10px;border-radius:50%;background:${colorHex};flex-shrink:0;"></div>
+      <div style="font-size:13px;font-weight:600;color:#fff;">${peer.username || 'Jogador'}</div>
+    `;
+    container.appendChild(div);
+  });
+
+  // Contador
+  const total = 1 + coopPeers.size;
+  const header = document.querySelector('#coop-playerlist > div:first-child');
+  if (header) header.textContent = `JOGADORES NA SALA (${total}/10)`;
 }
 
 // Override goToMenu para limpar estado coop ao voltar
