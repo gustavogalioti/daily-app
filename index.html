@@ -904,6 +904,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('paintwars',this)" id="btn-jogo-pw">🎨 Paint Wars</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('quiz',this)" id="btn-jogo-quiz">🧠 Quiz Arena</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('tower',this)" id="btn-jogo-tower">🏙️ Daily Tower</button>
+        <button class="btn btn-ghost btn-sm" onclick="showJogoSection('crossing',this)" id="btn-jogo-crossing">🚶 Crossing Trail</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('outros',this)" style="opacity:.5;">🌾 Em breve</button>
       </div>
 
@@ -1410,6 +1411,60 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <div style="flex:1;min-width:140px;background:var(--surface);border-radius:12px;padding:12px;border:1.5px solid var(--border);text-align:center;">
             <div style="font-size:24px;">⚡</div><div style="font-size:12px;font-weight:700;margin-top:4px;">Eventos Globais</div>
             <div style="font-size:11px;opacity:.6;">Pigmentos aprisionados</div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ─── CROSSING TRAIL ─── -->
+      <div id="jogo-crossing" style="display:none;">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;">🚶 Crossing Trail</div>
+            <div style="font-size:12px;color:var(--muted);">Atravesse. Desvie. Chegue.</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="background:linear-gradient(135deg,#F5C518,#e6a000);color:#1a1200;font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:1px;">NOVO</span>
+          </div>
+        </div>
+
+        <!-- Game container -->
+        <div id="ct-container" style="position:relative;width:100%;border-radius:16px;overflow:hidden;background:#0d1220;border:1.5px solid var(--border);touch-action:none;">
+          <!-- O iframe isola o jogo do DOM do Daily completamente -->
+          <iframe
+            id="ct-iframe"
+            src=""
+            style="width:100%;height:600px;border:none;display:block;"
+            scrolling="no"
+            allow="fullscreen"
+            title="Crossing Trail"
+          ></iframe>
+          <!-- Loader enquanto carrega -->
+          <div id="ct-loader" style="position:absolute;inset:0;background:#0d1220;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-radius:16px;">
+            <div style="font-size:48px;">🚶</div>
+            <div style="color:#F5C518;font-weight:800;font-size:16px;letter-spacing:2px;">CROSSING TRAIL</div>
+            <div style="color:rgba(255,255,255,0.4);font-size:13px;">Carregando estação...</div>
+            <div class="loader" style="margin-top:8px;"></div>
+          </div>
+        </div>
+
+        <!-- Info cards -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px;">
+          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px;text-align:center;">
+            <div style="font-size:24px;">⬆️⬇️⬅️➡️</div>
+            <div style="font-size:11px;font-weight:700;margin-top:4px;">Setas ou WASD</div>
+            <div style="font-size:10px;color:var(--muted);">Desktop</div>
+          </div>
+          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px;text-align:center;">
+            <div style="font-size:24px;">👆</div>
+            <div style="font-size:11px;font-weight:700;margin-top:4px;">Deslize ou D-Pad</div>
+            <div style="font-size:10px;color:var(--muted);">Mobile</div>
+          </div>
+          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px;text-align:center;">
+            <div style="font-size:24px;">🚉</div>
+            <div style="font-size:11px;font-weight:700;margin-top:4px;">5 Estações</div>
+            <div style="font-size:10px;color:var(--muted);">Brasil e Mundo</div>
           </div>
         </div>
       </div>
@@ -7858,11 +7913,18 @@ function showJogoSection(sec, btn) {
     try { if (typeof dtLoop !== 'undefined') cancelAnimationFrame(dtLoop); } catch(e) {}
   }
 
-  // Esconder TODAS as seções
-  ['dailypoke','catrunner','outros','quiz','tower'].forEach(s => {
+  // Esconder TODAS as seções (incluindo crossing)
+  ['dailypoke','catrunner','outros','quiz','tower','crossing'].forEach(s => {
     const el = document.getElementById('jogo-' + s);
     if (el) { el.style.display = 'none'; el.style.visibility = 'hidden'; }
   });
+  // Se sair do Crossing Trail, pausar o iframe para não gastar recursos
+  if (sec !== 'crossing') {
+    const iframe = document.getElementById('ct-iframe');
+    if (iframe && iframe.src) {
+      try { iframe.contentWindow.postMessage('pause','*'); } catch(e) {}
+    }
+  }
 
   // Mostrar só a selecionada
   const target = document.getElementById('jogo-' + sec);
@@ -7878,6 +7940,7 @@ function showJogoSection(sec, btn) {
   if (sec === 'catrunner') initCatGame();
   if (sec === 'quiz') initQuizArena();
   if (sec === 'tower') initDailyTowerHome();
+  if (sec === 'crossing') initCrossingTrail();
 }
 
 async function loadDailyPoke() {
@@ -11837,4 +11900,37 @@ document.addEventListener('keyup',e=>{
   if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') dtKeys.right=false;
   if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'||e.key===' ') dtKeys.jump=false;
 });
+
+// ── CROSSING TRAIL ─────────────────────────────────────────────
+function initCrossingTrail() {
+  const iframe  = document.getElementById('ct-iframe');
+  const loader  = document.getElementById('ct-loader');
+  const container = document.getElementById('ct-container');
+
+  // Ajustar altura do container ao viewport disponível
+  const vh = window.innerHeight;
+  const targetH = Math.max(480, Math.min(680, vh * 0.72));
+  iframe.style.height = targetH + 'px';
+
+  // Só carrega o src uma vez (lazy)
+  if (!iframe.src || iframe.src === window.location.href || iframe.src === '') {
+    loader.style.display = 'flex';
+    iframe.style.visibility = 'hidden';
+
+    iframe.onload = () => {
+      loader.style.display = 'none';
+      iframe.style.visibility = 'visible';
+    };
+    iframe.onerror = () => {
+      loader.innerHTML = '<div style="color:#fff;text-align:center;padding:20px">❌ Erro ao carregar o jogo.<br><small style="opacity:.6">Tente recarregar a página.</small></div>';
+    };
+    iframe.src = '/crossing-trail.html';
+  } else {
+    // Já carregado — só garantir que está visível
+    loader.style.display = 'none';
+    iframe.style.visibility = 'visible';
+    // Retomar se estava pausado
+    try { iframe.contentWindow.postMessage('resume','*'); } catch(e) {}
+  }
+}
 </script>
