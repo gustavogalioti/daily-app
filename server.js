@@ -173,25 +173,35 @@ process.on('uncaughtException', (err) => {
 
     const PORT = process.env.PORT || 3000;
   const httpServer = http.createServer(app);
-  // WebSocket para Truco (opcional)
+  // WebSocket — único servidor com roteamento por URL
+  // (dois WebSocketServer no mesmo httpServer causam conflito)
   try {
     if (WebSocketServer) {
+      const wss = new WebSocketServer({ noServer: true });
       const { setupTrucoWS } = require('./truco');
-      const wss = new WebSocketServer({ server: httpServer, path: '/ws/truco' });
-      setupTrucoWS(wss);
-      console.log('  ✓ Truco WebSocket ativo');
-    }
-  } catch(e) { console.warn('Truco WS erro:', e.message); }
+      const { setupCoopWS  } = require('./coop');
+      setupTrucoWS(wss);  // registra handlers internos do Truco
+      setupCoopWS(wss);   // registra handlers internos do Coop
 
-  // WebSocket para Paint Wars Coop
-  try {
-    if (WebSocketServer) {
-      const { setupCoopWS } = require('./coop');
-      const wssC = new WebSocketServer({ server: httpServer, path: '/ws/coop' });
-      setupCoopWS(wssC);
-      console.log('  ✓ Paint Wars Coop WebSocket ativo');
+      // Roteamento manual do upgrade HTTP → WS
+      httpServer.on('upgrade', (req, socket, head) => {
+        if (req.url === '/ws/truco') {
+          wss.handleUpgrade(req, socket, head, (ws) => {
+            ws._path = '/ws/truco';
+            wss.emit('connection', ws, req);
+          });
+        } else if (req.url === '/ws/coop') {
+          wss.handleUpgrade(req, socket, head, (ws) => {
+            ws._path = '/ws/coop';
+            wss.emit('connection', ws, req);
+          });
+        } else {
+          socket.destroy();
+        }
+      });
+      console.log('  ✓ WebSocket ativo: /ws/truco + /ws/coop');
     }
-  } catch(e) { console.warn('Coop WS erro:', e.message); }
+  } catch(e) { console.warn('WS erro:', e.message); }
   httpServer.listen(PORT, '0.0.0.0', () => console.log(`\n🗓️  DAILY v3 rodando em http://localhost:${PORT}\n`));
   } catch(err) {
     console.error('FATAL ao iniciar:', err.message);
