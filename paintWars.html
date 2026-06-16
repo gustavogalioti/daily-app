@@ -3233,6 +3233,7 @@ function clearAllLoot() {
 let coopWs = null;
 let coopMyId = null;
 let coopRoomId = null;
+let coopWasConnected = false; // flag: só reconecta se já tinha conectado
 const coopPeers = new Map(); // playerId → { mesh, label, x,y,z,yaw }
 
 // Cores para avatares dos outros jogadores
@@ -3264,6 +3265,7 @@ function coopWsConnect() {
       case 'joined':
         coopMyId   = msg.playerId;
         coopRoomId = msg.roomId;
+        coopWasConnected = true; // conexão confirmada
         // Adiciona jogadores já na sala
         msg.players.forEach(p => coopAddPeer(p));
         document.getElementById('coop-room-badge').textContent =
@@ -3294,25 +3296,34 @@ function coopWsConnect() {
 
   coopWs.onclose = () => {
     clearInterval(coopWs?._ping);
-    if (coopState.active) toast('⚠️ Conexão perdida. Reconectando...');
-    // Tenta reconectar após 3s se ainda no coop
-    setTimeout(() => { if (coopState.active) coopWsConnect(); }, 3000);
+    if (!coopState.active) return;
+    if (coopWasConnected) {
+      // Já tinha conectado — avisa e tenta reconectar
+      toast('⚠️ Conexão perdida. Reconectando...');
+      document.getElementById('coop-room-badge').textContent = '🏠 Reconectando...';
+      setTimeout(() => { if (coopState.active) coopWsConnect(); }, 3000);
+    } else {
+      // Nunca chegou a conectar — tenta silenciosamente
+      document.getElementById('coop-room-badge').textContent = '🏠 Conectando...';
+      setTimeout(() => { if (coopState.active) coopWsConnect(); }, 3000);
+    }
   };
 
   coopWs.onerror = () => {
     clearInterval(coopWs?._ping);
+    // Erro silencioso — onclose vai tratar
   };
 }
 
 function coopWsDisconnect() {
   if (!coopWs) return;
   clearInterval(coopWs._ping);
-  coopWs.onclose = null; // evita reconexão automática
+  coopWs.onclose = null;
   coopWs.close();
   coopWs = null;
   coopMyId = null;
   coopRoomId = null;
-  // Remove todos os peers
+  coopWasConnected = false;
   coopPeers.forEach((_, id) => coopRemovePeer(id));
 }
 
