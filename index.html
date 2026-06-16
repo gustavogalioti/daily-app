@@ -415,12 +415,14 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     display:flex!important;
     flex-direction:column!important;
   }
-  /* Colunas laterais ocultas no mobile — JS controla via classe */
-  #profile-col-left:not(.mob-visible){display:none;}
+  /* Colunas laterais ocultas no mobile — controlado por classe */
+  #profile-col-left{display:none!important;}
   #profile-col-right{display:none!important;}
   /* Coluna central ocupa 100% */
   #profile-col-center{width:100%!important;min-width:0!important;}
+  /* Quando aba Perfil ativa, mostrar col-left e esconder col-center */
   #profile-col-left.mob-visible{display:flex!important;flex-direction:column;gap:10px;width:100%!important;}
+  #profile-col-center.mob-hidden{display:none!important;}
   #profile-tabs-row{display:none!important;}
 }
 
@@ -2853,7 +2855,7 @@ async function loadProfile(){
       <div class="profile-grid-3col" style="display:grid;grid-template-columns:150px 1fr 150px;gap:10px;align-items:start;">
 
         <!-- ── COLUNA ESQUERDA: foto + stats + poke ── -->
-        <div id="profile-col-left" style="display:flex;flex-direction:column;gap:10px;position:sticky;top:70px;">
+        <div id="profile-col-left" style="flex-direction:column;gap:10px;position:sticky;top:70px;">
 
           <!-- Avatar + nome + botões -->
           <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:14px;text-align:center;">
@@ -2987,25 +2989,29 @@ function mobProfileTab(sec, btn) {
   document.querySelectorAll('#mobile-profile-topbar .mob-ptab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
-  const colLeft = document.getElementById('profile-col-left');
+  const colLeft  = document.getElementById('profile-col-left');
+  const colCenter = document.getElementById('profile-col-center');
   const tabsWrap = document.getElementById('profile-tabs-row-wrap');
 
   if (sec === 'perfil-info') {
-    // Mostrar coluna esquerda com infos do perfil
-    if (colLeft) colLeft.classList.add('mob-visible');
-    if (tabsWrap) tabsWrap.style.display = 'none';
+    // Mostrar coluna esquerda, esconder central
+    if (colLeft)   colLeft.classList.add('mob-visible');
+    if (colCenter) colCenter.classList.add('mob-hidden');
   } else {
-    // Esconder coluna esquerda, mostrar seção central
-    if (colLeft) colLeft.classList.remove('mob-visible');
-    if (tabsWrap) tabsWrap.style.display = '';
+    // Esconder coluna esquerda, mostrar central
+    if (colLeft)   colLeft.classList.remove('mob-visible');
+    if (colCenter) colCenter.classList.remove('mob-hidden');
 
-    // Garantir que ps-agenda está dentro do wrap antes de navegar
     const realSec = sec === 'eventos' ? 'agenda' : sec;
+
+    // Mover ps-agenda para dentro do wrap se necessário
     const psEl = document.getElementById('ps-' + realSec);
     if (psEl && tabsWrap && !tabsWrap.contains(psEl)) {
       tabsWrap.appendChild(psEl);
     }
     showProfileSec(realSec, null);
+    // Carregar agenda se necessário
+    if (realSec === 'agenda') loadAgenda();
   }
 }
 
