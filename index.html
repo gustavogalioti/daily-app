@@ -2403,7 +2403,24 @@ async function submitPost(){
       toast('Publicado! ✅','success');
     }
     closeModal('modal-post');
-    if(postTargetTab==='global'||postTargetTab==='daily_mandou'){loadGlobal();loadDailyMandou();}
+    if(postTargetTab==='global'||postTargetTab==='daily_mandou'){
+      // Registrar participação no turno se houver turno ativo
+      if(postTargetTab==='global' && _turnoAtivo && !_turnoJaParticipou){
+        // Pegar o id do último post criado via feed
+        try {
+          const latestPost = await api('/api/posts?limit=1&user_id=' + currentUser?.id);
+          const pid = latestPost?.posts?.[0]?.id;
+          if(pid){
+            const turnoRes = await api('/api/turnos/participar', {method:'POST', body: JSON.stringify({post_id: pid})});
+            if(turnoRes?.ok && !turnoRes?.ja_era){
+              toast(turnoRes.mensagem_confirmacao || ('Bem-vindo à ' + _turnoAtivo.nome + '! ' + _turnoAtivo.emoji), 'success');
+              _turnoJaParticipou = true;
+            }
+          }
+        } catch(err){}
+      }
+      loadGlobal();loadDailyMandou();
+    }
     if(postTargetTab==='agora') loadAgora();
   }catch(e){toast(e.message,'error');}
   finally{btn.disabled=false;btn.textContent='Publicar';}
@@ -2412,18 +2429,96 @@ async function submitPost(){
 // ═══════════════════════════════════
 // GLOBAL
 // ═══════════════════════════════════
+// ─── Estado dos Turnos ────────────────────────────────────────────────────────
+let _turnoAtivo = null;
+let _turnoJaParticipou = false;
+
+async function loadTurnoAtivo() {
+  try {
+    const data = await api('/api/turnos/ativo');
+    _turnoAtivo = data.turno;
+    _turnoJaParticipou = data.turno?.ja_participou || false;
+    return data;
+  } catch(e) { return null; }
+}
+
+function buildPedroTurnoCard(data) {
+  if (!data?.turno || !data?.card) return '';
+  const t = data.turno;
+  const card = data.card;
+  const countTxt = t.participantes_hoje > 0
+    ? `<div style="font-size:12px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:6px;">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse-dot 1.5s infinite;"></span>
+        <strong style="color:var(--text1);">${t.participantes_hoje}</strong> ${t.participantes_hoje===1?'pessoa participou':'pessoas participaram'} da ${t.nome} hoje
+       </div>`
+    : '';
+
+  const msgHtml = card.mensagem.replace(/\n/g,'<br>').replace(/@(\w+)/g,'<strong style="color:var(--accent);">@$1</strong>');
+
+  const btnLabel = t.ja_participou ? `✅ Você já participou!` : `📸 Participar Agora`;
+  const btnStyle = t.ja_participou
+    ? `background:#f0fdf4;color:#16a34a;border:2px solid #86efac;cursor:default;`
+    : `background:var(--accent);color:#fff;cursor:pointer;`;
+
+  const minLabel = t.minutos_restantes > 60
+    ? `${Math.floor(t.minutos_restantes/60)}h ${t.minutos_restantes%60}min restantes`
+    : t.minutos_restantes > 0 ? `${t.minutos_restantes} minutos restantes` : '';
+
+  return `<div id="pedro-turno-card" style="
+    grid-column:1/-1;
+    background:linear-gradient(135deg,#fff7ed 0%,#fff 100%);
+    border:2.5px solid var(--accent);
+    border-radius:18px;
+    padding:18px 20px;
+    margin-bottom:4px;
+    position:relative;
+    overflow:hidden;
+  ">
+    <div style="position:absolute;top:0;right:0;font-size:64px;opacity:0.07;line-height:1;padding:4px;">${t.emoji}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div style="position:relative;">
+        <img src="https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg"
+             style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);">
+        <span style="position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;background:#22c55e;border-radius:50%;border:2px solid #fff;"></span>
+      </div>
+      <div>
+        <div style="font-weight:800;font-size:14px;color:var(--accent);">Pedro Daily 🐱</div>
+        <div style="font-size:11px;color:var(--muted);">agora · ${t.emoji} ${t.nome}</div>
+      </div>
+      ${minLabel ? `<div style="margin-left:auto;font-size:11px;color:var(--muted);background:#f3f4f6;padding:3px 10px;border-radius:20px;">${minLabel}</div>` : ''}
+    </div>
+    <p style="font-size:14px;line-height:1.65;color:var(--text1);margin-bottom:10px;">${msgHtml}</p>
+    ${countTxt}
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;">
+      <button style="flex:1;padding:10px;border-radius:10px;border:none;font-weight:700;font-size:14px;transition:opacity .2s;${btnStyle}"
+        onclick="onPedroTurnoClick(event,${t.ja_participou})">${btnLabel}</button>
+    </div>
+  </div>`;
+}
+
+function onPedroTurnoClick(e, jaParticipou) {
+  e.stopPropagation();
+  if (jaParticipou) return;
+  api('/api/turnos/analytics', {method:'POST', body: JSON.stringify({turno_id: _turnoAtivo?.id, evento:'clicou'})}).catch(()=>{});
+  openPostModal('photo','global');
+}
+
 async function loadGlobal(){
   const g=document.getElementById('global-grid');
   g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
   try{
-    let posts;
-    if(globalFilter==='destaques'){
-      posts=(await api('/api/posts/highlights?filter=todos')).posts;
-    }else{
-      posts=(await api('/api/posts?limit=80&exclude_tab=agora&type=photo')).posts;
-    }
-    g.innerHTML=posts.length?posts.map(renderCard).join(''):`<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Nenhuma publicação ainda. Seja o primeiro! 📸</p>`;
+    const [turnoData, postsData] = await Promise.all([
+      loadTurnoAtivo(),
+      globalFilter==='destaques'
+        ? api('/api/posts/highlights?filter=todos')
+        : api('/api/posts?limit=80&exclude_tab=agora&type=photo')
+    ]);
+    const posts = postsData.posts || [];
+    const pedroCard = (globalFilter !== 'destaques' && turnoData?.turno) ? buildPedroTurnoCard(turnoData) : '';
+    const postsHtml = posts.length ? posts.map(renderCard).join('') : `<p class="text-muted" style="padding:40px;text-align:center;grid-column:1/-1;">Nenhuma publicação ainda. Seja o primeiro! 📸</p>`;
+    g.innerHTML = pedroCard + postsHtml;
   }catch(e){g.innerHTML='<p class="text-muted" style="padding:20px;">Erro: '+e.message+'</p>';}
+}
 }
 
 function setGlobalFilter(f,btn){
@@ -2448,7 +2543,8 @@ function renderCard(p){
   const reactions=(p.reactions||[]).map(r=>`<span class="reaction-chip ${r.reacted?'mine':''}" onclick="react('${p.id}','${r.emoji}',this)">${r.emoji}<span>${r.count}</span></span>`).join('');
   const addEmojis=['👍','❤️','😂','😮','🌊'].filter(e=>!(p.reactions||[]).find(r=>r.emoji===e)).slice(0,3).map(e=>`<span class="reaction-chip" onclick="react('${p.id}','${e}',this)">${e}</span>`).join('');
   const pedro='';
-  const dmBadge=p.tab==='daily_mandou'?'<span class="badge-pill" style="font-size:10px;">⚡ Daily</span>':'';;
+  const dmBadge=p.tab==='daily_mandou'?'<span class="badge-pill" style="font-size:10px;">⚡ Daily</span>':'';
+  const turnoBadge=(p.turno_badge&&p.tab!=='daily_mandou')?`<span class="badge-pill" style="font-size:10px;background:linear-gradient(90deg,#fff7ed,#fed7aa);color:#c2410c;border:1px solid #fdba74;">${p.turno_badge}</span>`:'';
   if(p.type==='photo'&&p.image_url){
     return`<div class="photo-card">
       <div class="photo-card-body">
@@ -2459,7 +2555,7 @@ function renderCard(p){
             <span style="font-size:13px;font-weight:700;color:var(--accent);">@${p.author?.username||'anon'}</span>
             <span style="font-size:11px;color:var(--muted);">${timeAgo(p.created_at)}</span>
           </div>
-          ${dmBadge}
+          ${dmBadge}${turnoBadge}
         </div>
         ${p.caption?`<p style="font-size:14px;color:var(--text1);margin-bottom:10px;line-height:1.5;">${p.caption}</p>`:''}
       </div>
@@ -8008,7 +8104,21 @@ function selectPokeScene(emoji, label, el) {
     <style>
       @keyframes pokeBob { from{transform:translateY(0)} to{transform:translateY(-6px)} }
       @keyframes pokeSpin { 0%{transform:scale(1) rotate(-10deg)} 50%{transform:scale(1.2) rotate(10deg)} 100%{transform:scale(1) rotate(-10deg)} }
-    </style>`;
+    
+/* ── Turno / Pedro Card ── */
+@keyframes pulse-dot {
+  0%,100%{opacity:1;transform:scale(1);}
+  50%{opacity:.5;transform:scale(1.3);}
+}
+#pedro-turno-card{animation:fadeInDown .4s ease;}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-12px);}to{opacity:1;transform:translateY(0);}}
+.turno-banner{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;border-radius:12px;
+  background:linear-gradient(135deg,#fff7ed,#ffedd5);
+  border:1.5px solid #fed7aa;margin-bottom:12px;font-size:13px;
+}
+</style>`;
   document.getElementById('btn-send-poke').style.display = 'block';
 }
 

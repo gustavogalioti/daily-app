@@ -19,7 +19,23 @@ async function enrich(p, userId) {
   if (!p.is_anonymous) {
     author = await db.prepare('SELECT id,name,username,avatar_url FROM users WHERE id=$1').get(p.user_id);
   }
-  return { ...p, author: author || { name:'Usuário anônimo', username:'anonimo', avatar_url:'' }, reactions, comment_count, pedro_comment: pedro?.content || null };
+  // Badge de turno
+  let turno_badge = null;
+  try {
+    const { TURNOS } = require('./turnos');
+    if (p.created_at) {
+      const postDate = new Date(p.created_at);
+      const hora = (postDate.getUTCHours() - 3 + 24) % 24;
+      for (const t of TURNOS) {
+        if (t.hora_fim > t.hora_inicio) {
+          if (hora >= t.hora_inicio && hora < t.hora_fim) { turno_badge = t.badge; break; }
+        } else {
+          if (hora >= t.hora_inicio || hora < t.hora_fim) { turno_badge = t.badge; break; }
+        }
+      }
+    }
+  } catch(e) {}
+  return { ...p, author: author || { name:'Usuário anônimo', username:'anonimo', avatar_url:'' }, reactions, comment_count, pedro_comment: pedro?.content || null, turno_badge };
 }
 
 // Pedro comenta automaticamente (async, não bloqueia)
