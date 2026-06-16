@@ -2852,6 +2852,15 @@ async function loadProfile(){
     const av=user.avatar_url||avatarUrl(user.name);
     const badges=user.featured_badges?.map(b=>`<div class="profile-badge-chip">${b.icon} ${b.name}</div>`).join('')||'';
     w.innerHTML=`
+      <!-- TOPBAR MOBILE FORA DO GRID (sempre visível no mobile) -->
+      <div id="mobile-profile-topbar">
+        <button class="mob-ptab active" onclick="mobProfileTab('feed',this)">📰 Feed</button>
+        <button class="mob-ptab" onclick="mobProfileTab('amigos',this)">👥 Amigos</button>
+        <button class="mob-ptab" onclick="mobProfileTab('depoimentos',this)">💬 Depoi.</button>
+        <button class="mob-ptab" onclick="mobProfileTab('conquistas',this)">🏆 Conquistas</button>
+        <button class="mob-ptab" onclick="mobProfileTab('eventos',this)">📆 Eventos</button>
+        <button class="mob-ptab" onclick="mobProfileTab('perfil-info',this)">👤 Perfil</button>
+      </div>
       <div class="profile-grid-3col" style="display:grid;grid-template-columns:150px 1fr 150px;gap:10px;align-items:start;">
 
         <!-- ── COLUNA ESQUERDA: foto + stats + poke ── -->
@@ -2912,15 +2921,6 @@ async function loadProfile(){
 
         <!-- ── COLUNA CENTRAL: conteúdo / timeline ── -->
         <div id="profile-col-center">
-          <!-- TOPBAR MOBILE DO PERFIL (só aparece em telas <=600px) -->
-          <div id="mobile-profile-topbar">
-            <button class="mob-ptab active" onclick="mobProfileTab('feed',this)">📰 Feed</button>
-            <button class="mob-ptab" onclick="mobProfileTab('amigos',this)">👥 Amigos</button>
-            <button class="mob-ptab" onclick="mobProfileTab('depoimentos',this)">💬 Depoi.</button>
-            <button class="mob-ptab" onclick="mobProfileTab('conquistas',this)">🏆 Conquistas</button>
-            <button class="mob-ptab" onclick="mobProfileTab('eventos',this)">📆 Eventos</button>
-            <button class="mob-ptab" onclick="mobProfileTab('perfil-info',this)">👤 Perfil</button>
-          </div>
           <div id="profile-tabs-row-wrap"></div>
         </div>
 
@@ -2989,29 +2989,28 @@ function mobProfileTab(sec, btn) {
   document.querySelectorAll('#mobile-profile-topbar .mob-ptab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
-  const colLeft  = document.getElementById('profile-col-left');
+  const colLeft   = document.getElementById('profile-col-left');
   const colCenter = document.getElementById('profile-col-center');
-  const tabsWrap = document.getElementById('profile-tabs-row-wrap');
+  const tabsWrap  = document.getElementById('profile-tabs-row-wrap');
 
   if (sec === 'perfil-info') {
-    // Mostrar coluna esquerda, esconder central
+    // Mostrar col-left, esconder col-center
     if (colLeft)   colLeft.classList.add('mob-visible');
-    if (colCenter) colCenter.classList.add('mob-hidden');
+    if (colCenter) colCenter.style.display = 'none';
   } else {
-    // Esconder coluna esquerda, mostrar central
+    // Esconder col-left, mostrar col-center
     if (colLeft)   colLeft.classList.remove('mob-visible');
-    if (colCenter) colCenter.classList.remove('mob-hidden');
+    if (colCenter) colCenter.style.display = '';
 
     const realSec = sec === 'eventos' ? 'agenda' : sec;
 
-    // Mover ps-agenda para dentro do wrap se necessário
+    // Mover seção para dentro do wrap se estiver fora
     const psEl = document.getElementById('ps-' + realSec);
     if (psEl && tabsWrap && !tabsWrap.contains(psEl)) {
       tabsWrap.appendChild(psEl);
     }
+    // Mostrar seção e carregar dados
     showProfileSec(realSec, null);
-    // Carregar agenda se necessário
-    if (realSec === 'agenda') loadAgenda();
   }
 }
 
