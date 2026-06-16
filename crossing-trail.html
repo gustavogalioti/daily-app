@@ -242,103 +242,123 @@ const ctx    = canvas.getContext('2d');
 //   da imagem, e o grid ocupa w×h desse retângulo.
 
 const GW = 14;  // colunas do grid
-const GH = 12;  // linhas do grid (menor = mais denso na tela)
+const GH = 10;  // linhas do grid — 10 linhas para encaixar nas lanes dos novos PNGs
+
+// ── ANÁLISE DOS NOVOS CENÁRIOS ───────────────────────────────────
+// Vista: top-down puro (ortogonal, sem isometria)
+// Proporção das imagens: ~880x1400px (portrait, ~0.63:1)
+// Estrutura visual de cada PNG:
+//   topo  0%-12%  → fachada/escadas (não caminhável)
+//   12%-20%       → área das escadas (não caminhável)
+//   20%-78%       → PISO JOGÁVEL com 6 lanes amarelas horizontais
+//   78%-86%       → área pré-catracas (não caminhável)
+//   86%-100%      → catracas + trilho (não caminhável)
+//
+// As 6 lanes amarelas ficam espaçadas uniformemente dentro do piso jogável.
+// Cada lane tem direção alternada: ←→←→←→
+//
+// Grid: GW=14 colunas, GH=10 linhas
+//   gy=0 → zona chegada (topo, atrás das escadas)
+//   gy=1,2,3,4,5,6,7,8 → lanes jogáveis (6 lanes amarelas nos ímpares)
+//   gy=9 → zona início (fundo, frente das catracas)
 
 const STATIONS = [
   {
     name: 'Palmeiras-Barra Funda',
     imageSrc: 'barra-funda.png',
-    // fallback color se PNG não carregar
-    fallbackColor: '#4a5568',
-    // Lanes: baseadas na imagem Barra Funda
-    // Há 4 corredores visíveis (horizontal):
-    //   - faixa amarela superior (gy=2, direita←esquerda)
-    //   - corredor amplo centro-alto (gy=4, esquerda→direita)
-    //   - faixa amarela central (gy=6, direita←esquerda)
-    //   - corredor baixo antes das catracas (gy=8, esquerda→direita)
-    //   - faixa entre catracas e trilho (gy=10, direita←esquerda)
+    fallbackColor: '#3a3a4a',
+    // 6 lanes horizontais — alternando ←→
     laneRows: [
-      { gy:2,  dir:-1 }, // fluxo D→E
-      { gy:4,  dir: 1 }, // fluxo E→D
-      { gy:6,  dir:-1 },
-      { gy:8,  dir: 1 },
-      { gy:10, dir:-1 },
+      { gy:1, dir:-1 },
+      { gy:2, dir: 1 },
+      { gy:3, dir:-1 },
+      { gy:4, dir: 1 },
+      { gy:5, dir:-1 },
+      { gy:6, dir: 1 },
+      { gy:7, dir:-1 },
+      { gy:8, dir: 1 },
     ],
-    goalY:  1,
-    startY: 11,
-    // Como o PNG cobre a tela:
-    // A imagem das estações tem aspecto ~4:3 (1333x1000 aprox)
-    // Vamos cobrir a tela toda, centralizando
+    goalY:  0,
+    startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    // O grid fica sobre o piso da estação.
-    // Na imagem, o piso vai de ~15% do topo até ~85% do topo,
-    // e de ~5% à esquerda até ~95% à direita.
-    gridRect: { x:0.05, y:0.20, w:0.90, h:0.68 },
+    // piso jogável: de 20% a 78% da altura, 8% a 92% da largura
+    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
   },
   {
     name: 'Estação da Luz',
     imageSrc: 'luz.png',
-    fallbackColor: '#5a4a38',
+    fallbackColor: '#2a2a3a',
     laneRows: [
-      { gy:2,  dir:-1 },
-      { gy:4,  dir: 1 },
-      { gy:6,  dir:-1 },
-      { gy:8,  dir: 1 },
-      { gy:10, dir:-1 },
+      { gy:1, dir: 1 },
+      { gy:2, dir:-1 },
+      { gy:3, dir: 1 },
+      { gy:4, dir:-1 },
+      { gy:5, dir: 1 },
+      { gy:6, dir:-1 },
+      { gy:7, dir: 1 },
+      { gy:8, dir:-1 },
     ],
-    goalY:  1,
-    startY: 11,
+    goalY:  0,
+    startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.05, y:0.20, w:0.90, h:0.68 },
+    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
   },
   {
     name: 'Estação da Sé',
     imageSrc: 'se.png',
-    fallbackColor: '#3a4a5a',
+    fallbackColor: '#2a3a2a',
     laneRows: [
-      { gy:2,  dir: 1 },
-      { gy:4,  dir:-1 },
-      { gy:6,  dir: 1 },
-      { gy:8,  dir:-1 },
-      { gy:10, dir: 1 },
+      { gy:1, dir:-1 },
+      { gy:2, dir: 1 },
+      { gy:3, dir:-1 },
+      { gy:4, dir: 1 },
+      { gy:5, dir:-1 },
+      { gy:6, dir: 1 },
+      { gy:7, dir:-1 },
+      { gy:8, dir: 1 },
     ],
-    goalY:  1,
-    startY: 11,
+    goalY:  0,
+    startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.05, y:0.20, w:0.90, h:0.68 },
+    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
   },
   {
     name: 'Gare du Nord',
     imageSrc: 'gare-du-nord.png',
-    fallbackColor: '#3a3a4a',
+    fallbackColor: '#2a2a2a',
     laneRows: [
-      { gy:2,  dir:-1 },
-      { gy:4,  dir: 1 },
-      { gy:5,  dir:-1 }, // Gare du Nord tem corredor extra
-      { gy:7,  dir: 1 },
-      { gy:9,  dir:-1 },
-      { gy:11, dir: 1 },
+      { gy:1, dir: 1 },
+      { gy:2, dir:-1 },
+      { gy:3, dir: 1 },
+      { gy:4, dir:-1 },
+      { gy:5, dir: 1 },
+      { gy:6, dir:-1 },
+      { gy:7, dir: 1 },
+      { gy:8, dir:-1 },
     ],
-    goalY:  1,
-    startY: 11,
+    goalY:  0,
+    startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.04, y:0.18, w:0.92, h:0.70 },
+    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
   },
   {
     name: 'Grand Central',
     imageSrc: 'grand-central.png',
-    fallbackColor: '#4a3a2a',
+    fallbackColor: '#3a2a1a',
     laneRows: [
-      { gy:2,  dir: 1 },
-      { gy:4,  dir:-1 },
-      { gy:6,  dir: 1 },
-      { gy:8,  dir:-1 },
-      { gy:10, dir: 1 },
+      { gy:1, dir:-1 },
+      { gy:2, dir: 1 },
+      { gy:3, dir:-1 },
+      { gy:4, dir: 1 },
+      { gy:5, dir:-1 },
+      { gy:6, dir: 1 },
+      { gy:7, dir:-1 },
+      { gy:8, dir: 1 },
     ],
-    goalY:  1,
-    startY: 11,
+    goalY:  0,
+    startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.04, y:0.18, w:0.92, h:0.70 },
+    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
   },
 ];
 
@@ -393,14 +413,9 @@ function gridToScreen(gx, gy) {
   const tileW = gridW_px / GW;
   const tileH = gridH_px / GH;
 
-  // Projeção isométrica: as imagens têm ângulo ~30° (estilo lego/voxel top-down leve)
-  // sx avança para a direita com gx, recua levemente com gy
-  // sy avança para baixo com gy, avança levemente com gx
-  const ISO_X = 0.5; // quanto gy empurra para a esquerda
-  const ISO_Y = 0.25; // quanto gx empurra para baixo
-
-  const sx = gridOriginX + gx * tileW - gy * tileW * ISO_X;
-  const sy = gridOriginY + gy * tileH - gx * tileH * ISO_Y;
+  // Top-down puro: projeção ortogonal, sem isometria
+  const sx = gridOriginX + gx * tileW;
+  const sy = gridOriginY + gy * tileH;
 
   return { sx, sy, tileW, tileH };
 }
@@ -466,9 +481,12 @@ function makeNPCs(station, count, spd) {
 // ── UPDATE NPCs ───────────────────────────────────────────────────
 function updateNPCs(dt) {
   G.npcs.forEach(n => {
+    // Apenas X varia — Y travado na lane
     n.gx += n.dir * n.spd * dt;
     if (n.dir ===  1 && n.gx > GW + 1.5) n.gx = -1.5;
     if (n.dir === -1 && n.gx < -1.5)      n.gx = GW + 1.5;
+    // Garantia: Y nunca muda
+    // n.gy permanece constante conforme definido no spawn
   });
 }
 
@@ -512,16 +530,21 @@ function drawBackground() {
 
   const img = loadImage(st.imageSrc);
   if (img.complete && img.naturalWidth > 0) {
-    // Escala a imagem para cobrir o retângulo mantendo proporção (cover)
+    // Modo cover: preenche toda a tela mantendo proporção
+    // PNGs são portrait (~880x1400) — em mobile portrait encaixam perfeitamente
+    // Em desktop centralizamos e cobrimos a altura toda
     const imgAspect = img.naturalWidth / img.naturalHeight;
     const boxAspect = w / h;
     let dw, dh, dx, dy;
     if (imgAspect > boxAspect) {
+      // Imagem mais larga que a tela: preenche altura
       dh = h; dw = h * imgAspect;
       dx = x + (w - dw) / 2; dy = y;
     } else {
+      // Imagem mais alta que a tela (caso típico portrait): preenche largura
       dw = w; dh = w / imgAspect;
-      dx = x; dy = y + (h - dh) / 2;
+      // Alinhar ao topo para mostrar a fachada
+      dx = x; dy = y;
     }
     ctx.drawImage(img, dx, dy, dw, dh);
   } else {
@@ -569,8 +592,8 @@ function drawDebugGrid() {
 
 // ── DRAW CHARACTER ────────────────────────────────────────────────
 // Tamanho base do personagem relativo ao tile
-const CHAR_SCALE_PLAYER = 1.8;
-const CHAR_SCALE_NPC    = 1.4;
+const CHAR_SCALE_PLAYER = 2.8;
+const CHAR_SCALE_NPC    = 2.2;
 
 function drawChar(gx, gy, emoji, isPlayer) {
   const { sx, sy, tileW, tileH } = gridToScreen(gx, gy);
