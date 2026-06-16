@@ -3002,15 +3002,19 @@ function mobProfileTab(sec, btn) {
     if (colLeft)   colLeft.classList.remove('mob-visible');
     if (colCenter) colCenter.style.display = '';
 
-    const realSec = sec === 'eventos' ? 'agenda' : sec;
+    if (sec === 'eventos') {
+      // Eventos usa tela fullscreen — abrir direto
+      openAgendaScreen();
+      return;
+    }
 
     // Mover seção para dentro do wrap se estiver fora
-    const psEl = document.getElementById('ps-' + realSec);
+    const psEl = document.getElementById('ps-' + sec);
     if (psEl && tabsWrap && !tabsWrap.contains(psEl)) {
       tabsWrap.appendChild(psEl);
     }
     // Mostrar seção e carregar dados
-    showProfileSec(realSec, null);
+    showProfileSec(sec, null);
   }
 }
 
