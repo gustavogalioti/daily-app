@@ -149,7 +149,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .pill.active,.pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
 
 /* ── PHOTO GRID ── */
-.photo-grid{columns:4 160px;gap:8px;}
+.photo-grid{columns:5 140px;gap:8px;}
 .photo-card{break-inside:avoid;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .18s;box-shadow:var(--shadow);}
 .photo-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
 .photo-card img{width:100%;display:block;background:var(--surface2);}
@@ -369,6 +369,9 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .profile-sidebar-btn:hover:not(.active){background:var(--surface2);}
 .profile-main{flex:1;min-width:0;}
 @media(max-width:480px){
+  .photo-grid{columns:2!important;gap:6px;}
+  .photo-card-body{padding:7px 9px;}
+  .photo-card-body .text-sm{font-size:11px;}
   .profile-layout{flex-direction:column;}
   .profile-sidebar{width:100%;flex-direction:row;flex-wrap:wrap;gap:4px;border-radius:14px;}
   .profile-sidebar-btn{flex:1;min-width:80px;justify-content:center;padding:8px;font-size:11px;}
@@ -432,7 +435,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   .topbar-logo{display:none!important;}
   .nav-btn{padding:8px 10px;}
   .tab-content{padding:14px 12px;}
-  .photo-grid{columns:3;}
+  .photo-grid{columns:4;}
   .discuss-grid{columns:1;}
   .comm-grid{grid-template-columns:1fr 1fr;}
   .profile-top{flex-direction:column;align-items:center;text-align:center;}
@@ -2464,7 +2467,22 @@ function buildPedroTurnoCard(data) {
     ? `${Math.floor(t.minutos_restantes/60)}h ${t.minutos_restantes%60}min restantes`
     : t.minutos_restantes > 0 ? `${t.minutos_restantes} minutos restantes` : '';
 
-  return `<div id="pedro-turno-card" style="
+  const hashtag = {
+    madrugadores:'#trend5AM', manha:'#trendManha',
+    almoco:'#trendAlmoco', tarde:'#trendTarde', corujas:'#trendCorujas'
+  }[t.id] || '#trendDaily';
+
+  const pinnedBanner = t.participantes_hoje > 0 ? `
+    <div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:9px 14px;
+      background:linear-gradient(90deg,#fff7ed,#ffedd5);border-radius:12px;
+      border:1.5px solid #fed7aa;margin-bottom:6px;font-size:12px;color:var(--text2);">
+      <span style="font-size:16px;">📌</span>
+      <span><strong style="color:var(--accent);">Pedro Daily</strong> está perguntando:
+      está rolando a trend <strong>${hashtag}</strong>! 
+      ${t.participantes_hoje} ${t.participantes_hoje===1?'pessoa participou':'pessoas participaram'} — você viu?</span>
+    </div>` : '';
+
+  return pinnedBanner + `<div id="pedro-turno-card" style="
     grid-column:1/-1;
     background:linear-gradient(135deg,#fff7ed 0%,#fff 100%);
     border:2.5px solid var(--accent);
@@ -2501,6 +2519,18 @@ function onPedroTurnoClick(e, jaParticipou) {
   if (jaParticipou) return;
   api('/api/turnos/analytics', {method:'POST', body: JSON.stringify({turno_id: _turnoAtivo?.id, evento:'clicou'})}).catch(()=>{});
   openPostModal('photo','global');
+  // Pré-preencher hashtag após modal abrir
+  const HASHTAGS = {
+    madrugadores:'#trend5AM', manha:'#trendManha',
+    almoco:'#trendAlmoco', tarde:'#trendTarde', corujas:'#trendCorujas'
+  };
+  const ht = HASHTAGS[_turnoAtivo?.id] || '';
+  if (ht) {
+    setTimeout(() => {
+      const cap = document.getElementById('post-caption');
+      if (cap && !cap.value) cap.value = ht + ' ';
+    }, 150);
+  }
 }
 
 async function loadGlobal(){
