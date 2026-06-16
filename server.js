@@ -182,6 +182,16 @@ process.on('uncaughtException', (err) => {
       console.log('  ✓ Truco WebSocket ativo');
     }
   } catch(e) { console.warn('Truco WS erro:', e.message); }
+
+  // WebSocket para Paint Wars Coop
+  try {
+    if (WebSocketServer) {
+      const { setupCoopWS } = require('./coop');
+      const wssC = new WebSocketServer({ server: httpServer, path: '/ws/coop' });
+      setupCoopWS(wssC);
+      console.log('  ✓ Paint Wars Coop WebSocket ativo');
+    }
+  } catch(e) { console.warn('Coop WS erro:', e.message); }
   httpServer.listen(PORT, '0.0.0.0', () => console.log(`\n🗓️  DAILY v3 rodando em http://localhost:${PORT}\n`));
   } catch(err) {
     console.error('FATAL ao iniciar:', err.message);
