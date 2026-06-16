@@ -3319,12 +3319,12 @@ async function loadFeedTab(tab) {
     const endpoint = tab === 'meus' ? '/api/feed/myposts' : '/api/feed/friends';
     const [{ posts }, turnoData] = await Promise.all([
       api(endpoint),
-      tab === 'friends' ? loadTurnoAtivo() : Promise.resolve(null)
+      tab === 'amigos' ? loadTurnoAtivo() : Promise.resolve(null)
     ]);
 
     // Card do Pedro no topo do feed de amigos quando há turno ativo
     let pedroFeedCard = '';
-    if (tab === 'friends' && turnoData?.turno) {
+    if (tab === 'amigos' && turnoData?.turno) {
       const t = turnoData.turno;
       const HASHTAGS = {
         madrugadores:'#trend5AM', manha:'#trendManha',
