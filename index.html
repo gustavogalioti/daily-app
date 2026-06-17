@@ -7247,9 +7247,9 @@ function parseMentions(text) {
   dd.id = '_mention_dd';
   dd.className = 'mention-dropdown';
   dd.style.cssText = 'display:none;position:fixed;z-index:99999;min-width:220px;max-width:340px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.18);';
-  document.body.appendChild(dd);
-
+  // Aguardar body estar pronto antes de anexar
   let timer = null, mStart = 0, mUsers = [], activeTA = null;
+  function ensureDD() { if (!dd.parentNode) document.body.appendChild(dd); }
 
   function positionDD(ta) {
     const r = ta.getBoundingClientRect();
@@ -7303,6 +7303,7 @@ function parseMentions(text) {
         dd.querySelectorAll('.mention-item').forEach(item => {
           item.addEventListener('mousedown', e => { e.preventDefault(); pickUser(mUsers[+item.dataset.idx]); });
         });
+        ensureDD();
         positionDD(activeTA);
         dd.style.display = 'block';
       } catch(e) { hideDD(); }
@@ -7343,6 +7344,7 @@ function parseMentions(text) {
 
   // MutationObserver: auto-attach em textareas gerados dinamicamente
   new MutationObserver(() => {
+    ensureDD();
     document.querySelectorAll('textarea:not([data-no-mention]):not([data-mok])').forEach(ta => {
       ta.setAttribute('data-mok','1');
       attachMention(ta);
