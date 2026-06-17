@@ -376,7 +376,7 @@ const imgCache = {};
 function loadImage(src) {
   if (imgCache[src]) return imgCache[src];
   const img = new Image();
-  img.src = src + '?v=ct4';
+  img.src = src + '?v=ct5';
   imgCache[src] = img;
   return img;
 }
@@ -402,7 +402,7 @@ const NPC_TYPES_DEF = [
 const NPC_IMGS = {};
 NPC_TYPES_DEF.forEach(t => {
   const img = new Image();
-  img.src = t.src + '?v=ct4';
+  img.src = t.src + '?v=ct5';
   NPC_IMGS[t.id] = img;
 });
 
