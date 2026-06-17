@@ -506,11 +506,16 @@ function updateNPCs(dt) {
 // ── COLLISION ─────────────────────────────────────────────────────
 function checkCollision() {
   if (G.over || G.complete) return;
+  // Não checar durante movimento do jogador — evita falso positivo entre tiles
+  if (G.player.busy) return;
+
   const px = G.player.gx, py = G.player.gy;
   for (const n of G.npcs) {
-    // Colide apenas se estiver no mesmo tile (mesmo gy da lane E gx sobrepostos)
-    const sameLane = Math.abs(n.gy - py) < 0.45;  // mesmo Y (mesma lane)
-    const sameCol  = Math.abs(n.gx - px) < 0.45;  // mesmo X (mesma coluna)
+    // NPCs só se movem horizontalmente (gy fixo)
+    // Colide APENAS se estiver exatamente na mesma lane (gy igual, diferença < 0.35)
+    // E no mesmo X (diferença < 0.40)
+    const sameLane = Math.abs(n.gy - py) < 0.35;
+    const sameCol  = Math.abs(n.gx - px) < 0.40;
     if (sameLane && sameCol) { doGameOver(); return; }
   }
 }
@@ -996,7 +1001,7 @@ function renderRanking() {
 
   // Ranking é público — sempre buscar do backend
   const headers = DAILY_TOKEN ? { 'Authorization': 'Bearer ' + DAILY_TOKEN } : {};
-  fetch('/api/crossing/ranking', { headers })
+  fetch('/api/crossing/ranking?t=' + Date.now(), { headers })
     .then(r => r.json())
     .then(data => {
       const list = (data.ranking||[]).map(r => ({
