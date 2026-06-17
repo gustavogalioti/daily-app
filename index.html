@@ -12059,7 +12059,7 @@ function initCrossingTrail() {
       iframe.style.visibility = 'visible';
       // Passar token e usuário para o jogo
       try {
-        const token = localStorage.getItem('daily_token') || localStorage.getItem('token') || tok();
+        const token = tok() || localStorage.getItem('daily_token') || localStorage.getItem('token') || '';
         iframe.contentWindow.postMessage({ type:'DAILY_AUTH', token, user: currentUser }, '*');
       } catch(e) {}
     };
@@ -12068,11 +12068,14 @@ function initCrossingTrail() {
     };
     iframe.src = '/crossing-trail.html';
   } else {
-    // Já carregado — só garantir que está visível
+    // Já carregado — garantir visível e reenviar token
     loader.style.display = 'none';
     iframe.style.visibility = 'visible';
-    // Retomar se estava pausado
-    try { iframe.contentWindow.postMessage('resume','*'); } catch(e) {}
+    try {
+      const token = tok() || localStorage.getItem('daily_token') || localStorage.getItem('token') || '';
+      iframe.contentWindow.postMessage({ type:'DAILY_AUTH', token, user: currentUser }, '*');
+      iframe.contentWindow.postMessage('resume','*');
+    } catch(e) {}
   }
 }
 </script>
