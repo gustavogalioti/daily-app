@@ -16,6 +16,21 @@ const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+// Servir arquivos do jogo sem cache para garantir versão mais recente
+app.use('/crossing-trail.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(require('path').join(__dirname, 'crossing-trail.html'));
+});
+
+// Servir PNGs das estações sem cache
+['barra-funda','luz','se','gare-du-nord','grand-central'].forEach(name => {
+  app.use(`/${name}.png`, (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.sendFile(require('path').join(__dirname, `${name}.png`));
+  });
+});
+
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
