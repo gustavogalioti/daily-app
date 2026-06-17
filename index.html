@@ -2246,6 +2246,7 @@ function bootApp(){
     const ma=document.getElementById('more-admin-btn'); if(ma) ma.style.display='flex';
   }
   loadDailyMandou();
+  attachAllMentions();
   switchTab('profile', document.querySelector('.nav-btn[onclick*="profile"]'));
   checkNotif();
   setInterval(checkNotif,10000);
@@ -7234,10 +7235,91 @@ function insertMention(username, dropdownId) {
 }
 
 function parseMentions(text) {
-  // Detecta @username e substitui por link clicável
   return (text || '').replace(/@(\w+)/g, (match, uname) =>
     `<span class="mention-highlight" onclick="openUserProfile('${uname}')">${match}</span>`
   );
+}
+
+// ── MENÇÃO UNIVERSAL ──────────────────────────────────────────
+function attachMention(textarea) {
+  if (!textarea || textarea._mentionAttached) return;
+  textarea._mentionAttached = true;
+
+  const dd = document.createElement('div');
+  dd.className = 'mention-dropdown';
+  dd.style.cssText = 'display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;z-index:9999;min-width:200px;';
+  const wrap = textarea.parentElement;
+  if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
+  wrap.appendChild(dd);
+
+  let timer = null, mStart = 0, mUsers = [];
+
+  textarea.addEventListener('input', () => {
+    const pos = textarea.selectionStart;
+    const before = textarea.value.substring(0, pos);
+    const match = before.match(/@(\w*)$/);
+    if (!match || match[1].length === 0) { dd.style.display = 'none'; return; }
+    mStart = pos - match[0].length;
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      try {
+        const { users } = await api('/api/users/search?q=' + encodeURIComponent(match[1]));
+        mUsers = users || [];
+        if (!mUsers.length) { dd.style.display = 'none'; return; }
+        dd.innerHTML = mUsers.slice(0, 6).map((u, i) =>
+          `<div class="mention-item" data-idx="${i}" tabindex="0">
+            <img src="${u.avatar_url || avatarUrl(u.name)}" alt="" onerror="this.src=avatarUrl('${u.name}')">
+            <div><div style="font-weight:700;">${u.name}</div>
+            <div style="font-size:11px;color:var(--muted);">@${u.username}</div></div>
+          </div>`
+        ).join('');
+        dd.querySelectorAll('.mention-item').forEach(item => {
+          item.addEventListener('mousedown', e => {
+            e.preventDefault();
+            const u = mUsers[+item.dataset.idx];
+            const after = textarea.value.substring(textarea.selectionStart);
+            textarea.value = textarea.value.substring(0, mStart) + '@' + u.username + ' ' + after;
+            textarea.selectionStart = textarea.selectionEnd = mStart + u.username.length + 2;
+            textarea.focus();
+            dd.style.display = 'none';
+          });
+        });
+        dd.style.display = 'block';
+      } catch(e) { dd.style.display = 'none'; }
+    }, 280);
+  });
+
+  textarea.addEventListener('keydown', e => {
+    if (dd.style.display === 'none') return;
+    const items = [...dd.querySelectorAll('.mention-item')];
+    const cur = dd.querySelector('.mention-item.focused');
+    if (e.key === 'Escape') { dd.style.display = 'none'; e.preventDefault(); }
+    else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const idx = cur ? Math.min(items.indexOf(cur)+1, items.length-1) : 0;
+      items.forEach(i => i.classList.remove('focused'));
+      items[idx]?.classList.add('focused');
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const idx = cur ? Math.max(items.indexOf(cur)-1, 0) : items.length-1;
+      items.forEach(i => i.classList.remove('focused'));
+      items[idx]?.classList.add('focused');
+    } else if (e.key === 'Enter') {
+      const focused = dd.querySelector('.mention-item.focused');
+      if (focused) { focused.dispatchEvent(new MouseEvent('mousedown')); e.preventDefault(); }
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!dd.contains(e.target) && e.target !== textarea) dd.style.display = 'none';
+  });
+}
+
+function attachAllMentions() {
+  ['post-text','feed-text-input','agora-compose-text',
+   'comm-post-text','event-post-text','new-comment',
+   'dq-ans','regional-text'
+  ].forEach(id => { const el = document.getElementById(id); if (el) attachMention(el); });
 }
 
 // ═══════════════════════════════════════

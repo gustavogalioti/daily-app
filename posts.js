@@ -5,6 +5,28 @@ const { createPhotoUpload, getUploadedUrl } = require('./cloudinary');
 const { authMiddleware, optionalAuth } = require('./authmiddleware');
 const { checkAndGrant } = require('./achievements');
 const { createNotification } = require('./notif_helper');
+
+// Detecta @mentions no texto e notifica cada usuário mencionado
+async function notifyMentions(db, text, fromUserId, postId) {
+  if (!text) return;
+  const matches = [...new Set(text.match(/@(\w+)/g) || [])];
+  for (const m of matches) {
+    const username = m.slice(1);
+    try {
+      const mentioned = await db.prepare('SELECT id,name FROM users WHERE username=$1').get(username);
+      if (!mentioned || mentioned.id === fromUserId) continue;
+      const sender = await db.prepare('SELECT name FROM users WHERE id=$1').get(fromUserId);
+      await createNotification(db, {
+        userId: mentioned.id,
+        fromUserId,
+        type: 'mention',
+        title: `${sender.name} marcou você em um post`,
+        body: text.substring(0, 100),
+        data: { post_id: postId }
+      });
+    } catch(e) { console.error('[mention notif]', e.message); }
+  }
+}
 const { getPedroComment } = require('./pedro');
 
 const router = express.Router();
@@ -142,6 +164,8 @@ router.post('/', authMiddleware, async (req, res) => {
       .run(id, req.user.id, postType, content||caption, t, caption||null, is_anonymous?1:0, lat||null, lng||null);
     await checkAndGrant(db, req.user.id, 'posts');
     pedroAutoComment(id, 'text');
+    // Notificar usuários mencionados
+    notifyMentions(db, content || caption, req.user.id, id).catch(() => {});
     const post = await db.prepare('SELECT * FROM posts WHERE id=$1').get(id);
     res.status(201).json({ post: await enrich(post, req.user.id) });
   } catch(e) { console.error(e); res.status(500).json({ error: e.message }); }
@@ -185,6 +209,8 @@ router.post('/photo', authMiddleware, (req, res, next) => {
       if (h >= 2 && h < 4) await checkAndGrant(db, req.user.id, 'night_owl');
 
       pedroAutoComment(id, finalTab === 'daily_mandou' ? 'daily_mandou' : 'photo');
+      // Notificar usuários mencionados na legenda
+      notifyMentions(db, caption, req.user.id, id).catch(() => {});
 
       const post = await db.prepare('SELECT * FROM posts WHERE id=$1').get(id);
       res.status(201).json({ post: await enrich(post, req.user.id) });
@@ -256,6 +282,8 @@ router.post('/:id/comments', authMiddleware, async (req, res) => {
         data: { post_id: postRow.id }
       });
     }
+    // Notificar usuários mencionados no comentário
+    if (!is_anonymous) notifyMentions(db, content, req.user.id, req.params.id).catch(() => {});
     res.status(201).json({ comment: safe });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
