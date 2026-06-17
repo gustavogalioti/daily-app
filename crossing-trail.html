@@ -282,7 +282,7 @@ const STATIONS = [
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
     // piso jogável: de 20% a 78% da altura, 8% a 92% da largura
-    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
+    gridRect: { x:0.08, y:0.28, w:0.84, h:0.62 },
   },
   {
     name: 'Estação da Luz',
@@ -301,7 +301,7 @@ const STATIONS = [
     goalY:  0,
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
+    gridRect: { x:0.08, y:0.28, w:0.84, h:0.62 },
   },
   {
     name: 'Estação da Sé',
@@ -320,7 +320,7 @@ const STATIONS = [
     goalY:  0,
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
+    gridRect: { x:0.08, y:0.28, w:0.84, h:0.62 },
   },
   {
     name: 'Gare du Nord',
@@ -339,7 +339,7 @@ const STATIONS = [
     goalY:  0,
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
+    gridRect: { x:0.08, y:0.28, w:0.84, h:0.62 },
   },
   {
     name: 'Grand Central',
@@ -358,7 +358,7 @@ const STATIONS = [
     goalY:  0,
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
+    gridRect: { x:0.08, y:0.28, w:0.84, h:0.62 },
   },
 ];
 
@@ -639,8 +639,7 @@ function drawChar(gx, gy, npcId, isPlayer, flipX) {
   const { sx, sy, tileW, tileH } = gridToScreen(gx, gy);
 
   const cx    = sx + tileW * 0.5;
-  // footY: base do tile + offset para alinhar com o chão visual da foto
-  const footY = sy + tileH * 1.6;
+  const footY = sy + tileH; // pés na base exata do tile
 
   const scale = isPlayer ? CHAR_SCALE_PLAYER : CHAR_SCALE_NPC;
   const charH = tileH * scale * 0.7;
