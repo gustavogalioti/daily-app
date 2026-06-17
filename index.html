@@ -12066,7 +12066,7 @@ function initCrossingTrail() {
     iframe.onerror = () => {
       loader.innerHTML = '<div style="color:#fff;text-align:center;padding:20px">❌ Erro ao carregar o jogo.<br><small style="opacity:.6">Tente recarregar a página.</small></div>';
     };
-    iframe.src = '/crossing-trail.html';
+    iframe.src = '/crossing-trail.html?v=' + Date.now();
   } else {
     // Já carregado — garantir visível e reenviar token
     loader.style.display = 'none';
@@ -12078,4 +12078,19 @@ function initCrossingTrail() {
     } catch(e) {}
   }
 }
+
+// Responder ao iframe do Crossing Trail quando ele pedir autenticação
+window.addEventListener('message', function(e) {
+  if (e.data === 'REQUEST_AUTH' || e.data?.type === 'REQUEST_AUTH') {
+    const iframe = document.getElementById('ct-iframe');
+    if (!iframe || !iframe.contentWindow) return;
+    try {
+      const token = tok() || '';
+      iframe.contentWindow.postMessage(
+        { type: 'DAILY_AUTH', token, user: currentUser },
+        '*'
+      );
+    } catch(err) {}
+  }
+});
 </script>

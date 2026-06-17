@@ -901,15 +901,28 @@ function goMenu()     { G = null; showScreen('screen-menu'); }
 function openRanking(){ renderRanking(); showScreen('screen-ranking'); }
 
 // ── AUTH (recebido do Daily via postMessage) ──────────────────────
-let DAILY_TOKEN = '';
-let DAILY_USER  = null;
+let DAILY_TOKEN   = '';
+let DAILY_USER    = null;
+let _pendingScore = null;  // score guardado antes do token chegar
+let _pendingPhase = 1;
 
 window.addEventListener('message', e => {
   if (e.data?.type === 'DAILY_AUTH') {
     DAILY_TOKEN = e.data.token || '';
     DAILY_USER  = e.data.user  || null;
+    // Se havia score pendente esperando o token, processar agora
+    if (_pendingScore !== null && DAILY_TOKEN) {
+      apiGame('/api/crossing/score', {
+        method: 'POST',
+        body: JSON.stringify({ score: _pendingScore, phase: _pendingPhase })
+      }).catch(() => {});
+      _pendingScore = null;
+    }
   }
 });
+
+// Requisitar token ao parent imediatamente
+try { window.parent.postMessage('REQUEST_AUTH', '*'); } catch(e) {}
 
 async function apiGame(path, opts={}) {
   const res = await fetch(path, {
@@ -924,17 +937,29 @@ async function apiGame(path, opts={}) {
 function getRecord() { return parseInt(localStorage.getItem('ct_rec') || '0'); }
 function saveRecord(s){ localStorage.setItem('ct_rec', s); }
 function getRankingList() { try{ return JSON.parse(localStorage.getItem('ct_rk')||'[]'); }catch{return[];} }
-function saveRanking(name,score,phase){
-  // Usar nome real do usuário logado, se disponível
+function saveRanking(name, score, phase) {
   const realName = DAILY_USER?.name || name || 'Jogador';
-  const list=getRankingList();
-  const idx=list.findIndex(r=>r.name===realName);
-  if(idx>=0){ if(score>list[idx].score) list[idx]={name:realName,score,phase}; }
-  else list.push({name:realName,score,phase});
-  list.sort((a,b)=>b.score-a.score);
-  localStorage.setItem('ct_rk',JSON.stringify(list.slice(0,10)));
-  if(DAILY_TOKEN){
-    apiGame('/api/crossing/score',{method:'POST',body:JSON.stringify({score,phase:G?.phase||1})}).catch(()=>{});
+
+  // Salvar no ranking local
+  const list = getRankingList();
+  const idx  = list.findIndex(r => r.name === realName);
+  if (idx >= 0) { if (score > list[idx].score) list[idx] = { name:realName, score, phase }; }
+  else list.push({ name: realName, score, phase });
+  list.sort((a, b) => b.score - a.score);
+  localStorage.setItem('ct_rk', JSON.stringify(list.slice(0, 10)));
+
+  // Salvar no backend
+  if (DAILY_TOKEN) {
+    // Token já disponível — salvar agora
+    apiGame('/api/crossing/score', {
+      method: 'POST',
+      body: JSON.stringify({ score, phase: phase || 1 })
+    }).catch(() => {});
+  } else {
+    // Token ainda não chegou — guardar pendente e pedir token ao parent
+    _pendingScore = score;
+    _pendingPhase = phase || 1;
+    try { window.parent.postMessage('REQUEST_AUTH', '*'); } catch(e) {}
   }
 }
 async function renderRanking() {
