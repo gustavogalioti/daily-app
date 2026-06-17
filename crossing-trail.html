@@ -475,16 +475,20 @@ function getDiff(ph) {
 
 // ── NPC FACTORY ───────────────────────────────────────────────────
 function makeNPCs(station, count, spd) {
-  const npcs   = [];
-  const lanes  = station.laneRows;
+  const npcs  = [];
+  const lanes = station.laneRows;
 
   for (let i = 0; i < count; i++) {
     const lane = lanes[i % lanes.length];
     const dir  = lane.dir;
-    // Distribui horizontalmente com espaçamento aleatório
-    const startGx = dir === 1
-      ? -1 - Math.random() * GW * 0.7
-      :  GW + Math.random() * GW * 0.7;
+
+    // Spawn: metade nas extremidades, metade espalhados pela lane
+    let startGx;
+    if (Math.random() < 0.5) {
+      startGx = dir === 1 ? -1 - Math.random() * 2 : GW + Math.random() * 2;
+    } else {
+      startGx = 0.5 + Math.random() * (GW - 1);
+    }
 
     npcs.push({
       gx:    startGx,
@@ -652,29 +656,42 @@ function drawChar(gx, gy, npcId, isPlayer, flipX) {
   ctx.restore();
 
   if (isPlayer) {
-    // Jogador voxel (mantido até integração DailyPoke)
-    const S  = charH * 0.42;
-    const bx = cx, by = drawY + charH * 0.3;
-    const bw = S * 1.0, bh = S * 0.95;
+    // Jogador: foto de perfil circular
+    const r  = charH * 0.38;
+    const px = cx, py = footY - r * 1.15;
+    // Sombra
+    ctx.save();
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(px, footY - 3, r * 0.5, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // Foto circular
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.clip();
+    if (playerPhoto && playerPhoto.complete && playerPhoto.naturalWidth > 0) {
+      ctx.drawImage(playerPhoto, -r, -r, r * 2, r * 2);
+    } else {
+      const g = ctx.createLinearGradient(-r,-r,r,r);
+      g.addColorStop(0,'#F5C518'); g.addColorStop(1,'#c8890a');
+      ctx.fillStyle = g; ctx.fillRect(-r,-r,r*2,r*2);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.font = `bold ${r*1.1}px sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(playerInit, 0, 2);
+    }
+    ctx.restore();
     // Anel dourado
     ctx.save();
+    ctx.translate(px, py);
     ctx.beginPath();
-    ctx.arc(cx, by - S * 0.1, S * 1.15, 0, Math.PI * 2);
+    ctx.arc(0, 0, r + 3, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(245,197,24,0.9)'; ctx.lineWidth = 3; ctx.stroke();
     ctx.restore();
-    // Corpo
-    ctx.fillStyle = '#1a3a7a';
-    ctx.fillRect(bx-bw*0.28, by+bh*0.62, bw*0.22, bh*0.48);
-    ctx.fillRect(bx+bw*0.06, by+bh*0.62, bw*0.22, bh*0.48);
-    ctx.fillStyle = '#FF6B35';
-    ctx.fillRect(bx-bw*0.38, by+bh*0.15, bw*0.76, bh*0.50);
-    ctx.fillStyle = '#d45a25';
-    ctx.fillRect(bx-bw*0.58, by+bh*0.18, bw*0.22, bh*0.36);
-    ctx.fillRect(bx+bw*0.36, by+bh*0.18, bw*0.22, bh*0.36);
-    ctx.fillStyle = '#c8956a';
-    ctx.fillRect(bx-bw*0.32, by-bh*0.25, bw*0.64, bh*0.42);
-    ctx.font=`${S*0.45}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('😊', bx, by+bh*0.05);
   } else {
     // NPC sprite PNG
     const cached = getNPCCanvas(npcId, Math.ceil(charH * 1.3));
@@ -895,11 +912,21 @@ let DAILY_TOKEN   = '';
 let DAILY_USER    = null;
 let _pendingScore = null;
 let _pendingPhase = 1;
+let playerPhoto   = null;
+let playerInit    = 'J';
 try { window.parent.postMessage('REQUEST_AUTH', '*'); } catch(e) {}
 window.addEventListener('message', function(e) {
   if (e.data && e.data.type === 'DAILY_AUTH') {
     DAILY_TOKEN = e.data.token || '';
     DAILY_USER  = e.data.user  || null;
+    if (DAILY_USER) {
+      playerInit = (DAILY_USER.name || 'J')[0].toUpperCase();
+      if (DAILY_USER.avatar_url) {
+        playerPhoto = new Image();
+        playerPhoto.crossOrigin = 'anonymous';
+        playerPhoto.src = DAILY_USER.avatar_url;
+      }
+    }
     if (_pendingScore !== null && DAILY_TOKEN) {
       fetch('/api/crossing/score', {
         method: 'POST',
