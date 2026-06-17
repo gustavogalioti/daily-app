@@ -904,11 +904,12 @@ window.addEventListener('message', e => {
   }
 });
 
-async function apiGame(path, opts={}) {
+async async function apiGame(path, opts={}) {
   const res = await fetch(path, {
     ...opts,
     headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+DAILY_TOKEN, ...(opts.headers||{}) }
   });
+  if (!res.ok) throw new Error(res.status);
   return res.json();
 }
 
@@ -927,7 +928,7 @@ function saveRanking(name,score,phase){
   localStorage.setItem('ct_rk',JSON.stringify(list.slice(0,10)));
   // Backend
   if(DAILY_TOKEN){
-    apiGame('/api/catrunner/score',{method:'POST',body:JSON.stringify({score})}).catch(()=>{});
+    apiGame('/api/crossing/score',{method:'POST',body:JSON.stringify({score, phase: G?.phase||1})}).catch(()=>{});
   }
 }
 async function renderRanking() {
@@ -937,7 +938,7 @@ async function renderRanking() {
   let list = [];
   if (DAILY_TOKEN) {
     try {
-      const data = await apiGame('/api/catrunner/ranking');
+      const data = await apiGame('/api/crossing/ranking');
       list = (data.ranking||[]).map(r=>({
         name: r.name || r.username || 'Jogador',
         username: r.username,
@@ -1045,7 +1046,7 @@ async function sendChallenge() {
   const btn = document.getElementById('btn-challenge-send');
   btn.textContent='Enviando...'; btn.disabled=true;
   try {
-    await apiGame('/api/catrunner/challenge',{method:'POST',body:JSON.stringify({to_user_id:_challengeTargetId})});
+    await apiGame('/api/crossing/challenge',{method:'POST',body:JSON.stringify({to_user_id:_challengeTargetId})});
     btn.textContent='✅ Desafio enviado!';
     btn.style.background='#22c55e';
     setTimeout(closeChallenge, 1500);
