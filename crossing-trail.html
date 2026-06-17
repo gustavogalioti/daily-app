@@ -388,7 +388,26 @@ let G    = null;
 let raf  = null;
 let lastTs = 0;
 
-const NPC_EMOJIS = ['👔','👩','👨','👮','👴','👵','🏃','🚶'];
+// ── NPC SPRITES ──────────────────────────────────────────────────
+// 5 tipos de NPC com PNG real (fundo branco — será removido no draw)
+const NPC_TYPES_DEF = [
+  { id:'casual',    src:'npc-casual.png'    },
+  { id:'estudante', src:'npc-estudante.png' },
+  { id:'executivo', src:'npc-executivo.png' },
+  { id:'policial',  src:'npc-policial.png'  },
+  { id:'idoso',     src:'npc-idoso.png'     },
+];
+
+// Cache de imagens carregadas
+const NPC_IMGS = {};
+NPC_TYPES_DEF.forEach(t => {
+  const img = new Image();
+  img.src = t.src;
+  NPC_IMGS[t.id] = img;
+});
+
+// Lista de IDs para distribuição aleatória
+const NPC_IDS = NPC_TYPES_DEF.map(t => t.id);
 
 // ── GRID → SCREEN ──────────────────────────────────────────────────
 // Converte coordenada de grid (gx, gy) para pixel na tela.
@@ -472,7 +491,7 @@ function makeNPCs(station, count, spd) {
       gy:    lane.gy,
       dir,
       spd:   spd * (0.5 + Math.random() * 1.0),
-      emoji: NPC_EMOJIS[Math.floor(Math.random() * NPC_EMOJIS.length)],
+      npcId: NPC_IDS[Math.floor(Math.random() * NPC_IDS.length)],
     });
   }
   return npcs;
@@ -595,69 +614,98 @@ function drawDebugGrid() {
 const CHAR_SCALE_PLAYER = 2.8;
 const CHAR_SCALE_NPC    = 2.2;
 
-function drawChar(gx, gy, emoji, isPlayer) {
+// ── NPC CANVAS CACHE (remove fundo branco dos PNGs) ─────────────
+const NPC_CANVAS_CACHE = {};
+function getNPCCanvas(npcId, size) {
+  const key = npcId + '_' + size;
+  if (NPC_CANVAS_CACHE[key]) return NPC_CANVAS_CACHE[key];
+  const img = NPC_IMGS[npcId];
+  if (!img || !img.complete || img.naturalWidth === 0) return null;
+  const oc  = document.createElement('canvas');
+  oc.width  = size; oc.height = size;
+  const oc2 = oc.getContext('2d');
+  oc2.drawImage(img, 0, 0, size, size);
+  const id   = oc2.getImageData(0, 0, size, size);
+  const data = id.data;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i] > 230 && data[i+1] > 230 && data[i+2] > 230) data[i+3] = 0;
+  }
+  oc2.putImageData(id, 0, 0);
+  NPC_CANVAS_CACHE[key] = oc;
+  return oc;
+}
+
+function drawChar(gx, gy, npcId, isPlayer, flipX) {
   const { sx, sy, tileW, tileH } = gridToScreen(gx, gy);
 
-  // Centro do tile
-  const cx = sx + tileW * 0.5;
-  const cy = sy + tileH * 0.5;
+  const cx    = sx + tileW * 0.5;
+  const footY = sy + tileH * 0.88; // pés tocam o piso
 
   const scale = isPlayer ? CHAR_SCALE_PLAYER : CHAR_SCALE_NPC;
-  // Tamanho do personagem proporcional ao tile
-  const S = Math.min(tileW, tileH) * scale * 0.5;
+  const charH = tileH * scale * 0.7;
+  const charW = charH * 0.75;
+  const drawX = cx - charW * 0.5;
+  const drawY = footY - charH;
 
-  // Sombra elíptica no piso
+  // Sombra
   ctx.save();
-  ctx.translate(cx, cy + S * 0.05);
-  ctx.scale(1, 0.35);
+  ctx.translate(cx, footY - 1);
+  ctx.scale(1, 0.22);
   ctx.beginPath();
-  ctx.arc(0, 0, S * 0.75, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.arc(0, 0, charW * 0.44, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
   ctx.fill();
   ctx.restore();
 
-  // Anel do jogador
   if (isPlayer) {
+    // Jogador voxel (mantido até integração DailyPoke)
+    const S  = charH * 0.42;
+    const bx = cx, by = drawY + charH * 0.3;
+    const bw = S * 1.0, bh = S * 0.95;
+    // Anel dourado
     ctx.save();
     ctx.beginPath();
-    ctx.arc(cx, cy - S * 0.5, S * 1.1, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(245,197,24,0.85)';
-    ctx.lineWidth   = 3;
-    ctx.stroke();
+    ctx.arc(cx, by - S * 0.1, S * 1.15, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(245,197,24,0.9)'; ctx.lineWidth = 3; ctx.stroke();
     ctx.restore();
+    // Corpo
+    ctx.fillStyle = '#1a3a7a';
+    ctx.fillRect(bx-bw*0.28, by+bh*0.62, bw*0.22, bh*0.48);
+    ctx.fillRect(bx+bw*0.06, by+bh*0.62, bw*0.22, bh*0.48);
+    ctx.fillStyle = '#FF6B35';
+    ctx.fillRect(bx-bw*0.38, by+bh*0.15, bw*0.76, bh*0.50);
+    ctx.fillStyle = '#d45a25';
+    ctx.fillRect(bx-bw*0.58, by+bh*0.18, bw*0.22, bh*0.36);
+    ctx.fillRect(bx+bw*0.36, by+bh*0.18, bw*0.22, bh*0.36);
+    ctx.fillStyle = '#c8956a';
+    ctx.fillRect(bx-bw*0.32, by-bh*0.25, bw*0.64, bh*0.42);
+    ctx.font='${S*0.45}px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('😊', bx, by+bh*0.05);
+  } else {
+    // NPC sprite PNG
+    const cached = getNPCCanvas(npcId, Math.ceil(charH * 1.3));
+    if (cached) {
+      ctx.save();
+      if (flipX) {
+        ctx.translate(cx + charW * 0.5, drawY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(cached, 0, 0, charW, charH);
+      } else {
+        ctx.drawImage(cached, drawX, drawY, charW, charH);
+      }
+      ctx.restore();
+    } else {
+      // Fallback cor sólida enquanto carrega
+      const fc = {casual:'#FF6B35',estudante:'#2ECC71',executivo:'#1E5AA8',policial:'#2c3e8a',idoso:'#8a7a6a'};
+      ctx.fillStyle = fc[npcId] || '#888';
+      ctx.beginPath();
+      ctx.arc(cx, footY - charH*0.5, charW*0.38, 0, Math.PI*2);
+      ctx.fill();
+    }
   }
-
-  // ── Corpo voxel ──
-  const bw = S * 1.1, bh = S * 1.0;
-  const bx = cx, by = cy - S;
-
-  // Pernas
-  ctx.fillStyle = isPlayer ? '#1a3a7a' : '#3a3a55';
-  ctx.fillRect(bx - bw*0.28, by + bh*0.62, bw*0.22, bh*0.48);
-  ctx.fillRect(bx + bw*0.06, by + bh*0.62, bw*0.22, bh*0.48);
-
-  // Torso
-  const torsoColors = ['#3a5a8a','#6a3a3a','#3a6a4a','#6a5a2a','#5a3a6a'];
-  ctx.fillStyle = isPlayer ? '#FF6B35' : torsoColors[emoji.codePointAt(0) % torsoColors.length];
-  ctx.fillRect(bx - bw*0.38, by + bh*0.16, bw*0.76, bh*0.50);
-
-  // Braços
-  ctx.fillStyle = isPlayer ? '#d45a25' : '#2a2a45';
-  ctx.fillRect(bx - bw*0.58, by + bh*0.18, bw*0.22, bh*0.36);
-  ctx.fillRect(bx + bw*0.36, by + bh*0.18, bw*0.22, bh*0.36);
-
-  // Cabeça
-  ctx.fillStyle = '#c8956a';
-  ctx.fillRect(bx - bw*0.32, by - bh*0.22, bw*0.64, bh*0.42);
-
-  // Emoji de face
-  ctx.font         = `${S * 0.55}px serif`;
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(emoji, bx, by + bh * 0.08);
 }
 
-// ── DRAW GOAL INDICATOR ───────────────────────────────────────────
+
 function drawGoalIndicator() {
   if (!G) return;
   const { sx, sy, tileW, tileH } = gridToScreen(Math.floor(GW/2), G.goalY);
@@ -734,10 +782,10 @@ function render(ts) {
 
   // 3. NPCs (ordenados por gy para depth)
   const sorted = [...G.npcs].sort((a,b) => a.gy - b.gy);
-  sorted.forEach(n => drawChar(n.gx, n.gy, n.emoji, false));
+  sorted.forEach(n => drawChar(n.gx, n.gy, n.npcId, false, n.dir === -1));
 
   // 4. Jogador
-  drawChar(G.player.gx, G.player.gy, '😊', true);
+  drawChar(G.player.gx, G.player.gy, null, true, false);
 
   // 5. Partículas
   updateParticles();
