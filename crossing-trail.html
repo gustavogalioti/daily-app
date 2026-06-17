@@ -611,8 +611,8 @@ function drawDebugGrid() {
 
 // ── DRAW CHARACTER ────────────────────────────────────────────────
 // Tamanho base do personagem relativo ao tile
-const CHAR_SCALE_PLAYER = 4.2;
-const CHAR_SCALE_NPC    = 3.6;
+const CHAR_SCALE_PLAYER = 5.2;
+const CHAR_SCALE_NPC    = 4.5;
 
 // ── NPC CANVAS CACHE (remove fundo branco dos PNGs) ─────────────
 const NPC_CANVAS_CACHE = {};
@@ -639,7 +639,7 @@ function drawChar(gx, gy, npcId, isPlayer, flipX) {
   const { sx, sy, tileW, tileH } = gridToScreen(gx, gy);
 
   const cx    = sx + tileW * 0.5;
-  const footY = sy + tileH * 0.88; // pés tocam o piso
+  const footY = sy + tileH * 1.0; // pés na base do tile
 
   const scale = isPlayer ? CHAR_SCALE_PLAYER : CHAR_SCALE_NPC;
   const charH = tileH * scale * 0.7;
