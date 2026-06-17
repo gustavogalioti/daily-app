@@ -199,11 +199,7 @@ canvas {
 </div>
 
 <div class="screen hidden" id="screen-ranking">
-  <div id="ranking-title">🏆 RANKING</div>
-  <button onclick="openChallenge(\'\',\'\')"
-    style="margin-bottom:16px;padding:10px 24px;border-radius:12px;border:2px solid #F5C518;background:transparent;color:#F5C518;font-weight:800;font-size:14px;cursor:pointer;letter-spacing:1px;">
-    ⚡ Desafiar um Amigo
-  </button>
+  <div id="ranking-title">🏆 RANKING TOP 10</div>
   <div class="ranking-list" id="rk-list"></div>
   <button class="menu-btn btn-secondary" style="margin-top:20px" onclick="goMenu()">⬅ Voltar</button>
 </div>
@@ -286,7 +282,7 @@ const STATIONS = [
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
     // piso jogável: de 20% a 78% da altura, 8% a 92% da largura
-    gridRect: { x:0.08, y:0.28, w:0.84, h:0.62 },
+    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
   },
   {
     name: 'Estação da Luz',
@@ -305,7 +301,7 @@ const STATIONS = [
     goalY:  0,
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.08, y:0.28, w:0.84, h:0.62 },
+    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
   },
   {
     name: 'Estação da Sé',
@@ -324,7 +320,7 @@ const STATIONS = [
     goalY:  0,
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.08, y:0.28, w:0.84, h:0.62 },
+    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
   },
   {
     name: 'Gare du Nord',
@@ -343,7 +339,7 @@ const STATIONS = [
     goalY:  0,
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.08, y:0.28, w:0.84, h:0.62 },
+    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
   },
   {
     name: 'Grand Central',
@@ -362,7 +358,7 @@ const STATIONS = [
     goalY:  0,
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
-    gridRect: { x:0.08, y:0.28, w:0.84, h:0.62 },
+    gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
   },
 ];
 
@@ -380,7 +376,7 @@ const imgCache = {};
 function loadImage(src) {
   if (imgCache[src]) return imgCache[src];
   const img = new Image();
-  img.src = src;
+  img.src = src + '?v=20260617b';
   imgCache[src] = img;
   return img;
 }
@@ -406,7 +402,7 @@ const NPC_TYPES_DEF = [
 const NPC_IMGS = {};
 NPC_TYPES_DEF.forEach(t => {
   const img = new Image();
-  img.src = t.src;
+  img.src = t.src + '?v=20260617b';
   NPC_IMGS[t.id] = img;
 });
 
@@ -615,8 +611,8 @@ function drawDebugGrid() {
 
 // ── DRAW CHARACTER ────────────────────────────────────────────────
 // Tamanho base do personagem relativo ao tile
-const CHAR_SCALE_PLAYER = 5.2;
-const CHAR_SCALE_NPC    = 4.5;
+const CHAR_SCALE_PLAYER = 4.2;
+const CHAR_SCALE_NPC    = 3.6;
 
 // ── NPC CANVAS CACHE (remove fundo branco dos PNGs) ─────────────
 const NPC_CANVAS_CACHE = {};
@@ -643,7 +639,7 @@ function drawChar(gx, gy, npcId, isPlayer, flipX) {
   const { sx, sy, tileW, tileH } = gridToScreen(gx, gy);
 
   const cx    = sx + tileW * 0.5;
-  const footY = sy + tileH; // pés na base do tile
+  const footY = sy + tileH * 0.88; // pés tocam o piso
 
   const scale = isPlayer ? CHAR_SCALE_PLAYER : CHAR_SCALE_NPC;
   const charH = tileH * scale * 0.7;
@@ -813,7 +809,7 @@ function doGameOver() {
     document.getElementById('go-phase').textContent = G.phase;
     document.getElementById('go-score').textContent = G.score;
     document.getElementById('go-rec').textContent   = Math.max(G.score, rec);
-    saveRanking(DAILY_USER?.name || 'Jogador', G.score, G.phase);
+    saveRanking((DAILY_USER && DAILY_USER.name) ? DAILY_USER.name : 'Jogador', G.score, G.phase);
   }, 900);
 }
 
@@ -900,36 +896,37 @@ function startGame() {
 function goMenu()     { G = null; showScreen('screen-menu'); }
 function openRanking(){ renderRanking(); showScreen('screen-ranking'); }
 
-// ── AUTH (recebido do Daily via postMessage) ──────────────────────
+// ── AUTH ─────────────────────────────────────────────────────────
 let DAILY_TOKEN   = '';
 let DAILY_USER    = null;
-let _pendingScore = null;  // score guardado antes do token chegar
+let _pendingScore = null;
 let _pendingPhase = 1;
 
-window.addEventListener('message', e => {
-  if (e.data?.type === 'DAILY_AUTH') {
+try { window.parent.postMessage('REQUEST_AUTH', '*'); } catch(e) {}
+
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'DAILY_AUTH') {
     DAILY_TOKEN = e.data.token || '';
     DAILY_USER  = e.data.user  || null;
-    // Se havia score pendente esperando o token, processar agora
     if (_pendingScore !== null && DAILY_TOKEN) {
-      apiGame('/api/crossing/score', {
+      fetch('/api/crossing/score', {
         method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+DAILY_TOKEN },
         body: JSON.stringify({ score: _pendingScore, phase: _pendingPhase })
-      }).catch(() => {});
+      }).catch(function(){});
       _pendingScore = null;
     }
   }
 });
 
-// Requisitar token ao parent imediatamente
-try { window.parent.postMessage('REQUEST_AUTH', '*'); } catch(e) {}
-
-async function apiGame(path, opts={}) {
-  const res = await fetch(path, {
-    ...opts,
-    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+DAILY_TOKEN, ...(opts.headers||{}) }
-  });
-  if (!res.ok) throw new Error(res.status);
+async function apiGame(path, opts) {
+  opts = opts || {};
+  var res = await fetch(path, Object.assign({}, opts, {
+    headers: Object.assign(
+      { 'Content-Type':'application/json', 'Authorization':'Bearer '+DAILY_TOKEN },
+      opts.headers || {}
+    )
+  }));
   return res.json();
 }
 
@@ -938,65 +935,53 @@ function getRecord() { return parseInt(localStorage.getItem('ct_rec') || '0'); }
 function saveRecord(s){ localStorage.setItem('ct_rec', s); }
 function getRankingList() { try{ return JSON.parse(localStorage.getItem('ct_rk')||'[]'); }catch{return[];} }
 function saveRanking(name, score, phase) {
-  const realName = DAILY_USER?.name || name || 'Jogador';
-
-  // Salvar no ranking local
-  const list = getRankingList();
-  const idx  = list.findIndex(r => r.name === realName);
-  if (idx >= 0) { if (score > list[idx].score) list[idx] = { name:realName, score, phase }; }
-  else list.push({ name: realName, score, phase });
-  list.sort((a, b) => b.score - a.score);
-  localStorage.setItem('ct_rk', JSON.stringify(list.slice(0, 10)));
-
-  // Salvar no backend
+  var realName = (DAILY_USER && DAILY_USER.name) ? DAILY_USER.name : (name || 'Jogador');
+  var list = getRankingList();
+  var i = list.findIndex(function(r){ return r.name === realName; });
+  if (i >= 0) { if (score > list[i].score) list[i] = {name:realName, score:score, phase:phase}; }
+  else list.push({name:realName, score:score, phase:phase});
+  list.sort(function(a,b){ return b.score - a.score; });
+  localStorage.setItem('ct_rk', JSON.stringify(list.slice(0,10)));
   if (DAILY_TOKEN) {
-    // Token já disponível — salvar agora
-    apiGame('/api/crossing/score', {
-      method: 'POST',
-      body: JSON.stringify({ score, phase: phase || 1 })
-    }).catch(() => {});
+    fetch('/api/crossing/score', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+DAILY_TOKEN},
+      body:JSON.stringify({score:score, phase:phase||1})
+    }).catch(function(){});
   } else {
-    // Token ainda não chegou — guardar pendente e pedir token ao parent
-    _pendingScore = score;
-    _pendingPhase = phase || 1;
-    try { window.parent.postMessage('REQUEST_AUTH', '*'); } catch(e) {}
+    _pendingScore = score; _pendingPhase = phase||1;
+    try { window.parent.postMessage('REQUEST_AUTH','*'); } catch(e) {}
   }
 }
-async function renderRanking() {
-  const el = document.getElementById('rk-list');
+function renderRanking() {
+  var el = document.getElementById('rk-list');
   el.innerHTML = '<div style="color:rgba(255,255,255,.4);text-align:center;padding:32px">Carregando...</div>';
-  let list = [];
+  var md = ['🥇','🥈','🥉'];
+  function showList(list) {
+    if (!list || !list.length) {
+      el.innerHTML = '<div style="color:rgba(255,255,255,.4);text-align:center;padding:32px">Nenhuma pontuação ainda!</div>';
+      return;
+    }
+    el.innerHTML = list.map(function(r,i){
+      var av = r.avatar
+        ? '<img src="'+r.avatar+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid #F5C518;">'
+        : '<div style="width:34px;height:34px;border-radius:50%;background:#333;display:flex;align-items:center;justify-content:center;">'+(md[i]||'🏅')+'</div>';
+      return '<div class="ranking-item">'+
+        '<div class="rank-pos">'+(md[i]||i+1)+'</div>'+av+
+        '<div class="rank-info"><div class="rank-name">'+r.name+'</div><div class="rank-sub">Fase '+(r.phase||'—')+'</div></div>'+
+        '<div class="rank-score">'+r.score+'</div></div>';
+    }).join('');
+  }
   if (DAILY_TOKEN) {
-    try {
-      const data = await apiGame('/api/crossing/ranking');
-      list = (data.ranking||[]).map(r=>({
-        name: r.name||r.username||'Jogador',
-        username: r.username,
-        score: r.best_score,
-        phase: r.best_phase||'—',
-        avatar: r.avatar_url
-      }));
-    } catch(e) {}
-  }
-  if (!list.length) list = getRankingList();
-  if (!list.length) {
-    el.innerHTML='<div style="color:rgba(255,255,255,.4);text-align:center;padding:32px">Nenhuma pontuação ainda!<br>Jogue para aparecer aqui.</div>';
-    return;
-  }
-  const md=['🥇','🥈','🥉'];
-  const myId = DAILY_USER?.id||'';
-  el.innerHTML = list.map((r,i)=>{
-    const isMe = myId && r.user_id===myId;
-    const av = r.avatar
-      ? `<img src="${r.avatar}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #F5C518;">`
-      : `<div style="width:36px;height:36px;border-radius:50%;background:#333;display:flex;align-items:center;justify-content:center;font-size:16px;">${md[i]||'🏅'}</div>`;
-    return `<div class="ranking-item" style="${isMe?'border-color:#F5C518;background:rgba(245,197,24,.08);':''}">
-      <div class="rank-pos">${md[i]||i+1}</div>
-      ${av}
-      <div class="rank-info"><div class="rank-name">${r.name}${isMe?' <span style="color:#F5C518;font-size:11px;">(você)</span>':''}</div><div class="rank-sub">${r.username?'@'+r.username:''} · Fase ${r.phase}</div></div>
-      <div class="rank-score">${r.score}</div>
-    </div>`;
-  }).join('');
+    fetch('/api/crossing/ranking',{headers:{'Authorization':'Bearer '+DAILY_TOKEN}})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var list=(data.ranking||[]).map(function(r){
+        return {name:r.name||r.username||'Jogador',score:r.best_score,phase:r.best_phase,avatar:r.avatar_url};
+      });
+      showList(list.length ? list : getRankingList());
+    }).catch(function(){ showList(getRankingList()); });
+  } else { showList(getRankingList()); }
 }
 
 // ── INPUT ─────────────────────────────────────────────────────────
@@ -1032,97 +1017,6 @@ window.addEventListener('resize', ()=>{
 });
 showScreen('screen-menu');
 requestAnimationFrame(render);
-
-// ── DESAFIO ───────────────────────────────────────────────────────
-let _challengeTargetId   = null;
-let _challengeTargetName = '';
-
-function openChallenge(username, name) {
-  _challengeTargetId   = username;
-  _challengeTargetName = name || username;
-  document.getElementById('challenge-target').textContent = name ? `Desafiar: ${name} (@${username})` : '';
-  document.getElementById('challenge-search').value = '';
-  document.getElementById('challenge-results').innerHTML = '';
-  const btn = document.getElementById('btn-challenge-send');
-  btn.disabled = !username;
-  btn.style.opacity = username ? '1' : '.5';
-  const m = document.getElementById('modal-challenge');
-  m.style.display = 'flex';
-  m.style.pointerEvents = 'all';
-}
-
-function closeChallenge() {
-  const m = document.getElementById('modal-challenge');
-  m.style.display = 'none';
-  m.style.pointerEvents = 'none';
-}
-
-let _searchTimer = null;
-async function searchFriendChallenge(q) {
-  clearTimeout(_searchTimer);
-  const res = document.getElementById('challenge-results');
-  if (!q || q.length < 2) { res.innerHTML=''; return; }
-  _searchTimer = setTimeout(async () => {
-    try {
-      const data = await apiGame('/api/users/search?q='+encodeURIComponent(q));
-      const users = data.users || [];
-      if (!users.length) { res.innerHTML='<div style="color:rgba(255,255,255,.4);text-align:center;padding:12px;font-size:13px;">Nenhum usuário encontrado</div>'; return; }
-      res.innerHTML = users.map(u=>`
-        <div onclick="selectChallengeTarget('${u.id}','${u.name}','${u.username}')"
-          style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.06);cursor:pointer;">
-          ${u.avatar_url?`<img src="${u.avatar_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`:'<div style="width:32px;height:32px;border-radius:50%;background:#333;"></div>'}
-          <div><div style="font:700 13px sans-serif;color:#fff;">${u.name}</div><div style="font:400 11px sans-serif;color:rgba(255,255,255,.4);">@${u.username}</div></div>
-        </div>`).join('');
-    } catch(e) { res.innerHTML='<div style="color:rgba(255,255,255,.4);text-align:center;padding:12px;font-size:13px;">Erro na busca</div>'; }
-  }, 350);
-}
-
-function selectChallengeTarget(id, name, username) {
-  _challengeTargetId   = id;
-  _challengeTargetName = name;
-  document.getElementById('challenge-target').textContent = `Desafiar: ${name} (@${username})`;
-  document.getElementById('challenge-results').innerHTML = '';
-  document.getElementById('challenge-search').value = name;
-  const btn = document.getElementById('btn-challenge-send');
-  btn.disabled = false;
-  btn.style.opacity = '1';
-}
-
-async function sendChallenge() {
-  if (!_challengeTargetId || !DAILY_TOKEN) return;
-  const btn = document.getElementById('btn-challenge-send');
-  btn.disabled = true;
-  btn.textContent = 'Enviando...';
-  try {
-    await apiGame('/api/crossing/challenge',{method:'POST',body:JSON.stringify({to_user_id:_challengeTargetId})});
-    btn.textContent = '✅ Desafio enviado!';
-    setTimeout(closeChallenge, 1500);
-  } catch(e) {
-    btn.textContent = 'Erro — tente novamente';
-    btn.disabled = false;
-    btn.style.opacity = '1';
-  }
-}
-
 </script>
-
-<!-- Modal Desafiar Amigo -->
-<div id="modal-challenge" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;pointer-events:none;">
-  <div style="background:#0d1220;border:2px solid #F5C518;border-radius:18px;padding:24px;width:min(340px,92vw);pointer-events:all;display:flex;flex-direction:column;gap:14px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <div style="font:800 18px 'Segoe UI';color:#F5C518;">⚡ Desafiar Amigo</div>
-      <button onclick="closeChallenge()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;">✕</button>
-    </div>
-    <div id="challenge-target" style="font-size:13px;color:rgba(255,255,255,.6);"></div>
-    <input id="challenge-search" type="text" placeholder="Buscar amigo por nome ou @usuário..."
-      oninput="searchFriendChallenge(this.value)"
-      style="padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;font-size:14px;outline:none;width:100%;box-sizing:border-box;">
-    <div id="challenge-results" style="overflow-y:auto;max-height:220px;display:flex;flex-direction:column;gap:6px;"></div>
-    <button id="btn-challenge-send" onclick="sendChallenge()" disabled
-      style="padding:12px;border-radius:12px;border:none;background:#F5C518;color:#1a1200;font-weight:800;font-size:15px;cursor:pointer;opacity:.5;">
-      Enviar Desafio ⚡
-    </button>
-  </div>
-</div>
 </body>
 </html>
