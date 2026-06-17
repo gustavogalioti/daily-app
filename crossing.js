@@ -59,7 +59,6 @@ router.get('/ranking', async(req,res) => {
       FROM crossing_scores cs
       JOIN users u ON u.id = cs.user_id
       ORDER BY cs.best_score DESC
-      LIMIT 50
     `).all();
     res.json({ ranking });
   } catch(e) { console.error(e); res.json({ ranking: [] }); }
