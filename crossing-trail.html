@@ -506,17 +506,31 @@ function updateNPCs(dt) {
 // ── COLLISION ─────────────────────────────────────────────────────
 function checkCollision() {
   if (G.over || G.complete) return;
-  // Não checar durante movimento do jogador — evita falso positivo entre tiles
   if (G.player.busy) return;
 
-  const px = G.player.gx, py = G.player.gy;
+  // Colisão em espaço de TELA (pixels reais), não em grid
+  // Isso garante que só colide se os sprites se sobrepõem visualmente
+  const pPos  = gridToScreen(G.player.gx, G.player.gy);
+  const pTileW = pPos.tileW, pTileH = pPos.tileH;
+
+  // Centro visual do jogador
+  const pCX = pPos.sx + pTileW * 0.5;
+  const pCY = pPos.sy + pTileH * 0.5;
+
+  // Hitbox do jogador: metade do tile em cada direção
+  const pHW = pTileW * 0.35;
+  const pHH = pTileH * 0.35;
+
   for (const n of G.npcs) {
-    // NPCs só se movem horizontalmente (gy fixo)
-    // Colide APENAS se estiver exatamente na mesma lane (gy igual, diferença < 0.35)
-    // E no mesmo X (diferença < 0.40)
-    const sameLane = Math.abs(n.gy - py) < 0.35;
-    const sameCol  = Math.abs(n.gx - px) < 0.40;
-    if (sameLane && sameCol) { doGameOver(); return; }
+    const nPos = gridToScreen(n.gx, n.gy);
+    const nCX  = nPos.sx + pTileW * 0.5;
+    const nCY  = nPos.sy + pTileH * 0.5;
+
+    // Hitbox do NPC: mesmo tamanho do jogador (hitbox justa independente do sprite)
+    const overlapX = Math.abs(nCX - pCX) < (pHW * 2);
+    const overlapY = Math.abs(nCY - pCY) < (pHH * 2);
+
+    if (overlapX && overlapY) { doGameOver(); return; }
   }
 }
 
@@ -900,7 +914,25 @@ function startGame() {
   setTimeout(hideBanner, 2500);
 }
 function goMenu()     { G = null; showScreen('screen-menu'); }
-function openRanking(){ renderRanking(); showScreen('screen-ranking'); }
+function openRanking() {
+  showScreen('screen-ranking');
+  // Sincronizar melhor score local para o backend antes de mostrar ranking
+  if (DAILY_TOKEN) {
+    const local = getRankingList().filter(r => r.name && r.name !== 'Jogador');
+    if (local.length > 0) {
+      const best = local[0]; // já está ordenado por score desc
+      fetch('/api/crossing/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + DAILY_TOKEN },
+        body: JSON.stringify({ score: best.score, phase: best.phase || 1 })
+      }).catch(() => {}).finally(() => renderRanking());
+    } else {
+      renderRanking();
+    }
+  } else {
+    renderRanking();
+  }
+}
 
 // ── AUTH ─────────────────────────────────────────────────────────
 let DAILY_TOKEN   = '';
