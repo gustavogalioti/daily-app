@@ -616,7 +616,7 @@ function drawDebugGrid() {
 // ── DRAW CHARACTER ────────────────────────────────────────────────
 // Tamanho base do personagem relativo ao tile
 const CHAR_SCALE_PLAYER = 4.2;
-const CHAR_SCALE_NPC    = 3.6;
+const CHAR_SCALE_NPC    = 5.0;
 
 // ── NPC CANVAS CACHE ─────────────────────────────────────────────
 const NPC_CANVAS_CACHE = {};
@@ -645,17 +645,16 @@ function drawChar(gx, gy, npcId, isPlayer, flipX) {
   const drawX = cx - charW * 0.5;
   const drawY = footY - charH;
 
-  // Sombra
-  ctx.save();
-  ctx.translate(cx, footY - 1);
-  ctx.scale(1, 0.22);
-  ctx.beginPath();
-  ctx.arc(0, 0, charW * 0.44, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.28)';
-  ctx.fill();
-  ctx.restore();
-
   if (isPlayer) {
+    // Sombra só do jogador
+    ctx.save();
+    ctx.translate(cx, footY - 1);
+    ctx.scale(1, 0.22);
+    ctx.beginPath();
+    ctx.arc(0, 0, charW * 0.44, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fill();
+    ctx.restore();
     // Jogador: foto de perfil circular
     const r  = charH * 0.38;
     const px = cx, py = footY - r * 1.15;
