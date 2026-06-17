@@ -269,14 +269,12 @@ const STATIONS = [
     fallbackColor: '#3a3a4a',
     // 6 lanes horizontais — alternando ←→
     laneRows: [
-      { gy:1, dir:-1 },
       { gy:2, dir: 1 },
       { gy:3, dir:-1 },
       { gy:4, dir: 1 },
       { gy:5, dir:-1 },
       { gy:6, dir: 1 },
       { gy:7, dir:-1 },
-      { gy:8, dir: 1 },
     ],
     goalY:  0,
     startY: 9,
@@ -289,14 +287,12 @@ const STATIONS = [
     imageSrc: 'luz.png',
     fallbackColor: '#2a2a3a',
     laneRows: [
-      { gy:1, dir: 1 },
       { gy:2, dir:-1 },
       { gy:3, dir: 1 },
       { gy:4, dir:-1 },
       { gy:5, dir: 1 },
       { gy:6, dir:-1 },
       { gy:7, dir: 1 },
-      { gy:8, dir:-1 },
     ],
     goalY:  0,
     startY: 9,
@@ -308,14 +304,12 @@ const STATIONS = [
     imageSrc: 'se.png',
     fallbackColor: '#2a3a2a',
     laneRows: [
-      { gy:1, dir:-1 },
       { gy:2, dir: 1 },
       { gy:3, dir:-1 },
       { gy:4, dir: 1 },
       { gy:5, dir:-1 },
       { gy:6, dir: 1 },
       { gy:7, dir:-1 },
-      { gy:8, dir: 1 },
     ],
     goalY:  0,
     startY: 9,
@@ -327,14 +321,12 @@ const STATIONS = [
     imageSrc: 'gare-du-nord.png',
     fallbackColor: '#2a2a2a',
     laneRows: [
-      { gy:1, dir: 1 },
       { gy:2, dir:-1 },
       { gy:3, dir: 1 },
       { gy:4, dir:-1 },
       { gy:5, dir: 1 },
       { gy:6, dir:-1 },
       { gy:7, dir: 1 },
-      { gy:8, dir:-1 },
     ],
     goalY:  0,
     startY: 9,
@@ -346,14 +338,12 @@ const STATIONS = [
     imageSrc: 'grand-central.png',
     fallbackColor: '#3a2a1a',
     laneRows: [
-      { gy:1, dir:-1 },
       { gy:2, dir: 1 },
       { gy:3, dir:-1 },
       { gy:4, dir: 1 },
       { gy:5, dir:-1 },
       { gy:6, dir: 1 },
       { gy:7, dir:-1 },
-      { gy:8, dir: 1 },
     ],
     goalY:  0,
     startY: 9,
@@ -914,6 +904,15 @@ let _pendingPhase = 1;
 let playerPhoto   = null;
 let playerInit    = 'J';
 try { window.parent.postMessage('REQUEST_AUTH', '*'); } catch(e) {}
+
+// Limpar entradas antigas do ranking local sem nome real
+(function() {
+  try {
+    var list = JSON.parse(localStorage.getItem('ct_rk') || '[]');
+    list = list.filter(function(r) { return r.name && r.name !== 'Jogador'; });
+    localStorage.setItem('ct_rk', JSON.stringify(list));
+  } catch(e) {}
+})();
 window.addEventListener('message', function(e) {
   if (e.data && e.data.type === 'DAILY_AUTH') {
     DAILY_TOKEN = e.data.token || '';
@@ -970,15 +969,46 @@ function saveRanking(name, score, phase) {
   }
 }
 function renderRanking() {
-  const list=getRankingList(), el=document.getElementById('rk-list');
-  if(!list.length){ el.innerHTML='<div style="color:rgba(255,255,255,.4);text-align:center;padding:32px">Nenhuma pontuação ainda!<br>Jogue para aparecer aqui.</div>'; return; }
-  const md=['🥇','🥈','🥉'];
-  el.innerHTML=list.map((r,i)=>`
-    <div class="ranking-item">
-      <div class="rank-pos">${md[i]||i+1}</div>
-      <div class="rank-info"><div class="rank-name">${r.name}</div><div class="rank-sub">Fase ${r.phase}</div></div>
-      <div class="rank-score">${r.score}</div>
-    </div>`).join('');
+  const el = document.getElementById('rk-list');
+  const md = ['🥇','🥈','🥉'];
+
+  function showList(list) {
+    // Filtrar sempre entradas sem nome real
+    list = (list||[]).filter(r => r.name && r.name !== 'Jogador');
+    if (!list.length) {
+      el.innerHTML = '<div style="color:rgba(255,255,255,.4);text-align:center;padding:32px">Nenhuma pontuação ainda!<br>Jogue para aparecer aqui.</div>';
+      return;
+    }
+    el.innerHTML = list.map((r,i) => {
+      const av = r.avatar
+        ? `<img src="${r.avatar}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid #F5C518;">`
+        : `<div style="width:34px;height:34px;border-radius:50%;background:#333;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">${(r.name||'?')[0]}</div>`;
+      return `<div class="ranking-item">
+        <div class="rank-pos">${md[i]||i+1}</div>${av}
+        <div class="rank-info"><div class="rank-name">${r.name}</div><div class="rank-sub">Fase ${r.phase||'—'}</div></div>
+        <div class="rank-score">${r.score}</div>
+      </div>`;
+    }).join('');
+  }
+
+  el.innerHTML = '<div style="color:rgba(255,255,255,.4);text-align:center;padding:32px">Carregando...</div>';
+
+  if (DAILY_TOKEN) {
+    fetch('/api/crossing/ranking', { headers: { 'Authorization': 'Bearer ' + DAILY_TOKEN } })
+      .then(r => r.json())
+      .then(data => {
+        const list = (data.ranking||[]).map(r => ({
+          name: r.name || r.username || '',
+          score: r.best_score,
+          phase: r.best_phase,
+          avatar: r.avatar_url
+        }));
+        showList(list);
+      })
+      .catch(() => { showList([]); });
+  } else {
+    showList(getRankingList());
+  }
 }
 
 // ── INPUT ─────────────────────────────────────────────────────────
