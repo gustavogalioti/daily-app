@@ -7,145 +7,123 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a14;font-family:'Segoe UI',system-ui,sans-serif;}
+canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none;}
 
-canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none;image-rendering:auto;}
-
-/* ── HUD ── */
-#hud{
-  position:fixed;top:0;left:0;right:0;
-  display:flex;justify-content:space-between;align-items:flex-start;
-  padding:env(safe-area-inset-top,12px) 16px 0;
-  padding-top:max(env(safe-area-inset-top),12px);
-  background:linear-gradient(180deg,rgba(0,0,0,.75) 70%,transparent);
-  z-index:100;pointer-events:none;
-}
+/* HUD */
+#hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px 0;background:linear-gradient(180deg,rgba(0,0,0,.8) 70%,transparent);z-index:100;pointer-events:none;}
 #hud-left{pointer-events:none;}
-#station-tag{font:700 10px/1 'Segoe UI',sans-serif;color:#F5C518;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;}
-#dist-display{font:900 30px/1 'Segoe UI',sans-serif;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);}
-#dist-unit{font:700 11px/1 'Segoe UI',sans-serif;color:rgba(255,255,255,.5);letter-spacing:1px;margin-top:2px;}
+#station-tag{font:700 10px/1 sans-serif;color:#F5C518;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;}
+#dist-display{font:900 28px/1 sans-serif;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);}
+#dist-unit{font:700 10px/1 sans-serif;color:rgba(255,255,255,.45);letter-spacing:1px;margin-top:2px;}
 #hud-center{pointer-events:none;text-align:center;}
-#record-tag{font:600 10px/1.8 'Segoe UI',sans-serif;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
-#record-val{font:800 14px/1 'Segoe UI',sans-serif;color:#F5C518;}
-#hud-right{pointer-events:all;display:flex;flex-direction:column;gap:6px;}
-.hud-btn{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;padding:7px 14px;border-radius:20px;font:700 12px 'Segoe UI',sans-serif;cursor:pointer;transition:background .15s;}
+#record-tag{font:600 9px/1.8 sans-serif;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+#record-val{font:800 13px/1 sans-serif;color:#F5C518;}
+#hud-right{pointer-events:all;display:flex;flex-direction:column;gap:5px;}
+.hud-btn{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 12px;border-radius:20px;font:700 11px sans-serif;cursor:pointer;}
 .hud-btn:active{background:rgba(255,255,255,.15);}
 
-/* ── SCREENS ── */
+/* SCREENS */
 .screen{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
 .screen.hidden{display:none!important;}
 
 /* MENU */
-#screen-menu{background:linear-gradient(150deg,#05050f,#0d1220,#06060f);}
-.menu-logo{text-align:center;margin-bottom:32px;}
-.logo-cross{font:900 clamp(36px,8vw,72px)/1 'Segoe UI',sans-serif;color:#fff;letter-spacing:-2px;}
-.logo-daily{font:900 clamp(20px,4.5vw,40px)/1.2 'Segoe UI',sans-serif;color:#F5C518;letter-spacing:4px;text-transform:uppercase;}
-.logo-station{font:700 11px/2.5 'Segoe UI',sans-serif;color:rgba(255,255,255,.3);letter-spacing:5px;text-transform:uppercase;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;}
-.menu-avatar{width:80px;height:80px;border-radius:50%;border:3px solid #F5C518;object-fit:cover;margin-bottom:10px;box-shadow:0 0 0 6px rgba(245,197,24,.15);}
-.menu-name{font:700 15px 'Segoe UI',sans-serif;color:#fff;margin-bottom:4px;}
-.menu-record{font:600 12px 'Segoe UI',sans-serif;color:rgba(255,255,255,.4);}
-.menu-btns{display:flex;flex-direction:column;gap:10px;width:min(300px,85vw);margin-top:24px;}
-.mbtn{padding:16px 24px;border-radius:50px;border:none;font:800 14px 'Segoe UI',sans-serif;letter-spacing:1px;cursor:pointer;text-transform:uppercase;transition:transform .1s,box-shadow .1s;}
+#screen-menu{background:linear-gradient(150deg,#05050f,#0d1220);}
+.logo-main{text-align:center;margin-bottom:28px;}
+.logo-cross{font:900 clamp(34px,8vw,68px)/1 sans-serif;color:#fff;letter-spacing:-2px;}
+.logo-daily{font:900 clamp(18px,4vw,36px)/1.3 sans-serif;color:#F5C518;letter-spacing:4px;text-transform:uppercase;}
+.logo-station{font:700 10px/2.5 sans-serif;color:rgba(255,255,255,.3);letter-spacing:5px;text-transform:uppercase;border-top:1px solid rgba(255,255,255,.1);padding-top:6px;}
+.menu-avatar{width:72px;height:72px;border-radius:50%;border:3px solid #F5C518;object-fit:cover;margin-bottom:8px;box-shadow:0 0 0 5px rgba(245,197,24,.15);}
+#menu-initials{width:72px;height:72px;border-radius:50%;border:3px solid #F5C518;background:#F5C518;display:flex;align-items:center;justify-content:center;font:900 28px sans-serif;color:#000;margin:0 auto 8px;}
+.menu-name{font:700 15px sans-serif;color:#fff;margin-bottom:4px;text-align:center;}
+.menu-rec{font:600 12px sans-serif;color:rgba(255,255,255,.4);text-align:center;}
+.menu-btns{display:flex;flex-direction:column;gap:9px;width:min(290px,85vw);margin-top:22px;}
+.mbtn{padding:15px 22px;border-radius:50px;border:none;font:800 13px sans-serif;letter-spacing:1px;cursor:pointer;text-transform:uppercase;transition:transform .1s;}
 .mbtn:active{transform:scale(.97);}
-.mbtn-play{background:linear-gradient(135deg,#F5C518,#e0a800);color:#120e00;box-shadow:0 8px 32px rgba(245,197,24,.4);}
-.mbtn-rank{background:rgba(255,255,255,.07);color:#fff;border:1.5px solid rgba(255,255,255,.2);}
-.mbtn-back{background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);font-size:12px;}
+.mbtn-play{background:linear-gradient(135deg,#F5C518,#e0a800);color:#0a0800;box-shadow:0 8px 28px rgba(245,197,24,.4);}
+.mbtn-rank{background:rgba(255,255,255,.08);color:#fff;border:1.5px solid rgba(255,255,255,.2);}
+.mbtn-back{background:transparent;color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1);font-size:11px;}
 
 /* GAME OVER */
-#screen-gameover{background:rgba(4,4,16,.97);backdrop-filter:blur(24px);}
-#go-avatar-wrap{position:relative;width:88px;height:88px;margin:0 auto 16px;}
-#go-avatar{width:88px;height:88px;border-radius:50%;border:3px solid #F5C518;object-fit:cover;}
-#go-pulse{position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(245,197,24,.4);animation:pulse 1.5s ease-out infinite;}
+#screen-gameover{background:rgba(4,4,16,.97);backdrop-filter:blur(20px);}
+#go-av-wrap{position:relative;width:80px;height:80px;margin:0 auto 12px;}
+#go-avatar{width:80px;height:80px;border-radius:50%;border:3px solid #F5C518;object-fit:cover;}
+#go-initials{width:80px;height:80px;border-radius:50%;border:3px solid #F5C518;background:#F5C518;display:flex;align-items:center;justify-content:center;font:900 28px sans-serif;color:#000;position:absolute;top:0;left:0;}
+#go-pulse{position:absolute;inset:-7px;border-radius:50%;border:2px solid rgba(245,197,24,.4);animation:pulse 1.5s ease-out infinite;}
 @keyframes pulse{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.5);opacity:0}}
-#go-name{font:700 14px 'Segoe UI',sans-serif;color:rgba(255,255,255,.5);margin-bottom:6px;text-align:center;}
-#go-title{font:900 clamp(22px,5vw,34px)/1.2 'Segoe UI',sans-serif;color:#fff;text-align:center;margin-bottom:4px;}
-#go-subtitle{font:400 13px 'Segoe UI',sans-serif;color:rgba(255,255,255,.35);text-align:center;margin-bottom:24px;}
-.go-stats{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;justify-content:center;}
-.go-stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 20px;text-align:center;min-width:90px;}
-.go-stat-v{font:900 24px 'Segoe UI',sans-serif;color:#F5C518;display:block;}
-.go-stat-l{font:700 9px 'Segoe UI',sans-serif;color:rgba(255,255,255,.3);letter-spacing:1.5px;text-transform:uppercase;}
-.go-badge{background:linear-gradient(135deg,#F5C518,#e0a800);color:#0a0800;padding:5px 14px;border-radius:20px;font:800 10px 'Segoe UI',sans-serif;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;display:none;}
-.go-btns{display:flex;flex-direction:column;gap:9px;width:min(300px,85vw);}
-.go-challenge-section{width:min(320px,90vw);margin-bottom:14px;}
-.go-challenge-title{font:700 11px 'Segoe UI',sans-serif;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;text-align:center;}
-.challenge-search{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:10px 14px;color:#fff;font:400 14px 'Segoe UI',sans-serif;outline:none;}
-.challenge-search::placeholder{color:rgba(255,255,255,.25);}
-#challenge-results{margin-top:6px;display:flex;flex-direction:column;gap:6px;max-height:120px;overflow-y:auto;}
-.ch-user{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;cursor:pointer;transition:background .15s;}
-.ch-user:hover,.ch-user:active{background:rgba(245,197,24,.15);}
-.ch-user img{width:32px;height:32px;border-radius:50%;object-fit:cover;}
-.ch-user-name{flex:1;font:600 13px 'Segoe UI',sans-serif;color:#fff;}
-.ch-btn{font:700 11px 'Segoe UI',sans-serif;color:#F5C518;}
+#go-name{font:700 13px sans-serif;color:rgba(255,255,255,.5);margin-bottom:5px;text-align:center;}
+#go-title{font:900 clamp(20px,5vw,30px)/1.2 sans-serif;color:#fff;text-align:center;margin-bottom:3px;}
+#go-sub{font:400 12px sans-serif;color:rgba(255,255,255,.35);text-align:center;margin-bottom:20px;}
+.go-stats{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;justify-content:center;}
+.go-stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 16px;text-align:center;min-width:80px;}
+.go-sv{font:900 22px sans-serif;color:#F5C518;display:block;}
+.go-sl{font:700 9px sans-serif;color:rgba(255,255,255,.3);letter-spacing:1.5px;text-transform:uppercase;}
+#go-badge{background:linear-gradient(135deg,#F5C518,#e0a800);color:#0a0800;padding:4px 12px;border-radius:20px;font:800 10px sans-serif;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:none;}
+.go-ch-title{font:700 10px sans-serif;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;text-align:center;}
+.ch-input{width:min(300px,88vw);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:9px 12px;color:#fff;font:400 13px sans-serif;outline:none;margin-bottom:6px;}
+.ch-input::placeholder{color:rgba(255,255,255,.25);}
+#ch-results{width:min(300px,88vw);display:flex;flex-direction:column;gap:5px;max-height:100px;overflow-y:auto;margin-bottom:12px;}
+.ch-user{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:7px 10px;cursor:pointer;}
+.ch-user:active{background:rgba(245,197,24,.15);}
+.ch-uav{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#F5C518;display:flex;align-items:center;justify-content:center;font:700 11px sans-serif;color:#000;flex-shrink:0;}
+.ch-uname{flex:1;font:600 12px sans-serif;color:#fff;}
+.ch-ubtn{font:700 10px sans-serif;color:#F5C518;}
+.go-btns{display:flex;flex-direction:column;gap:8px;width:min(290px,85vw);}
 
 /* RANKING */
-#screen-ranking{background:rgba(4,4,16,.97);backdrop-filter:blur(24px);padding:0;}
-.rank-header{padding:max(env(safe-area-inset-top),16px) 20px 16px;background:rgba(0,0,0,.3);width:100%;text-align:center;}
-.rank-header-title{font:900 20px 'Segoe UI',sans-serif;color:#F5C518;letter-spacing:3px;text-transform:uppercase;}
-.rank-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.1);width:100%;}
-.rank-tab{flex:1;padding:12px;font:700 12px 'Segoe UI',sans-serif;color:rgba(255,255,255,.4);border:none;background:transparent;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:color .15s;border-bottom:2px solid transparent;margin-bottom:-1px;}
-.rank-tab.active{color:#F5C518;border-bottom-color:#F5C518;}
-.rank-list{flex:1;overflow-y:auto;width:100%;padding:12px 16px;-webkit-overflow-scrolling:touch;}
-.rank-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:8px;}
-.rank-item.me{background:rgba(245,197,24,.08);border-color:rgba(245,197,24,.3);}
-.rank-pos{font:900 18px 'Segoe UI',sans-serif;color:#F5C518;width:26px;text-align:center;flex-shrink:0;}
-.rank-pos.top1{color:#FFD700;}
-.rank-pos.top2{color:#C0C0C0;}
-.rank-pos.top3{color:#CD7F32;}
-.rank-avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;}
-.rank-info{flex:1;min-width:0;}
-.rank-name{font:700 14px 'Segoe UI',sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.rank-user{font:400 11px 'Segoe UI',sans-serif;color:rgba(255,255,255,.35);}
-.rank-score{font:900 18px 'Segoe UI',sans-serif;color:#F5C518;flex-shrink:0;}
-.rank-close{display:block;width:calc(100% - 32px);margin:8px 16px 16px;padding:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:50px;color:rgba(255,255,255,.6);font:700 13px 'Segoe UI',sans-serif;cursor:pointer;}
+#screen-ranking{background:rgba(4,4,16,.97);backdrop-filter:blur(20px);padding:0;justify-content:flex-start;}
+.rk-header{padding:14px 18px 12px;background:rgba(0,0,0,.3);width:100%;text-align:center;}
+.rk-title{font:900 18px sans-serif;color:#F5C518;letter-spacing:3px;text-transform:uppercase;}
+.rk-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.1);width:100%;}
+.rk-tab{flex:1;padding:11px;font:700 11px sans-serif;color:rgba(255,255,255,.4);border:none;background:transparent;cursor:pointer;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.rk-tab.on{color:#F5C518;border-bottom-color:#F5C518;}
+.rk-list{flex:1;overflow-y:auto;width:100%;padding:10px 14px;-webkit-overflow-scrolling:touch;}
+.rk-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:7px;}
+.rk-item.me{background:rgba(245,197,24,.08);border-color:rgba(245,197,24,.3);}
+.rk-pos{font:900 16px sans-serif;color:#F5C518;width:24px;text-align:center;flex-shrink:0;}
+.rk-av{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#F5C518;display:flex;align-items:center;justify-content:center;font:700 14px sans-serif;color:#000;}
+.rk-info{flex:1;min-width:0;}
+.rk-name{font:700 13px sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rk-user{font:400 10px sans-serif;color:rgba(255,255,255,.35);}
+.rk-score{font:900 17px sans-serif;color:#F5C518;flex-shrink:0;}
+.rk-close{display:block;width:calc(100% - 28px);margin:6px 14px 12px;padding:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:50px;color:rgba(255,255,255,.6);font:700 12px sans-serif;cursor:pointer;}
 
 /* PAUSE */
-#screen-pause{background:rgba(4,4,16,.9);backdrop-filter:blur(20px);}
-#pause-title{font:900 42px 'Segoe UI',sans-serif;color:#fff;letter-spacing:6px;margin-bottom:32px;}
+#screen-pause{background:rgba(4,4,16,.9);backdrop-filter:blur(18px);}
+#pause-title{font:900 40px sans-serif;color:#fff;letter-spacing:6px;margin-bottom:28px;}
 
-/* D-PAD MOBILE */
-#dpad{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-  display:none;flex-direction:column;align-items:center;gap:6px;
-  z-index:150;opacity:.75;
-}
-@media(pointer:coarse),(max-width:768px){#dpad{display:flex;}}
-.drow{display:flex;gap:6px;}
-.dbtn{
-  width:60px;height:60px;
-  background:rgba(0,0,0,.55);border:2px solid rgba(255,255,255,.3);
-  border-radius:16px;display:flex;align-items:center;justify-content:center;
-  font-size:22px;cursor:pointer;user-select:none;-webkit-user-select:none;
-  transition:background .08s;
-}
+/* RECORD FLASH */
+#rec-flash{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);font:900 clamp(18px,4vw,26px)/1.3 sans-serif;color:#F5C518;text-align:center;pointer-events:none;z-index:250;opacity:0;text-shadow:0 0 20px rgba(245,197,24,.8);}
+#rec-flash.show{animation:flashAnim 2.5s forwards;}
+@keyframes flashAnim{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}20%{opacity:1;transform:translate(-50%,-60%) scale(1.1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%)}}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:#0a0a14;z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+#loading-title{font:900 18px sans-serif;color:#F5C518;letter-spacing:3px;}
+#loading-bar-wrap{width:200px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;}
+#loading-bar{height:4px;background:#F5C518;border-radius:2px;width:0%;transition:width .3s;}
+
+/* D-PAD */
+#dpad{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:5px;z-index:150;opacity:.7;}
+@media(pointer:coarse),(max-width:900px){#dpad{display:flex;}}
+.drow{display:flex;gap:5px;}
+.dbtn{width:56px;height:56px;background:rgba(0,0,0,.6);border:2px solid rgba(255,255,255,.3);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;user-select:none;-webkit-user-select:none;}
 .dbtn:active{background:rgba(245,197,24,.25);border-color:#F5C518;}
-
-/* RESPIRO overlay */
-#respiro-banner{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  background:rgba(0,0,0,.7);backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,.1);border-radius:20px;
-  padding:16px 28px;text-align:center;z-index:200;
-  opacity:0;transition:opacity .5s;pointer-events:none;
-}
-#respiro-banner.show{opacity:1;}
-#respiro-text{font:800 15px 'Segoe UI',sans-serif;color:rgba(255,255,255,.7);letter-spacing:1px;}
-
-/* RECORD flash */
-#record-flash{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  font:900 clamp(18px,4vw,28px)/1.3 'Segoe UI',sans-serif;
-  color:#F5C518;text-align:center;pointer-events:none;z-index:250;
-  opacity:0;text-shadow:0 0 20px rgba(245,197,24,.8);
-}
-#record-flash.show{animation:flashIn 2.5s forwards;}
-@keyframes flashIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}20%{opacity:1;transform:translate(-50%,-60%) scale(1.1)}80%{opacity:1;transform:translate(-50%,-60%) scale(1)}100%{opacity:0;transform:translate(-50%,-70%) scale(.95)}}
 </style>
 </head>
 <body>
 
-<canvas id="gameCanvas"></canvas>
+<canvas id="gc"></canvas>
+
+<!-- LOADING -->
+<div id="loading">
+  <div style="font-size:40px">🚇</div>
+  <div id="loading-title">BARRA FUNDA</div>
+  <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+  <div style="font:400 12px sans-serif;color:rgba(255,255,255,.3);">Carregando estação...</div>
+</div>
 
 <!-- HUD -->
-<div id="hud">
+<div id="hud" style="display:none;">
   <div id="hud-left">
     <div id="station-tag">🚇 Barra Funda</div>
     <div id="dist-display">0</div>
@@ -161,22 +139,19 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-ac
   </div>
 </div>
 
-<!-- Record flash -->
-<div id="record-flash">🏆 NOVO RECORDE!</div>
+<div id="rec-flash">🏆 NOVO RECORDE!</div>
 
-<!-- Respiro banner -->
-<div id="respiro-banner"><div id="respiro-text">Área de descanso 🪑</div></div>
-
-<!-- MENU SCREEN -->
+<!-- MENU -->
 <div class="screen" id="screen-menu">
-  <div class="menu-logo">
+  <div class="logo-main">
     <div class="logo-cross">CROSS</div>
     <div class="logo-daily">Daily</div>
     <div class="logo-station">Station</div>
   </div>
-  <img id="menu-avatar" class="menu-avatar" src="" alt="">
+  <div id="menu-initials">J</div>
+  <img id="menu-avatar" class="menu-avatar" style="display:none;" src="" alt="">
   <div id="menu-name" class="menu-name">Visitante</div>
-  <div id="menu-record" class="menu-record">Sem recorde ainda</div>
+  <div id="menu-rec" class="menu-rec">Sem recorde ainda</div>
   <div class="menu-btns">
     <button class="mbtn mbtn-play" onclick="startGame()">▶ JOGAR AGORA</button>
     <button class="mbtn mbtn-rank" onclick="showRanking()">🏆 Ranking</button>
@@ -184,26 +159,25 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-ac
   </div>
 </div>
 
-<!-- GAME OVER SCREEN -->
+<!-- GAME OVER -->
 <div class="screen hidden" id="screen-gameover">
-  <div id="go-avatar-wrap">
-    <img id="go-avatar" src="" alt="">
+  <div id="go-av-wrap">
+    <div id="go-initials" class="go-init">J</div>
+    <img id="go-avatar" src="" style="display:none;" alt="">
     <div id="go-pulse"></div>
   </div>
   <div id="go-name"></div>
   <div id="go-title">Fim de linha!</div>
-  <div id="go-subtitle">Um passageiro cruzou seu caminho</div>
+  <div id="go-sub">Um passageiro cruzou seu caminho</div>
   <div id="go-badge">🏆 NOVO RECORDE!</div>
   <div class="go-stats">
-    <div class="go-stat"><span class="go-stat-v" id="go-dist">0m</span><span class="go-stat-l">Distância</span></div>
-    <div class="go-stat"><span class="go-stat-v" id="go-best">0m</span><span class="go-stat-l">Recorde</span></div>
-    <div class="go-stat"><span class="go-stat-v" id="go-rank">#—</span><span class="go-stat-l">Ranking</span></div>
+    <div class="go-stat"><span class="go-sv" id="go-dist">0m</span><span class="go-sl">Distância</span></div>
+    <div class="go-stat"><span class="go-sv" id="go-best">0m</span><span class="go-sl">Recorde</span></div>
+    <div class="go-stat"><span class="go-sv" id="go-rank">#—</span><span class="go-sl">Ranking</span></div>
   </div>
-  <div class="go-challenge-section">
-    <div class="go-challenge-title">Desafiar amigo</div>
-    <input class="challenge-search" id="challenge-search" type="text" placeholder="🔍 Buscar @usuário ou nome..." oninput="searchChallenge(this.value)">
-    <div id="challenge-results"></div>
-  </div>
+  <div class="go-ch-title">Desafiar amigo</div>
+  <input class="ch-input" id="ch-input" type="text" placeholder="🔍 Buscar usuário..." oninput="searchCh(this.value)">
+  <div id="ch-results"></div>
   <div class="go-btns">
     <button class="mbtn mbtn-play" onclick="restartGame()">🔄 Jogar Novamente</button>
     <button class="mbtn mbtn-rank" onclick="showRanking()">🏆 Ver Ranking</button>
@@ -211,20 +185,18 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-ac
   </div>
 </div>
 
-<!-- RANKING SCREEN -->
+<!-- RANKING -->
 <div class="screen hidden" id="screen-ranking" style="justify-content:flex-start;">
-  <div class="rank-header">
-    <div class="rank-header-title">🏆 Ranking</div>
+  <div class="rk-header"><div class="rk-title">🏆 Ranking</div></div>
+  <div class="rk-tabs">
+    <button class="rk-tab on" id="rt-global" onclick="switchRkTab('global')">🌍 Global</button>
+    <button class="rk-tab" id="rt-friends" onclick="switchRkTab('friends')">👥 Amigos</button>
   </div>
-  <div class="rank-tabs">
-    <button class="rank-tab active" id="rtab-global" onclick="switchRankTab('global')">🌍 Global</button>
-    <button class="rank-tab" id="rtab-friends" onclick="switchRankTab('friends')">👥 Amigos</button>
-  </div>
-  <div class="rank-list" id="rank-list"></div>
-  <button class="rank-close" onclick="closeRanking()">← Fechar Ranking</button>
+  <div class="rk-list" id="rk-list"></div>
+  <button class="rk-close" onclick="closeRanking()">← Fechar</button>
 </div>
 
-<!-- PAUSE SCREEN -->
+<!-- PAUSE -->
 <div class="screen hidden" id="screen-pause">
   <div id="pause-title">PAUSA</div>
   <div class="menu-btns">
@@ -236,1059 +208,787 @@ canvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-ac
 
 <!-- D-PAD -->
 <div id="dpad">
-  <div class="drow"><button class="dbtn" id="dbtn-up" ontouchstart="dpadStart('up')" ontouchend="dpadEnd()">↑</button></div>
+  <div class="drow"><button class="dbtn" ontouchstart="dStart('up')" ontouchend="dEnd()">↑</button></div>
   <div class="drow">
-    <button class="dbtn" id="dbtn-left" ontouchstart="dpadStart('left')" ontouchend="dpadEnd()">←</button>
-    <button class="dbtn" id="dbtn-down" ontouchstart="dpadStart('down')" ontouchend="dpadEnd()">↓</button>
-    <button class="dbtn" id="dbtn-right" ontouchstart="dpadStart('right')" ontouchend="dpadEnd()">→</button>
+    <button class="dbtn" ontouchstart="dStart('left')" ontouchend="dEnd()">←</button>
+    <button class="dbtn" ontouchstart="dStart('down')" ontouchend="dEnd()">↓</button>
+    <button class="dbtn" ontouchstart="dStart('right')" ontouchend="dEnd()">→</button>
   </div>
 </div>
 
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════
-// CONSTANTS & CONFIG
-// ═══════════════════════════════════════════
-const TILE = 64;          // grid tile size (canvas pixels before scaling)
-const COLS = 8;           // visible columns
-const VISIBLE_ROWS = 14;  // visible rows
-const CHUNK_ROWS = 10;    // rows per chunk
-const PLAYER_ROW_TARGET = 8; // player stays around row 8 from bottom (55-65% height)
+// ══════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════
+const COLS = 7;
+const ROWS_VISIBLE = 10;   // rows visible on screen at once
+const TILE = 70;           // logical tile size
+const PLAYER_SCREEN_ROW = 6; // player sits at row 6 from top (60% down)
+const CHUNK_H = 5;         // rows per chunk
+const LANE_DIR = [-1,1,-1,1,-1,1,-1,1,-1,1]; // alternating
 
-const ZONE_CONFIG = [
-  { from:0,    npcDensity:.20, speedMult:1.0 },
-  { from:200,  npcDensity:.35, speedMult:1.3 },
-  { from:500,  npcDensity:.50, speedMult:1.6 },
-  { from:1000, npcDensity:.70, speedMult:2.0 },
+const ZONES = [
+  {from:0,   density:.18, spd:0.9},
+  {from:200, density:.32, spd:1.2},
+  {from:500, density:.48, spd:1.55},
+  {from:1000,density:.68, spd:2.0},
 ];
 
-const LANE_SPEEDS = [1.0, 1.25, 0.85, 1.5, 1.1, 0.9, 1.35, 0.95];
-const LANE_DIRS   = [-1, 1, -1, 1, -1, 1, -1, 1]; // -1=left, 1=right
+// ══════════════════════════════════════════
+// CANVAS
+// ══════════════════════════════════════════
+const canvas = document.getElementById('gc');
+const ctx    = canvas.getContext('2d');
+let W=0,H=0,tileW=0,tileH=0;
 
-const ANNOUNCEMENTS = [
-  "Atenção passageiros. Mantenham-se atrás da faixa amarela.",
-  "Por favor, aguarde o desembarque antes de embarcar.",
-  "Em caso de dúvida, procure um colaborador da estação.",
-  "Utilize as escadas rolantes com segurança.",
-  "Cuide de seus pertences pessoais.",
-  "Respeite o fluxo de passageiros.",
-  "Obrigado por utilizar o transporte público.",
-  "Trem aproximando-se da plataforma.",
-  "Portas em fechamento. Afastem-se das portas.",
-  "Desembarque pelo lado esquerdo.",
-];
-
-// ═══════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════
-const canvas = document.getElementById('gameCanvas');
-const ctx    = canvas.getContext('2d', { alpha: false });
-
-let W, H, scale, canvasOffX, canvasOffY;
-let gameState = 'menu'; // menu|playing|paused|gameover
-let animId    = null;
-
-// Player state
-const player = {
-  col: 3, row: 0,         // logical grid position (row=0 is starting visible row from top)
-  worldRow: 0,            // absolute world row
-  x: 0, y: 0,            // pixel position on canvas
-  targetX: 0, targetY: 0,
-  moving: false,
-  moveProgress: 0,
-  moveDir: null,
-  idlePhase: 0,
-  bounceY: 0,
-  squashX: 1, squashY: 1,
-  photo: null,
-  name: '',
-  avatar_url: '',
-};
-
-// Camera
-const cam = {
-  worldRowOffset: 0,   // which world row is at top of screen
-  pixelY: 0,           // smooth pixel offset within current row transition
-  targetRowOffset: 0,
-};
-
-// World
-let worldRowsGenerated = 0;
-let distance = 0;   // meters
-let bestDistance = 0;
-let lastAnnouncementTime = 0;
-let announcementCooldown = 60000;
-let lastAnnouncementIdx = -1;
-let frameCount = 0;
-let gameStartTime = 0;
-let isNewRecord = false;
-
-// NPC pool
-const npcPool = [];
-const MAX_NPCS = 80;
-
-// Chunks (each chunk = array of rows, each row = bg image type)
-const chunks = [];  // {startRow, bgType, npcs[]}
-const MAX_CHUNKS = 6;
-
-// Images
-const imgs = {};
-let imgsLoaded = 0;
-let imgsTotal  = 0;
-let assetsReady = false;
-
-// Auth
-let authUser = null;
-let authToken = null;
-
-// ═══════════════════════════════════════════
-// CANVAS RESIZE
-// ═══════════════════════════════════════════
 function resize(){
-  W = window.innerWidth;
-  H = window.innerHeight;
-  canvas.width  = W;
-  canvas.height = H;
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  // Tile width derived from canvas width
+  tileW = W / COLS;
+  tileH = H / ROWS_VISIBLE;
+}
+resize();
+window.addEventListener('resize', resize);
 
-  // Scale based on desired visible width = COLS * TILE
-  scale = W / (COLS * TILE);
-  canvasOffX = 0;
-  canvasOffY = 0;
-  
-  // Recalculate player pixel position
-  updatePlayerPixel();
+// ══════════════════════════════════════════
+// ASSETS
+// ══════════════════════════════════════════
+const imgs = {};
+let loaded = 0, total = 0;
+
+function loadImg(key, src){
+  total++;
+  const im = new Image();
+  im.onload  = ()=>{ loaded++; imgs[key]=im; updateLoadBar(); };
+  im.onerror = ()=>{ loaded++; imgs[key]=null; updateLoadBar(); };
+  im.src = src;
 }
 
-// ═══════════════════════════════════════════
-// IMAGE LOADING
-// ═══════════════════════════════════════════
-function loadImage(key, src){
-  imgsTotal++;
-  const img = new Image();
-  img.onload  = () => { imgsLoaded++; if(imgsLoaded >= imgsTotal) assetsReady = true; };
-  img.onerror = () => { imgsLoaded++; imgs[key] = null; if(imgsLoaded >= imgsTotal) assetsReady = true; };
-  img.src = src;
-  imgs[key] = img;
+function updateLoadBar(){
+  const pct = total > 0 ? (loaded/total*100) : 0;
+  document.getElementById('loading-bar').style.width = pct+'%';
+  if(loaded >= total) setTimeout(assetsReady, 200);
+}
+
+function assetsReady(){
+  document.getElementById('loading').style.display = 'none';
+  showScreen('menu');
 }
 
 function initAssets(){
-  loadImage('chunk01', '/chunk-01.png');
-  loadImage('chunk02', '/chunk-02.png');
-  loadImage('chunk03', '/chunk-03.png');
-  loadImage('chunk04', '/chunk-04.png');
-  loadImage('npc_executivo_a', '/npc-executivo-a.png');
-  loadImage('npc_executivo_b', '/npc-executivo-b.png');
-  loadImage('npc_executivo_c', '/npc-executivo-c.png');
-  loadImage('npc_estudante_a', '/npc-estudante-a.png');
-  loadImage('npc_estudante_b', '/npc-estudante-b.png');
-  loadImage('npc_policial_a',  '/npc-policial-a.png');
-  loadImage('npc_idoso_a',     '/npc-idoso-a.png');
-  loadImage('npc_idoso_b',     '/npc-idoso-b.png');
+  loadImg('bg0','/chunk-01.png');
+  loadImg('bg1','/chunk-02.png');
+  loadImg('bg2','/chunk-03.png');
+  loadImg('bg3','/chunk-04.png');
+  loadImg('npc_exA','/npc-executivo-a.png');
+  loadImg('npc_exB','/npc-executivo-b.png');
+  loadImg('npc_exC','/npc-executivo-c.png');
+  loadImg('npc_esA','/npc-estudante-a.png');
+  loadImg('npc_esB','/npc-estudante-b.png');
+  loadImg('npc_pol','/npc-policial-a.png');
+  loadImg('npc_idA','/npc-idoso-a.png');
+  loadImg('npc_idB','/npc-idoso-b.png');
 }
 
-// NPC type catalog
-const NPC_TYPES = [
-  { key:'npc_executivo_a', label:'Executivo',  w:1448, h:1086 },
-  { key:'npc_executivo_b', label:'Executivo',  w:1448, h:1086 },
-  { key:'npc_estudante_a', label:'Estudante',  w:1536, h:1024 },
-  { key:'npc_estudante_b', label:'Estudante',  w:1536, h:1024 },
-  { key:'npc_policial_a',  label:'Policial',   w:1536, h:1024 },
-  { key:'npc_idoso_a',     label:'Idoso',      w:1448, h:1086 },
-  { key:'npc_idoso_b',     label:'Idoso',      w:1448, h:1086 },
-  { key:'npc_executivo_c', label:'Executivo',  w:1448, h:1086 },
-];
+const NPC_KEYS = ['npc_exA','npc_exB','npc_exC','npc_esA','npc_esB','npc_pol','npc_idA','npc_idB'];
+// NPC visual height relative to tileH
+const NPC_SCALE = 1.9;
 
-// ═══════════════════════════════════════════
-// AUTH (receive from parent DAILY frame)
-// ═══════════════════════════════════════════
-window.addEventListener('message', e => {
-  if(e.data?.type === 'AUTH_TOKEN'){
-    authToken = e.data.token;
-    authUser  = e.data.user;
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+let authToken = null, authUser = null;
+let playerPhoto = null;
+let playerName  = 'Visitante';
+let playerInit  = 'V';
+let bestDist    = 0;
+
+window.addEventListener('message', e=>{
+  const d = e.data;
+  // Accept both AUTH_TOKEN and DAILY_AUTH
+  if(d?.type === 'DAILY_AUTH' || d?.type === 'AUTH_TOKEN'){
+    authToken = d.token || null;
+    authUser  = d.user  || null;
     if(authUser){
-      player.name      = authUser.name || authUser.username || 'Jogador';
-      player.avatar_url= authUser.avatar_url || '';
-      document.getElementById('menu-name').textContent = player.name;
-      const ma = document.getElementById('menu-avatar');
-      if(player.avatar_url){ ma.src = player.avatar_url; ma.style.display='block'; }
-      document.getElementById('go-avatar').src = player.avatar_url || '';
-      document.getElementById('go-name').textContent = player.name;
-      loadPlayerPhoto();
+      playerName = authUser.name || authUser.username || 'Jogador';
+      playerInit = (playerName[0]||'J').toUpperCase();
+      setAvatarUI(authUser.avatar_url);
     }
     loadBestScore();
   }
 });
 
-// Request auth token from parent
-window.parent.postMessage({ type: 'REQUEST_AUTH' }, '*');
+// Request auth from parent
+window.parent.postMessage({type:'REQUEST_AUTH'},'*');
+// Fallback if standalone
+setTimeout(()=>{ if(!authToken) assetsFullyLoaded(); }, 1500);
 
-// Fallback if no parent
-setTimeout(() => {
-  if(!authToken){
-    player.name = 'Visitante';
-    document.getElementById('menu-name').textContent = player.name;
-    loadBestScore();
+function setAvatarUI(url){
+  document.getElementById('menu-name').textContent = playerName;
+  document.getElementById('menu-initials').textContent = playerInit;
+  document.getElementById('go-initials').textContent = playerInit;
+  document.getElementById('go-name').textContent = playerName;
+  if(url){
+    const ma = document.getElementById('menu-avatar');
+    ma.src = url; ma.style.display = 'block';
+    document.getElementById('menu-initials').style.display = 'none';
+    const ga = document.getElementById('go-avatar');
+    ga.src = url; ga.style.display = 'block';
+    document.getElementById('go-initials').style.display = 'none';
+    // Load for canvas
+    playerPhoto = new Image();
+    playerPhoto.crossOrigin = 'anonymous';
+    playerPhoto.src = url;
   }
-}, 1500);
-
-function loadPlayerPhoto(){
-  if(!player.avatar_url) return;
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => { player.photo = img; };
-  img.src = player.avatar_url;
 }
 
 async function loadBestScore(){
   try{
-    const h = authToken ? { 'Authorization':'Bearer '+authToken } : {};
-    const r = await fetch('/api/crossing/score', { headers: h });
-    if(r.ok){
-      const d = await r.json();
-      bestDistance = d.best || 0;
-      document.getElementById('menu-record').textContent = bestDistance > 0 ? `Recorde: ${bestDistance}m` : 'Sem recorde ainda';
-      document.getElementById('record-val').textContent  = bestDistance > 0 ? bestDistance+'m' : '—';
-    }
+    const h = authToken ? {'Authorization':'Bearer '+authToken} : {};
+    const r = await fetch('/api/crossing/score',{headers:h});
+    if(r.ok){ const d=await r.json(); bestDist=d.best||0; updateRecordUI(); }
   }catch(e){}
 }
 
-async function saveScore(){
-  if(!authToken || distance <= 0) return;
+function updateRecordUI(){
+  document.getElementById('record-val').textContent  = bestDist>0 ? bestDist+'m' : '—';
+  document.getElementById('menu-rec').textContent    = bestDist>0 ? 'Recorde: '+bestDist+'m' : 'Sem recorde ainda';
+}
+
+async function saveScore(dist){
+  if(!authToken || dist<=0) return;
   try{
-    await fetch('/api/crossing/score', {
+    await fetch('/api/crossing/score',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},
-      body: JSON.stringify({ score: Math.floor(distance), phase: 1 })
+      body:JSON.stringify({score:Math.floor(dist),phase:1})
     });
   }catch(e){}
 }
 
-// ═══════════════════════════════════════════
-// CHUNK MANAGER
-// ═══════════════════════════════════════════
-const BG_TYPES = ['chunk01','chunk02','chunk03','chunk04'];
+// ══════════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════════
+let gs = 'menu'; // menu|playing|paused|gameover
+let rafId = null;
 
-function createChunk(startRow){
-  // Alternate between bg types, slight variation
-  const bgType = BG_TYPES[Math.floor(startRow / CHUNK_ROWS) % BG_TYPES.length];
-  const isRespiro = (Math.floor(startRow / CHUNK_ROWS) % 5 === 4); // every 5th chunk
-  const chunk = { startRow, endRow: startRow + CHUNK_ROWS - 1, bgType, isRespiro, npcs: [] };
-  
-  // Spawn NPCs for this chunk
-  spawnChunkNPCs(chunk);
-  chunks.push(chunk);
-  return chunk;
+// Player
+const P = {
+  col: Math.floor(COLS/2),
+  worldRow: 0,      // absolute row in world (increases as player goes up)
+  screenRow: PLAYER_SCREEN_ROW, // always drawn here
+  // Animation
+  moving: false,
+  fromCol:0, fromRow:0, toCol:0, toRow:0,
+  progress:0,
+  dir: null,
+  // Visual
+  squashX:1, squashY:1,
+  breathPhase:0,
+  bounceArc:0,
+};
+
+// Camera: worldRow of top of screen
+let camTopRow = 0;
+let dist      = 0;
+let frameN    = 0;
+let lastAnn   = 0;
+
+// ══════════════════════════════════════════
+// CHUNKS & NPCS
+// ══════════════════════════════════════════
+// Chunk = { topRow, bgKey, npcs[] }
+// NPC   = { imgKey, lane(worldRow), col(float), dir, speed, walkPhase, walkSpeed, w, h }
+const chunks = [];
+let   nextChunkRow = 0;
+
+function getZone(d){
+  let z=ZONES[0];
+  for(const zz of ZONES) if(d>=zz.from) z=zz;
+  return z;
 }
 
-function getZoneConfig(d){
-  let cfg = ZONE_CONFIG[0];
-  for(const z of ZONE_CONFIG){ if(d >= z.from) cfg = z; }
-  return cfg;
-}
+function spawnChunk(topRow){
+  const bgIdx  = (Math.floor(topRow/CHUNK_H)) % 4;
+  const bgKey  = 'bg'+bgIdx;
+  const isRest = (Math.floor(topRow/CHUNK_H)) % 6 === 5;
+  const zone   = getZone(dist);
+  const npcs   = [];
 
-function spawnChunkNPCs(chunk){
-  const zone = getZoneConfig(distance);
-  const density = chunk.isRespiro ? 0.05 : zone.npcDensity;
-  
-  // For each row in chunk, populate lanes
-  for(let r = chunk.startRow; r <= chunk.endRow; r++){
-    const lane = r % LANE_DIRS.length;
-    if(Math.random() > density) continue;
-    
-    const npcType = NPC_TYPES[Math.floor(Math.random() * NPC_TYPES.length)];
-    // Random starting X position in lane
-    const startCol = LANE_DIRS[lane] === 1
-      ? -1 - Math.random() * 3   // comes from left
-      : COLS + Math.random() * 3; // comes from right
-    
-    const npc = getNPCFromPool();
-    npc.active     = true;
-    npc.type       = npcType;
-    npc.worldRow   = r;
-    npc.col        = startCol;
-    npc.lane       = lane;
-    npc.speed      = LANE_SPEEDS[lane] * zone.speedMult * (0.8 + Math.random() * 0.4);
-    npc.dir        = LANE_DIRS[lane];
-    npc.frameIdx   = Math.floor(Math.random() * 4); // random walk frame start
-    npc.frameTimer = Math.random() * 10;
-    npc.frameFPS   = 4 + lane * 0.5 + Math.random();
-    chunk.npcs.push(npc);
-  }
-}
-
-function getNPCFromPool(){
-  for(const n of npcPool) if(!n.active) return n;
-  const n = { active:false, type:null, worldRow:0, col:0, lane:0, speed:1, dir:1, frameIdx:0, frameTimer:0, frameFPS:6 };
-  npcPool.push(n);
-  return n;
-}
-
-function updateChunks(){
-  // Remove chunks that are far above camera
-  for(let i = chunks.length - 1; i >= 0; i--){
-    if(chunks[i].endRow < cam.worldRowOffset - 2){
-      // Deactivate its NPCs
-      for(const n of chunks[i].npcs) n.active = false;
-      chunks.splice(i, 1);
+  for(let r=topRow; r<topRow+CHUNK_H; r++){
+    const lane = Math.abs(r) % LANE_DIR.length;
+    const dir  = LANE_DIR[lane];
+    const density = isRest ? 0.06 : zone.density;
+    // 0-3 NPCs per row
+    const count = Math.random() < density ? (Math.random()<0.3?2:1) : 0;
+    for(let i=0;i<count;i++){
+      const key = NPC_KEYS[Math.floor(Math.random()*NPC_KEYS.length)];
+      // Spread across the corridor
+      const startCol = dir===1
+        ? -1.5 - Math.random()*2
+        : COLS+0.5 + Math.random()*2;
+      npcs.push({
+        imgKey: key,
+        lane: r,
+        col: startCol,
+        dir: dir,
+        speed: zone.spd * (0.7+Math.random()*0.6),
+        walkPhase: Math.random()*Math.PI*2,
+        walkSpeed: 6+Math.random()*4,
+        alive: true,
+      });
     }
   }
-  
-  // Generate new chunks ahead of player
-  const neededUntil = cam.worldRowOffset + VISIBLE_ROWS + CHUNK_ROWS * 2;
-  while(worldRowsGenerated < neededUntil){
-    createChunk(worldRowsGenerated);
-    worldRowsGenerated += CHUNK_ROWS;
+  chunks.push({topRow, bgKey, isRest, npcs});
+}
+
+function ensureChunks(){
+  // Need chunks from camTopRow-2 to camTopRow+ROWS_VISIBLE+CHUNK_H*2
+  const needed = Math.floor(camTopRow) + ROWS_VISIBLE + CHUNK_H*3;
+  while(nextChunkRow <= needed){
+    spawnChunk(nextChunkRow);
+    nextChunkRow += CHUNK_H;
+  }
+  // Remove old chunks
+  const cutoff = Math.floor(camTopRow) - CHUNK_H*2;
+  for(let i=chunks.length-1;i>=0;i--){
+    if(chunks[i].topRow + CHUNK_H < cutoff){
+      chunks.splice(i,1);
+    }
   }
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 // PLAYER MOVEMENT
-// ═══════════════════════════════════════════
-function updatePlayerPixel(){
-  const visRow = player.worldRow - cam.worldRowOffset;
-  player.x = player.col * TILE * scale;
-  player.y = (visRow * TILE - cam.pixelY) * scale + player.bounceY;
-}
-
+// ══════════════════════════════════════════
 function tryMove(dir){
-  if(player.moving || gameState !== 'playing') return;
-  
-  let newCol = player.col;
-  let newWorldRow = player.worldRow;
-  
-  if(dir === 'up')    newWorldRow--;
-  if(dir === 'down')  newWorldRow++;
-  if(dir === 'left')  newCol = Math.max(0, player.col - 1);
-  if(dir === 'right') newCol = Math.min(COLS - 1, player.col + 1);
-  
-  player.moving    = true;
-  player.moveDir   = dir;
-  player.moveProgress = 0;
-  player._fromCol  = player.col;
-  player._fromRow  = player.worldRow;
-  player._toCol    = newCol;
-  player._toRow    = newWorldRow;
-  
-  // Squash & stretch on move
-  player.squashX = 0.92;
-  player.squashY = 1.08;
-  
-  // Play footstep
-  playFootstep();
+  if(P.moving || gs!=='playing') return;
+  let nc=P.col, nr=P.worldRow;
+  if(dir==='up')    nr--;
+  if(dir==='down')  nr++;
+  if(dir==='left')  nc=Math.max(0,P.col-1);
+  if(dir==='right') nc=Math.min(COLS-1,P.col+1);
+  P.moving=true; P.dir=dir;
+  P.fromCol=P.col; P.fromRow=P.worldRow;
+  P.toCol=nc; P.toRow=nr;
+  P.progress=0;
+  P.squashX=0.9; P.squashY=1.1;
+  playStep();
 }
 
-function updatePlayer(dt){
-  // Idle breathing
-  player.idlePhase += dt * 1.5;
-  const breathe = Math.sin(player.idlePhase) * 1.5;
-  
-  if(player.moving){
-    player.moveProgress = Math.min(1, player.moveProgress + dt * 8); // ~125ms per tile
-    const t = easeOutCubic(player.moveProgress);
-    
-    const fromPX = player._fromCol  * TILE * scale;
-    const toPX   = player._toCol    * TILE * scale;
-    const fromPY = (player._fromRow - cam.worldRowOffset) * TILE * scale - cam.pixelY * scale;
-    const toPY   = (player._toRow   - cam.worldRowOffset) * TILE * scale - cam.pixelY * scale;
-    
-    // Bounce arc
-    const arc = Math.sin(player.moveProgress * Math.PI) * 5 * scale;
-    
-    player.x = fromPX + (toPX - fromPX) * t;
-    player.y = fromPY + (toPY - fromPY) * t - arc + breathe * scale;
-    
-    // Squash recovery
-    player.squashX += (1 - player.squashX) * dt * 10;
-    player.squashY += (1 - player.squashY) * dt * 10;
-    
-    if(player.moveProgress >= 1){
-      player.col      = player._toCol;
-      player.worldRow = player._toRow;
-      player.moving   = false;
-      player.squashX  = 1.05;
-      player.squashY  = 0.95;
-      
-      // Advance distance (going up = progress)
-      if(player.moveDir === 'up'){
-        distance += 2.5;
-        updateDistHUD();
+// ══════════════════════════════════════════
+// UPDATE
+// ══════════════════════════════════════════
+function update(dt){
+  P.breathPhase += dt*1.8;
+
+  if(P.moving){
+    P.progress = Math.min(1, P.progress + dt*9); // ~111ms per tile
+    const t = ease(P.progress);
+    P.squashX += (1-P.squashX)*dt*12;
+    P.squashY += (1-P.squashY)*dt*12;
+    P.bounceArc = Math.sin(P.progress*Math.PI)*4;
+
+    if(P.progress>=1){
+      P.col=P.toCol; P.worldRow=P.toRow;
+      P.moving=false; P.bounceArc=0;
+      P.squashX=1.04; P.squashY=0.96;
+      if(P.dir==='up'){
+        dist+=2.5;
+        document.getElementById('dist-display').textContent=Math.floor(dist);
       }
     }
   } else {
-    // Idle - just breathing
-    const visRow = player.worldRow - cam.worldRowOffset;
-    player.x = player.col * TILE * scale;
-    player.y = (visRow * TILE) * scale - cam.pixelY * scale + breathe * scale;
-    player.squashX += (1 - player.squashX) * dt * 8;
-    player.squashY += (1 - player.squashY) * dt * 8;
+    P.squashX+=(1-P.squashX)*dt*8;
+    P.squashY+=(1-P.squashY)*dt*8;
+    P.bounceArc=0;
   }
-}
 
-function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  // Camera: smoothly track so player stays at PLAYER_SCREEN_ROW
+  const targetCam = P.worldRow - PLAYER_SCREEN_ROW;
+  camTopRow += (targetCam - camTopRow) * Math.min(1, dt*8);
 
-// ═══════════════════════════════════════════
-// CAMERA
-// ═══════════════════════════════════════════
-function updateCamera(dt){
-  // Player should stay in rows 55%-65% from top
-  const targetVisRow = Math.floor(VISIBLE_ROWS * 0.38); // row index from top where player should be
-  const currentVisRow = player.worldRow - cam.worldRowOffset;
-  
-  // If player goes above targetVisRow, scroll camera up
-  if(currentVisRow < targetVisRow){
-    cam.targetRowOffset = player.worldRow - targetVisRow;
-  }
-  
-  // Smooth camera
-  const diff = cam.targetRowOffset - cam.worldRowOffset;
-  if(Math.abs(diff) > 0.01){
-    cam.worldRowOffset += diff * Math.min(1, dt * 6);
-  }
-}
-
-// ═══════════════════════════════════════════
-// NPC UPDATE
-// ═══════════════════════════════════════════
-function updateNPCs(dt){
-  const zone = getZoneConfig(distance);
-  
-  for(const npc of npcPool){
-    if(!npc.active) continue;
-    
-    // Respawn NPCs for new zone speed
-    npc.speed = LANE_SPEEDS[npc.lane] * zone.speedMult * (0.8 + 0.4 * (npc.speed / (LANE_SPEEDS[npc.lane] * 1.0)));
-    
-    // Move horizontally
-    npc.col += npc.dir * npc.speed * dt;
-    
-    // Off screen? respawn on opposite side
-    if(npc.dir === 1 && npc.col > COLS + 1){
-      npc.col = -1.5;
-    } else if(npc.dir === -1 && npc.col < -1.5){
-      npc.col = COLS + 1;
-    }
-    
-    // Walk cycle
-    npc.frameTimer += dt * npc.frameFPS;
-    if(npc.frameTimer >= 1){
-      npc.frameTimer -= 1;
-      npc.frameIdx = (npc.frameIdx + 1) % 2; // 0=step, 1=mid (2-frame simple cycle)
+  // Update NPCs
+  const zone = getZone(dist);
+  for(const ch of chunks){
+    for(const npc of ch.npcs){
+      npc.col += npc.dir * npc.speed * dt;
+      npc.walkPhase += dt * npc.walkSpeed;
+      // Wrap
+      if(npc.dir===1 && npc.col>COLS+2) npc.col=-2;
+      if(npc.dir===-1 && npc.col<-2)    npc.col=COLS+2;
     }
   }
+
+  ensureChunks();
+  checkCollision();
+
+  // Announcements
+  const now=Date.now();
+  const interval = dist<200?90000:dist<500?70000:50000;
+  if(now-lastAnn>interval){ lastAnn=now; doAnnouncement(); }
 }
 
-// ═══════════════════════════════════════════
-// COLLISION DETECTION
-// ═══════════════════════════════════════════
+function ease(t){ return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
+
+// ══════════════════════════════════════════
+// COLLISION
+// ══════════════════════════════════════════
 function checkCollision(){
-  for(const npc of npcPool){
-    if(!npc.active) continue;
-    
-    // Only check NPCs on same world row as player
-    if(npc.worldRow !== player.worldRow) continue;
-    
-    // Simple AABB on grid
-    const dx = Math.abs(npc.col - player.col);
-    if(dx < 0.7){
-      triggerGameOver();
-      return;
+  if(P.moving) return; // only check when on exact tile
+  for(const ch of chunks){
+    for(const npc of ch.npcs){
+      if(npc.lane !== P.worldRow) continue;
+      const dx = Math.abs(npc.col - P.col);
+      if(dx < 0.65) { triggerGameOver(); return; }
     }
   }
 }
 
-// ═══════════════════════════════════════════
-// DRAWING
-// ═══════════════════════════════════════════
-function drawBackground(){
-  // Draw chunks
-  for(const chunk of chunks){
-    const bgImg = imgs[chunk.bgType];
-    if(!bgImg) continue;
-    
-    const chunkStartY = (chunk.startRow - cam.worldRowOffset) * TILE * scale - cam.pixelY * scale;
-    const chunkH = CHUNK_ROWS * TILE * scale;
-    
-    if(chunkStartY > H || chunkStartY + chunkH < 0) continue;
-    
-    ctx.drawImage(bgImg, 0, chunkStartY, W, chunkH);
+// ══════════════════════════════════════════
+// DRAW
+// ══════════════════════════════════════════
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a0a14';
+  ctx.fillRect(0,0,W,H);
+
+  drawBG();
+  drawNPCs();
+  drawPlayer();
+}
+
+function rowToScreenY(worldRow){
+  // Convert world row to screen Y (top of tile)
+  return (worldRow - camTopRow) * tileH;
+}
+
+function drawBG(){
+  // Draw each chunk's background image spanning its rows
+  for(const ch of chunks){
+    const img = imgs[ch.bgKey];
+    if(!img) continue;
+    const y0 = rowToScreenY(ch.topRow);
+    const y1 = rowToScreenY(ch.topRow + CHUNK_H);
+    if(y1<0 || y0>H) continue;
+    ctx.drawImage(img, 0, y0, W, y1-y0);
   }
 }
 
 function drawNPCs(){
-  for(const npc of npcPool){
-    if(!npc.active) continue;
-    
-    const img = imgs[npc.type.key];
-    if(!img) continue;
-    
-    const visRow = npc.worldRow - cam.worldRowOffset;
-    const px = npc.col * TILE * scale;
-    const py = visRow   * TILE * scale - cam.pixelY * scale;
-    
-    if(py < -TILE * scale * 2 || py > H + TILE * scale) continue;
-    
-    const npcH = TILE * scale * 1.8;
-    const npcW = npcH * (npc.type.w / npc.type.h);
-    
-    ctx.save();
-    
-    // Mirror if going left
-    if(npc.dir === -1){
-      ctx.scale(-1, 1);
-      ctx.drawImage(img, -(px + npcW * 0.5), py - npcH * 0.85, npcW, npcH);
-    } else {
-      ctx.drawImage(img, px - npcW * 0.5, py - npcH * 0.85, npcW, npcH);
+  for(const ch of chunks){
+    for(const npc of ch.npcs){
+      const img = imgs[npc.imgKey];
+      if(!img) continue;
+
+      const screenY = rowToScreenY(npc.lane);
+      if(screenY > H+tileH*2 || screenY < -tileH*3) continue;
+
+      const npcH = tileH * NPC_SCALE;
+      // Keep aspect ratio
+      const aspectW = img.naturalWidth || img.width || 1;
+      const aspectH = img.naturalHeight || img.height || 1;
+      const npcW = npcH * (aspectW/aspectH);
+
+      const px = npc.col * tileW;
+      const py = screenY - npcH*0.85; // feet at row line
+
+      // Walk cycle: simple bob up/down
+      const bob = Math.sin(npc.walkPhase) * 2.5;
+
+      ctx.save();
+
+      // Shadow
+      ctx.globalAlpha=0.2;
+      ctx.fillStyle='#000';
+      ctx.beginPath();
+      ctx.ellipse(px, screenY+1, npcW*0.22, 4, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha=1;
+
+      // Flip for left-moving NPCs
+      if(npc.dir===-1){
+        ctx.translate(px, py+bob);
+        ctx.scale(-1,1);
+        ctx.drawImage(img, -npcW/2, 0, npcW, npcH);
+      } else {
+        ctx.drawImage(img, px-npcW/2, py+bob, npcW, npcH);
+      }
+
+      ctx.restore();
     }
-    
-    // Subtle shadow
-    ctx.restore();
-    ctx.save();
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.ellipse(px, py + 2, npcW * 0.25, 5 * scale, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
   }
 }
 
 function drawPlayer(){
-  if(gameState === 'gameover') return;
-  
-  const px = player.x + TILE * scale * 0.5;
-  const py = player.y;
-  const r  = TILE * scale * 0.42;
-  
+  if(gs==='gameover') return;
+
+  // Interpolate position
+  let col, worldRow;
+  if(P.moving){
+    const t=ease(P.progress);
+    col = P.fromCol+(P.toCol-P.fromCol)*t;
+    worldRow = P.fromRow+(P.toRow-P.fromRow)*t;
+  } else {
+    col=P.col; worldRow=P.worldRow;
+  }
+
+  const px = col*tileW + tileW*0.5;
+  const screenY = rowToScreenY(worldRow);
+  const py = screenY - P.bounceArc - Math.sin(P.breathPhase)*2;
+
+  const r = Math.min(tileW, tileH) * 0.38;
+
   ctx.save();
   ctx.translate(px, py);
-  ctx.scale(player.squashX, player.squashY);
-  
+  ctx.scale(P.squashX, P.squashY);
+
   // Shadow
   ctx.save();
-  ctx.globalAlpha = 0.25;
-  ctx.fillStyle = '#000';
+  ctx.globalAlpha=0.28;
+  ctx.fillStyle='#000';
   ctx.beginPath();
-  ctx.ellipse(0, r * 0.9, r * 0.6 * player.squashX, 5 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, r*0.85, r*0.55, 5, 0, 0, Math.PI*2);
   ctx.fill();
   ctx.restore();
-  
-  // Avatar circle clip
+
+  // Clip to circle
   ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.arc(0,0,r,0,Math.PI*2);
   ctx.clip();
-  
-  if(player.photo){
-    ctx.drawImage(player.photo, -r, -r, r * 2, r * 2);
+
+  if(playerPhoto && playerPhoto.complete && playerPhoto.naturalWidth>0){
+    ctx.drawImage(playerPhoto,-r,-r,r*2,r*2);
   } else {
-    // Fallback avatar
-    const grd = ctx.createLinearGradient(-r, -r, r, r);
-    grd.addColorStop(0, '#F5C518');
-    grd.addColorStop(1, '#c8890a');
-    ctx.fillStyle = grd;
-    ctx.fillRect(-r, -r, r * 2, r * 2);
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${r}px Segoe UI`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText((player.name || 'J')[0].toUpperCase(), 0, 0);
+    // Gradient fallback
+    const g=ctx.createLinearGradient(-r,-r,r,r);
+    g.addColorStop(0,'#F5C518'); g.addColorStop(1,'#c8890a');
+    ctx.fillStyle=g; ctx.fillRect(-r,-r,r*2,r*2);
+    ctx.fillStyle='rgba(0,0,0,.5)';
+    ctx.font=`bold ${r}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(playerInit,0,0);
   }
-  
+
   ctx.restore();
-  
-  // Yellow border ring (outside clip)
+
+  // Ring border (outside clip)
   ctx.save();
-  ctx.translate(px, py);
-  ctx.scale(player.squashX, player.squashY);
+  ctx.translate(px,py);
+  ctx.scale(P.squashX,P.squashY);
   ctx.beginPath();
-  ctx.arc(0, 0, r + 2 * scale, 0, Math.PI * 2);
-  ctx.strokeStyle = '#F5C518';
-  ctx.lineWidth = 3 * scale;
-  ctx.stroke();
+  ctx.arc(0,0,r+2.5,0,Math.PI*2);
+  ctx.strokeStyle='#F5C518'; ctx.lineWidth=3; ctx.stroke();
   ctx.restore();
 }
 
-function drawParticles(){
-  // Simple footstep dust handled inline in tryMove for now
+// ══════════════════════════════════════════
+// LOOP
+// ══════════════════════════════════════════
+let lastT=0;
+function loop(ts=0){
+  if(gs!=='playing'){ rafId=null; return; }
+  rafId=requestAnimationFrame(loop);
+  const dt=Math.min((ts-lastT)/1000, 0.05);
+  lastT=ts;
+  frameN++;
+  update(dt);
+  draw();
 }
 
-// ═══════════════════════════════════════════
-// HUD UPDATE
-// ═══════════════════════════════════════════
-function updateDistHUD(){
-  document.getElementById('dist-display').textContent = Math.floor(distance);
-}
-
-// ═══════════════════════════════════════════
-// AUDIO (Web Audio API - synthesized sounds)
-// ═══════════════════════════════════════════
-let audioCtx = null;
-
-function getAudioCtx(){
-  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-
-function playFootstep(){
-  try{
-    const ac = getAudioCtx();
-    const buf = ac.createBuffer(1, ac.sampleRate * 0.08, ac.sampleRate);
-    const data = buf.getChannelData(0);
-    for(let i = 0; i < data.length; i++){
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (data.length * 0.3)) * 0.25;
-    }
-    const src = ac.createBufferSource();
-    src.buffer = buf;
-    const g = ac.createGain();
-    g.gain.value = 0.4;
-    src.connect(g);
-    g.connect(ac.destination);
-    src.start();
-  }catch(e){}
-}
-
-function playCollisionSound(){
-  try{
-    const ac = getAudioCtx();
-    const osc = ac.createOscillator();
-    const g   = ac.createGain();
-    osc.frequency.value = 220;
-    osc.frequency.exponentialRampToValueAtTime(80, ac.currentTime + 0.3);
-    g.gain.value = 0.4;
-    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.4);
-    osc.connect(g); g.connect(ac.destination);
-    osc.start(); osc.stop(ac.currentTime + 0.4);
-  }catch(e){}
-}
-
-function playAnnouncement(){
-  const now = Date.now();
-  const minInterval = distance < 200 ? 90000 : distance < 500 ? 70000 : 50000;
-  if(now - lastAnnouncementTime < minInterval) return;
-  
-  let idx;
-  do { idx = Math.floor(Math.random() * ANNOUNCEMENTS.length); }
-  while(idx === lastAnnouncementIdx);
-  lastAnnouncementIdx = idx;
-  lastAnnouncementTime = now;
-  
-  const text = ANNOUNCEMENTS[idx];
-  showAnnouncement(text);
-  speakAnnouncement(text);
-}
-
-function showAnnouncement(text){
-  // No on-screen text for announcements - just audio
-}
-
-function speakAnnouncement(text){
-  if(!('speechSynthesis' in window)) return;
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.lang = 'pt-BR';
-  utt.rate = 0.85;
-  utt.pitch = 0.9;
-  utt.volume = 0.6;
-  window.speechSynthesis.speak(utt);
-}
-
-function ambientDrone(){
-  try{
-    const ac = getAudioCtx();
-    // Very subtle station hum
-    const osc = ac.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.value = 58;
-    const g = ac.createGain();
-    g.gain.value = 0.025;
-    osc.connect(g); g.connect(ac.destination);
-    osc.start();
-    // Keep running while playing
-    return { stop:() => { try{ osc.stop(); }catch(e){} } };
-  }catch(e){ return { stop:()=>{} }; }
-}
-let droneNode = null;
-
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 // GAME OVER
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 function triggerGameOver(){
-  if(gameState === 'gameover') return;
-  gameState = 'gameover';
-  cancelAnimationFrame(animId);
-  
-  playCollisionSound();
-  if(droneNode){ droneNode.stop(); droneNode = null; }
-  if('speechSynthesis' in window) window.speechSynthesis.cancel();
-  
-  isNewRecord = distance > bestDistance;
-  if(isNewRecord){
-    bestDistance = Math.floor(distance);
-    saveScore();
-  } else {
-    saveScore();
+  if(gs==='gameover') return;
+  gs='gameover';
+  cancelAnimationFrame(rafId); rafId=null;
+  playBump();
+  stopAmbient();
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+
+  const isNew = dist > bestDist;
+  if(isNew){ bestDist=Math.floor(dist); updateRecordUI(); }
+  saveScore(dist);
+
+  document.getElementById('go-dist').textContent = Math.floor(dist)+'m';
+  document.getElementById('go-best').textContent = bestDist+'m';
+  document.getElementById('go-badge').style.display = isNew?'block':'none';
+  if(isNew){
+    const f=document.getElementById('rec-flash');
+    f.classList.remove('show'); void f.offsetWidth; f.classList.add('show');
   }
-  
-  // Update gameover screen
-  document.getElementById('go-dist').textContent = Math.floor(distance)+'m';
-  document.getElementById('go-best').textContent = bestDistance+'m';
-  document.getElementById('record-val').textContent = bestDistance+'m';
-  document.getElementById('menu-record').textContent = 'Recorde: '+bestDistance+'m';
-  
-  if(isNewRecord){
-    document.querySelector('.go-badge').style.display = 'block';
-    flashRecord();
-  } else {
-    document.querySelector('.go-badge').style.display = 'none';
-  }
-  
-  // Get global rank
-  loadRankingForGO();
-  
+
+  fetchRankPos();
   showScreen('gameover');
-  document.getElementById('challenge-search').value = '';
-  document.getElementById('challenge-results').innerHTML = '';
+  document.getElementById('ch-input').value='';
+  document.getElementById('ch-results').innerHTML='';
 }
 
-async function loadRankingForGO(){
+async function fetchRankPos(){
   try{
-    const r = await fetch('/api/crossing/ranking');
-    const d = await r.json();
-    const rank = d.ranking || [];
-    const pos = rank.findIndex(x => x.user_id === authUser?.id);
-    document.getElementById('go-rank').textContent = pos >= 0 ? '#'+(pos+1) : '#—';
-  }catch(e){ document.getElementById('go-rank').textContent = '#—'; }
+    const r=await fetch('/api/crossing/ranking');
+    const d=await r.json();
+    const pos=(d.ranking||[]).findIndex(x=>x.user_id===authUser?.id);
+    document.getElementById('go-rank').textContent = pos>=0 ? '#'+(pos+1) : '#—';
+  }catch(e){}
 }
 
-function flashRecord(){
-  const el = document.getElementById('record-flash');
-  el.classList.remove('show');
-  void el.offsetWidth;
-  el.classList.add('show');
-}
-
-// ═══════════════════════════════════════════
-// GAME FLOW
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
+// FLOW
+// ══════════════════════════════════════════
 function initWorld(){
-  // Clear all
-  for(const n of npcPool) n.active = false;
-  chunks.length = 0;
-  worldRowsGenerated = 0;
-  
-  player.col      = Math.floor(COLS / 2);
-  player.worldRow = 6; // start a few rows in
-  player.moving   = false;
-  player.moveProgress = 0;
-  player.squashX  = 1;
-  player.squashY  = 1;
-  player.idlePhase= 0;
-  
-  cam.worldRowOffset  = 0;
-  cam.targetRowOffset = 0;
-  cam.pixelY          = 0;
-  
-  distance    = 0;
-  frameCount  = 0;
-  gameStartTime = Date.now();
-  isNewRecord = false;
-  lastAnnouncementTime = Date.now() - 30000; // first announcement after ~45-90s
-  
-  updateDistHUD();
-  
-  // Pre-generate chunks
-  while(worldRowsGenerated < VISIBLE_ROWS + CHUNK_ROWS * 3){
-    createChunk(worldRowsGenerated);
-    worldRowsGenerated += CHUNK_ROWS;
-  }
+  chunks.length=0; nextChunkRow=0;
+  P.col=Math.floor(COLS/2); P.worldRow=4;
+  P.moving=false; P.progress=0; P.squashX=1; P.squashY=1;
+  P.breathPhase=0; P.bounceArc=0;
+  camTopRow = P.worldRow - PLAYER_SCREEN_ROW;
+  dist=0; frameN=0;
+  lastAnn = Date.now()-40000;
+  document.getElementById('dist-display').textContent='0';
+  ensureChunks();
 }
 
 function startGame(){
   showScreen('none');
   initWorld();
-  gameState = 'playing';
-  droneNode = ambientDrone();
-  loop();
+  gs='playing';
+  startAmbient();
+  lastT=performance.now();
+  loop(lastT);
 }
 
 function restartGame(){
   showScreen('none');
   initWorld();
-  gameState = 'playing';
-  droneNode = ambientDrone();
-  loop();
+  gs='playing';
+  startAmbient();
+  lastT=performance.now();
+  loop(lastT);
 }
 
 function pauseGame(){
-  if(gameState !== 'playing') return;
-  gameState = 'paused';
-  cancelAnimationFrame(animId);
-  if(droneNode){ droneNode.stop(); droneNode = null; }
+  if(gs!=='playing') return;
+  gs='paused';
+  cancelAnimationFrame(rafId); rafId=null;
+  stopAmbient();
   showScreen('pause');
 }
 
 function resumeGame(){
-  if(gameState !== 'paused') return;
+  if(gs!=='paused') return;
   showScreen('none');
-  gameState = 'playing';
-  droneNode = ambientDrone();
-  lastTime = performance.now();
-  loop();
+  gs='playing';
+  startAmbient();
+  lastT=performance.now();
+  loop(lastT);
 }
 
 function goToMenu(){
-  if(gameState === 'playing' || gameState === 'paused'){
-    gameState = 'menu';
-    cancelAnimationFrame(animId);
-    if(droneNode){ droneNode.stop(); droneNode = null; }
-    if('speechSynthesis' in window) window.speechSynthesis.cancel();
-  }
+  gs='menu';
+  cancelAnimationFrame(rafId); rafId=null;
+  stopAmbient();
+  if('speechSynthesis' in window) speechSynthesis.cancel();
   showScreen('menu');
 }
 
 function goBackToDaily(){
-  window.parent.postMessage({ type: 'CLOSE_GAME' }, '*');
+  window.parent.postMessage({type:'CLOSE_GAME'},'*');
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 // RANKING
-// ═══════════════════════════════════════════
-let currentRankTab = 'global';
-let rankingFromGameover = false;
+// ══════════════════════════════════════════
+let rkFromGO=false;
 
 function showRanking(){
-  rankingFromGameover = (gameState === 'gameover');
-  if(gameState === 'playing') pauseGame();
+  rkFromGO=(gs==='gameover');
+  if(gs==='playing') pauseGame();
   showScreen('ranking');
-  switchRankTab('global');
+  switchRkTab('global');
 }
-
 function closeRanking(){
-  if(rankingFromGameover) showScreen('gameover');
-  else if(gameState === 'paused') showScreen('pause');
+  if(rkFromGO) showScreen('gameover');
+  else if(gs==='paused') showScreen('pause');
   else showScreen('menu');
 }
-
-function switchRankTab(tab){
-  currentRankTab = tab;
-  document.getElementById('rtab-global').classList.toggle('active', tab==='global');
-  document.getElementById('rtab-friends').classList.toggle('active', tab==='friends');
-  loadRanking(tab);
+function switchRkTab(t){
+  document.getElementById('rt-global').classList.toggle('on',t==='global');
+  document.getElementById('rt-friends').classList.toggle('on',t==='friends');
+  loadRanking(t);
 }
-
 async function loadRanking(tab){
-  const list = document.getElementById('rank-list');
-  list.innerHTML = '<div style="text-align:center;padding:32px;color:rgba(255,255,255,.3);">Carregando...</div>';
-  
+  const el=document.getElementById('rk-list');
+  el.innerHTML='<div style="text-align:center;padding:24px;color:rgba(255,255,255,.3)">Carregando...</div>';
   try{
-    const h = authToken ? { 'Authorization':'Bearer '+authToken } : {};
-    const url = tab === 'friends' && authToken
-      ? '/api/crossing/ranking?friends=1'
-      : '/api/crossing/ranking';
-    const r = await fetch(url, { headers: h });
-    const d = await r.json();
-    const items = d.ranking || [];
-    
-    if(!items.length){
-      list.innerHTML = '<div style="text-align:center;padding:32px;color:rgba(255,255,255,.3);">Nenhum registro ainda.</div>';
-      return;
-    }
-    
-    list.innerHTML = items.map((it, i) => {
-      const isMe = it.user_id === authUser?.id;
-      const posClass = i===0?'top1':i===1?'top2':i===2?'top3':'';
-      const posMark  = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
-      const av = it.avatar_url
-        ? `<img class="rank-avatar" src="${it.avatar_url}" onerror="this.style.display='none'">`
-        : `<div class="rank-avatar" style="background:#F5C518;display:flex;align-items:center;justify-content:center;font:700 16px Segoe UI;color:#000;">${(it.name||'?')[0]}</div>`;
-      return `
-        <div class="rank-item${isMe?' me':''}">
-          <div class="rank-pos ${posClass}">${posMark}</div>
-          ${av}
-          <div class="rank-info">
-            <div class="rank-name">${it.name||'Jogador'}</div>
-            <div class="rank-user">@${it.username||'?'}</div>
-          </div>
-          <div class="rank-score">${it.best_score}m</div>
-        </div>`;
+    const h=authToken?{'Authorization':'Bearer '+authToken}:{};
+    const r=await fetch('/api/crossing/ranking',{headers:h});
+    const d=await r.json();
+    const items=d.ranking||[];
+    if(!items.length){ el.innerHTML='<div style="text-align:center;padding:24px;color:rgba(255,255,255,.25)">Nenhum registro ainda.</div>'; return; }
+    el.innerHTML=items.map((it,i)=>{
+      const me=it.user_id===authUser?.id;
+      const pm=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+      const av=it.avatar_url
+        ?`<img class="rk-av" src="${it.avatar_url}" style="display:block">`
+        :`<div class="rk-av">${(it.name||'?')[0]}</div>`;
+      return `<div class="rk-item${me?' me':''}">`+
+        `<div class="rk-pos">${pm}</div>${av}`+
+        `<div class="rk-info"><div class="rk-name">${it.name||'Jogador'}</div><div class="rk-user">@${it.username||'?'}</div></div>`+
+        `<div class="rk-score">${it.best_score}m</div></div>`;
     }).join('');
-    
-    // My position if not in top
-    const myPos = items.findIndex(x => x.user_id === authUser?.id);
-    if(myPos < 0 && authUser){
-      list.innerHTML += `<div style="text-align:center;padding:8px;color:rgba(255,255,255,.35);font-size:12px;">Você ainda não está no ranking</div>`;
-    }
-  }catch(e){
-    list.innerHTML = '<div style="text-align:center;padding:32px;color:rgba(255,255,255,.25);">Erro ao carregar ranking.</div>';
-  }
+  }catch(e){ el.innerHTML='<div style="text-align:center;padding:24px;color:rgba(255,255,255,.2)">Erro ao carregar.</div>'; }
 }
 
-// ═══════════════════════════════════════════
-// CHALLENGE SYSTEM
-// ═══════════════════════════════════════════
-let challengeCooldowns = {};
-let challengeSearchTimeout = null;
-
-function searchChallenge(val){
-  clearTimeout(challengeSearchTimeout);
-  if(val.length < 2){
-    document.getElementById('challenge-results').innerHTML = '';
-    return;
-  }
-  challengeSearchTimeout = setTimeout(() => doSearchChallenge(val), 350);
+// ══════════════════════════════════════════
+// CHALLENGE
+// ══════════════════════════════════════════
+let chTimeout=null, chCool={};
+function searchCh(v){
+  clearTimeout(chTimeout);
+  if(v.length<2){ document.getElementById('ch-results').innerHTML=''; return; }
+  chTimeout=setTimeout(()=>doSearch(v),350);
 }
-
-async function doSearchChallenge(val){
-  if(!authToken){ 
-    document.getElementById('challenge-results').innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:12px;padding:6px;">Faça login para desafiar amigos.</div>';
-    return;
-  }
+async function doSearch(v){
+  if(!authToken){ document.getElementById('ch-results').innerHTML='<div style="color:rgba(255,255,255,.3);font-size:11px;padding:5px">Faça login para desafiar.</div>'; return; }
   try{
-    const r = await fetch(`/api/crossing/search?q=${encodeURIComponent(val)}`,{
-      headers:{'Authorization':'Bearer '+authToken}
-    });
-    const d = await r.json();
-    const users = d.users || [];
-    const el = document.getElementById('challenge-results');
-    if(!users.length){
-      el.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:12px;padding:6px;">Nenhum usuário encontrado.</div>';
-      return;
-    }
-    el.innerHTML = users.map(u => `
-      <div class="ch-user" onclick="sendChallenge('${u.id}','${u.name}')">
-        ${u.avatar_url ? `<img src="${u.avatar_url}" onerror="this.style.background='#F5C518'">` : `<div style="width:32px;height:32px;border-radius:50%;background:#F5C518;display:flex;align-items:center;justify-content:center;font:700 14px Segoe UI;color:#000;">${(u.name||'?')[0]}</div>`}
-        <div class="ch-user-name">${u.name} <span style="opacity:.4;font-size:11px;">@${u.username}</span></div>
-        <div class="ch-btn">Desafiar →</div>
-      </div>`).join('');
+    const r=await fetch(`/api/crossing/search?q=${encodeURIComponent(v)}`,{headers:{'Authorization':'Bearer '+authToken}});
+    const d=await r.json();
+    const el=document.getElementById('ch-results');
+    if(!(d.users||[]).length){ el.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:11px;padding:5px">Nenhum usuário.</div>'; return; }
+    el.innerHTML=d.users.map(u=>`<div class="ch-user" onclick="sendCh('${u.id}','${u.name}')">`+
+      (u.avatar_url?`<img class="ch-uav" src="${u.avatar_url}">`:`<div class="ch-uav">${(u.name||'?')[0]}</div>`)+
+      `<div class="ch-uname">${u.name}</div><div class="ch-ubtn">Desafiar →</div></div>`).join('');
+  }catch(e){}
+}
+async function sendCh(uid,uname){
+  if(chCool[uid]&&Date.now()-chCool[uid]<600000){ alert('Aguarde antes de desafiar novamente.'); return; }
+  if(!authToken){ alert('Faça login.'); return; }
+  try{
+    const r=await fetch('/api/crossing/challenge',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},body:JSON.stringify({to_user_id:uid})});
+    if(r.ok){ chCool[uid]=Date.now(); document.getElementById('ch-results').innerHTML=`<div style="color:#F5C518;font:700 12px sans-serif;padding:8px;text-align:center">✅ Desafio enviado para ${uname}!</div>`; }
   }catch(e){}
 }
 
-async function sendChallenge(userId, userName){
-  const now = Date.now();
-  if(challengeCooldowns[userId] && now - challengeCooldowns[userId] < 600000){
-    alert(`Aguarde antes de desafiar ${userName} novamente.`); return;
-  }
-  if(!authToken){ alert('Faça login para desafiar.'); return; }
-  try{
-    const r = await fetch('/api/crossing/challenge',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},
-      body: JSON.stringify({ to_user_id: userId })
-    });
-    if(r.ok){
-      challengeCooldowns[userId] = now;
-      const el = document.getElementById('challenge-results');
-      el.innerHTML = `<div style="color:#F5C518;font:700 13px Segoe UI;padding:10px;text-align:center;">✅ Desafio enviado para ${userName}!</div>`;
-    }
-  }catch(e){}
-}
-
-// ═══════════════════════════════════════════
-// SCREEN MANAGEMENT
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
+// SCREENS
+// ══════════════════════════════════════════
 function showScreen(name){
-  const screens = ['menu','gameover','ranking','pause'];
-  screens.forEach(s => {
-    const el = document.getElementById('screen-'+s);
-    if(el) el.classList.toggle('hidden', s !== name);
+  ['menu','gameover','ranking','pause'].forEach(s=>{
+    document.getElementById('screen-'+s).classList.toggle('hidden',s!==name);
   });
-  const hudVisible = name === 'none' || name === 'pause';
-  document.getElementById('hud').style.display = hudVisible ? 'flex' : 'none';
-  document.getElementById('dpad').style.display = (name === 'none') ? 'flex' : 'none';
+  document.getElementById('hud').style.display   = name==='none'?'flex':'none';
+  document.getElementById('dpad').style.display  = name==='none'?'flex':'none';
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════════
 // INPUT
-// ═══════════════════════════════════════════
-window.addEventListener('keydown', e => {
-  if(gameState !== 'playing') return;
-  const map = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right',
-                w:'up', s:'down', a:'left', d:'right' };
-  if(map[e.key]){ e.preventDefault(); tryMove(map[e.key]); }
-  if(e.key === 'Escape' || e.key === 'p') pauseGame();
+// ══════════════════════════════════════════
+window.addEventListener('keydown',e=>{
+  if(gs!=='playing') return;
+  const m={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right'};
+  if(m[e.key]){ e.preventDefault(); tryMove(m[e.key]); }
+  if(e.key==='Escape') pauseGame();
 });
 
-// Swipe
-let touchStart = null;
-canvas.addEventListener('touchstart', e => {
-  if(gameState !== 'playing') return;
-  touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-}, { passive: true });
-canvas.addEventListener('touchend', e => {
-  if(!touchStart || gameState !== 'playing') return;
-  const dx = e.changedTouches[0].clientX - touchStart.x;
-  const dy = e.changedTouches[0].clientY - touchStart.y;
-  const threshold = 25;
-  if(Math.abs(dx) > Math.abs(dy)){
-    if(Math.abs(dx) > threshold) tryMove(dx > 0 ? 'right' : 'left');
-  } else {
-    if(Math.abs(dy) > threshold) tryMove(dy > 0 ? 'down' : 'up');
-  }
-  touchStart = null;
-}, { passive: true });
+// Touch swipe
+let ts0=null;
+canvas.addEventListener('touchstart',e=>{
+  if(gs!=='playing') return;
+  ts0={x:e.touches[0].clientX,y:e.touches[0].clientY};
+},{passive:true});
+canvas.addEventListener('touchend',e=>{
+  if(!ts0||gs!=='playing') return;
+  const dx=e.changedTouches[0].clientX-ts0.x;
+  const dy=e.changedTouches[0].clientY-ts0.y;
+  const th=25;
+  if(Math.abs(dx)>Math.abs(dy)){ if(Math.abs(dx)>th) tryMove(dx>0?'right':'left'); }
+  else { if(Math.abs(dy)>th) tryMove(dy>0?'down':'up'); }
+  ts0=null;
+},{passive:true});
 
 // D-pad
-let dpadInterval = null;
-function dpadStart(dir){
-  if(gameState !== 'playing') return;
-  tryMove(dir);
-  dpadInterval = setInterval(() => { if(gameState === 'playing') tryMove(dir); }, 200);
-}
-function dpadEnd(){
-  clearInterval(dpadInterval);
-  dpadInterval = null;
-}
+let dInt=null;
+function dStart(dir){ if(gs!=='playing') return; tryMove(dir); dInt=setInterval(()=>{ if(gs==='playing') tryMove(dir); },180); }
+function dEnd(){ clearInterval(dInt); dInt=null; }
 
-// ═══════════════════════════════════════════
-// MAIN LOOP
-// ═══════════════════════════════════════════
-let lastTime = 0;
+// ══════════════════════════════════════════
+// AUDIO
+// ══════════════════════════════════════════
+let aCtx=null, droneGain=null, droneOsc=null;
 
-function loop(ts = 0){
-  if(gameState !== 'playing'){ animId = null; return; }
-  animId = requestAnimationFrame(loop);
-  
-  const dt = Math.min((ts - lastTime) / 1000, 0.05); // cap at 50ms
-  lastTime = ts;
-  frameCount++;
-  
-  // Update
-  updateCamera(dt);
-  updatePlayer(dt);
-  updateNPCs(dt);
-  updateChunks();
-  checkCollision();
-  
-  // Announcements
-  if(frameCount % 60 === 0) playAnnouncement();
-  
-  // Draw
-  ctx.clearRect(0, 0, W, H);
-  
-  // Fill with dark bg if no chunks cover
-  ctx.fillStyle = '#0a0a14';
-  ctx.fillRect(0, 0, W, H);
-  
-  drawBackground();
-  drawNPCs();
-  drawPlayer();
+function getAC(){
+  if(!aCtx) aCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(aCtx.state==='suspended') aCtx.resume();
+  return aCtx;
 }
 
-// ═══════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════
-resize();
-window.addEventListener('resize', resize);
+function startAmbient(){
+  try{
+    const ac=getAC();
+    droneOsc=ac.createOscillator();
+    droneOsc.type='sine'; droneOsc.frequency.value=55;
+    droneGain=ac.createGain(); droneGain.gain.value=0.018;
+    droneOsc.connect(droneGain); droneGain.connect(ac.destination);
+    droneOsc.start();
+  }catch(e){}
+}
+
+function stopAmbient(){
+  try{ droneOsc?.stop(); }catch(e){}
+  droneOsc=null; droneGain=null;
+}
+
+function playStep(){
+  try{
+    const ac=getAC();
+    const buf=ac.createBuffer(1,Math.floor(ac.sampleRate*0.06),ac.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(d.length*0.25))*0.3;
+    const s=ac.createBufferSource(); s.buffer=buf;
+    const g=ac.createGain(); g.gain.value=0.35;
+    s.connect(g); g.connect(ac.destination); s.start();
+  }catch(e){}
+}
+
+function playBump(){
+  try{
+    const ac=getAC();
+    const o=ac.createOscillator(), g=ac.createGain();
+    o.frequency.value=200;
+    o.frequency.exponentialRampToValueAtTime(60,ac.currentTime+0.35);
+    g.gain.value=0.45; g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.4);
+    o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+0.4);
+  }catch(e){}
+}
+
+let lastAnnIdx=-1;
+const ANNS=[
+  "Atenção passageiros. Mantenham-se atrás da faixa amarela.",
+  "Aguarde o desembarque antes de embarcar.",
+  "Cuide de seus pertences pessoais.",
+  "Utilize as escadas rolantes com segurança.",
+  "Respeite o fluxo de passageiros.",
+  "Obrigado por utilizar o transporte público.",
+  "Trem aproximando-se da plataforma.",
+  "Portas em fechamento.",
+];
+function doAnnouncement(){
+  if(!('speechSynthesis' in window)) return;
+  let idx; do{ idx=Math.floor(Math.random()*ANNS.length); }while(idx===lastAnnIdx);
+  lastAnnIdx=idx;
+  const u=new SpeechSynthesisUtterance(ANNS[idx]);
+  u.lang='pt-BR'; u.rate=0.82; u.pitch=0.88; u.volume=0.55;
+  speechSynthesis.speak(u);
+}
+
+// ══════════════════════════════════════════
+// START
+// ══════════════════════════════════════════
 initAssets();
-showScreen('menu');
-
-// Start loop waiting for assets
-const waitAssets = setInterval(() => {
-  if(assetsReady){ clearInterval(waitAssets); }
-}, 100);
-
-// Initial HUD state
-document.getElementById('hud').style.display = 'none';
-document.getElementById('dpad').style.display = 'none';
 </script>
 </body>
 </html>
