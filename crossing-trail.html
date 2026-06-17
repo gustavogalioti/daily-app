@@ -199,7 +199,12 @@ canvas {
 </div>
 
 <div class="screen hidden" id="screen-ranking">
-  <div id="ranking-title">🏆 RANKING TOP 10</div>
+  <div id="ranking-title">🏆 RANKING</div>
+  <button onclick="openChallenge('','')"
+    style="margin-bottom:16px;padding:10px 24px;border-radius:12px;border:2px solid #F5C518;
+    background:transparent;color:#F5C518;font-weight:800;font-size:14px;cursor:pointer;letter-spacing:1px;">
+    ⚡ Desafiar um Amigo
+  </button>
   <div class="ranking-list" id="rk-list"></div>
   <button class="menu-btn btn-secondary" style="margin-top:20px" onclick="goMenu()">⬅ Voltar</button>
 </div>
@@ -888,25 +893,166 @@ function startGame() {
 function goMenu()     { G = null; showScreen('screen-menu'); }
 function openRanking(){ renderRanking(); showScreen('screen-ranking'); }
 
+// ── AUTH (recebido do Daily via postMessage) ──────────────────────
+let DAILY_TOKEN = '';
+let DAILY_USER  = null;
+
+window.addEventListener('message', e => {
+  if (e.data?.type === 'DAILY_AUTH') {
+    DAILY_TOKEN = e.data.token || '';
+    DAILY_USER  = e.data.user  || null;
+  }
+});
+
+async function apiGame(path, opts={}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+DAILY_TOKEN, ...(opts.headers||{}) }
+  });
+  return res.json();
+}
+
 // ── LOCAL STORAGE ─────────────────────────────────────────────────
 function getRecord() { return parseInt(localStorage.getItem('ct_rec') || '0'); }
 function saveRecord(s){ localStorage.setItem('ct_rec', s); }
 function getRankingList() { try{ return JSON.parse(localStorage.getItem('ct_rk')||'[]'); }catch{return[];} }
 function saveRanking(name,score,phase){
-  const list=getRankingList(); list.push({name,score,phase});
+  // Local (fallback)
+  const list=getRankingList();
+  // Keep only best per name
+  const idx = list.findIndex(r=>r.name===name);
+  if(idx>=0){ if(score>list[idx].score) list[idx]={name,score,phase}; }
+  else list.push({name,score,phase});
   list.sort((a,b)=>b.score-a.score);
   localStorage.setItem('ct_rk',JSON.stringify(list.slice(0,10)));
+  // Backend
+  if(DAILY_TOKEN){
+    apiGame('/api/catrunner/score',{method:'POST',body:JSON.stringify({score})}).catch(()=>{});
+  }
 }
-function renderRanking() {
-  const list=getRankingList(), el=document.getElementById('rk-list');
-  if(!list.length){ el.innerHTML='<div style="color:rgba(255,255,255,.4);text-align:center;padding:32px">Nenhuma pontuação ainda!<br>Jogue para aparecer aqui.</div>'; return; }
-  const md=['🥇','🥈','🥉'];
-  el.innerHTML=list.map((r,i)=>`
-    <div class="ranking-item">
-      <div class="rank-pos">${md[i]||i+1}</div>
-      <div class="rank-info"><div class="rank-name">${r.name}</div><div class="rank-sub">Fase ${r.phase}</div></div>
-      <div class="rank-score">${r.score}</div>
-    </div>`).join('');
+async function renderRanking() {
+  const el = document.getElementById('rk-list');
+  el.innerHTML = '<div style="color:rgba(255,255,255,.4);text-align:center;padding:32px">Carregando...</div>';
+
+  let list = [];
+  if (DAILY_TOKEN) {
+    try {
+      const data = await apiGame('/api/catrunner/ranking');
+      list = (data.ranking||[]).map(r=>({
+        name: r.name || r.username || 'Jogador',
+        username: r.username,
+        score: r.best_score,
+        phase: '—',
+        avatar: r.avatar_url
+      }));
+    } catch(e) {}
+  }
+
+  // Fallback local se backend vazio
+  if (!list.length) {
+    list = getRankingList();
+  }
+
+  if (!list.length) {
+    el.innerHTML='<div style="color:rgba(255,255,255,.4);text-align:center;padding:32px">Nenhuma pontuação ainda!<br>Jogue para aparecer aqui.</div>';
+    return;
+  }
+
+  const md = ['🥇','🥈','🥉'];
+  const myName = DAILY_USER?.name || '';
+
+  el.innerHTML = list.map((r,i) => {
+    const isMe = myName && r.name === myName;
+    const avatar = r.avatar
+      ? `<img src="${r.avatar}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #F5C518;">`
+      : `<div style="width:36px;height:36px;border-radius:50%;background:#333;display:flex;align-items:center;justify-content:center;font-size:18px;">${md[i]||'🏅'}</div>`;
+    return `<div class="ranking-item" style="${isMe?'border-color:#F5C518;background:rgba(245,197,24,.08);':''}">
+      <div class="rank-pos" style="min-width:28px;">${md[i]||i+1}</div>
+      ${avatar}
+      <div class="rank-info" style="flex:1">
+        <div class="rank-name">${r.name}${isMe?' <span style="color:#F5C518;font-size:11px;">(você)</span>':''}</div>
+        <div class="rank-sub">${r.username?'@'+r.username:('Fase '+r.phase)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <div class="rank-score">${r.score}</div>
+        ${DAILY_TOKEN && !isMe && r.username ? `<button onclick="openChallenge('${r.username}','${r.name}')"
+          style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid #F5C518;background:transparent;color:#F5C518;cursor:pointer;">
+          ⚡ Desafiar
+        </button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── CHALLENGE ────────────────────────────────────────────────────
+let _challengeTargetId   = null;
+let _challengeTargetName = '';
+
+function openChallenge(username, name) {
+  _challengeTargetId   = username; // usamos username como identificador para busca
+  _challengeTargetName = name || username;
+  document.getElementById('challenge-target').textContent =
+    name ? `Desafiar: ${name} (@${username})` : '';
+  document.getElementById('challenge-search').value = '';
+  document.getElementById('challenge-results').innerHTML = '';
+  const btn = document.getElementById('btn-challenge-send');
+  // Se já veio com alvo, habilitar direto
+  if (username) { btn.disabled=false; btn.style.opacity='1'; }
+  else          { btn.disabled=true;  btn.style.opacity='.5'; }
+  document.getElementById('modal-challenge').style.display='flex';
+}
+
+function closeChallenge() {
+  document.getElementById('modal-challenge').style.display='none';
+}
+
+let _searchTimer = null;
+async function searchFriendChallenge(q) {
+  clearTimeout(_searchTimer);
+  const res = document.getElementById('challenge-results');
+  if (!q || q.length < 2) { res.innerHTML=''; return; }
+  _searchTimer = setTimeout(async () => {
+    try {
+      const data = await apiGame('/api/users/search?q='+encodeURIComponent(q));
+      const users = data.users || [];
+      if (!users.length) { res.innerHTML='<div style="color:rgba(255,255,255,.4);text-align:center;padding:12px;font-size:13px;">Nenhum usuário encontrado</div>'; return; }
+      res.innerHTML = users.map(u=>`
+        <div onclick="selectChallengeTarget('${u.id}','${u.name}','${u.username}')"
+          style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+          background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);cursor:pointer;">
+          ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">` : `<div style="width:32px;height:32px;border-radius:50%;background:#333;display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div>`}
+          <div>
+            <div style="color:#fff;font-weight:700;font-size:14px;">${u.name}</div>
+            <div style="color:rgba(255,255,255,.4);font-size:12px;">@${u.username}</div>
+          </div>
+        </div>`).join('');
+    } catch(e) { res.innerHTML='<div style="color:rgba(255,255,255,.4);text-align:center;padding:12px;font-size:13px;">Erro na busca</div>'; }
+  }, 350);
+}
+
+function selectChallengeTarget(id, name, username) {
+  _challengeTargetId   = id;
+  _challengeTargetName = name;
+  document.getElementById('challenge-target').textContent = `Desafiar: ${name} (@${username})`;
+  document.getElementById('challenge-results').innerHTML = '';
+  document.getElementById('challenge-search').value = name;
+  const btn = document.getElementById('btn-challenge-send');
+  btn.disabled=false; btn.style.opacity='1';
+}
+
+async function sendChallenge() {
+  if (!_challengeTargetId || !DAILY_TOKEN) return;
+  const btn = document.getElementById('btn-challenge-send');
+  btn.textContent='Enviando...'; btn.disabled=true;
+  try {
+    await apiGame('/api/catrunner/challenge',{method:'POST',body:JSON.stringify({to_user_id:_challengeTargetId})});
+    btn.textContent='✅ Desafio enviado!';
+    btn.style.background='#22c55e';
+    setTimeout(closeChallenge, 1500);
+  } catch(e) {
+    btn.textContent='Erro — tente novamente';
+    btn.disabled=false; btn.style.opacity='1';
+  }
 }
 
 // ── INPUT ─────────────────────────────────────────────────────────
@@ -943,5 +1089,23 @@ window.addEventListener('resize', ()=>{
 showScreen('screen-menu');
 requestAnimationFrame(render);
 </script>
+  <!-- Modal Desafiar Amigo -->
+  <div id="modal-challenge" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#0d1220;border:2px solid #F5C518;border-radius:18px;padding:24px;width:min(340px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font:800 18px 'Segoe UI';color:#F5C518;">⚡ Desafiar Amigo</div>
+        <button onclick="closeChallenge()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;">✕</button>
+      </div>
+      <div id="challenge-target" style="font-size:13px;color:rgba(255,255,255,.6);"></div>
+      <input id="challenge-search" type="text" placeholder="Buscar amigo por nome ou @usuário..."
+        oninput="searchFriendChallenge(this.value)"
+        style="padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;font-size:14px;outline:none;width:100%;box-sizing:border-box;">
+      <div id="challenge-results" style="overflow-y:auto;max-height:220px;display:flex;flex-direction:column;gap:6px;"></div>
+      <button id="btn-challenge-send" onclick="sendChallenge()" disabled
+        style="padding:12px;border-radius:12px;border:none;background:#F5C518;color:#1a1200;font-weight:800;font-size:15px;cursor:pointer;opacity:.5;">
+        Enviar Desafio ⚡
+      </button>
+    </div>
+  </div>
 </body>
 </html>

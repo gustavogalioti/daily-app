@@ -11937,6 +11937,11 @@ function initCrossingTrail() {
     iframe.onload = () => {
       loader.style.display = 'none';
       iframe.style.visibility = 'visible';
+      // Passar token e usuário para o jogo
+      try {
+        const token = localStorage.getItem('daily_token') || localStorage.getItem('token') || tok();
+        iframe.contentWindow.postMessage({ type:'DAILY_AUTH', token, user: currentUser }, '*');
+      } catch(e) {}
     };
     iframe.onerror = () => {
       loader.innerHTML = '<div style="color:#fff;text-align:center;padding:20px">❌ Erro ao carregar o jogo.<br><small style="opacity:.6">Tente recarregar a página.</small></div>';
