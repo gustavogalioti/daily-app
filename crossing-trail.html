@@ -639,7 +639,8 @@ function drawChar(gx, gy, npcId, isPlayer, flipX) {
   const { sx, sy, tileW, tileH } = gridToScreen(gx, gy);
 
   const cx    = sx + tileW * 0.5;
-  const footY = sy + tileH * 1.0; // pés na base do tile
+  // footY: base do tile + offset para alinhar com o chão visual da foto
+  const footY = sy + tileH * 1.6;
 
   const scale = isPlayer ? CHAR_SCALE_PLAYER : CHAR_SCALE_NPC;
   const charH = tileH * scale * 0.7;
