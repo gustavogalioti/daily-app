@@ -508,9 +508,10 @@ function checkCollision() {
   if (G.over || G.complete) return;
   const px = G.player.gx, py = G.player.gy;
   for (const n of G.npcs) {
-    if (Math.abs(n.gx - px) < 0.72 && Math.abs(n.gy - py) < 0.55) {
-      doGameOver(); return;
-    }
+    // Colide apenas se estiver no mesmo tile (mesmo gy da lane E gx sobrepostos)
+    const sameLane = Math.abs(n.gy - py) < 0.45;  // mesmo Y (mesma lane)
+    const sameCol  = Math.abs(n.gx - px) < 0.45;  // mesmo X (mesma coluna)
+    if (sameLane && sameCol) { doGameOver(); return; }
   }
 }
 
@@ -993,22 +994,23 @@ function renderRanking() {
 
   el.innerHTML = '<div style="color:rgba(255,255,255,.4);text-align:center;padding:32px">Carregando...</div>';
 
-  if (DAILY_TOKEN) {
-    fetch('/api/crossing/ranking', { headers: { 'Authorization': 'Bearer ' + DAILY_TOKEN } })
-      .then(r => r.json())
-      .then(data => {
-        const list = (data.ranking||[]).map(r => ({
-          name: r.name || r.username || '',
-          score: r.best_score,
-          phase: r.best_phase,
-          avatar: r.avatar_url
-        }));
-        showList(list);
-      })
-      .catch(() => { showList([]); });
-  } else {
-    showList(getRankingList());
-  }
+  // Ranking é público — sempre buscar do backend
+  const headers = DAILY_TOKEN ? { 'Authorization': 'Bearer ' + DAILY_TOKEN } : {};
+  fetch('/api/crossing/ranking', { headers })
+    .then(r => r.json())
+    .then(data => {
+      const list = (data.ranking||[]).map(r => ({
+        name: r.name || r.username || '',
+        score: r.best_score,
+        phase: r.best_phase,
+        avatar: r.avatar_url
+      }));
+      showList(list);
+    })
+    .catch(() => {
+      // Fallback local se backend falhar
+      showList(getRankingList());
+    });
 }
 
 // ── INPUT ─────────────────────────────────────────────────────────
