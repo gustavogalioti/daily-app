@@ -904,7 +904,6 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('paintwars',this)" id="btn-jogo-pw">🎨 Paint Wars</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('quiz',this)" id="btn-jogo-quiz">🧠 Quiz Arena</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('tower',this)" id="btn-jogo-tower">🏙️ Daily Tower</button>
-        <button class="btn btn-ghost btn-sm" onclick="showJogoSection('crossing',this)" id="btn-jogo-crossing">🚇 Cross Daily Station</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('outros',this)" style="opacity:.5;">🌾 Em breve</button>
       </div>
 
@@ -1416,58 +1415,6 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       </div>
 
 
-      <!-- ─── CROSSING TRAIL ─── -->
-      <div id="jogo-crossing" style="display:none;">
-        <!-- Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-          <div>
-            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;">🚇 Cross Daily Station</div>
-            <div style="font-size:12px;color:var(--muted);">Atravesse a Barra Funda. Desvie. Sobreviva.</div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span style="background:linear-gradient(135deg,#F5C518,#e6a000);color:#1a1200;font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:1px;">NOVO</span>
-          </div>
-        </div>
-
-        <!-- Game container -->
-        <div id="ct-container" style="position:relative;width:100%;border-radius:16px;overflow:hidden;background:#0d1220;border:1.5px solid var(--border);touch-action:none;">
-          <!-- O iframe isola o jogo do DOM do Daily completamente -->
-          <iframe
-            id="ct-iframe"
-            src=""
-            style="width:100%;height:min(700px,85vh);border:none;display:block;"
-            scrolling="no"
-            allow="fullscreen"
-            title="Cross Daily Station"
-          ></iframe>
-          <!-- Loader enquanto carrega -->
-          <div id="ct-loader" style="position:absolute;inset:0;background:#0d1220;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-radius:16px;">
-            <div style="font-size:48px;">🚇</div>
-            <div style="color:#F5C518;font-weight:800;font-size:16px;letter-spacing:2px;">CROSS DAILY STATION</div>
-            <div style="color:rgba(255,255,255,0.4);font-size:13px;">Carregando Barra Funda...</div>
-            <div class="loader" style="margin-top:8px;"></div>
-          </div>
-        </div>
-
-        <!-- Info cards -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px;">
-          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px;text-align:center;">
-            <div style="font-size:24px;">⬆️⬇️⬅️➡️</div>
-            <div style="font-size:11px;font-weight:700;margin-top:4px;">Setas ou WASD</div>
-            <div style="font-size:10px;color:var(--muted);">Desktop</div>
-          </div>
-          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px;text-align:center;">
-            <div style="font-size:24px;">👆</div>
-            <div style="font-size:11px;font-weight:700;margin-top:4px;">Deslize ou D-Pad</div>
-            <div style="font-size:10px;color:var(--muted);">Mobile</div>
-          </div>
-          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px;text-align:center;">
-            <div style="font-size:24px;">🚉</div>
-            <div style="font-size:11px;font-weight:700;margin-top:4px;">5 Estações</div>
-            <div style="font-size:10px;color:var(--muted);">Brasil e Mundo</div>
-          </div>
-        </div>
-      </div>
 
       <div id="jogo-outros" style="display:none;">
         <div class="jogos-soon">
@@ -8050,18 +7997,11 @@ function showJogoSection(sec, btn) {
     } catch(e) {}
   }
 
-  // Esconder TODAS as seções (incluindo crossing)
-  ['dailypoke','catrunner','outros','quiz','tower','crossing','paintwars'].forEach(s => {
+  // Esconder TODAS as seções
+  ['dailypoke','catrunner','outros','quiz','tower','paintwars'].forEach(s => {
     const el = document.getElementById('jogo-' + s);
     if (el) { el.style.display = 'none'; el.style.visibility = 'hidden'; }
   });
-  // Se sair do Crossing Trail, pausar o iframe para não gastar recursos
-  if (sec !== 'crossing') {
-    const iframe = document.getElementById('ct-iframe');
-    if (iframe && iframe.src) {
-      try { iframe.contentWindow.postMessage('pause','*'); } catch(e) {}
-    }
-  }
 
   // Mostrar só a selecionada
   const target = document.getElementById('jogo-' + sec);
@@ -8077,7 +8017,6 @@ function showJogoSection(sec, btn) {
   if (sec === 'catrunner') initCatGame();
   if (sec === 'quiz') initQuizArena();
   if (sec === 'tower') initDailyTowerHome();
-  if (sec === 'crossing') initCrossingTrail();
 }
 
 async function loadDailyPoke() {
@@ -12038,59 +11977,4 @@ document.addEventListener('keyup',e=>{
   if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'||e.key===' ') dtKeys.jump=false;
 });
 
-// ── CROSSING TRAIL ─────────────────────────────────────────────
-function initCrossingTrail() {
-  const iframe  = document.getElementById('ct-iframe');
-  const loader  = document.getElementById('ct-loader');
-  const container = document.getElementById('ct-container');
-
-  // Ajustar altura do container ao viewport disponível
-  const vh = window.innerHeight;
-  const targetH = Math.max(480, Math.min(680, vh * 0.72));
-  iframe.style.height = targetH + 'px';
-
-  // Só carrega o src uma vez (lazy)
-  if (!iframe.src || iframe.src === window.location.href || iframe.src === '') {
-    loader.style.display = 'flex';
-    iframe.style.visibility = 'hidden';
-
-    iframe.onload = () => {
-      loader.style.display = 'none';
-      iframe.style.visibility = 'visible';
-      // Passar token e usuário para o jogo
-      try {
-        const token = tok() || localStorage.getItem('daily_token') || localStorage.getItem('token') || '';
-        iframe.contentWindow.postMessage({ type:'DAILY_AUTH', token, user: currentUser }, '*');
-      } catch(e) {}
-    };
-    iframe.onerror = () => {
-      loader.innerHTML = '<div style="color:#fff;text-align:center;padding:20px">❌ Erro ao carregar o jogo.<br><small style="opacity:.6">Tente recarregar a página.</small></div>';
-    };
-    iframe.src = '/crossing-trail.html?v=' + Date.now();
-  } else {
-    // Já carregado — garantir visível e reenviar token
-    loader.style.display = 'none';
-    iframe.style.visibility = 'visible';
-    try {
-      const token = tok() || localStorage.getItem('daily_token') || localStorage.getItem('token') || '';
-      iframe.contentWindow.postMessage({ type:'DAILY_AUTH', token, user: currentUser }, '*');
-      iframe.contentWindow.postMessage('resume','*');
-    } catch(e) {}
-  }
-}
-
-// Responder ao iframe do Crossing Trail quando ele pedir autenticação
-window.addEventListener('message', function(e) {
-  if (e.data === 'REQUEST_AUTH' || e.data?.type === 'REQUEST_AUTH') {
-    const iframe = document.getElementById('ct-iframe');
-    if (!iframe || !iframe.contentWindow) return;
-    try {
-      const token = tok() || '';
-      iframe.contentWindow.postMessage(
-        { type: 'DAILY_AUTH', token, user: currentUser },
-        '*'
-      );
-    } catch(err) {}
-  }
-});
 </script>

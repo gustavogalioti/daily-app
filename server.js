@@ -16,14 +16,7 @@ const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
-// Servir arquivos do jogo sem cache para garantir versão mais recente
-app.use('/crossing-trail.html', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.sendFile(require('path').join(__dirname, 'crossing-trail.html'));
-});
-
-// index.html também sem cache (contém o iframe e a auth bridge do jogo)
+// index.html sem cache
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -33,14 +26,6 @@ app.get('/index.html', (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.sendFile(require('path').join(__dirname, 'index.html'));
-});
-
-// Servir PNGs das estações sem cache
-['barra-funda','luz','se','gare-du-nord','grand-central'].forEach(name => {
-  app.use(`/${name}.png`, (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.sendFile(require('path').join(__dirname, `${name}.png`));
-  });
 });
 
 app.use(express.static(__dirname));
@@ -74,7 +59,6 @@ process.on('uncaughtException', (err) => {
     ['/api/agenda', './agenda'],
     ['/api/dailypoke', './dailypoke'],
     ['/api/catrunner', './catrunner'],
-    ['/api/crossing',  './crossing'],
     ['/api/truco', './truco_api'],
     ['/api/quiz', './quiz'],
     ['/api/agora-chat', './agora_chat'],
