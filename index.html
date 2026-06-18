@@ -8037,13 +8037,13 @@ function showJogoSection(sec, btn) {
       if (pwIframe) pwIframe.src = pwIframe.src;
     } catch(e) {}
   }
-  // Fechar tela do Truco ao trocar de jogo (Truco usa overlay fullscreen próprio)
+  // Desconectar partida de Truco ao trocar de jogo
   if (sec !== 'truco') {
     try { if (typeof leaveTruco === 'function') leaveTruco(); } catch(e) {}
   }
 
   // Esconder TODAS as seções
-  ['dailypoke','catrunner','outros','quiz','tower','paintwars'].forEach(s => {
+  ['dailypoke','catrunner','outros','quiz','tower','paintwars','truco'].forEach(s => {
     const el = document.getElementById('jogo-' + s);
     if (el) { el.style.display = 'none'; el.style.visibility = 'hidden'; }
   });
@@ -9807,104 +9807,108 @@ loadMapPointsList = async function() {
 };
 </script>
 
-<!-- ─── TELA TRUCO ─── -->
-<div id="screen-truco" style="display:none;position:fixed;inset:0;z-index:670;background:#1a6b2e;flex-direction:column;">
+<!-- ─── TRUCO (inline na aba Jogos) ─── -->
+<div id="jogo-truco" style="display:none;">
+  <div id="truco-inline-wrap" style="background:#1a6b2e;border-radius:16px;overflow:hidden;border:2px solid #0e4a1e;min-height:520px;display:flex;flex-direction:column;position:relative;">
 
-  <!-- Header -->
-  <div style="background:rgba(0,0,0,.4);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-    <button onclick="leaveTrucoManual()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">‹</button>
-    <div style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:16px;">🃏 Truco</div>
-    <div id="truco-score" style="font-size:13px;color:#FFD700;font-weight:700;">0 × 0</div>
-  </div>
-
-  <!-- LOBBY / FILA -->
-  <div id="truco-lobby" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;">
-    <div style="font-size:64px;">🃏</div>
-    <div style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:24px;">Truco!</div>
-    <div style="color:rgba(255,255,255,.7);font-size:14px;text-align:center;">2 jogadores · Paulista · Primeiro a 12 pontos</div>
-    <button class="btn btn-primary" style="font-size:16px;padding:14px 40px;background:#FFD700;color:#1a1a1a;border:none;" onclick="joinTrucoQueue()">⚔️ Encontrar partida</button>
-    <div id="truco-queue-status" style="color:rgba(255,255,255,.7);font-size:13px;display:none;">⏳ Aguardando oponente...</div>
-    <button id="truco-cancel-btn" onclick="leaveTrucoQueue()" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.4);display:none;">Cancelar</button>
-    <!-- Ranking -->
-    <div id="truco-ranking-lobby" style="width:100%;max-width:320px;margin-top:8px;"></div>
-  </div>
-
-  <!-- MESA DE JOGO -->
-  <div id="truco-table" style="display:none;flex:1;flex-direction:column;position:relative;overflow:hidden;">
-    <!-- Oponente -->
-    <div style="display:flex;flex-direction:column;align-items:center;padding:10px;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <img id="opp-avatar" src="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #FFD700;">
-        <div>
-          <div id="opp-name" style="color:#fff;font-weight:700;font-size:13px;"></div>
-          <div id="opp-score-label" style="color:#FFD700;font-size:11px;"></div>
-        </div>
-      </div>
-      <!-- Cartas do oponente (costas) -->
-      <div id="opp-cards" style="display:flex;gap:6px;"></div>
-    </div>
-
-    <!-- Mesa central -->
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative;">
-      <!-- Vira -->
-      <div style="position:absolute;top:8px;right:12px;text-align:center;">
-        <div style="font-size:9px;color:rgba(255,255,255,.6);margin-bottom:2px;">VIRA</div>
-        <div id="truco-vira" style="width:44px;height:62px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;box-shadow:0 2px 8px rgba(0,0,0,.4);"></div>
-      </div>
-      <!-- Placar mão -->
-      <div style="position:absolute;top:8px;left:12px;display:flex;gap:6px;" id="truco-ronda-dots"></div>
-      <!-- Cartas na mesa -->
-      <div style="display:flex;gap:16px;align-items:center;" id="truco-played-cards">
-        <div id="played-opp" style="width:52px;height:74px;border-radius:8px;border:2px dashed rgba(255,255,255,.3);"></div>
-        <div id="played-me" style="width:52px;height:74px;border-radius:8px;border:2px dashed rgba(255,255,255,.3);"></div>
-      </div>
-      <!-- Status/mensagem -->
-      <div id="truco-status" style="color:#FFD700;font-weight:700;font-size:14px;text-align:center;padding:4px 12px;background:rgba(0,0,0,.4);border-radius:20px;"></div>
-    </div>
-
-    <!-- Minha área -->
-    <div style="padding:10px;flex-shrink:0;">
-      <!-- Reações + Chat -->
-      <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px;">
-        <button onclick="sendTrucoReaction('😂')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">😂</button>
-        <button onclick="sendTrucoReaction('😤')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">😤</button>
-        <button onclick="sendTrucoReaction('😎')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">😎</button>
-        <button onclick="sendTrucoReaction('🙈')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">🙈</button>
-        <button onclick="toggleTrucoChat()" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:16px;cursor:pointer;color:#fff;">💬</button>
-      </div>
-      <!-- Meu avatar + cartas na mão -->
+    <!-- Header -->
+    <div style="background:rgba(0,0,0,.4);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:16px;">🃏 Truco</div>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="text-align:center;">
-          <img id="me-avatar" src="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #fff;">
-          <div id="me-score-label" style="color:#FFD700;font-size:10px;font-weight:700;margin-top:2px;"></div>
+        <div id="truco-score" style="font-size:13px;color:#FFD700;font-weight:700;">0 × 0</div>
+        <button onclick="openTrucoFullscreen()" style="padding:6px 14px;border-radius:50px;background:linear-gradient(135deg,#FFD700,#ffb347);border:none;color:#1a1a1a;font-weight:800;font-size:12px;cursor:pointer;">⛶ Tela cheia</button>
+      </div>
+    </div>
+
+    <!-- LOBBY / FILA -->
+    <div id="truco-lobby" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;">
+      <div style="font-size:64px;">🃏</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:24px;">Truco!</div>
+      <div style="color:rgba(255,255,255,.7);font-size:14px;text-align:center;">2 jogadores · Paulista · Primeiro a 12 pontos</div>
+      <button class="btn btn-primary" style="font-size:16px;padding:14px 40px;background:#FFD700;color:#1a1a1a;border:none;" onclick="joinTrucoQueue()">⚔️ Encontrar partida</button>
+      <div id="truco-queue-status" style="color:rgba(255,255,255,.7);font-size:13px;display:none;">⏳ Aguardando oponente...</div>
+      <button id="truco-cancel-btn" onclick="leaveTrucoQueue()" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.4);display:none;">Cancelar</button>
+      <!-- Ranking -->
+      <div id="truco-ranking-lobby" style="width:100%;max-width:320px;margin-top:8px;"></div>
+    </div>
+
+    <!-- MESA DE JOGO -->
+    <div id="truco-table" style="display:none;flex:1;flex-direction:column;position:relative;overflow:hidden;">
+      <!-- Oponente -->
+      <div style="display:flex;flex-direction:column;align-items:center;padding:10px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <img id="opp-avatar" src="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #FFD700;">
+          <div>
+            <div id="opp-name" style="color:#fff;font-weight:700;font-size:13px;"></div>
+            <div id="opp-score-label" style="color:#FFD700;font-size:11px;"></div>
+          </div>
         </div>
-        <!-- Minha mão -->
-        <div id="my-cards" style="display:flex;gap:6px;justify-content:center;flex:1;"></div>
+        <!-- Cartas do oponente (costas) -->
+        <div id="opp-cards" style="display:flex;gap:6px;"></div>
       </div>
-      <!-- Botões de ação -->
-      <div id="truco-actions" style="display:flex;gap:8px;justify-content:center;margin-top:8px;"></div>
+
+      <!-- Mesa central -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative;">
+        <!-- Vira -->
+        <div style="position:absolute;top:8px;right:12px;text-align:center;">
+          <div style="font-size:9px;color:rgba(255,255,255,.6);margin-bottom:2px;">VIRA</div>
+          <div id="truco-vira" style="width:44px;height:62px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;box-shadow:0 2px 8px rgba(0,0,0,.4);"></div>
+        </div>
+        <!-- Placar mão -->
+        <div style="position:absolute;top:8px;left:12px;display:flex;gap:6px;" id="truco-ronda-dots"></div>
+        <!-- Cartas na mesa -->
+        <div style="display:flex;gap:16px;align-items:center;" id="truco-played-cards">
+          <div id="played-opp" style="width:52px;height:74px;border-radius:8px;border:2px dashed rgba(255,255,255,.3);"></div>
+          <div id="played-me" style="width:52px;height:74px;border-radius:8px;border:2px dashed rgba(255,255,255,.3);"></div>
+        </div>
+        <!-- Status/mensagem -->
+        <div id="truco-status" style="color:#FFD700;font-weight:700;font-size:14px;text-align:center;padding:4px 12px;background:rgba(0,0,0,.4);border-radius:20px;"></div>
+      </div>
+
+      <!-- Minha área -->
+      <div style="padding:10px;flex-shrink:0;">
+        <!-- Reações + Chat -->
+        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px;">
+          <button onclick="sendTrucoReaction('😂')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">😂</button>
+          <button onclick="sendTrucoReaction('😤')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">😤</button>
+          <button onclick="sendTrucoReaction('😎')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">😎</button>
+          <button onclick="sendTrucoReaction('🙈')" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:18px;cursor:pointer;">🙈</button>
+          <button onclick="toggleTrucoChat()" style="background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:4px 10px;font-size:16px;cursor:pointer;color:#fff;">💬</button>
+        </div>
+        <!-- Meu avatar + cartas na mão -->
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="text-align:center;">
+            <img id="me-avatar" src="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #fff;">
+            <div id="me-score-label" style="color:#FFD700;font-size:10px;font-weight:700;margin-top:2px;"></div>
+          </div>
+          <!-- Minha mão -->
+          <div id="my-cards" style="display:flex;gap:6px;justify-content:center;flex:1;"></div>
+        </div>
+        <!-- Botões de ação -->
+        <div id="truco-actions" style="display:flex;gap:8px;justify-content:center;margin-top:8px;"></div>
+      </div>
+
+      <!-- Chat overlay -->
+      <div id="truco-chat-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;height:200px;background:rgba(0,0,0,.85);flex-direction:column;padding:8px;">
+        <div id="truco-chat-msgs" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-bottom:6px;font-size:12px;color:#fff;"></div>
+        <div style="display:flex;gap:6px;">
+          <input id="truco-chat-input" type="text" placeholder="Mensagem..." style="flex:1;font-size:13px;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 10px;" onkeydown="if(event.key==='Enter')sendTrucoChat()">
+          <button onclick="sendTrucoChat()" class="btn btn-primary btn-sm">→</button>
+        </div>
+      </div>
+
+      <!-- Reaction pop -->
+      <div id="truco-reaction-pop" style="position:absolute;top:30%;left:50%;transform:translateX(-50%);font-size:52px;display:none;pointer-events:none;"></div>
     </div>
 
-    <!-- Chat overlay -->
-    <div id="truco-chat-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;height:200px;background:rgba(0,0,0,.85);flex-direction:column;padding:8px;">
-      <div id="truco-chat-msgs" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-bottom:6px;font-size:12px;color:#fff;"></div>
-      <div style="display:flex;gap:6px;">
-        <input id="truco-chat-input" type="text" placeholder="Mensagem..." style="flex:1;font-size:13px;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 10px;" onkeydown="if(event.key==='Enter')sendTrucoChat()">
-        <button onclick="sendTrucoChat()" class="btn btn-primary btn-sm">→</button>
-      </div>
+    <!-- Game Over overlay -->
+    <div id="truco-gameover" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.75);flex-direction:column;align-items:center;justify-content:center;gap:12px;">
+      <div id="truco-go-emoji" style="font-size:64px;"></div>
+      <div id="truco-go-title" style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:28px;"></div>
+      <div id="truco-go-score" style="color:#FFD700;font-size:16px;"></div>
+      <button class="btn btn-primary" style="background:#FFD700;color:#1a1a1a;border:none;font-size:16px;padding:12px 32px;" onclick="startTrucoAgain()">🔄 Jogar de novo</button>
+      <button onclick="leaveTrucoManual()" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.4);">Sair</button>
     </div>
-
-    <!-- Reaction pop -->
-    <div id="truco-reaction-pop" style="position:absolute;top:30%;left:50%;transform:translateX(-50%);font-size:52px;display:none;pointer-events:none;"></div>
-  </div>
-
-  <!-- Game Over overlay -->
-  <div id="truco-gameover" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.75);flex-direction:column;align-items:center;justify-content:center;gap:12px;">
-    <div id="truco-go-emoji" style="font-size:64px;"></div>
-    <div id="truco-go-title" style="font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:28px;"></div>
-    <div id="truco-go-score" style="color:#FFD700;font-size:16px;"></div>
-    <button class="btn btn-primary" style="background:#FFD700;color:#1a1a1a;border:none;font-size:16px;padding:12px 32px;" onclick="startTrucoAgain()">🔄 Jogar de novo</button>
-    <button onclick="leaveTrucoManual()" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.4);">Sair</button>
   </div>
 </div>
 
@@ -9918,13 +9922,13 @@ const NAIPE_COLOR = {'♠':'#1a1a1a','♣':'#1a1a1a','♥':'#e74c3c','♦':'#e74
 const TRUCO_LABELS = {3:'Truco!',6:'Seis!',9:'Nove!',12:'Doze!'};
 const TRUCO_NEXT   = {1:3,3:6,6:9,9:12};
 
+
 function openPaintWarsFullscreen() {
   const iframe = document.getElementById('paintwars-iframe');
   if (iframe.requestFullscreen) iframe.requestFullscreen();
   else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen();
 }
 function openTruco() {
-  document.getElementById('screen-truco').style.display='flex';
   document.getElementById('truco-lobby').style.display='flex';
   document.getElementById('truco-table').style.display='none';
   document.getElementById('truco-gameover').style.display='none';
@@ -9934,15 +9938,20 @@ function openTruco() {
 function leaveTruco() {
   if (trucoWS) { trucoWS.close(); trucoWS=null; }
   trucoGame=null; trucoMyIdx=null;
-  const sc = document.getElementById('screen-truco');
-  if (sc) sc.style.display='none';
 }
 
-// Saída manual (botão ‹ dentro do jogo) — fecha e volta para DailyPoke na barra
+// Saída manual (botão "Sair" no game over) — fecha partida e volta ao lobby do Truco
 function leaveTrucoManual() {
   leaveTruco();
-  const dpBtn = document.getElementById('btn-jogo-dp');
-  if (dpBtn) showJogoSection('dailypoke', dpBtn);
+  openTruco();
+}
+
+// Abrir o Truco em modal fullscreen (igual o "Tela cheia" do Paint Wars)
+function openTrucoFullscreen() {
+  const wrap = document.getElementById('truco-inline-wrap');
+  if (!wrap) return;
+  if (wrap.requestFullscreen) wrap.requestFullscreen();
+  else if (wrap.webkitRequestFullscreen) wrap.webkitRequestFullscreen();
 }
 
 function joinTrucoQueue() {
