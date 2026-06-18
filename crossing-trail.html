@@ -281,6 +281,11 @@ const STATIONS = [
     imgRect:  { x:0, y:0, w:1, h:1 },
     // piso jogável: de 20% a 78% da altura, 8% a 92% da largura
     gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
+    // Posições Y reais medidas no PNG (perspectiva não-uniforme).
+    // Índice 0 = gy:2, índice 1 = gy:3, ... índice 5 = gy:7
+    laneYFrac:  [0.3296, 0.4108, 0.4958, 0.5846, 0.6813, 0.7859],
+    goalYFrac:  0.181,
+    startYFrac: 0.86,
   },
   {
     name: 'Estação da Luz',
@@ -298,6 +303,9 @@ const STATIONS = [
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
     gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
+    laneYFrac:  [0.3296, 0.4108, 0.4958, 0.5846, 0.6813, 0.7859],
+    goalYFrac:  0.181,
+    startYFrac: 0.86,
   },
   {
     name: 'Estação da Sé',
@@ -315,6 +323,9 @@ const STATIONS = [
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
     gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
+    laneYFrac:  [0.3296, 0.4108, 0.4958, 0.5846, 0.6813, 0.7859],
+    goalYFrac:  0.181,
+    startYFrac: 0.86,
   },
   {
     name: 'Gare du Nord',
@@ -332,6 +343,9 @@ const STATIONS = [
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
     gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
+    laneYFrac:  [0.3296, 0.4108, 0.4958, 0.5846, 0.6813, 0.7859],
+    goalYFrac:  0.181,
+    startYFrac: 0.86,
   },
   {
     name: 'Grand Central',
@@ -349,6 +363,9 @@ const STATIONS = [
     startY: 9,
     imgRect:  { x:0, y:0, w:1, h:1 },
     gridRect: { x:0.08, y:0.20, w:0.84, h:0.58 },
+    laneYFrac:  [0.3296, 0.4108, 0.4958, 0.5846, 0.6813, 0.7859],
+    goalYFrac:  0.181,
+    startYFrac: 0.86,
   },
 ];
 
@@ -402,6 +419,38 @@ const NPC_IDS = NPC_TYPES_DEF.map(t => t.id);
 // ── GRID → SCREEN ──────────────────────────────────────────────────
 // Converte coordenada de grid (gx, gy) para pixel na tela.
 // Usa gridRect da estação atual para calibrar.
+// Calcula a fração Y (0-1 da altura da imagem) para um dado gy,
+// usando a tabela de posições reais medidas no PNG (não-uniforme,
+// considerando a perspectiva) quando disponível, com interpolação
+// linear nos extremos (goalY e startY).
+function laneYFraction(st, gy) {
+  const ly = st.laneYFrac;
+  if (!ly) return null; // estação sem tabela — usa cálculo uniforme antigo
+
+  // ly[0] corresponde a gy:2, ly[5] corresponde a gy:7 (6 lanes mapeadas)
+  const LANE_GY_MIN = 2, LANE_GY_MAX = 7;
+
+  if (gy >= LANE_GY_MIN && gy <= LANE_GY_MAX) {
+    // Direto na tabela (gy inteiro) ou interpolado (gy fracionário durante animação)
+    const idx = gy - LANE_GY_MIN;
+    const i0 = Math.floor(idx), i1 = Math.min(Math.ceil(idx), ly.length - 1);
+    const t  = idx - i0;
+    return ly[i0] + (ly[i1] - ly[i0]) * t;
+  }
+
+  if (gy < LANE_GY_MIN) {
+    // Entre goalY e a primeira lane: interpolar usando goalYFrac
+    const gF = st.goalYFrac !== undefined ? st.goalYFrac : ly[0];
+    const t  = (gy - st.goalY) / (LANE_GY_MIN - st.goalY);
+    return gF + (ly[0] - gF) * t;
+  }
+
+  // gy > LANE_GY_MAX: entre a última lane e startY
+  const sF = st.startYFrac !== undefined ? st.startYFrac : ly[ly.length - 1];
+  const t  = (gy - LANE_GY_MAX) / (st.startY - LANE_GY_MAX);
+  return ly[ly.length - 1] + (sF - ly[ly.length - 1]) * t;
+}
+
 function gridToScreen(gx, gy) {
   const st = G ? G.station : STATIONS[0];
   const cw = canvas.width, ch = canvas.height;
@@ -418,13 +467,15 @@ function gridToScreen(gx, gy) {
   const gridW_px    = gr.w * imgW;
   const gridH_px    = gr.h * imgH;
 
-  // Tile size em pixels
+  // Tile size em pixels (X continua uniforme; Y pode ser não-uniforme)
   const tileW = gridW_px / GW;
   const tileH = gridH_px / GH;
 
-  // Top-down puro: projeção ortogonal, sem isometria
   const sx = gridOriginX + gx * tileW;
-  const sy = gridOriginY + gy * tileH;
+
+  // Y: usar tabela de posições reais (perspectiva) quando disponível
+  const yFrac = laneYFraction(st, gy);
+  const sy = (yFrac !== null) ? (yFrac * ch) : (gridOriginY + gy * tileH);
 
   return { sx, sy, tileW, tileH };
 }
@@ -508,25 +559,33 @@ function checkCollision() {
   if (G.over || G.complete) return;
   if (G.player.busy) return;
 
-  // Colisão em espaço de TELA (pixels reais), não em grid
-  // Isso garante que só colide se os sprites se sobrepõem visualmente
+  const st = G.station;
   const pPos  = gridToScreen(G.player.gx, G.player.gy);
-  const pTileW = pPos.tileW, pTileH = pPos.tileH;
+  const pTileW = pPos.tileW;
 
-  // Centro visual do jogador
+  // Distância vertical real (em pixels) até a lane ADJACENTE do jogador.
+  // Como as lanes têm espaçamento não-uniforme (perspectiva), medimos a
+  // distância real para a lane mais próxima (acima e abaixo) e usamos a
+  // MENOR delas para definir a altura da hitbox — garante que nunca colide
+  // com uma lane vizinha, seja qual for o espaçamento naquele trecho.
+  const cw = canvas.width, ch = canvas.height;
+  const aboveY = gridToScreen(G.player.gx, G.player.gy - 1).sy;
+  const belowY = gridToScreen(G.player.gx, G.player.gy + 1).sy;
+  const distAbove = Math.abs(pPos.sy - aboveY);
+  const distBelow = Math.abs(belowY - pPos.sy);
+  const localTileH = Math.min(distAbove, distBelow) || pPos.tileH;
+
   const pCX = pPos.sx + pTileW * 0.5;
-  const pCY = pPos.sy + pTileH * 0.5;
+  const pCY = pPos.sy + localTileH * 0.5;
 
-  // Hitbox do jogador: metade do tile em cada direção
   const pHW = pTileW * 0.35;
-  const pHH = pTileH * 0.35;
+  const pHH = localTileH * 0.35;
 
   for (const n of G.npcs) {
     const nPos = gridToScreen(n.gx, n.gy);
     const nCX  = nPos.sx + pTileW * 0.5;
-    const nCY  = nPos.sy + pTileH * 0.5;
+    const nCY  = nPos.sy + localTileH * 0.5;
 
-    // Hitbox do NPC: mesmo tamanho do jogador (hitbox justa independente do sprite)
     const overlapX = Math.abs(nCX - pCX) < (pHW * 2);
     const overlapY = Math.abs(nCY - pCY) < (pHH * 2);
 
@@ -917,16 +976,21 @@ function goMenu()     { G = null; showScreen('screen-menu'); }
 function openRanking() {
   showScreen('screen-ranking');
 
-  // Se ainda não temos token, pedir de novo e aguardar um pouco antes de prosseguir
   function proceed() {
-    const local = getRankingList().filter(r => r.name && r.name !== 'Jogador');
-    if (DAILY_TOKEN && local.length > 0) {
-      const best = local[0];
+    // Reenviar score pendente (de uma partida cujo POST falhou ou não tinha token)
+    const scoreToSync = _pendingScore !== null
+      ? _pendingScore
+      : (getRankingList().filter(r => r.name && r.name !== 'Jogador')[0]?.score || null);
+
+    if (DAILY_TOKEN && scoreToSync !== null) {
       fetch('/api/crossing/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + DAILY_TOKEN },
-        body: JSON.stringify({ score: best.score, phase: best.phase || 1 })
-      }).catch(() => {}).finally(() => renderRanking());
+        body: JSON.stringify({ score: scoreToSync, phase: _pendingPhase || 1 })
+      })
+      .then(r => { if (r.ok) _pendingScore = null; })
+      .catch(() => {})
+      .finally(() => renderRanking());
     } else {
       renderRanking();
     }
@@ -934,7 +998,6 @@ function openRanking() {
 
   if (!DAILY_TOKEN) {
     try { window.parent.postMessage('REQUEST_AUTH', '*'); } catch(e) {}
-    // Dar uma janela curta para o token chegar via postMessage
     setTimeout(proceed, 350);
   } else {
     proceed();
@@ -1003,14 +1066,30 @@ function saveRanking(name, score, phase) {
   else list.push({name:realName,score,phase});
   list.sort((a,b) => b.score - a.score);
   localStorage.setItem('ct_rk', JSON.stringify(list.slice(0,10)));
-  if (DAILY_TOKEN) {
+
+  function trySend(token) {
     fetch('/api/crossing/score', {
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+DAILY_TOKEN},
-      body: JSON.stringify({score, phase: phase||1})
-    }).catch(()=>{});
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+      body: JSON.stringify({ score, phase: phase || 1 })
+    })
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(() => { console.log('[CrossingTrail] score salvo no backend:', score); })
+    .catch(err => {
+      console.warn('[CrossingTrail] falha ao salvar score, ficará pendente:', err);
+      // Mantém pendente para nova tentativa quando o ranking for aberto
+      _pendingScore = score; _pendingPhase = phase || 1;
+    });
+  }
+
+  if (DAILY_TOKEN) {
+    trySend(DAILY_TOKEN);
   } else {
-    _pendingScore = score; _pendingPhase = phase||1;
-    try { window.parent.postMessage('REQUEST_AUTH','*'); } catch(e) {}
+    _pendingScore = score; _pendingPhase = phase || 1;
+    try { window.parent.postMessage('REQUEST_AUTH', '*'); } catch(e) {}
   }
 }
 function renderRanking() {
