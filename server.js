@@ -23,6 +23,18 @@ app.use('/crossing-trail.html', (req, res) => {
   res.sendFile(require('path').join(__dirname, 'crossing-trail.html'));
 });
 
+// index.html também sem cache (contém o iframe e a auth bridge do jogo)
+app.get('/', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(require('path').join(__dirname, 'index.html'));
+});
+app.get('/index.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(require('path').join(__dirname, 'index.html'));
+});
+
 // Servir PNGs das estações sem cache
 ['barra-funda','luz','se','gare-du-nord','grand-central'].forEach(name => {
   app.use(`/${name}.png`, (req, res) => {

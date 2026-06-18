@@ -366,7 +366,7 @@ const imgCache = {};
 function loadImage(src) {
   if (imgCache[src]) return imgCache[src];
   const img = new Image();
-  img.src = src + '?v=ct6';
+  img.src = src + '?v=ct7';
   imgCache[src] = img;
   return img;
 }
@@ -392,7 +392,7 @@ const NPC_TYPES_DEF = [
 const NPC_IMGS = {};
 NPC_TYPES_DEF.forEach(t => {
   const img = new Image();
-  img.src = t.src + '?v=ct6';
+  img.src = t.src + '?v=ct7';
   NPC_IMGS[t.id] = img;
 });
 
@@ -916,11 +916,12 @@ function startGame() {
 function goMenu()     { G = null; showScreen('screen-menu'); }
 function openRanking() {
   showScreen('screen-ranking');
-  // Sincronizar melhor score local para o backend antes de mostrar ranking
-  if (DAILY_TOKEN) {
+
+  // Se ainda não temos token, pedir de novo e aguardar um pouco antes de prosseguir
+  function proceed() {
     const local = getRankingList().filter(r => r.name && r.name !== 'Jogador');
-    if (local.length > 0) {
-      const best = local[0]; // já está ordenado por score desc
+    if (DAILY_TOKEN && local.length > 0) {
+      const best = local[0];
       fetch('/api/crossing/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + DAILY_TOKEN },
@@ -929,8 +930,14 @@ function openRanking() {
     } else {
       renderRanking();
     }
+  }
+
+  if (!DAILY_TOKEN) {
+    try { window.parent.postMessage('REQUEST_AUTH', '*'); } catch(e) {}
+    // Dar uma janela curta para o token chegar via postMessage
+    setTimeout(proceed, 350);
   } else {
-    renderRanking();
+    proceed();
   }
 }
 
