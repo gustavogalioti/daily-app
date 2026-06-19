@@ -5,58 +5,8 @@ const { getDB } = require('./database');
 const { authMiddleware: requireAuth, optionalAuth } = require('./authmiddleware');
 const { v4: uuidv4 } = require('uuid');
 
-// ─── BANCO DE PERGUNTAS ───────────────────────────────────────────────────────
-const QUESTION_BANK = [
-  { category:'historia', q:'Em que ano o Brasil declarou independência de Portugal?', opts:['1808','1822','1889','1840'], correct:1 },
-  { category:'historia', q:'Quem proclamou a República do Brasil?', opts:['Dom Pedro II','Getúlio Vargas','Marechal Deodoro da Fonseca','Tiradentes'], correct:2 },
-  { category:'historia', q:'Em que ano terminou a Segunda Guerra Mundial?', opts:['1943','1944','1945','1946'], correct:2 },
-  { category:'historia', q:'Qual país lançou as primeiras bombas atômicas em combate?', opts:['URSS','Alemanha','Reino Unido','Estados Unidos'], correct:3 },
-  { category:'historia', q:'Tiradentes foi executado em que século?', opts:['XVII','XVIII','XIX','XVI'], correct:1 },
-  { category:'historia', q:'Quem foi o primeiro presidente do Brasil?', opts:['Floriano Peixoto','Deodoro da Fonseca','Campos Sales','Prudente de Morais'], correct:1 },
-  { category:'historia', q:'A abolição da escravatura no Brasil ocorreu em:', opts:['1880','1884','1888','1890'], correct:2 },
-  { category:'historia', q:'Qual foi o apelido dado à crise econômica iniciada em 1929?', opts:['Grande Recessão','Colapso de Wall Street','Grande Depressão','Crash do Ouro'], correct:2 },
-  { category:'geografia', q:'Qual é o maior país do mundo em área territorial?', opts:['China','Canadá','EUA','Rússia'], correct:3 },
-  { category:'geografia', q:'Qual é o rio mais longo do mundo?', opts:['Amazonas','Nilo','Yangtzé','Mississippi'], correct:1 },
-  { category:'geografia', q:'Qual é a capital da Austrália?', opts:['Sydney','Melbourne','Brisbane','Canberra'], correct:3 },
-  { category:'geografia', q:'Em qual continente fica o Egito?', opts:['Ásia','Europa','África','Oceania'], correct:2 },
-  { category:'geografia', q:'Quantos estados tem o Brasil?', opts:['24','25','26','27'], correct:3 },
-  { category:'geografia', q:'Qual é o ponto mais alto do Brasil?', opts:['Pico da Neblina','Serra da Mantiqueira','Pico 31 de Março','Pedra da Mina'], correct:0 },
-  { category:'geografia', q:'O Deserto do Saara fica em qual continente?', opts:['Ásia','África','América do Sul','Oceania'], correct:1 },
-  { category:'geografia', q:'Qual país tem mais fronteiras terrestres?', opts:['Brasil','Rússia','China','Alemanha'], correct:2 },
-  { category:'ciencias', q:'Qual é o elemento químico mais abundante no universo?', opts:['Oxigênio','Hélio','Carbono','Hidrogênio'], correct:3 },
-  { category:'ciencias', q:'Quantos ossos tem o corpo humano adulto?', opts:['196','206','216','226'], correct:1 },
-  { category:'ciencias', q:'Qual é o planeta mais próximo do Sol?', opts:['Vênus','Terra','Mercúrio','Marte'], correct:2 },
-  { category:'ciencias', q:'A fórmula da água é:', opts:['H3O','OH2','HO','H2O'], correct:3 },
-  { category:'ciencias', q:'DNA significa:', opts:['Ácido Desoxirribonucleico','Ácido Dinitroamínico','Dupla Nucleotídica Ativa','Ácido Dinucleico'], correct:0 },
-  { category:'ciencias', q:'Quantos cromossomos tem o ser humano?', opts:['23','44','46','48'], correct:2 },
-  { category:'cultura_pop', q:'Qual é a franquia de filmes mais lucrativa de todos os tempos?', opts:['Harry Potter','Star Wars','Marvel Cinematic Universe','James Bond'], correct:2 },
-  { category:'cultura_pop', q:'Quem criou o personagem Mickey Mouse?', opts:['Walt Disney','Roy Disney','Ub Iwerks','Chuck Jones'], correct:2 },
-  { category:'cultura_pop', q:'Qual banda britânica vendeu mais discos na história?', opts:['Rolling Stones','Led Zeppelin','The Beatles','Queen'], correct:2 },
-  { category:'cultura_pop', q:'O jogo Minecraft foi criado por:', opts:['Notch (Markus Persson)','Gabe Newell','Todd Howard','Shigeru Miyamoto'], correct:0 },
-  { category:'cultura_pop', q:'Quantas temporadas tem a série Breaking Bad?', opts:['3','4','5','6'], correct:2 },
-  { category:'esportes', q:'Quantas Copas do Mundo o Brasil conquistou?', opts:['4','5','6','3'], correct:1 },
-  { category:'esportes', q:'Em que país foi realizada a Copa do Mundo de 2018?', opts:['Alemanha','Rússia','Brasil','Catar'], correct:1 },
-  { category:'esportes', q:'Qual esporte é praticado no Wimbledon?', opts:['Golfe','Cricket','Tênis','Polo'], correct:2 },
-  { category:'esportes', q:'Qual time ganhou mais títulos da NBA?', opts:['LA Lakers','Chicago Bulls','Boston Celtics','Golden State Warriors'], correct:2 },
-  { category:'esportes', q:'A maratona tem quantos km?', opts:['40','41','42,195','43'], correct:2 },
-  { category:'cinema', q:'Qual filme ganhou mais Oscars na história?', opts:['Titanic','Ben-Hur','O Senhor dos Anéis: O Retorno do Rei','Gandhi'], correct:2 },
-  { category:'cinema', q:'Quem dirigiu o filme "Pulp Fiction"?', opts:['Martin Scorsese','Steven Spielberg','Quentin Tarantino','Francis Ford Coppola'], correct:2 },
-  { category:'cinema', q:'Qual ator interpretou o Coringa no filme de 2019?', opts:['Jared Leto','Heath Ledger','Joaquin Phoenix','Jack Nicholson'], correct:2 },
-  { category:'cinema', q:'O filme "Parasita" que ganhou o Oscar de Melhor Filme é de qual país?', opts:['Japão','China','Coreia do Sul','Tailândia'], correct:2 },
-  { category:'tecnologia', q:'Quem cofundou a Apple com Steve Jobs?', opts:['Bill Gates','Steve Wozniak','Elon Musk','Paul Allen'], correct:1 },
-  { category:'tecnologia', q:'O que significa "HTTP"?', opts:['Hyper Text Transfer Protocol','High Tech Transfer Platform','Hyper Typed Transfer Page','Hub Text Tool Protocol'], correct:0 },
-  { category:'tecnologia', q:'Qual linguagem de programação é mais usada no mundo?', opts:['Java','C++','Python','JavaScript'], correct:3 },
-  { category:'tecnologia', q:'Em que ano o Instagram foi lançado?', opts:['2009','2010','2011','2012'], correct:1 },
-  { category:'tecnologia', q:'O criador do Linux se chama:', opts:['Linus Torvalds','Richard Stallman','Dennis Ritchie','Ken Thompson'], correct:0 },
-  { category:'geral', q:'Qual é o livro mais vendido da história?', opts:['O Senhor dos Anéis','Quijote','A Bíblia','Harry Potter'], correct:2 },
-  { category:'geral', q:'Qual é o país mais populoso do mundo?', opts:['Índia','China','EUA','Indonésia'], correct:0 },
-  { category:'geral', q:'Em que continente fica o Monte Everest?', opts:['África','Europa','Ásia','América'], correct:2 },
-  { category:'futebol', q:'Quantos jogadores tem um time de futebol em campo?', opts:['10','11','12','9'], correct:1 },
-  { category:'futebol', q:'Qual clube tem mais títulos da Copa Libertadores?', opts:['Flamengo','Boca Juniors','Estudiantes','Independiente'], correct:3 },
-  { category:'futebol', q:'Quem marcou a "Mão de Deus" na Copa de 1986?', opts:['Pelé','Ronaldo','Maradona','Zico'], correct:2 },
-  { category:'futebol', q:'Em que ano o Brasil ganhou sua primeira Copa do Mundo?', opts:['1950','1954','1958','1962'], correct:2 },
-  { category:'futebol', q:'Qual estádio tem maior capacidade no Brasil?', opts:['Maracanã','Mineirão','Morumbi','Castelão'], correct:0 },
-];
+// ─── BANCO DE PERGUNTAS (importado de quiz_questions.js) ────────────────────
+const { QUESTION_BANK } = require('./quiz_questions');
 
 function shuffle(arr) {
   const a = [...arr];
