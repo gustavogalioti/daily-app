@@ -4,6 +4,7 @@ const { getDB } = require('./database');
 const { authMiddleware } = require('./authmiddleware');
 const { createPhotoUpload, getUploadedUrl } = require('./cloudinary');
 const { createNotification } = require('./notif_helper')
+const { NotificationService } = require('./notif_service')
 const { getPedroComment } = require('./pedro')
 const { v4: uuidv4b } = require('uuid')
 

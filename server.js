@@ -101,6 +101,8 @@ process.on('uncaughtException', (err) => {
 
   // ── Scheduler: notificação do Daily Pergunta por período ──────────────────
   const { sendPushToAll } = require('./notifications');
+  const { getDB } = require('./database');
+  const SITE_URL = process.env.SITE_URL || 'https://web-production-da5a8.up.railway.app';
 
   function getBrazilHour() {
     const now = new Date();
@@ -125,11 +127,10 @@ process.on('uncaughtException', (err) => {
       lastQuestionPeriod = period;
       const periodNames = { manha:'☀️ Bom dia!', almoco:'🍽️ Hora do almoço!', tarde:'☕ Boa tarde!', noite:'🌙 Boa noite!' };
       const title = periodNames[period] || '🗓️ Nova Daily Pergunta';
-      // Inserir notificação global temporária
+      // notifId é só um identificador para o link/e-mail — NÃO grava na tabela
+      // `notifications` (essa é exclusiva do banner/contador do Daily Mandou)
       const { v4: uuidv4 } = require('uuid');
       const notifId = uuidv4();
-      await db.prepare("INSERT INTO notifications(id,message,active,sent_at,expires_at) VALUES($1,$2,1,NOW(),NOW()+INTERVAL '1 hour')")
-        .run(notifId, `${title} Pergunta do Dia: ${q.question}`);
       await sendPushToAll(db, notifId, {
         title,
         body: q.question,
@@ -158,8 +159,6 @@ process.on('uncaughtException', (err) => {
       const { v4: uuidv4 } = require('uuid');
       const notifId = uuidv4();
       const msg = '🧠 O Quiz Diário do DAILY Quiz Arena está liberado! Jogue agora e represente sua cidade.';
-      await db.prepare("INSERT INTO notifications(id,message,active,sent_at,expires_at) VALUES($1,$2,1,NOW(),NOW()+INTERVAL '6 hours')")
-        .run(notifId, msg);
       await sendPushToAll(db, notifId, {
         title: '🧠 Quiz Arena',
         body: msg,
@@ -188,8 +187,6 @@ process.on('uncaughtException', (err) => {
       const { v4: uuidv4 } = require('uuid');
       const notifId = uuidv4();
       const msg = `${turno.emoji} ${turno.nome} começou! ${turno.descricao}. Pedro está te esperando no Global 🐱`;
-      await db.prepare("INSERT INTO notifications(id,message,active,sent_at,expires_at) VALUES($1,$2,1,NOW(),NOW()+INTERVAL '2 hours')")
-        .run(notifId, msg);
       await sendPushToAll(db, notifId, {
         title: `${turno.emoji} ${turno.nome}`,
         body: `${turno.descricao}. Poste uma foto e entre para a turma!`,
