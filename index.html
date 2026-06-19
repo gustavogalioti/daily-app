@@ -1029,7 +1029,6 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <button class="btn btn-primary btn-sm" id="qnav-daily" onclick="quizShowMode('daily',this)">📅 Quiz Diário</button>
           <button class="btn btn-ghost btn-sm" id="qnav-battle" onclick="quizShowMode('battle',this)">⚔️ Batalha 1x1</button>
           <button class="btn btn-ghost btn-sm" id="qnav-bet" onclick="quizShowMode('bet',this)">💰 XP Bet</button>
-          <button class="btn btn-ghost btn-sm" id="qnav-cities" onclick="quizShowMode('cities',this)">🏙️ Cidades</button>
           <button class="btn btn-ghost btn-sm" id="qnav-royale" onclick="quizShowMode('royale',this)">👑 Arena Royale</button>
           <button class="btn btn-ghost btn-sm" id="qnav-ranking" onclick="quizShowMode('ranking',this)">🏆 Ranking</button>
         </div>
@@ -1160,18 +1159,6 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         </div>
 
         <!-- ── MODO: GUERRA DAS CIDADES ── -->
-        <div id="quiz-mode-cities" style="display:none;">
-          <div style="background:linear-gradient(135deg,#059669,#10b981);border-radius:16px;padding:16px;color:#fff;margin-bottom:12px;">
-            <div style="font-size:28px;margin-bottom:4px;">🏙️</div>
-            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;">Guerra das Cidades</div>
-            <div style="font-size:13px;opacity:.85;">Índice de eficiência: pontos ÷ usuários ativos</div>
-          </div>
-          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;">
-            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:12px;">🏆 Ranking das Cidades</div>
-            <div id="cities-ranking-list"><div class="page-loader"><div class="loader"></div></div></div>
-          </div>
-        </div>
-
         <!-- ── MODO: ARENA ROYALE ── -->
         <div id="quiz-mode-royale" style="display:none;">
           <div id="royale-lobby" style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:16px;padding:20px;color:#fff;text-align:center;margin-bottom:12px;">
@@ -1217,13 +1204,29 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           </div>
         </div>
 
-        <!-- ── MODO: RANKING GLOBAL ── -->
+        <!-- ── MODO: RANKING (Global + Cidades) ── -->
         <div id="quiz-mode-ranking" style="display:none;">
-          <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;">
-            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:12px;">🏆 Ranking Global</div>
-            <div id="quiz-ranking-list"><div class="page-loader"><div class="loader"></div></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <!-- Coluna: Ranking Global -->
+            <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;min-width:0;">
+              <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:12px;">🏆 Ranking Global</div>
+              <div id="quiz-ranking-list"><div class="page-loader"><div class="loader"></div></div></div>
+            </div>
+            <!-- Coluna: Ranking das Cidades -->
+            <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;min-width:0;">
+              <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px;">🏙️ Ranking das Cidades</div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Eficiência: pontos ÷ usuários ativos</div>
+              <div id="cities-ranking-list"><div class="page-loader"><div class="loader"></div></div></div>
+            </div>
           </div>
         </div>
+
+        <!-- CSS responsivo: empilha em 1 coluna no mobile -->
+        <style>
+          @media(max-width:680px){
+            #quiz-mode-ranking > div { grid-template-columns: 1fr !important; }
+          }
+        </style>
 
         <!-- ── MODAL: JOGAR BATALHA ── -->
         <div id="quiz-battle-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px;">
@@ -10255,7 +10258,7 @@ function renderQuizHeader() {
 }
 
 function quizShowMode(mode, btn) {
-  ['daily','battle','bet','cities','royale','ranking'].forEach(m => {
+  ['daily','battle','bet','royale','ranking'].forEach(m => {
     const el = document.getElementById('quiz-mode-'+m);
     if (el) el.style.display = 'none';
   });
@@ -10265,8 +10268,7 @@ function quizShowMode(mode, btn) {
     b.className = b.className.replace('btn-primary','btn-ghost');
   });
   if (btn) btn.className = btn.className.replace('btn-ghost','btn-primary');
-  if (mode === 'ranking') loadQuizRanking();
-  if (mode === 'cities')  loadCitiesRanking();
+  if (mode === 'ranking') { loadQuizRanking(); loadCitiesRanking(); }
   if (mode === 'battle')  loadMyBattles();
 }
 

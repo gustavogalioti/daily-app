@@ -142,13 +142,16 @@ router.get('/cities-ranking', optionalAuth, async (req, res) => {
   try {
     const db = getDB();
     const rows = await db.prepare(`
-      SELECT city,
+      SELECT
+        -- Exibe a grafia mais comum (a que mais aparece) para aquela cidade normalizada
+        (ARRAY_AGG(city ORDER BY season_points DESC))[1] AS city,
         SUM(season_points) AS total_pts,
         COUNT(*) AS members,
         CAST(SUM(season_points) AS FLOAT) / COUNT(*) AS efficiency
       FROM quiz_profiles
-      WHERE city IS NOT NULL AND city != '' AND season_points > 0
-      GROUP BY city ORDER BY efficiency DESC LIMIT 20
+      WHERE city IS NOT NULL AND TRIM(city) != '' AND season_points > 0
+      GROUP BY LOWER(TRIM(city))
+      ORDER BY efficiency DESC LIMIT 20
     `).all();
     res.json(rows);
   } catch(e) { res.status(500).json({ error: e.message }); }
