@@ -4,6 +4,7 @@ const router  = express.Router();
 const { getDB } = require('./database');
 const { authMiddleware: requireAuth, optionalAuth } = require('./authmiddleware');
 const { v4: uuidv4 } = require('uuid');
+const { createNotification } = require('./notif_helper');
 
 // ─── BANCO DE PERGUNTAS (importado de quiz_questions.js) ────────────────────
 const { QUESTION_BANK } = require('./quiz_questions');
@@ -192,9 +193,15 @@ router.post('/battle/create', requireAuth, async (req, res) => {
 
     if (opponent_id) {
       try {
-        await db.prepare(`INSERT INTO user_notifications (id,user_id,type,actor_id,message) VALUES (?,?,'quiz_challenge',?,?) ON CONFLICT DO NOTHING`)
-          .run(uuidv4(), opponent_id, req.user.id, 'te desafiou para uma batalha no Quiz Arena! 🧠');
-      } catch(e2) {}
+        const sender = await db.prepare(`SELECT name FROM users WHERE id=?`).get(req.user.id);
+        await createNotification(db, {
+          userId: opponent_id, fromUserId: req.user.id,
+          type: 'quiz_challenge',
+          title: `${sender?.name||'Alguém'} te desafiou para uma batalha no Quiz Arena! 🧠`,
+          body: `Categoria: ${category||'aleatorio'}`,
+          data: { battle_id: id, game: 'quiz' }
+        });
+      } catch(e2) { console.error('[quiz challenge notif]', e2.message); }
     }
     res.json({ id, questions });
   } catch(e) { console.error('/battle/create:', e.message); res.status(500).json({ error: e.message }); }
@@ -251,9 +258,14 @@ router.post('/battle/:id/submit', requireAuth, async (req, res) => {
       if (loser_id) {
         try {
           const winnerRow = await db.prepare(`SELECT name FROM users WHERE id=?`).get(winner_id);
-          await db.prepare(`INSERT INTO user_notifications (id,user_id,type,actor_id,message) VALUES (?,?,'quiz_result',?,?) ON CONFLICT DO NOTHING`)
-            .run(uuidv4(), loser_id, winner_id, `${winnerRow?.name} venceu a batalha ${cs}x${os} no Quiz Arena!`);
-        } catch(e2) {}
+          await createNotification(db, {
+            userId: loser_id, fromUserId: winner_id,
+            type: 'quiz_result',
+            title: `${winnerRow?.name||'Seu adversário'} venceu a batalha ${cs}x${os} no Quiz Arena!`,
+            body: 'Veja o resultado e desafie de volta.',
+            data: { battle_id: req.params.id, game: 'quiz' }
+          });
+        } catch(e2) { console.error('[quiz result notif]', e2.message); }
       }
     }
 
@@ -299,9 +311,15 @@ router.post('/bet/create', requireAuth, async (req, res) => {
 
     if (opponent_id) {
       try {
-        await db.prepare(`INSERT INTO user_notifications (id,user_id,type,actor_id,message) VALUES (?,?,'quiz_bet',?,?) ON CONFLICT DO NOTHING`)
-          .run(uuidv4(), opponent_id, req.user.id, `te desafiou para uma aposta de ${amount} XP! 💰`);
-      } catch(e2) {}
+        const sender = await db.prepare(`SELECT name FROM users WHERE id=?`).get(req.user.id);
+        await createNotification(db, {
+          userId: opponent_id, fromUserId: req.user.id,
+          type: 'quiz_bet',
+          title: `${sender?.name||'Alguém'} te desafiou para uma aposta de ${amount} XP! 💰`,
+          body: `Categoria: ${category||'aleatorio'}`,
+          data: { battle_id: id, game: 'quiz' }
+        });
+      } catch(e2) { console.error('[quiz bet notif]', e2.message); }
     }
     res.json({ id, questions, bet_amount: amount });
   } catch(e) { console.error('/bet/create:', e.message); res.status(500).json({ error: e.message }); }

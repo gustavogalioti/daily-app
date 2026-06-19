@@ -124,12 +124,18 @@ process.on('uncaughtException', (err) => {
       if (!q) return;
       lastQuestionPeriod = period;
       const periodNames = { manha:'☀️ Bom dia!', almoco:'🍽️ Hora do almoço!', tarde:'☕ Boa tarde!', noite:'🌙 Boa noite!' };
+      const title = periodNames[period] || '🗓️ Nova Daily Pergunta';
       // Inserir notificação global temporária
       const { v4: uuidv4 } = require('uuid');
       const notifId = uuidv4();
       await db.prepare("INSERT INTO notifications(id,message,active,sent_at,expires_at) VALUES($1,$2,1,NOW(),NOW()+INTERVAL '1 hour')")
-        .run(notifId, `${periodNames[period]} Pergunta do Dia: ${q.question}`);
-      await sendPushToAll(db, notifId);
+        .run(notifId, `${title} Pergunta do Dia: ${q.question}`);
+      await sendPushToAll(db, notifId, {
+        title,
+        body: q.question,
+        url: SITE_URL + '/?tab=daily-pergunta',
+        tag: 'daily-question',
+      });
       console.log(`📬 Daily Pergunta enviada: ${period} — ${q.question}`);
     } catch(e) { console.error('daily question push error:', e.message); }
   }
@@ -151,15 +157,51 @@ process.on('uncaughtException', (err) => {
       lastQuizNotifDate = today;
       const { v4: uuidv4 } = require('uuid');
       const notifId = uuidv4();
+      const msg = '🧠 O Quiz Diário do DAILY Quiz Arena está liberado! Jogue agora e represente sua cidade.';
       await db.prepare("INSERT INTO notifications(id,message,active,sent_at,expires_at) VALUES($1,$2,1,NOW(),NOW()+INTERVAL '6 hours')")
-        .run(notifId, '🧠 O Quiz Diário do DAILY Quiz Arena está liberado! Jogue agora e represente sua cidade.');
-      await sendPushToAll(db, notifId);
+        .run(notifId, msg);
+      await sendPushToAll(db, notifId, {
+        title: '🧠 Quiz Arena',
+        body: msg,
+        url: SITE_URL + '/?tab=jogos',
+        tag: 'quiz-arena',
+      });
       console.log('📬 Quiz Arena push enviado para todos os usuários');
     } catch(e) { console.error('quiz arena push error:', e.message); }
   }
 
   setInterval(checkQuizArenaPush, 5 * 60 * 1000);
   checkQuizArenaPush();
+
+  // ── Scheduler: Turnos do Pedro — avisa quando um novo turno começa ───────
+  let lastTurnoId = null;
+
+  async function checkTurnoPush() {
+    try {
+      const db = getDB();
+      const { getTurnoAtivo } = require('./turnos');
+      const turno = getTurnoAtivo();
+      const turnoId = turno ? turno.id : null;
+      if (turnoId === lastTurnoId) return; // mesmo turno de antes, não repetir
+      lastTurnoId = turnoId;
+      if (!turno) return;
+      const { v4: uuidv4 } = require('uuid');
+      const notifId = uuidv4();
+      const msg = `${turno.emoji} ${turno.nome} começou! ${turno.descricao}. Pedro está te esperando no Global 🐱`;
+      await db.prepare("INSERT INTO notifications(id,message,active,sent_at,expires_at) VALUES($1,$2,1,NOW(),NOW()+INTERVAL '2 hours')")
+        .run(notifId, msg);
+      await sendPushToAll(db, notifId, {
+        title: `${turno.emoji} ${turno.nome}`,
+        body: `${turno.descricao}. Poste uma foto e entre para a turma!`,
+        url: SITE_URL + '/?tab=global',
+        tag: 'turno-pedro',
+      });
+      console.log(`📬 Turno do Pedro enviado: ${turno.nome}`);
+    } catch(e) { console.error('turno push error:', e.message); }
+  }
+
+  setInterval(checkTurnoPush, 5 * 60 * 1000);
+  checkTurnoPush();
 
   // ── Scheduler: NEWS automático ────────────────────────────────────────────
   let newsScheduler;

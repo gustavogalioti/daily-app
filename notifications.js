@@ -8,7 +8,7 @@ const SITE_URL      = process.env.SITE_URL || 'http://localhost:3000';
 webpush.setVapidDetails(`mailto:admin@daily.app`, VAPID_PUBLIC, VAPID_PRIVATE);
 
 // ─── PUSH PARA UM USUÁRIO ESPECÍFICO ────────────────────────────────────────
-async function sendPushToUser(db, userId, { title, body, url, icon }) {
+async function sendPushToUser(db, userId, { title, body, url, icon, tag }) {
   try {
     const subs = await db.prepare(
       'SELECT subscription FROM push_subscriptions WHERE user_id=$1'
@@ -18,7 +18,8 @@ async function sendPushToUser(db, userId, { title, body, url, icon }) {
       title: title || '🔔 DAILY',
       body:  body  || '',
       url:   url   || SITE_URL,
-      icon:  icon  || '/icon-192.png'
+      icon:  icon  || '/icon-192.png',
+      tag:   tag   || ('daily-notif-' + Date.now())
     });
     for (const sub of subs) {
       try {
@@ -37,18 +38,21 @@ async function sendPushToUser(db, userId, { title, body, url, icon }) {
   }
 }
 
-// ─── PUSH PARA TODOS (Daily Mandou) ─────────────────────────────────────────
-async function sendPushToAll(db, notificationId) {
+// ─── PUSH PARA TODOS (Daily Mandou, Daily Pergunta, Quiz, Turnos, etc) ──────
+// `override` permite customizar título/corpo — sem ele, mantém o texto
+// padrão do Daily Mandou (compatibilidade com chamadas antigas).
+async function sendPushToAll(db, notificationId, override) {
   const subs     = await db.prepare('SELECT ps.subscription, ps.user_id, u.email, u.name FROM push_subscriptions ps JOIN users u ON u.id=ps.user_id').all();
   const allUsers = await db.prepare('SELECT email, name FROM users').all();
 
   console.log(`   📣 Push para ${subs.length} | Email para ${allUsers.length} usuários`);
 
   const payload = JSON.stringify({
-    title: '⚡ Hora do DAILY!',
-    body:  'Você tem 1 minuto para postar sua foto agora!',
-    url:   SITE_URL + '/?notif=' + notificationId,
-    icon:  '/icon-192.png'
+    title: (override && override.title) || '⚡ Hora do DAILY!',
+    body:  (override && override.body)  || 'Você tem 1 minuto para postar sua foto agora!',
+    url:   (override && override.url)   || (SITE_URL + '/?notif=' + notificationId),
+    icon:  '/icon-192.png',
+    tag:   (override && override.tag)   || undefined
   });
 
   const results = { push: 0, email: 0, errors: 0 };

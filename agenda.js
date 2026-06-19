@@ -117,6 +117,7 @@ router.put('/:id/respond', authMiddleware, async (req, res) => {
     const db = getDB();
     const { status } = req.body;
     await db.prepare("UPDATE agenda_members SET status=$1 WHERE agenda_id=$2 AND user_id=$3").run(status, req.params.id, req.user.id);
+    await db.prepare("UPDATE user_notifications SET read=1 WHERE user_id=$1 AND type='agenda_invite' AND data->>'agenda_id'=$2").run(req.user.id, req.params.id).catch(()=>{});
     // Se aceitou, adicionar como membro confirmado
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }

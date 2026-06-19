@@ -33,7 +33,8 @@ async function createNotification(db, { userId, fromUserId, type, title, body, d
         title: `${icon} ${title}`,
         body: body || '',
         url: process.env.SITE_URL || 'https://web-production-da5a8.up.railway.app',
-        icon: '/icon-192.png'
+        icon: '/icon-192.png',
+        tag: `${type}-${id}`
       });
     }
   } catch(e) {

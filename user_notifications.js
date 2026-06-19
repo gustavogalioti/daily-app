@@ -38,6 +38,21 @@ router.put('/read-all', authMiddleware, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// PUT /api/user-notifications/mark-seen — marca como lidas todas as notificações
+// JÁ VISTAS no painel, EXCETO as que ainda pedem uma ação do usuário (convites
+// pendentes), para que os botões de Aceitar/Recusar não desapareçam sozinhos.
+router.put('/mark-seen', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const ACTION_TYPES = ['friend_request', 'community_invite', 'agenda_invite', 'event_invite'];
+    await db.prepare(
+      `UPDATE user_notifications SET read=1 WHERE user_id=$1 AND read=0 AND type NOT IN ('friend_request','community_invite','agenda_invite','event_invite')`
+    ).run(req.user.id);
+    const remaining = await db.prepare('SELECT COUNT(*) as c FROM user_notifications WHERE user_id=$1 AND read=0').get(req.user.id);
+    res.json({ ok: true, unread: parseInt(remaining?.c || 0) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // PUT /api/user-notifications/:id/read
 router.put('/:id/read', authMiddleware, async (req, res) => {
   try {

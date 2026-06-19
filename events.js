@@ -317,6 +317,7 @@ router.put('/:id/respond', authMiddleware, async (req, res) => {
     if (!member) return res.status(404).json({ error: 'Convite não encontrado' });
     await db.prepare('UPDATE event_members SET status=$1, decline_reason=$2 WHERE event_id=$3 AND user_id=$4')
       .run(status, reason||null, req.params.id, req.user.id);
+    await db.prepare("UPDATE user_notifications SET read=1 WHERE user_id=$1 AND type='event_invite' AND data->>'event_id'=$2").run(req.user.id, req.params.id).catch(()=>{});
     res.json({ ok: true, status });
     // Pedro anima a galera quando alguém confirma presença
     if (status === 'accepted') setTimeout(() => pedroHypeMembers(req.params.id), 3000);

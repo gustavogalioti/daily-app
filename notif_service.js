@@ -71,7 +71,7 @@ async function userWants(db, userId, prefKey) {
 }
 
 // ─── SALVAR NOTIFICAÇÃO NO SINO E ENVIAR PUSH ────────────────────────────────
-async function notify(db, { userId, fromUserId, type, title, body, url, tag, prefKey, spamWindowMs }) {
+async function notify(db, { userId, fromUserId, type, title, body, url, tag, prefKey, spamWindowMs, data }) {
   if (!userId || userId === fromUserId) return;
 
   // Verificar preferência
@@ -81,14 +81,15 @@ async function notify(db, { userId, fromUserId, type, title, body, url, tag, pre
   if (spamWindowMs && isSpam(userId, type, spamWindowMs)) return;
 
   // Salvar no sino (user_notifications)
+  const notifId = uuidv4();
   try {
     await db.prepare(
       'INSERT INTO user_notifications (id,user_id,from_user_id,type,title,body,data,read) VALUES ($1,$2,$3,$4,$5,$6,$7,0)'
-    ).run(uuidv4(), userId, fromUserId || null, type, title, body || '', JSON.stringify({ url: url || SITE_URL }));
+    ).run(notifId, userId, fromUserId || null, type, title, body || '', JSON.stringify({ url: url || SITE_URL, ...(data || {}) }));
   } catch(e) { console.error('[NotifService] insert notif erro:', e.message); }
 
-  // Enviar push
-  await sendPushToUser(db, userId, { title, body, url, tag });
+  // Enviar push (tag única por notificação — não sobrescreve a anterior na bandeja do celular)
+  await sendPushToUser(db, userId, { title, body, url, tag: `${tag || type}-${notifId}` });
 }
 
 // ─── MÉTODOS ESPECÍFICOS ──────────────────────────────────────────────────────
@@ -96,7 +97,7 @@ async function notify(db, { userId, fromUserId, type, title, body, url, tag, pre
 const NotificationService = {
 
   // 1. Solicitação de amizade
-  async sendFriendRequest(db, { toUserId, fromUser }) {
+  async sendFriendRequest(db, { toUserId, fromUser, friendshipId }) {
     await notify(db, {
       userId: toUserId, fromUserId: fromUser.id,
       type: 'friend_request',
@@ -105,6 +106,7 @@ const NotificationService = {
       url: `${SITE_URL}/?tab=friends`,
       tag: 'friend_request',
       prefKey: 'notif_friend_request',
+      data: { friendship_id: friendshipId },
     });
   },
 
@@ -144,6 +146,7 @@ const NotificationService = {
       url: `${SITE_URL}/?tab=events&id=${eventId}`,
       tag: 'event_invite',
       prefKey: 'notif_event_invite',
+      data: { event_id: eventId },
     });
   },
 

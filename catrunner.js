@@ -4,8 +4,6 @@ const {authMiddleware}=require('./authmiddleware');
 const {createNotification}=require('./notif_helper');
 const {v4:uuidv4}=require('uuid');
 const router=express.Router();
-
-// GET /api/catrunner/score — meu recorde
 router.get('/score', authMiddleware, async(req,res)=>{
   try{
     const db=getDB();
@@ -21,12 +19,34 @@ router.post('/score', authMiddleware, async(req,res)=>{
     const {score}=req.body;
     if(!score||score<0) return res.json({ok:true});
     const existing=await db.prepare('SELECT best_score FROM catrunner_scores WHERE user_id=$1').get(req.user.id);
+    const myOldBest = existing?.best_score || 0;
+    let isNewBest = false;
     if(!existing){
       await db.prepare('INSERT INTO catrunner_scores(id,user_id,best_score) VALUES($1,$2,$3)').run(uuidv4(),req.user.id,score);
+      isNewBest = true;
     } else if(score>existing.best_score){
       await db.prepare('UPDATE catrunner_scores SET best_score=$1,updated_at=NOW() WHERE user_id=$2').run(score,req.user.id);
+      isNewBest = true;
     }
-    res.json({ok:true,new_best:score>(existing?.best_score||0)});
+    // Se assumiu a liderança geral, notifica quem foi ultrapassado
+    if (isNewBest) {
+      try {
+        const topBefore = await db.prepare(
+          `SELECT user_id, best_score FROM catrunner_scores WHERE user_id != $1 ORDER BY best_score DESC LIMIT 1`
+        ).get(req.user.id);
+        if (topBefore && topBefore.best_score < score && topBefore.best_score > myOldBest) {
+          const me = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
+          await createNotification(db, {
+            userId: topBefore.user_id, fromUserId: req.user.id,
+            type: 'game_rank_lost',
+            title: `${me?.name||'Alguém'} tomou sua liderança no Cat Runner! 😿`,
+            body: `Novo recorde: ${score} pontos. Jogue agora e recupere o topo!`,
+            data: { game: 'catrunner' }
+          });
+        }
+      } catch(e2) { console.error('[catrunner rank notif]', e2.message); }
+    }
+    res.json({ok:true,new_best:isNewBest});
   }catch(e){res.status(500).json({error:e.message});}
 });
 

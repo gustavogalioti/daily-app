@@ -6063,6 +6063,16 @@ function closeNotifPanel() {
   notifPanelOpen = false;
   document.getElementById('notif-panel').classList.remove('open');
   document.getElementById('notif-overlay').classList.remove('open');
+  // Marca como lidas automaticamente ao sair do painel (exceto convites/pedidos
+  // pendentes, que continuam exigindo ação explícita do usuário)
+  markSeenNotifs();
+}
+
+async function markSeenNotifs() {
+  try {
+    const { unread } = await api('/api/user-notifications/mark-seen', { method: 'PUT' });
+    updateNotifBadge(unread);
+  } catch(e) {}
 }
 
 async function loadNotifications() {
@@ -6088,7 +6098,9 @@ function renderNotifItem(n) {
     friend_request: '🤝', friend_accepted: '🎉',
     reaction: '❤️', comment: '💬',
     community_invite: '🏘️', community_invite_accepted: '✅',
-    agenda_invite: '📆', testimonial: '💬', friend_accepted: '🎉', game_challenge: '🎮'
+    agenda_invite: '📆', event_invite: '📅', testimonial: '💬', game_challenge: '🎮',
+    quiz_challenge: '🧠', quiz_result: '🏆', quiz_bet: '💰', game_rank_lost: '😿',
+    poke: '🎭', mention: '💬',
   };
   const icon = icons[n.type] || '🔔';
   const avatar = n.from_avatar
@@ -6117,10 +6129,27 @@ function renderNotifItem(n) {
       <button class="btn btn-ghost btn-xs" onclick="declineAgendaInviteNotif('${d.agenda_id}','${n.id}')">Recusar</button>
     </div>`;
   }
+  if (n.type === 'event_invite' && !n.read) {
+    const d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
+    actions = `<div class="notif-actions">
+      <button class="btn btn-primary btn-xs" onclick="acceptEventInviteNotif('${d.event_id}','${n.id}')">✅ Aceitar</button>
+      <button class="btn btn-ghost btn-xs" onclick="declineEventInviteNotif('${d.event_id}','${n.id}')">Recusar</button>
+    </div>`;
+  }
   if (n.type === 'game_challenge' && !n.read) {
     const d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
     actions = `<div class="notif-actions">
       <button class="btn btn-primary btn-xs" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'));showJogoSection('catrunner');closeNotifPanel();">🎮 Jogar agora!</button>
+    </div>`;
+  }
+  if ((n.type === 'quiz_challenge' || n.type === 'quiz_bet') && !n.read) {
+    actions = `<div class="notif-actions">
+      <button class="btn btn-primary btn-xs" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'));showJogoSection('quiz');closeNotifPanel();">🧠 Aceitar desafio!</button>
+    </div>`;
+  }
+  if (n.type === 'quiz_result' || n.type === 'game_rank_lost') {
+    actions = `<div class="notif-actions">
+      <button class="btn btn-ghost btn-xs" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'));showJogoSection('${n.type==='quiz_result'?'quiz':'catrunner'}');closeNotifPanel();">${n.type==='quiz_result'?'🧠 Ver resultado':'🎮 Recuperar o topo'}</button>
     </div>`;
   }
   if (n.type === 'testimonial' && !n.read) {
@@ -6211,6 +6240,25 @@ async function acceptAgendaInviteNotif(agendaId, notifId) {
 async function declineAgendaInviteNotif(agendaId, notifId) {
   try {
     await api(`/api/agenda/${agendaId}/respond`, { method: 'PUT', body: JSON.stringify({ status: 'declined' }) });
+    await api(`/api/user-notifications/${notifId}/read`, { method: 'PUT' });
+    toast('Convite recusado.', 'info');
+    await loadNotifications();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function acceptEventInviteNotif(eventId, notifId) {
+  try {
+    await api(`/api/events/${eventId}/respond`, { method: 'PUT', body: JSON.stringify({ status: 'accepted' }) });
+    await api(`/api/user-notifications/${notifId}/read`, { method: 'PUT' });
+    toast('Presença confirmada! 📅', 'success');
+    closeNotifPanel();
+    await loadNotifications();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function declineEventInviteNotif(eventId, notifId) {
+  try {
+    await api(`/api/events/${eventId}/respond`, { method: 'PUT', body: JSON.stringify({ status: 'declined' }) });
     await api(`/api/user-notifications/${notifId}/read`, { method: 'PUT' });
     toast('Convite recusado.', 'info');
     await loadNotifications();
@@ -8679,7 +8727,7 @@ async function checkDQPeriodChange() {
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('DAILY Pergunta 🗓️', {
           body: question.question,
-          icon: '/manifest.json',
+          icon: '/icon-192.png',
           tag: 'dq-' + period,
         });
       }
