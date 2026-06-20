@@ -10,6 +10,39 @@ const rooms = new Map(); // roomId → Map<playerId, playerData>
 const FREE_ROOM = 'free_room_global';
 rooms.set(FREE_ROOM, new Map());
 
+// ─── TEAM DEATHMATCH — LOBBY (Fase 1) ────────────────────────────────────────
+// Estrutura 100% isolada da estrutura `rooms` usada por Livre/Coop acima.
+// Não compartilha Map, não reaproveita getCoopRoom/broadcast/roomPlayers.
+const MAX_TDM = 10;          // 10 jogadores por sala (5x5)
+const MIN_TDM_TO_START = 6;  // mínimo 6 (3x3) para liberar o início da partida
+const tdmRooms = new Map();  // roomId → { players: Map<pid,{id,username,team,ws}>, started:boolean }
+
+function getTdmRoom() {
+  for (const [id, room] of tdmRooms) {
+    if (!room.started && room.players.size < MAX_TDM) return id;
+  }
+  const id = 'tdm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  tdmRooms.set(id, { players: new Map(), started: false });
+  return id;
+}
+
+function tdmAssignTeam(room) {
+  let blue = 0, red = 0;
+  for (const p of room.players.values()) { if (p.team === 'blue') blue++; else red++; }
+  return blue <= red ? 'blue' : 'red';
+}
+
+function tdmRoster(room) {
+  return [...room.players.values()].map(p => ({ id: p.id, username: p.username, team: p.team }));
+}
+
+function tdmBroadcast(room, data) {
+  const msg = JSON.stringify(data);
+  for (const p of room.players.values()) {
+    if (p.ws.readyState === 1) p.ws.send(msg);
+  }
+}
+
 function getCoopRoom() {
   for (const [id, room] of rooms) {
     if (id === FREE_ROOM) continue; // não usa sala livre para coop
@@ -40,11 +73,39 @@ function roomPlayers(roomId, excludeId) {
 function setupCoopWS(wss) {
   wss.on('connection', (ws) => {
     let pid = null, rid = null;
+    let tdmPid = null, tdmRid = null; // estado isolado da sala TDM (Fase 1)
 
     ws.on('message', (raw) => {
       let msg; try { msg = JSON.parse(raw); } catch { return; }
 
-      // ── JOIN ──────────────────────────────────────────────────────────────
+      // ── TDM JOIN (Fase 1) — isolado, retorna antes de tocar no fluxo abaixo ─
+      if (msg.type === 'join' && msg.mode === 'tdm') {
+        tdmPid = 'tp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5);
+        tdmRid = getTdmRoom();
+        const troom = tdmRooms.get(tdmRid);
+        const team = tdmAssignTeam(troom);
+        const player = { id: tdmPid, ws, username: (msg.username || 'Jogador').slice(0, 20), team };
+        troom.players.set(tdmPid, player);
+        ws.send(JSON.stringify({ type: 'tdm_joined', playerId: tdmPid, roomId: tdmRid, roster: tdmRoster(troom) }));
+        tdmBroadcast(troom, { type: 'tdm_lobby_update', roster: tdmRoster(troom) });
+        console.log(`[WS-TDM] ${player.username} → ${tdmRid} (time ${team}) [${troom.players.size}/${MAX_TDM}]`);
+        return;
+      }
+
+      // ── TDM CHAT DO LOBBY (Fase 1) — isolado ────────────────────────────────
+      if (msg.type === 'chat' && msg.scope === 'tdm_lobby' && tdmRid) {
+        const troom = tdmRooms.get(tdmRid);
+        if (troom) {
+          const p = troom.players.get(tdmPid);
+          const text = String(msg.text || '').slice(0, 140).trim();
+          if (p && text) {
+            tdmBroadcast(troom, { type: 'tdm_chat', id: tdmPid, username: p.username, team: p.team, text });
+          }
+        }
+        return;
+      }
+
+      // ── JOIN (Modo Livre / Modo Coop) — código original, inalterado ────────
       if (msg.type === 'join') {
         pid = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,5);
         // mode:'free' → sala global ilimitada; mode:'coop' → sala de até 10
@@ -97,6 +158,22 @@ function setupCoopWS(wss) {
     });
 
     ws.on('close', () => {
+      // ── TDM CLEANUP (Fase 1) — isolado, não interfere no fluxo abaixo ──────
+      if (tdmRid) {
+        const troom = tdmRooms.get(tdmRid);
+        if (troom) {
+          const p = troom.players.get(tdmPid);
+          troom.players.delete(tdmPid);
+          if (troom.players.size === 0 && !troom.started) {
+            tdmRooms.delete(tdmRid);
+            console.log(`[WS-TDM] ${tdmRid} removida`);
+          } else {
+            tdmBroadcast(troom, { type: 'tdm_lobby_update', roster: tdmRoster(troom) });
+          }
+          console.log(`[WS-TDM] ${p?.username || tdmPid} saiu do lobby (${troom.players.size}/${MAX_TDM})`);
+        }
+      }
+
       if (!pid || !rid) return;
       const room = rooms.get(rid);
       if (!room) return;
