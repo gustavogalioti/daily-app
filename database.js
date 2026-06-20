@@ -35,6 +35,10 @@ async function initPG() {
       parent_id TEXT, content TEXT NOT NULL, is_anonymous INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS scheduler_locks (
+      key TEXT PRIMARY KEY,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );`); } catch(e) { /* já existe */ }
   try { await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY, sent_by TEXT NOT NULL,
       sent_at TIMESTAMPTZ DEFAULT NOW(),
@@ -507,6 +511,7 @@ async function seedRegionalCommunities(pool) {
 }
 
 async function seedAchievements(pool) {
+  const PEDRO_ID = 'pedro-official-daily';
   const { rows } = await pool.query('SELECT id FROM achievements LIMIT 1');
   if (rows.length) {
     // Atualizar foto e bio mesmo se já existe
@@ -553,6 +558,7 @@ async function seedAchievements(pool) {
 }
 
 async function seedDailyQuestions(pool) {
+  const PEDRO_ID = 'pedro-official-daily';
   const { rows } = await pool.query('SELECT id FROM daily_questions LIMIT 1');
   if (rows.length) {
     // Atualizar foto e bio mesmo se já existe

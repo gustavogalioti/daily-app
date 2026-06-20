@@ -108,8 +108,24 @@ process.on('uncaughtException', (err) => {
     const now = new Date();
     return new Date(now.getTime() - 3*60*60*1000).getUTCHours();
   }
+  function getBrazilDateStr() {
+    const now = new Date();
+    return new Date(now.getTime() - 3*60*60*1000).toISOString().split('T')[0];
+  }
 
-  let lastQuestionPeriod = null;
+  // Trava atômica no banco — garante que SÓ UM processo (e só uma vez) envia
+  // cada notificação agendada, mesmo se o servidor reiniciar várias vezes
+  // seguidas (deploys) ou se houver mais de uma instância rodando ao mesmo
+  // tempo. Sem isso, cada reinício do processo zera as variáveis em memória
+  // e reenvia tudo de novo — foi exatamente isso que causou o spam.
+  async function claimSchedulerSlot(db, key) {
+    try {
+      const row = await db.prepare(
+        "INSERT INTO scheduler_locks(key) VALUES($1) ON CONFLICT (key) DO NOTHING RETURNING key"
+      ).get(key);
+      return !!row; // true = ninguém tinha enviado ainda, pode prosseguir
+    } catch(e) { console.error('claimSchedulerSlot erro:', e.message); return false; }
+  }
 
   async function checkDailyQuestionPush() {
     try {
@@ -121,10 +137,11 @@ process.on('uncaughtException', (err) => {
       else if (h === 12) period = 'almoco';
       else if (h === 15) period = 'tarde';
       else if (h === 20) period = 'noite';
-      if (!period || period === lastQuestionPeriod) return;
+      if (!period) return;
+      const lockKey = `daily_question:${getBrazilDateStr()}:${period}`;
+      if (!(await claimSchedulerSlot(db, lockKey))) return; // já enviado hoje
       const q = await db.prepare("SELECT * FROM daily_questions WHERE period=$1 AND active=1 LIMIT 1").get(period);
       if (!q) return;
-      lastQuestionPeriod = period;
       const periodNames = { manha:'☀️ Bom dia!', almoco:'🍽️ Hora do almoço!', tarde:'☕ Boa tarde!', noite:'🌙 Boa noite!' };
       const title = periodNames[period] || '🗓️ Nova Daily Pergunta';
       // notifId é só um identificador para o link/e-mail — NÃO grava na tabela
@@ -146,16 +163,13 @@ process.on('uncaughtException', (err) => {
   checkDailyQuestionPush(); // verificar imediatamente
 
   // ── Scheduler: notificação do Quiz Arena à meia-noite ────────────────────
-  let lastQuizNotifDate = null;
-
   async function checkQuizArenaPush() {
     try {
       const db = getDB();
       const h = getBrazilHour();
       if (h !== 0) return; // só à meia-noite (horário de Brasília)
-      const today = new Date().toISOString().split('T')[0];
-      if (lastQuizNotifDate === today) return; // já enviou hoje
-      lastQuizNotifDate = today;
+      const lockKey = `quiz_arena:${getBrazilDateStr()}`;
+      if (!(await claimSchedulerSlot(db, lockKey))) return; // já enviado hoje
       const { v4: uuidv4 } = require('uuid');
       const notifId = uuidv4();
       const msg = '🧠 O Quiz Diário do DAILY Quiz Arena está liberado! Jogue agora e represente sua cidade.';
@@ -173,17 +187,14 @@ process.on('uncaughtException', (err) => {
   checkQuizArenaPush();
 
   // ── Scheduler: Turnos do Pedro — avisa quando um novo turno começa ───────
-  let lastTurnoId = null;
-
   async function checkTurnoPush() {
     try {
       const db = getDB();
       const { getTurnoAtivo } = require('./turnos');
       const turno = getTurnoAtivo();
-      const turnoId = turno ? turno.id : null;
-      if (turnoId === lastTurnoId) return; // mesmo turno de antes, não repetir
-      lastTurnoId = turnoId;
       if (!turno) return;
+      const lockKey = `turno:${getBrazilDateStr()}:${turno.id}`;
+      if (!(await claimSchedulerSlot(db, lockKey))) return; // já enviado neste turno hoje
       const { v4: uuidv4 } = require('uuid');
       const notifId = uuidv4();
       const msg = `${turno.emoji} ${turno.nome} começou! ${turno.descricao}. Pedro está te esperando no Global 🐱`;
