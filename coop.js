@@ -105,6 +105,20 @@ function setupCoopWS(wss) {
         return;
       }
 
+      // ── TDM START REQUEST (Fase 2) — isolado ────────────────────────────────
+      // Qualquer jogador da sala pode disparar, desde que tenha o mínimo (6).
+      // Idempotente: se a sala já começou, ignora pedidos repetidos.
+      if (msg.type === 'tdm_start_request' && tdmRid) {
+        const troom = tdmRooms.get(tdmRid);
+        if (troom && !troom.started && troom.players.size >= MIN_TDM_TO_START) {
+          troom.started = true;
+          const countdown = 5;
+          tdmBroadcast(troom, { type: 'tdm_match_starting', countdown, roster: tdmRoster(troom) });
+          console.log(`[WS-TDM] ${tdmRid} iniciando partida (${troom.players.size} jogadores)`);
+        }
+        return;
+      }
+
       // ── JOIN (Modo Livre / Modo Coop) — código original, inalterado ────────
       if (msg.type === 'join') {
         pid = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,5);
@@ -164,10 +178,10 @@ function setupCoopWS(wss) {
         if (troom) {
           const p = troom.players.get(tdmPid);
           troom.players.delete(tdmPid);
-          if (troom.players.size === 0 && !troom.started) {
+          if (troom.players.size === 0) {
             tdmRooms.delete(tdmRid);
             console.log(`[WS-TDM] ${tdmRid} removida`);
-          } else {
+          } else if (!troom.started) {
             tdmBroadcast(troom, { type: 'tdm_lobby_update', roster: tdmRoster(troom) });
           }
           console.log(`[WS-TDM] ${p?.username || tdmPid} saiu do lobby (${troom.players.size}/${MAX_TDM})`);
