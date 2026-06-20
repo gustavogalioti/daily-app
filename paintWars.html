@@ -405,6 +405,13 @@
   <button id="tdm-start-btn" disabled onclick="tdmStartMatch()" style="margin-top:18px;padding:14px 40px;border-radius:50px;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.4);font-weight:900;font-size:14px;letter-spacing:0.5px;cursor:not-allowed;transition:all 0.15s;">
     Aguardando jogadores (0/6 mín.)
   </button>
+
+  <!-- Overlay de contagem regressiva (Fase 2) — isolado, escondido por padrão -->
+  <div id="tdm-countdown-overlay" style="display:none;position:fixed;inset:0;z-index:210;background:rgba(0,0,0,0.88);flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;">
+    <div style="font-size:13px;letter-spacing:3px;opacity:0.6;margin-bottom:10px;">A PARTIDA VAI COMEÇAR</div>
+    <div id="tdm-countdown-number" style="font-size:104px;font-weight:900;background:linear-gradient(135deg,#ff6b35,#ffd700);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1;">5</div>
+    <div style="font-size:13px;opacity:0.5;margin-top:14px;">Prepare-se, Daily!</div>
+  </div>
 </div>
 
 <!-- Canvas 3D -->
@@ -3709,6 +3716,11 @@ function tdmConnectLobby() {
       case 'tdm_chat':
         tdmAppendChat({ username: msg.username, team: msg.team, text: msg.text, self: msg.id === tdmMyId });
         break;
+      case 'tdm_match_starting':
+        tdmRoster = msg.roster || tdmRoster;
+        tdmRenderLobby();
+        tdmBeginCountdown(msg.countdown || 5);
+        break;
     }
   };
 
@@ -3739,6 +3751,13 @@ function tdmDisconnect() {
   tdmMyId = null;
   tdmRoomId = null;
   tdmRoster = [];
+  // Fase 2: garante que contagem regressiva e travas de input nunca fiquem
+  // "presas" se o jogador sair no meio do processo.
+  clearInterval(window._tdmCountdownInterval);
+  const overlay = document.getElementById('tdm-countdown-overlay');
+  if (overlay) overlay.style.display = 'none';
+  const chatInput = document.getElementById('tdm-chat-input');
+  if (chatInput) chatInput.disabled = false;
 }
 
 function tdmRenderLobby() {
@@ -3805,8 +3824,46 @@ function tdmSendChat() {
 }
 
 function tdmStartMatch() {
-  if (tdmRoster.length < 6) return;
-  toast('⚔️ Em breve: o mapa e o início da partida chegam na próxima fase do desenvolvimento!');
+  if (tdmRoster.length < 6 || !tdmWs || tdmWs.readyState !== WebSocket.OPEN) return;
+  tdmWs.send(JSON.stringify({ type: 'tdm_start_request' }));
+}
+
+// ── Contagem regressiva de início de partida (Fase 2) ────────────────────────
+function tdmBeginCountdown(seconds) {
+  const chatInput = document.getElementById('tdm-chat-input');
+  const startBtn = document.getElementById('tdm-start-btn');
+  if (chatInput) chatInput.disabled = true;
+  if (startBtn) startBtn.disabled = true;
+
+  const overlay = document.getElementById('tdm-countdown-overlay');
+  const numEl = document.getElementById('tdm-countdown-number');
+  let n = seconds;
+  numEl.textContent = n;
+  overlay.style.display = 'flex';
+
+  clearInterval(window._tdmCountdownInterval);
+  window._tdmCountdownInterval = setInterval(() => {
+    n--;
+    if (n <= 0) {
+      clearInterval(window._tdmCountdownInterval);
+      numEl.textContent = '🔫';
+      setTimeout(tdmMatchPlaceholderTransition, 600);
+    } else {
+      numEl.textContent = n;
+    }
+  }, 1000);
+}
+
+// Fase 2 termina aqui: a partida foi "iniciada" no servidor (sala travada,
+// ninguém mais entra nela) e a contagem regressiva rodou. O mapa, os
+// quartéis-generais e o combate em si chegam na Fase 3 — por ora retorna
+// ao menu com aviso claro, sem fingir uma transição que ainda não existe.
+function tdmMatchPlaceholderTransition() {
+  document.getElementById('tdm-countdown-overlay').style.display = 'none';
+  tdmDisconnect();
+  document.getElementById('tdm-lobby').style.display = 'none';
+  document.getElementById('splash').style.display = 'flex';
+  toast('⚔️ Partida iniciada! Mapa e quartéis-generais chegam na Fase 3 — em breve direto pra batalha.');
 }
 
 // Override goToMenu (novamente) só para também limpar o lobby TDM ao sair
