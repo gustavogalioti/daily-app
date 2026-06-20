@@ -315,6 +315,17 @@
          onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'">
         ⚔️ MODO COOP
       </button>
+      <!-- TEAM DEATHMATCH — botão novo, isolado. Não altera os botões acima. -->
+      <button onclick="startTdmMode()" style="
+        padding:14px 36px; border-radius:50px;
+        background:linear-gradient(135deg,#3b82f6,#ef4444);
+        border:none; color:#fff; font-weight:900; font-size:17px;
+        cursor:pointer; letter-spacing:1px; transition:transform 0.15s,box-shadow 0.15s;
+        flex:1; min-width:160px;
+      " onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 0 28px rgba(239,68,68,0.5)'"
+         onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'">
+        🔫 TEAM DEATHMATCH
+      </button>
     </div>
     <!-- Descriptions under buttons -->
     <div style="display:flex;gap:12px;width:100%;justify-content:center;">
@@ -323,6 +334,9 @@
       </div>
       <div style="flex:1;min-width:160px;text-align:center;font-size:11px;opacity:0.45;line-height:1.5;">
         Sobreviva em equipe.<br>Ondas de inimigos. Até 10 jogadores.
+      </div>
+      <div style="flex:1;min-width:160px;text-align:center;font-size:11px;opacity:0.45;line-height:1.5;">
+        PvP em equipe 5x5.<br>30 baixas decidem a partida.
       </div>
     </div>
     <button onclick="showSplashRanking()" style="
@@ -345,6 +359,52 @@
     </div>
     <div id="splash-ranking-list" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     TEAM DEATHMATCH — LOBBY (Fase 1)
+     Elemento 100% novo e isolado. Não altera #splash, #hud, ou qualquer
+     outro elemento já existente.
+     ════════════════════════════════════════════════════════════════════════ -->
+<div id="tdm-lobby" style="display:none;position:fixed;inset:0;z-index:200;background:radial-gradient(circle at 50% 0%, #1a1a2e 0%, #0a0a0f 70%);flex-direction:column;align-items:center;padding:24px 16px;overflow-y:auto;font-family:'Segoe UI',sans-serif;color:#fff;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:680px;margin-bottom:18px;">
+    <button onclick="tdmLeaveLobby()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:8px 16px;border-radius:30px;cursor:pointer;font-size:13px;">← Sair</button>
+    <div style="font-size:20px;font-weight:900;letter-spacing:1px;">🔫 TEAM DEATHMATCH</div>
+    <div id="tdm-player-count" style="background:rgba(255,255,255,0.08);padding:8px 14px;border-radius:30px;font-size:13px;font-weight:700;min-width:44px;text-align:center;">0/10</div>
+  </div>
+
+  <div style="font-size:12px;opacity:0.55;margin-bottom:18px;text-align:center;">Aguardando jogadores na sala · mínimo 6 (3x3) para liberar o início</div>
+
+  <div style="display:flex;gap:14px;width:100%;max-width:680px;flex-wrap:wrap;">
+    <!-- Time Azul -->
+    <div style="flex:1;min-width:220px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.35);border-radius:14px;padding:14px;">
+      <div style="font-weight:900;color:#60a5fa;font-size:13px;letter-spacing:1px;margin-bottom:10px;display:flex;justify-content:space-between;">
+        <span>🔵 TIME AZUL</span><span id="tdm-blue-count">0/5</span>
+      </div>
+      <div id="tdm-blue-list" style="display:flex;flex-direction:column;gap:6px;min-height:30px;"></div>
+    </div>
+    <!-- Time Vermelho -->
+    <div style="flex:1;min-width:220px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);border-radius:14px;padding:14px;">
+      <div style="font-weight:900;color:#f87171;font-size:13px;letter-spacing:1px;margin-bottom:10px;display:flex;justify-content:space-between;">
+        <span>🔴 TIME VERMELHO</span><span id="tdm-red-count">0/5</span>
+      </div>
+      <div id="tdm-red-list" style="display:flex;flex-direction:column;gap:6px;min-height:30px;"></div>
+    </div>
+  </div>
+
+  <!-- Chat do lobby -->
+  <div style="width:100%;max-width:680px;margin-top:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;display:flex;flex-direction:column;height:200px;">
+    <div id="tdm-chat-log" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;"></div>
+    <div style="display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,0.08);">
+      <input id="tdm-chat-input" type="text" placeholder="Mensagem para o lobby..." maxlength="140" onkeydown="if(event.key==='Enter')tdmSendChat()" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:8px 14px;color:#fff;font-size:13px;outline:none;">
+      <button onclick="tdmSendChat()" style="background:linear-gradient(135deg,#ff6b35,#ffd700);border:none;color:#000;font-weight:900;padding:8px 18px;border-radius:20px;cursor:pointer;font-size:13px;">Enviar</button>
+    </div>
+  </div>
+
+  <button id="tdm-start-btn" disabled onclick="tdmStartMatch()" style="margin-top:18px;padding:14px 40px;border-radius:50px;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.4);font-weight:900;font-size:14px;letter-spacing:0.5px;cursor:not-allowed;transition:all 0.15s;">
+    Aguardando jogadores (0/6 mín.)
+  </button>
 </div>
 
 <!-- Canvas 3D -->
@@ -3558,6 +3618,207 @@ window.addEventListener('resize', () => {
   if (gunCamera) { gunCamera.aspect = innerWidth / innerHeight; gunCamera.updateProjectionMatrix(); }
   renderer.setSize(innerWidth, innerHeight);
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// TEAM DEATHMATCH — LOBBY (Fase 1)
+// Bloco 100% novo e isolado. Não altera nenhuma função, variável ou elemento
+// já existente. Usa sua própria conexão WebSocket (tdmWs), separada da gameWs
+// usada por Modo Livre / Modo Coop.
+// ════════════════════════════════════════════════════════════════════════════
+
+let tdmWs = null;
+let tdmConnected = false;
+let tdmMyId = null;
+let tdmRoomId = null;
+let tdmRoster = []; // [{id, username, team}]
+
+function tdmEscape(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+function tdmGetUsername() {
+  // Mesma lógica de resolução de nome do registerCurrentPlayer(), sem efeitos
+  // colaterais (não escreve no HUD, não duplica playerRegistry).
+  if (state.playerName) return state.playerName;
+  let name = 'Jogador';
+  try {
+    const store = (window.parent !== window ? window.parent.localStorage : null) || localStorage;
+    const raw = store.getItem('daily_user') || store.getItem('user') || '{}';
+    const u = JSON.parse(raw);
+    if (u.name && u.name.trim()) name = u.name.trim();
+    else if (u.username && u.username.trim()) name = u.username.trim();
+  } catch(e) {}
+  if (name === 'Jogador') {
+    try {
+      const store = (window.parent !== window ? window.parent.localStorage : null) || localStorage;
+      const token = store.getItem('daily_token') || '';
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.username) name = payload.username;
+        else if (payload.name) name = payload.name;
+      }
+    } catch(e) {}
+  }
+  state.playerName = name;
+  return name;
+}
+
+function startTdmMode() {
+  document.getElementById('splash').style.display = 'none';
+  document.getElementById('tdm-lobby').style.display = 'flex';
+  document.getElementById('tdm-chat-log').innerHTML = '';
+  tdmConnectLobby();
+}
+
+function tdmLeaveLobby() {
+  tdmDisconnect();
+  document.getElementById('tdm-lobby').style.display = 'none';
+  document.getElementById('splash').style.display = 'flex';
+}
+
+function tdmConnectLobby() {
+  if (tdmWs) return;
+  const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/coop';
+  tdmWs = new WebSocket(wsUrl);
+
+  tdmWs.onopen = () => {
+    const username = tdmGetUsername();
+    tdmWs.send(JSON.stringify({ type: 'join', mode: 'tdm', username }));
+    tdmWs._ping = setInterval(() => {
+      if (tdmWs?.readyState === WebSocket.OPEN) tdmWs.send('{"type":"ping"}');
+    }, 25000);
+  };
+
+  tdmWs.onmessage = (e) => {
+    let msg; try { msg = JSON.parse(e.data); } catch { return; }
+    switch (msg.type) {
+      case 'tdm_joined':
+        tdmMyId = msg.playerId;
+        tdmRoomId = msg.roomId;
+        tdmConnected = true;
+        tdmRoster = msg.roster || [];
+        tdmRenderLobby();
+        tdmAppendChat({ system: true, text: `Você entrou na sala (${tdmRoster.length}/10).` });
+        break;
+      case 'tdm_lobby_update':
+        tdmRoster = msg.roster || [];
+        tdmRenderLobby();
+        break;
+      case 'tdm_chat':
+        tdmAppendChat({ username: msg.username, team: msg.team, text: msg.text, self: msg.id === tdmMyId });
+        break;
+    }
+  };
+
+  tdmWs.onclose = () => {
+    clearInterval(tdmWs?._ping);
+    tdmConnected = false;
+    if (document.getElementById('tdm-lobby').style.display !== 'none') {
+      tdmAppendChat({ system: true, text: 'Conexão perdida. Reconectando...' });
+      setTimeout(() => {
+        if (document.getElementById('tdm-lobby').style.display !== 'none') {
+          tdmWs = null;
+          tdmConnectLobby();
+        }
+      }, 3000);
+    }
+  };
+
+  tdmWs.onerror = () => clearInterval(tdmWs?._ping);
+}
+
+function tdmDisconnect() {
+  if (!tdmWs) return;
+  clearInterval(tdmWs._ping);
+  tdmWs.onclose = null;
+  tdmWs.close();
+  tdmWs = null;
+  tdmConnected = false;
+  tdmMyId = null;
+  tdmRoomId = null;
+  tdmRoster = [];
+}
+
+function tdmRenderLobby() {
+  const blue = tdmRoster.filter(p => p.team === 'blue');
+  const red = tdmRoster.filter(p => p.team === 'red');
+  document.getElementById('tdm-player-count').textContent = `${tdmRoster.length}/10`;
+  document.getElementById('tdm-blue-count').textContent = `${blue.length}/5`;
+  document.getElementById('tdm-red-count').textContent = `${red.length}/5`;
+
+  const renderList = (players) => players.map(p => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:12.5px;font-weight:600;">
+      <span style="width:7px;height:7px;border-radius:50%;background:#4ade80;flex-shrink:0;"></span>
+      ${tdmEscape(p.username)}${p.id === tdmMyId ? ' <span style="opacity:0.5;font-size:10px;">(você)</span>' : ''}
+    </div>`).join('') || '<div style="opacity:0.35;font-size:12px;padding:6px 0;">Aguardando jogadores...</div>';
+
+  document.getElementById('tdm-blue-list').innerHTML = renderList(blue);
+  document.getElementById('tdm-red-list').innerHTML = renderList(red);
+
+  const startBtn = document.getElementById('tdm-start-btn');
+  if (tdmRoster.length >= 6) {
+    startBtn.disabled = false;
+    startBtn.style.cursor = 'pointer';
+    startBtn.style.background = 'linear-gradient(135deg,#ff6b35,#ffd700)';
+    startBtn.style.color = '#000';
+    startBtn.style.border = '2px solid transparent';
+    startBtn.textContent = '⚔️ INICIAR PARTIDA';
+  } else {
+    startBtn.disabled = true;
+    startBtn.style.cursor = 'not-allowed';
+    startBtn.style.background = 'rgba(255,255,255,0.08)';
+    startBtn.style.color = 'rgba(255,255,255,0.4)';
+    startBtn.style.border = '2px solid rgba(255,255,255,0.15)';
+    startBtn.textContent = `Aguardando jogadores (${tdmRoster.length}/6 mín.)`;
+  }
+}
+
+function tdmAppendChat({ username, team, text, self, system }) {
+  const log = document.getElementById('tdm-chat-log');
+  const div = document.createElement('div');
+  if (system) {
+    div.style.cssText = 'opacity:0.5;font-size:11.5px;text-align:center;font-style:italic;';
+    div.textContent = text;
+  } else {
+    const color = team === 'blue' ? '#60a5fa' : team === 'red' ? '#f87171' : '#ffd700';
+    const nameSpan = document.createElement('span');
+    nameSpan.style.cssText = `color:${color};font-weight:700;`;
+    nameSpan.textContent = username + (self ? ' (você)' : '') + ': ';
+    const textSpan = document.createElement('span');
+    textSpan.style.opacity = '0.9';
+    textSpan.textContent = text;
+    div.appendChild(nameSpan);
+    div.appendChild(textSpan);
+  }
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function tdmSendChat() {
+  const input = document.getElementById('tdm-chat-input');
+  const text = (input.value || '').trim();
+  if (!text || !tdmWs || tdmWs.readyState !== WebSocket.OPEN) return;
+  tdmWs.send(JSON.stringify({ type: 'chat', scope: 'tdm_lobby', text: text.slice(0, 140) }));
+  input.value = '';
+}
+
+function tdmStartMatch() {
+  if (tdmRoster.length < 6) return;
+  toast('⚔️ Em breve: o mapa e o início da partida chegam na próxima fase do desenvolvimento!');
+}
+
+// Override goToMenu (novamente) só para também limpar o lobby TDM ao sair
+// pelo menu de pausa — segue o mesmo padrão de override já usado acima
+// para o coopState, sem reescrever a função original.
+const _origGoToMenuTdm = goToMenu;
+goToMenu = function() {
+  tdmDisconnect();
+  document.getElementById('tdm-lobby').style.display = 'none';
+  _origGoToMenuTdm();
+};
+
 </script>
 </body>
 </html>
