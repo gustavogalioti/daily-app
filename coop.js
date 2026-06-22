@@ -3,6 +3,65 @@
 // Modo Coop: salas de até 10 jogadores
 // Mensagens: join, move, paint, ping
 
+// ─── PERSISTÊNCIA DO XP TDM (Fase 6) ─────────────────────────────────────────
+// Usa o mesmo PostgreSQL já configurado no projeto (DATABASE_URL).
+// Fallback gracioso para memória se DB não disponível.
+let _pgPool = null;
+
+async function _tdmInitDb() {
+  if (!process.env.DATABASE_URL) {
+    console.log('[TDM-DB] DATABASE_URL não configurada — XP apenas em memória');
+    return;
+  }
+  try {
+    const { Pool } = require('pg');
+    _pgPool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL.includes('railway.internal')
+        ? false : { rejectUnauthorized: false },
+      max: 3,
+    });
+    await _pgPool.query('SELECT 1');
+    // Cria tabela se não existir
+    await _pgPool.query(`
+      CREATE TABLE IF NOT EXISTS tdm_xp (
+        username   VARCHAR(100) PRIMARY KEY,
+        xp         INTEGER      NOT NULL DEFAULT 0,
+        kills      INTEGER      NOT NULL DEFAULT 0,
+        deaths     INTEGER      NOT NULL DEFAULT 0,
+        wins       INTEGER      NOT NULL DEFAULT 0,
+        losses     INTEGER      NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    // Carrega todos os jogadores no registry em memória
+    const { rows } = await _pgPool.query('SELECT * FROM tdm_xp ORDER BY xp DESC');
+    for (const r of rows) {
+      tdmXpRegistry.set(r.username, {
+        xp: r.xp, kills: r.kills, deaths: r.deaths, wins: r.wins, losses: r.losses,
+      });
+    }
+    console.log(`[TDM-DB] 🐘 Postgres conectado — ${rows.length} jogadores carregados`);
+  } catch(e) {
+    console.error('[TDM-DB] Erro ao conectar ao DB:', e.message, '— usando apenas memória');
+    _pgPool = null;
+  }
+}
+
+async function _tdmSavePlayer(username, data) {
+  if (!_pgPool) return;
+  try {
+    await _pgPool.query(`
+      INSERT INTO tdm_xp (username, xp, kills, deaths, wins, losses, updated_at)
+      VALUES ($1,$2,$3,$4,$5,$6,NOW())
+      ON CONFLICT (username) DO UPDATE SET
+        xp=$2, kills=$3, deaths=$4, wins=$5, losses=$6, updated_at=NOW()
+    `, [username, data.xp, data.kills, data.deaths, data.wins, data.losses]);
+  } catch(e) {
+    console.error('[TDM-DB] Erro ao salvar XP de', username, ':', e.message);
+  }
+}
+
 const MAX_COOP = 10;
 const rooms = new Map(); // roomId → Map<playerId, playerData>
 
@@ -248,6 +307,8 @@ function setupCoopWS(wss) {
               xpData.kills += matchKills;
               xpData.deaths += matchDeaths;
               if (isWinner) xpData.wins++; else xpData.losses++;
+              // Persistir no Postgres de forma assíncrona (não bloqueia)
+              _tdmSavePlayer(pl2.username, xpData);
               const oldLevel = tdmLevelFromXp(oldXp);
               const newLevel = tdmLevelFromXp(xpData.xp);
               if (pl2.ws.readyState === 1) {
@@ -401,3 +462,7 @@ function setupCoopWS(wss) {
 }
 
 module.exports = { setupCoopWS };
+
+// Inicializa a conexão com Postgres ao carregar o módulo.
+// Fire-and-forget: erros são logados mas não interrompem o servidor.
+_tdmInitDb().catch(e => console.error('[TDM-DB] init falhou:', e.message));
