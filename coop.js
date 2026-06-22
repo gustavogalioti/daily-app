@@ -231,6 +231,9 @@ function setupCoopWS(wss) {
           if (gs.kills[shooter.team] >= gs.WIN_KILLS) {
             gs.finished = true;
             const winnerTeam = shooter.team;
+            // Criar sala para a próxima partida antecipadamente
+            const nextRoomId = 'tdm_' + Date.now() + '_next';
+            tdmRooms.set(nextRoomId, { players: new Map(), started: false });
             // Fase 5: calcular e distribuir XP para cada jogador
             for (const [pid2, pl2] of troom.players) {
               const hp2 = gs.playerHp[pid2];
@@ -257,19 +260,16 @@ function setupCoopWS(wss) {
                 }));
               }
             }
-            tdmBroadcast(troom, { type: 'tdm_match_over', winner: winnerTeam, kills: gs.kills });
-            // Bug 2 fix: após 8s (tempo do overlay de XP), resetar a sala para novo lobby.
-            // Assim players que clicam "próxima partida" voltam para a MESMA sala.
+            tdmBroadcast(troom, { type: 'tdm_match_over', winner: winnerTeam, kills: gs.kills, nextRoomId });
+            // Após 8s: forçar fechamento dos WS antigos e limpar a sala.
+            // Os jogadores reconectarão no nextRoomId (nova sala limpa).
             setTimeout(() => {
-              if (!tdmRooms.has(tdmRid)) return; // sala já removida (todos saíram)
-              troom.started = false;
-              troom.gameState = null;
-              // Resetar HP e zerar kills individuais para nova partida
               for (const p of troom.players.values()) {
-                // não reinicializa playerHp aqui — feito no próximo tdm_start_request
+                try { p.ws.close(); } catch(e) {}
               }
-              console.log(`[WS-TDM] ${tdmRid} resetada para lobby (${troom.players.size} jogadores restantes)`);
-              tdmBroadcast(troom, { type: 'tdm_lobby_update', roster: tdmRoster(troom) });
+              troom.players.clear();
+              tdmRooms.delete(tdmRid);
+              console.log(`[WS-TDM] ${tdmRid} encerrada e removida. Próxima: ${nextRoomId}`);
             }, 8000);
           } else {
             // Respawn automático após 3 s
