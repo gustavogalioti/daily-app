@@ -5020,6 +5020,14 @@ function tdmOpenRanking() {
 function tdmCloseRanking() {
   const overlay = document.getElementById('tdm-ranking-overlay');
   if (overlay) overlay.style.display = 'none';
+  // Se foi aberto da splash, restaura a splash
+  if (window._tdmRankingFromSplash) {
+    window._tdmRankingFromSplash = false;
+    document.getElementById('splash').style.display = 'flex';
+    // Restaura texto do botão fechar
+    const closeBtn = overlay && overlay.querySelector('button');
+    if (closeBtn) closeBtn.textContent = '✕ Fechar';
+  }
 }
 
 function tdmRenderRanking(ranking) {
@@ -5064,38 +5072,39 @@ showSplashRanking = function() {
   const overlay = document.getElementById('tdm-ranking-overlay');
   if (!overlay) { if (_origShowSplashRanking) _origShowSplashRanking(); return; }
 
+  // Esconde a splash para o ranking aparecer sozinho (sem conflito de z-index)
+  document.getElementById('splash').style.display = 'none';
+  window._tdmRankingFromSplash = true;
+
+  // Atualiza botão fechar para "← Voltar"
+  const closeBtn = overlay.querySelector('button');
+  if (closeBtn) closeBtn.textContent = '← Voltar';
+
   overlay.style.display = 'flex';
   document.getElementById('tdm-ranking-rows').innerHTML =
     '<div style="text-align:center;padding:32px;opacity:0.4;font-size:13px;">Carregando...</div>';
   document.getElementById('tdm-ranking-empty').style.display = 'none';
 
   if (tdmWs && tdmWs.readyState === WebSocket.OPEN) {
-    // Já tem WS ativo (está no lobby) — usa diretamente
     tdmWs.send(JSON.stringify({ type: 'tdm_get_ranking' }));
     return;
   }
 
-  // Sem WS ativo: abre conexão temporária só para buscar o ranking
+  // Sem WS ativo: conexão temporária apenas para buscar ranking
   const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/coop';
   const tmpWs = new WebSocket(wsUrl);
-  tmpWs.onopen = () => {
-    // Precisa fazer join para ter o servidor identificando a conexão antes do ranking
-    tmpWs.send(JSON.stringify({ type: 'tdm_get_ranking' }));
-  };
+  tmpWs.onopen = () => { tmpWs.send(JSON.stringify({ type: 'tdm_get_ranking' })); };
   tmpWs.onmessage = (e) => {
     try {
       const msg = JSON.parse(e.data);
-      if (msg.type === 'tdm_ranking') {
-        tdmRenderRanking(msg.ranking || []);
-        tmpWs.close();
-      }
+      if (msg.type === 'tdm_ranking') { tdmRenderRanking(msg.ranking || []); tmpWs.close(); }
     } catch(err) {}
   };
   tmpWs.onerror = () => {
     document.getElementById('tdm-ranking-rows').innerHTML =
-      '<div style="text-align:center;padding:32px;opacity:0.4;font-size:13px;">Erro ao conectar ao servidor.</div>';
+      '<div style="text-align:center;padding:32px;opacity:0.4;font-size:13px;">Erro ao conectar.</div>';
   };
-  setTimeout(() => { try { tmpWs.close(); } catch(e) {} }, 5000);
+  setTimeout(() => { try { tmpWs.close(); } catch(e) {} }, 6000);
 };
 
 // Override goToMenu (novamente) só para também limpar o lobby TDM ao sair
