@@ -4403,6 +4403,8 @@ function tdmUpdateKillsHUD(kills) {
 function tdmShowMatchOver(winner, kills) {
   tdmGameState.finished = true;
   clearInterval(tdmGameState.positionSyncInterval);
+  // Bug 1 fix: liberar cursor imediatamente para o usuário clicar no overlay de XP
+  if (document.exitPointerLock) document.exitPointerLock();
   const overlay = document.getElementById('tdm-match-over-overlay');
   const titleEl = document.getElementById('tdm-match-over-title');
   const subEl   = document.getElementById('tdm-match-over-subtitle');
@@ -4617,7 +4619,19 @@ function startTdmGame() {
         break;
       // Repassa mensagens do lobby que possam chegar (chat, lobby_update)
       default:
-        if (_origTdmOnMessage) _origTdmOnMessage(e);
+        if (_origTdmOnMessage) {
+          // Se a sala foi resetada (lobby_update) durante o overlay de XP,
+          // atualiza o roster silenciosamente sem fechar o overlay de resultado
+          try {
+            const defMsg = JSON.parse(e.data);
+            if (defMsg.type === 'tdm_lobby_update') {
+              tdmRoster = defMsg.roster || tdmRoster;
+              // Não chama tdmRenderLobby() — overlay de XP ainda está visível
+              return;
+            }
+          } catch(err) {}
+          _origTdmOnMessage(e);
+        }
         break;
     }
   };
@@ -4900,6 +4914,8 @@ function tdmShowXpGain(data) {
 }
 
 function tdmGoToNextMatch() {
+  const savedRoomId = tdmRoomId; // sala da partida que acabou (resetada no servidor após 8s)
+  const savedTeam   = tdmGameState.myTeam;
   tdmGameCleanup();
   document.getElementById('tdm-match-over-overlay').style.display = 'none';
   document.getElementById('tdm-xp-overlay').style.display = 'none';
@@ -4910,8 +4926,12 @@ function tdmGoToNextMatch() {
   const _ti = document.getElementById('tool-indicator');
   if (_ti) _ti.style.display = '';
   if (state.pointerLocked) document.exitPointerLock();
-  // Vai direto para o Lobby TDM (nova sala, pronto para próxima partida)
-  startTdmMode();
+  // Bug 2 fix: reconecta na MESMA sala (já resetada para lobby no servidor)
+  // Todos os players que clicarem "próxima partida" caem na mesma sala
+  document.getElementById('tdm-lobby').style.display = 'flex';
+  document.getElementById('tdm-chat-log').innerHTML = '';
+  tdmWs = null;
+  tdmConnectLobby(savedRoomId, savedTeam, tdmGetUsername());
 }
 
 function tdmCloseXpOverlay() {
