@@ -144,7 +144,7 @@ function setupCoopWS(wss) {
             playerHp: {},
           };
           for (const p of troom.players.values()) {
-            troom.gameState.playerHp[p.id] = { hp: 100, dead: false, team: p.team };
+            troom.gameState.playerHp[p.id] = { hp: 100, dead: false, team: p.team, kills: 0, deaths: 0 };
           }
           const countdown = 5;
           tdmBroadcast(troom, { type: 'tdm_match_starting', countdown, roster: tdmRoster(troom) });
@@ -184,11 +184,21 @@ function setupCoopWS(wss) {
         targetHp.hp = Math.max(0, targetHp.hp - damage);
         if (targetHp.hp <= 0) {
           targetHp.dead = true; targetHp.hp = 0;
+          // Fase 4: rastrear kills/deaths individuais
+          targetHp.deaths = (targetHp.deaths || 0) + 1;
+          const shooterHp = gs.playerHp[tdmPid];
+          if (shooterHp) shooterHp.kills = (shooterHp.kills || 0) + 1;
           gs.kills[shooter.team]++;
+          // Monta snapshot de scores individuais para o scoreboard do TAB
+          const scores = {};
+          for (const [id, ph] of Object.entries(gs.playerHp)) {
+            scores[id] = { kills: ph.kills || 0, deaths: ph.deaths || 0 };
+          }
           tdmBroadcast(troom, {
             type: 'tdm_player_died',
             deadId: msg.targetId, killerId: tdmPid,
             killerUsername: shooter.username, kills: gs.kills,
+            scores, // Fase 4: scores individuais
           });
           if (gs.kills[shooter.team] >= gs.WIN_KILLS) {
             gs.finished = true;
