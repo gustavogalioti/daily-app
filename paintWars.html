@@ -467,7 +467,7 @@
 <div id="tdm-match-over-overlay" style="display:none;position:fixed;inset:0;z-index:56;background:rgba(0,0,0,0.82);flex-direction:column;align-items:center;justify-content:center;color:#fff;pointer-events:none;">
   <div id="tdm-match-over-title" style="font-size:42px;font-weight:900;letter-spacing:3px;margin-bottom:8px;"></div>
   <div id="tdm-match-over-subtitle" style="font-size:16px;opacity:0.6;margin-bottom:18px;"></div>
-  <div style="font-size:13px;opacity:0.5;">Voltando ao lobby em <span id="tdm-over-timer" style="font-weight:900;color:#ffd700;">5</span>s...</div>
+  <div style="font-size:13px;opacity:0.4;">Calculando XP...</div>
 </div>
 
 <!-- ── Overlay de XP ganho (Fase 5) ── -->
@@ -490,7 +490,7 @@
     <div id="tdm-xp-prog-text" style="font-size:10px;opacity:0.35;margin-bottom:12px;"></div>
     <div id="tdm-xp-levelup" style="display:none;font-size:16px;font-weight:900;color:#ffd700;margin-bottom:5px;">⬆️ LEVEL UP!</div>
     <div id="tdm-xp-unlock" style="display:none;font-size:11px;color:#60a5fa;margin-bottom:12px;"></div>
-    <button onclick="tdmCloseXpOverlay()" style="padding:11px 30px;border-radius:30px;background:linear-gradient(135deg,#ff6b35,#ffd700);border:none;color:#000;font-weight:900;font-size:13px;cursor:pointer;">Continuar</button>
+    <button onclick="tdmGoToNextMatch()" style="padding:11px 30px;border-radius:30px;background:linear-gradient(135deg,#ff6b35,#ffd700);border:none;color:#000;font-weight:900;font-size:13px;cursor:pointer;">⚔️ Seguir para próxima partida</button>
   </div>
 </div>
 
@@ -4406,7 +4406,6 @@ function tdmShowMatchOver(winner, kills) {
   const overlay = document.getElementById('tdm-match-over-overlay');
   const titleEl = document.getElementById('tdm-match-over-title');
   const subEl   = document.getElementById('tdm-match-over-subtitle');
-  const timerEl = document.getElementById('tdm-over-timer');
   if (!overlay) return;
   const myTeam = tdmGameState.myTeam;
   const won = winner === myTeam;
@@ -4419,13 +4418,14 @@ function tdmShowMatchOver(winner, kills) {
     subEl.textContent = `${wName} venceu — ${kills.blue} x ${kills.red}`;
   }
   overlay.style.display = 'flex';
-  let n = 5;
-  if (timerEl) timerEl.textContent = n;
-  const iv = setInterval(() => {
-    n--;
-    if (timerEl) timerEl.textContent = n;
-    if (n <= 0) { clearInterval(iv); tdmReturnToLobby(); }
-  }, 1000);
+  // Após 2s transiciona para o overlay de XP (que tem o botão de próxima partida)
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    // O overlay de XP já foi mostrado pelo tdm_xp_earned — se ainda não chegou, aguarda
+    if (document.getElementById('tdm-xp-overlay').style.display !== 'flex') {
+      window._tdmWaitingXp = true; // flag: mostrar XP assim que chegar
+    }
+  }, 2000);
 }
 
 function tdmReturnToLobby() {
@@ -4436,6 +4436,10 @@ function tdmReturnToLobby() {
   // Restaurar HUDs normais (se o jogador quiser usar Livre/Coop depois)
   document.getElementById('toolbar').style.display = 'flex';
   document.getElementById('left-panel').style.display = 'flex';
+  const _ge2 = document.getElementById('global-event');
+  if (_ge2) _ge2.style.display = '';
+  const _ti2 = document.getElementById('tool-indicator');
+  if (_ti2) _ti2.style.display = '';
   // Voltar para a tela de lobby (Fase 2 já tinha o lobby funcionando)
   document.getElementById('splash').style.display = 'flex';
   if (state.pointerLocked) document.exitPointerLock();
@@ -4542,6 +4546,10 @@ function startTdmGame() {
   document.getElementById('coop-hud').style.display = 'none';
   document.getElementById('toolbar').style.display = 'none';
   document.getElementById('left-panel').style.display = 'none';
+  const _ge = document.getElementById('global-event');
+  if (_ge) _ge.style.display = 'none';
+  const _ti = document.getElementById('tool-indicator');
+  if (_ti) _ti.style.display = 'none';
 
   // 7. Sincronização de posição — envia a cada 50ms
   clearInterval(tdmGameState.positionSyncInterval);
@@ -4570,6 +4578,8 @@ function startTdmGame() {
       case 'tdm_xp_earned':
         // Fase 5: mostra overlay de XP ganho após a partida
         tdmApplyXP(msg.totalXp || 0);
+        // Se match-over overlay já sumiu (flag set), mostra XP imediatamente
+        window._tdmWaitingXp = false;
         tdmShowXpGain(msg);
         break;
       case 'tdm_position_sync':
@@ -4889,9 +4899,24 @@ function tdmShowXpGain(data) {
   overlay.style.display = 'flex';
 }
 
+function tdmGoToNextMatch() {
+  tdmGameCleanup();
+  document.getElementById('tdm-match-over-overlay').style.display = 'none';
+  document.getElementById('tdm-xp-overlay').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'flex';
+  document.getElementById('left-panel').style.display = 'flex';
+  const _ge = document.getElementById('global-event');
+  if (_ge) _ge.style.display = '';
+  const _ti = document.getElementById('tool-indicator');
+  if (_ti) _ti.style.display = '';
+  if (state.pointerLocked) document.exitPointerLock();
+  // Vai direto para o Lobby TDM (nova sala, pronto para próxima partida)
+  startTdmMode();
+}
+
 function tdmCloseXpOverlay() {
-  const overlay = document.getElementById('tdm-xp-overlay');
-  if (overlay) overlay.style.display = 'none';
+  // Mantido para compatibilidade — agora chama tdmGoToNextMatch
+  tdmGoToNextMatch();
 }
 
 // Override goToMenu (novamente) só para também limpar o lobby TDM ao sair
