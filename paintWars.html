@@ -4946,6 +4946,11 @@ function tdmGoToNextMatch() {
   setTimeout(() => {
     document.getElementById('tdm-lobby').style.display = 'flex';
     document.getElementById('tdm-chat-log').innerHTML = '';
+    // Reabilitar chat input e botão (foram desabilitados no countdown)
+    const chatInput = document.getElementById('tdm-chat-input');
+    if (chatInput) { chatInput.disabled = false; chatInput.value = ''; }
+    const startBtn = document.getElementById('tdm-start-btn');
+    if (startBtn) { startBtn.disabled = true; } // será reavaliado pelo tdmRenderLobby
     // Entra na nextRoomId (sala limpa, sem fantasmas)
     tdmConnectLobby(targetRoomId, savedTeam, savedUser);
   }, 400);
