@@ -112,9 +112,76 @@ function setupCoopWS(wss) {
         const troom = tdmRooms.get(tdmRid);
         if (troom && !troom.started && troom.players.size >= MIN_TDM_TO_START) {
           troom.started = true;
+          // Fase 3: inicializa estado da partida (HP de cada jogador, placar)
+          troom.gameState = {
+            kills: { blue: 0, red: 0 },
+            WIN_KILLS: 30,
+            finished: false,
+            playerHp: {},
+          };
+          for (const p of troom.players.values()) {
+            troom.gameState.playerHp[p.id] = { hp: 100, dead: false, team: p.team };
+          }
           const countdown = 5;
           tdmBroadcast(troom, { type: 'tdm_match_starting', countdown, roster: tdmRoster(troom) });
           console.log(`[WS-TDM] ${tdmRid} iniciando partida (${troom.players.size} jogadores)`);
+        }
+        return;
+      }
+
+      // ── TDM POSITION SYNC (Fase 3) — relay isolado para todos da sala ─────────
+      if (msg.type === 'tdm_position_sync' && tdmRid) {
+        const troom = tdmRooms.get(tdmRid);
+        if (!troom || !troom.started) return;
+        const p = troom.players.get(tdmPid);
+        if (!p) return;
+        const out = JSON.stringify({
+          type: 'tdm_position_sync', id: tdmPid,
+          username: p.username, team: p.team,
+          x: msg.x, y: msg.y, z: msg.z, yaw: msg.yaw,
+        });
+        for (const [pid, pl] of troom.players) {
+          if (pid !== tdmPid && pl.ws.readyState === 1) pl.ws.send(out);
+        }
+        return;
+      }
+
+      // ── TDM HIT — processa dano, morte e respawn (Fase 3) ────────────────────
+      if (msg.type === 'tdm_hit' && tdmRid) {
+        const troom = tdmRooms.get(tdmRid);
+        if (!troom || !troom.started || !troom.gameState || troom.gameState.finished) return;
+        const gs = troom.gameState;
+        const damage = Math.max(0, Math.min(100, Number(msg.damage) || 0));
+        const targetHp = gs.playerHp[msg.targetId];
+        const shooter = troom.players.get(tdmPid);
+        const target  = troom.players.get(msg.targetId);
+        if (!targetHp || targetHp.dead || !shooter || !target) return;
+        if (shooter.team === target.team) return; // sem friendly fire
+        targetHp.hp = Math.max(0, targetHp.hp - damage);
+        if (targetHp.hp <= 0) {
+          targetHp.dead = true; targetHp.hp = 0;
+          gs.kills[shooter.team]++;
+          tdmBroadcast(troom, {
+            type: 'tdm_player_died',
+            deadId: msg.targetId, killerId: tdmPid,
+            killerUsername: shooter.username, kills: gs.kills,
+          });
+          if (gs.kills[shooter.team] >= gs.WIN_KILLS) {
+            gs.finished = true;
+            tdmBroadcast(troom, { type: 'tdm_match_over', winner: shooter.team, kills: gs.kills });
+          } else {
+            // Respawn automático após 3 s
+            setTimeout(() => {
+              if (!troom.players.has(msg.targetId)) return;
+              targetHp.dead = false; targetHp.hp = 100;
+              const pl = troom.players.get(msg.targetId);
+              if (pl && pl.ws.readyState === 1)
+                pl.ws.send(JSON.stringify({ type: 'tdm_respawn' }));
+            }, 3000);
+          }
+        } else {
+          if (target.ws.readyState === 1)
+            target.ws.send(JSON.stringify({ type: 'tdm_took_damage', hp: targetHp.hp }));
         }
         return;
       }
