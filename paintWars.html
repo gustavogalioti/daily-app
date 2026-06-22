@@ -462,6 +462,45 @@
   <div style="font-size:13px;opacity:0.5;">Voltando ao lobby em <span id="tdm-over-timer" style="font-weight:900;color:#ffd700;">5</span>s...</div>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════════════════
+     TEAM DEATHMATCH — TAB SCOREBOARD (Fase 4)
+     Aparece enquanto TAB é segurado. Isolado, display:none por padrão.
+     ════════════════════════════════════════════════════════════════════════ -->
+<div id="tdm-scoreboard" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.80);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;pointer-events:none;font-family:'Segoe UI',sans-serif;color:#fff;">
+  <div style="background:rgba(8,8,18,0.97);border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:28px 32px;min-width:460px;max-width:700px;width:92%;">
+
+    <!-- Cabeçalho -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-size:11px;letter-spacing:3px;opacity:0.45;text-transform:uppercase;">Placar da Partida</div>
+      <div style="display:flex;gap:20px;font-size:12px;font-weight:700;">
+        <span>META: <span style="color:#ffd700;">30 baixas</span></span>
+        <span id="tdm-sb-total-blue" style="color:#60a5fa;">🔵 0</span>
+        <span style="opacity:0.4;">vs</span>
+        <span id="tdm-sb-total-red" style="color:#f87171;">🔴 0</span>
+      </div>
+    </div>
+
+    <!-- Linha de cabeçalho das colunas -->
+    <div style="display:grid;grid-template-columns:1fr 56px 60px 60px;gap:8px;padding:0 8px 8px;border-bottom:1px solid rgba(255,255,255,0.07);font-size:10px;letter-spacing:1px;opacity:0.4;text-transform:uppercase;">
+      <span>Jogador</span><span style="text-align:center;">Nível</span><span style="text-align:center;">Kills</span><span style="text-align:center;">Deaths</span>
+    </div>
+
+    <!-- Time Azul -->
+    <div style="margin-top:14px;margin-bottom:18px;">
+      <div style="color:#60a5fa;font-size:11px;font-weight:900;letter-spacing:1.5px;margin-bottom:8px;">🔵 TIME AZUL</div>
+      <div id="tdm-sb-blue-rows" style="display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+
+    <!-- Time Vermelho -->
+    <div>
+      <div style="color:#f87171;font-size:11px;font-weight:900;letter-spacing:1.5px;margin-bottom:8px;">🔴 TIME VERMELHO</div>
+      <div id="tdm-sb-red-rows" style="display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+
+    <div style="text-align:center;margin-top:18px;font-size:10px;opacity:0.3;letter-spacing:1px;">SEGURE TAB</div>
+  </div>
+</div>
+
 <!-- Canvas 3D -->
 <canvas id="canvas"></canvas>
 
@@ -4385,6 +4424,9 @@ function tdmGameCleanup() {
   if (hudEl) hudEl.style.display = 'none';
   const deathEl = document.getElementById('tdm-death-overlay');
   if (deathEl) deathEl.style.display = 'none';
+  const sbEl = document.getElementById('tdm-scoreboard');
+  if (sbEl) sbEl.style.display = 'none';
+  tdmScoreData.clear();
   const flashEl = document.getElementById('tdm-dmg-flash');
   if (flashEl) { flashEl.style.display = 'none'; flashEl.style.opacity = '0'; }
 }
@@ -4434,6 +4476,8 @@ function startTdmGame() {
   tdmGameState.myKills = 0;
   tdmGameState.myDeaths = 0;
   tdmGameState.tdmStructures = [];
+  // Fase 4: inicializa scores individuais para o scoreboard
+  tdmInitScoreData();
 
   // 4. Construir arena TDM (QGs + casas)
   tdmBuildArena();
@@ -4479,6 +4523,8 @@ function startTdmGame() {
         break;
       case 'tdm_player_died':
         tdmUpdateKillsHUD(msg.kills);
+        // Fase 4: atualizar scores individuais para o scoreboard
+        if (msg.scores) tdmApplyScores(msg.scores);
         if (msg.deadId === tdmMyId) {
           tdmShowDeath(msg.killerUsername);
         } else {
@@ -4486,7 +4532,6 @@ function startTdmGame() {
           const deadPeer = tdmPeers.get(msg.deadId);
           if (deadPeer) deadPeer.mesh.visible = false;
           if (msg.killerId === tdmMyId) {
-            tdmGameState.myKills++;
             toast('🎯 Você eliminou ' + tdmEscape(msg.killerUsername || 'inimigo') + '!');
           }
           setTimeout(() => {
@@ -4511,6 +4556,97 @@ function startTdmGame() {
   const teamName = tdmGameState.myTeam === 'blue' ? '🔵 Time Azul' : '🔴 Time Vermelho';
   toast(`⚔️ Partida iniciada! Você é do ${teamName}. Meta: ${TDM_WIN_KILLS} baixas!`);
 }
+
+// ── Scoreboard TAB (Fase 4) ───────────────────────────────────────────────────
+
+// Rastreia kills/deaths de cada jogador na partida atual.
+// Chave: playerId. Valor: { kills, deaths, username, team }
+const tdmScoreData = new Map();
+
+function tdmInitScoreData() {
+  tdmScoreData.clear();
+  // Inclui o próprio jogador
+  tdmScoreData.set(tdmMyId, { kills: 0, deaths: 0, username: tdmGetUsername(), team: tdmGameState.myTeam });
+  // Inclui os peers do roster
+  tdmRoster.forEach(p => {
+    if (p.id !== tdmMyId) {
+      tdmScoreData.set(p.id, { kills: 0, deaths: 0, username: p.username, team: p.team });
+    }
+  });
+}
+
+function tdmApplyScores(scores) {
+  if (!scores) return;
+  for (const [id, s] of Object.entries(scores)) {
+    const entry = tdmScoreData.get(id);
+    if (entry) { entry.kills = s.kills || 0; entry.deaths = s.deaths || 0; }
+  }
+  // Atualiza meus contadores locais para consistência
+  const myEntry = tdmScoreData.get(tdmMyId);
+  if (myEntry) {
+    tdmGameState.myKills = myEntry.kills;
+    tdmGameState.myDeaths = myEntry.deaths;
+  }
+}
+
+function tdmRenderScoreboard() {
+  const blue = [...tdmScoreData.entries()].filter(([,v]) => v.team === 'blue');
+  const red  = [...tdmScoreData.entries()].filter(([,v]) => v.team === 'red');
+  // Ordenar por kills desc
+  const sortByKills = ([,a],[,b]) => b.kills - a.kills;
+  blue.sort(sortByKills); red.sort(sortByKills);
+
+  const rowHtml = ([id, p]) => {
+    const isMe = id === tdmMyId;
+    const teamColor = p.team === 'blue' ? '#60a5fa' : '#f87171';
+    const kd = p.deaths > 0 ? (p.kills / p.deaths).toFixed(1) : p.kills > 0 ? '∞' : '0.0';
+    return `<div style="display:grid;grid-template-columns:1fr 56px 60px 60px;gap:8px;padding:7px 8px;border-radius:8px;align-items:center;background:${isMe ? 'rgba(255,255,255,0.06)' : 'transparent'};font-size:13px;">
+      <span style="font-weight:${isMe ? '800' : '500'};color:${isMe ? teamColor : 'rgba(255,255,255,0.85)'};">
+        ${tdmEscape(p.username)}${isMe ? ' <span style="font-size:9px;opacity:0.55;">(você)</span>' : ''}
+      </span>
+      <span style="text-align:center;font-size:11px;opacity:0.5;">Nv.1</span>
+      <span style="text-align:center;font-weight:700;color:${p.kills > 0 ? '#4ade80' : 'rgba(255,255,255,0.5)'};">${p.kills}</span>
+      <span style="text-align:center;color:rgba(255,255,255,0.5);">${p.deaths}</span>
+    </div>`;
+  };
+
+  const blueEl = document.getElementById('tdm-sb-blue-rows');
+  const redEl  = document.getElementById('tdm-sb-red-rows');
+  if (blueEl) blueEl.innerHTML = blue.length ? blue.map(rowHtml).join('') : '<div style="opacity:0.3;font-size:12px;padding:4px 8px;">Nenhum jogador</div>';
+  if (redEl)  redEl.innerHTML  = red.length  ? red.map(rowHtml).join('')  : '<div style="opacity:0.3;font-size:12px;padding:4px 8px;">Nenhum jogador</div>';
+
+  const totalBlue = document.getElementById('tdm-sb-total-blue');
+  const totalRed  = document.getElementById('tdm-sb-total-red');
+  if (totalBlue) totalBlue.textContent = '🔵 ' + (tdmGameState.kills?.blue ?? 0);
+  if (totalRed)  totalRed.textContent  = '🔴 ' + (tdmGameState.kills?.red  ?? 0);
+}
+
+// Interceptação do TAB — dois listeners separados para show/hide
+// O openModal original é interceptado para não abrir events-modal durante TDM.
+const _origOpenModal = typeof openModal === 'function' ? openModal : null;
+// Sobrescrita de openModal para ignorar events-modal quando TDM ativo
+if (_origOpenModal) {
+  openModal = function(id) {
+    if (tdmGameState.active && id === 'events-modal') return; // TAB já usado pelo scoreboard
+    _origOpenModal(id);
+  };
+}
+
+document.addEventListener('keydown', (e) => {
+  if (!tdmGameState.active) return;
+  if (e.code === 'Tab') {
+    tdmRenderScoreboard();
+    const sb = document.getElementById('tdm-scoreboard');
+    if (sb) sb.style.display = 'flex';
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  if (e.code === 'Tab') {
+    const sb = document.getElementById('tdm-scoreboard');
+    if (sb) sb.style.display = 'none';
+  }
+});
 
 // Override goToMenu (novamente) só para também limpar o lobby TDM ao sair
 // pelo menu de pausa — segue o mesmo padrão de override já usado acima
