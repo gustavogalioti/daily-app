@@ -226,7 +226,7 @@ function setupCoopWS(wss) {
           // Fase 3: inicializa estado da partida (HP de cada jogador, placar)
           troom.gameState = {
             kills: { blue: 0, red: 0 },
-            WIN_KILLS: 2,
+            WIN_KILLS: 20,
             finished: false,
             playerHp: {},
           };
