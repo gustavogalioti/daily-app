@@ -441,7 +441,15 @@
         <div id="tdm-hp-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#4ade80,#16a34a);border-radius:4px;transition:width 0.2s;"></div>
       </div>
       <span id="tdm-hp-text" style="font-size:11px;font-weight:700;color:#fff;min-width:38px;">100 HP</span>
+      <!-- Fase 5: arma atual e munição -->
+      <span style="width:1px;height:16px;background:rgba(255,255,255,0.15);margin:0 4px;"></span>
+      <span id="tdm-hud-weapon" style="font-size:11px;font-weight:700;color:#ffd700;">🔫 Pistola</span>
+      <span id="tdm-hud-ammo" style="font-size:11px;color:rgba(255,255,255,0.6);">∞</span>
     </div>
+  </div>
+  <!-- Lista de armas desbloqueadas -->
+  <div style="display:flex;justify-content:center;margin-top:3px;">
+    <div id="tdm-hud-weapon-list" style="display:flex;gap:5px;"></div>
   </div>
 </div>
 
@@ -460,6 +468,30 @@
   <div id="tdm-match-over-title" style="font-size:42px;font-weight:900;letter-spacing:3px;margin-bottom:8px;"></div>
   <div id="tdm-match-over-subtitle" style="font-size:16px;opacity:0.6;margin-bottom:18px;"></div>
   <div style="font-size:13px;opacity:0.5;">Voltando ao lobby em <span id="tdm-over-timer" style="font-weight:900;color:#ffd700;">5</span>s...</div>
+</div>
+
+<!-- ── Overlay de XP ganho (Fase 5) ── -->
+<div id="tdm-xp-overlay" style="display:none;position:fixed;inset:0;z-index:57;background:rgba(0,0,0,0.88);flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:'Segoe UI',sans-serif;pointer-events:all;">
+  <div style="background:rgba(10,10,20,0.97);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:32px 40px;min-width:300px;max-width:440px;width:88%;text-align:center;">
+    <div id="tdm-xp-result" style="font-size:28px;font-weight:900;letter-spacing:2px;margin-bottom:16px;">🏆 VITÓRIA!</div>
+    <div style="display:flex;justify-content:center;gap:28px;margin-bottom:16px;">
+      <div><div style="font-size:10px;opacity:0.5;margin-bottom:3px;">KILLS</div><div id="tdm-xp-kills-val" style="font-size:24px;font-weight:900;color:#4ade80;">0</div></div>
+      <div><div style="font-size:10px;opacity:0.5;margin-bottom:3px;">DEATHS</div><div id="tdm-xp-deaths-val" style="font-size:24px;font-weight:900;color:#f87171;">0</div></div>
+    </div>
+    <div style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:12px;margin-bottom:14px;">
+      <div id="tdm-xp-bonus" style="font-size:11px;opacity:0.55;margin-bottom:5px;"></div>
+      <div id="tdm-xp-earned" style="font-size:26px;font-weight:900;color:#ffd700;">+0 XP</div>
+    </div>
+    <div id="tdm-xp-level" style="font-size:14px;font-weight:700;margin-bottom:5px;"></div>
+    <div id="tdm-xp-total" style="font-size:11px;opacity:0.45;margin-bottom:9px;"></div>
+    <div style="background:rgba(255,255,255,0.08);border-radius:5px;height:7px;overflow:hidden;margin-bottom:4px;">
+      <div id="tdm-xp-prog-fill" style="height:100%;background:linear-gradient(90deg,#ff6b35,#ffd700);border-radius:5px;transition:width 1.2s;width:0%;"></div>
+    </div>
+    <div id="tdm-xp-prog-text" style="font-size:10px;opacity:0.35;margin-bottom:12px;"></div>
+    <div id="tdm-xp-levelup" style="display:none;font-size:16px;font-weight:900;color:#ffd700;margin-bottom:5px;">⬆️ LEVEL UP!</div>
+    <div id="tdm-xp-unlock" style="display:none;font-size:11px;color:#60a5fa;margin-bottom:12px;"></div>
+    <button onclick="tdmCloseXpOverlay()" style="padding:11px 30px;border-radius:30px;background:linear-gradient(135deg,#ff6b35,#ffd700);border:none;color:#000;font-weight:900;font-size:13px;cursor:pointer;">Continuar</button>
+  </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════
@@ -4245,8 +4277,11 @@ function tdmUpdatePeers(dt) {
 
 function tdmTryShoot() {
   if (!tdmGameState.active || tdmGameState.dead || tdmGameState.finished) return;
+  if (tdmPlayerState.reloading) return;
   const now = performance.now() / 1000;
   if (now - tdmGameState.lastShotTime < tdmGameState.TDM_FIRE_RATE) return;
+  // Fase 5: verificar munição antes de atirar
+  if (!tdmConsumeAmmo()) return;
   tdmGameState.lastShotTime = now;
 
   const raycaster = new THREE.Raycaster();
@@ -4337,6 +4372,10 @@ function tdmRespawnSelf() {
   tdmGameState.dead = false;
   tdmGameState.hp = 100;
   tdmUpdateHP(100);
+  // Fase 5: repõe munição no respawn
+  const cfg = TDM_WEAPONS[tdmPlayerState.currentWeapon];
+  if (cfg) { tdmPlayerState.currentAmmo = cfg.ammo; tdmPlayerState.reloading = false; }
+  tdmUpdateWeaponHUD();
   const overlay = document.getElementById('tdm-death-overlay');
   if (overlay) overlay.style.display = 'none';
   tdmSpawnSelf();
@@ -4478,6 +4517,8 @@ function startTdmGame() {
   tdmGameState.tdmStructures = [];
   // Fase 4: inicializa scores individuais para o scoreboard
   tdmInitScoreData();
+  // Fase 5: busca XP/level do servidor e configura armas disponíveis
+  tdmInitPlayerXP();
 
   // 4. Construir arena TDM (QGs + casas)
   tdmBuildArena();
@@ -4513,6 +4554,16 @@ function startTdmGame() {
   tdmWs.onmessage = (e) => {
     let msg; try { msg = JSON.parse(e.data); } catch { return; }
     switch (msg.type) {
+      case 'tdm_my_xp':
+        // Fase 5: recebe XP atual do servidor e aplica level/weapons
+        tdmApplyXP(msg.xp || 0);
+        // Atualiza levels no scoreData de acordo com o roster (xp vem no roster a partir da Fase 5)
+        break;
+      case 'tdm_xp_earned':
+        // Fase 5: mostra overlay de XP ganho após a partida
+        tdmApplyXP(msg.totalXp || 0);
+        tdmShowXpGain(msg);
+        break;
       case 'tdm_position_sync':
         tdmAddOrUpdatePeer(msg);
         break;
@@ -4565,12 +4616,11 @@ const tdmScoreData = new Map();
 
 function tdmInitScoreData() {
   tdmScoreData.clear();
-  // Inclui o próprio jogador
-  tdmScoreData.set(tdmMyId, { kills: 0, deaths: 0, username: tdmGetUsername(), team: tdmGameState.myTeam });
-  // Inclui os peers do roster
+  tdmScoreData.set(tdmMyId, { kills: 0, deaths: 0, username: tdmGetUsername(), team: tdmGameState.myTeam, level: tdmPlayerState.level });
   tdmRoster.forEach(p => {
     if (p.id !== tdmMyId) {
-      tdmScoreData.set(p.id, { kills: 0, deaths: 0, username: p.username, team: p.team });
+      const lvl = p.xp ? tdmComputeLevel(p.xp) : 1;
+      tdmScoreData.set(p.id, { kills: 0, deaths: 0, username: p.username, team: p.team, level: lvl });
     }
   });
 }
@@ -4599,12 +4649,12 @@ function tdmRenderScoreboard() {
   const rowHtml = ([id, p]) => {
     const isMe = id === tdmMyId;
     const teamColor = p.team === 'blue' ? '#60a5fa' : '#f87171';
-    const kd = p.deaths > 0 ? (p.kills / p.deaths).toFixed(1) : p.kills > 0 ? '∞' : '0.0';
+    const level = p.level || (isMe ? tdmPlayerState.level : 1);
     return `<div style="display:grid;grid-template-columns:1fr 56px 60px 60px;gap:8px;padding:7px 8px;border-radius:8px;align-items:center;background:${isMe ? 'rgba(255,255,255,0.06)' : 'transparent'};font-size:13px;">
       <span style="font-weight:${isMe ? '800' : '500'};color:${isMe ? teamColor : 'rgba(255,255,255,0.85)'};">
         ${tdmEscape(p.username)}${isMe ? ' <span style="font-size:9px;opacity:0.55;">(você)</span>' : ''}
       </span>
-      <span style="text-align:center;font-size:11px;opacity:0.5;">Nv.1</span>
+      <span style="text-align:center;font-size:11px;font-weight:700;color:#ffd700;">Nv.${level}</span>
       <span style="text-align:center;font-weight:700;color:${p.kills > 0 ? '#4ade80' : 'rgba(255,255,255,0.5)'};">${p.kills}</span>
       <span style="text-align:center;color:rgba(255,255,255,0.5);">${p.deaths}</span>
     </div>`;
@@ -4647,6 +4697,194 @@ document.addEventListener('keyup', (e) => {
     if (sb) sb.style.display = 'none';
   }
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// TEAM DEATHMATCH — XP / LEVELS / ARMAS (Fase 5)
+// Bloco 100% isolado. Não altera Coop nem Modo Livre.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Tabela de níveis (XP acumulado por nível) ────────────────────────────────
+// Índice = nível. Valor = XP total necessário para alcançar esse nível.
+const TDM_LEVEL_XP = [0,0,300,800,1600,2800,4500,6800,9800,13800,19000,26000,35000,47000,62000,80000,102000,128000,158000,193000,234000];
+// Para levels acima de 20: +40000 por nível
+function tdmXpForLevel(level) {
+  if (level < TDM_LEVEL_XP.length) return TDM_LEVEL_XP[level];
+  return TDM_LEVEL_XP[TDM_LEVEL_XP.length - 1] + (level - (TDM_LEVEL_XP.length - 1)) * 40000;
+}
+function tdmComputeLevel(xp) {
+  let level = 1;
+  for (let i = 1; i <= 50; i++) { if (xp >= tdmXpForLevel(i)) level = i; else break; }
+  return level;
+}
+function tdmXpToNextLevel(xp) {
+  const lv = tdmComputeLevel(xp);
+  const nextThreshold = tdmXpForLevel(lv + 1);
+  const curThreshold  = tdmXpForLevel(lv);
+  return { current: xp - curThreshold, needed: nextThreshold - curThreshold, level: lv };
+}
+
+// ── Config de armas TDM (isolada do WEAPON_CONFIG do Coop) ───────────────────
+const TDM_WEAPONS = {
+  pistol:  { label:'Pistola',  emoji:'🔫', unlockLevel:1,  damage:20, fireRate:0.45, ammo:Infinity },
+  shotgun: { label:'Shotgun',  emoji:'💥', unlockLevel:5,  damage:40, fireRate:0.85, ammo:6       },
+  rifle:   { label:'Rifle',    emoji:'⚡', unlockLevel:10, damage:15, fireRate:0.12, ammo:30      },
+  sniper:  { label:'Sniper',   emoji:'🎯', unlockLevel:15, damage:90, fireRate:2.0,  ammo:5       },
+};
+const TDM_POWERS = {
+  grenade: { label:'Granada', emoji:'💣', unlockLevel:14, maxCarry:2 },
+  bomb:    { label:'Bomba',   emoji:'☄️', unlockLevel:20, maxCarry:2 },
+};
+
+// ── Estado do jogador TDM ────────────────────────────────────────────────────
+const tdmPlayerState = {
+  xp: 0,
+  level: 1,
+  currentWeapon: 'pistol',
+  currentAmmo: Infinity,
+  reloading: false,
+};
+
+function tdmUnlockedWeapons() {
+  return Object.entries(TDM_WEAPONS).filter(([,w]) => tdmPlayerState.level >= w.unlockLevel).map(([k]) => k);
+}
+function tdmUnlockedPowers() {
+  return Object.entries(TDM_POWERS).filter(([,p]) => tdmPlayerState.level >= p.unlockLevel).map(([k]) => k);
+}
+
+// ── Inicializar estado de arma ao entrar no jogo ─────────────────────────────
+function tdmInitPlayerXP() {
+  // Busca XP do servidor (resposta chega via tdm_my_xp no onmessage)
+  if (tdmWs && tdmWs.readyState === WebSocket.OPEN) {
+    tdmWs.send(JSON.stringify({ type: 'tdm_get_my_xp', username: tdmGetUsername() }));
+  }
+}
+
+function tdmApplyXP(xp) {
+  tdmPlayerState.xp = xp;
+  tdmPlayerState.level = tdmComputeLevel(xp);
+  tdmEquipBestWeapon();
+  tdmUpdateWeaponHUD();
+  // Atualiza scoreboard com meu nível real
+  const myEntry = tdmScoreData.get(tdmMyId);
+  if (myEntry) myEntry.level = tdmPlayerState.level;
+}
+
+function tdmEquipBestWeapon() {
+  const unlocked = tdmUnlockedWeapons();
+  // Equipa a melhor arma desbloqueada (última da lista)
+  const best = unlocked[unlocked.length - 1] || 'pistol';
+  tdmEquipWeapon(best);
+}
+
+function tdmEquipWeapon(type) {
+  const cfg = TDM_WEAPONS[type];
+  if (!cfg || tdmPlayerState.level < cfg.unlockLevel) return;
+  tdmPlayerState.currentWeapon = type;
+  tdmPlayerState.currentAmmo = cfg.ammo;
+  tdmPlayerState.reloading = false;
+  // Atualiza dano e fire rate no state do jogo
+  tdmGameState.TDM_DAMAGE = cfg.damage;
+  tdmGameState.TDM_FIRE_RATE = cfg.fireRate;
+  tdmUpdateWeaponHUD();
+}
+
+function tdmReloadWeapon() {
+  const cfg = TDM_WEAPONS[tdmPlayerState.currentWeapon];
+  if (!cfg || cfg.ammo === Infinity || tdmPlayerState.reloading) return;
+  tdmPlayerState.reloading = true;
+  tdmUpdateWeaponHUD();
+  setTimeout(() => {
+    tdmPlayerState.currentAmmo = cfg.ammo;
+    tdmPlayerState.reloading = false;
+    tdmUpdateWeaponHUD();
+    toast('🔄 Recarregado!');
+  }, 2000);
+}
+
+function tdmConsumeAmmo() {
+  const cfg = TDM_WEAPONS[tdmPlayerState.currentWeapon];
+  if (!cfg || cfg.ammo === Infinity) return true;
+  if (tdmPlayerState.currentAmmo <= 0) { tdmReloadWeapon(); return false; }
+  tdmPlayerState.currentAmmo--;
+  tdmUpdateWeaponHUD();
+  if (tdmPlayerState.currentAmmo === 0) tdmReloadWeapon();
+  return true;
+}
+
+function tdmUpdateWeaponHUD() {
+  const cfg = TDM_WEAPONS[tdmPlayerState.currentWeapon];
+  if (!cfg) return;
+  const weaponEl = document.getElementById('tdm-hud-weapon');
+  const ammoEl   = document.getElementById('tdm-hud-ammo');
+  if (weaponEl) weaponEl.textContent = cfg.emoji + ' ' + cfg.label;
+  if (ammoEl) {
+    if (cfg.ammo === Infinity) { ammoEl.textContent = '∞'; }
+    else if (tdmPlayerState.reloading) { ammoEl.textContent = '⟳ Recarregando...'; }
+    else { ammoEl.textContent = tdmPlayerState.currentAmmo + '/' + cfg.ammo; }
+  }
+  // Mostra lista de armas disponíveis com tecla de atalho
+  const listEl = document.getElementById('tdm-hud-weapon-list');
+  if (listEl) {
+    const unlocked = tdmUnlockedWeapons();
+    listEl.innerHTML = unlocked.map((k, i) => {
+      const w = TDM_WEAPONS[k];
+      const active = k === tdmPlayerState.currentWeapon;
+      return `<span style="padding:3px 7px;border-radius:5px;font-size:10px;font-weight:700;background:${active ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)'};color:${active ? '#fff' : 'rgba(255,255,255,0.45)'};">[${i+1}] ${w.emoji}${w.label}</span>`;
+    }).join('');
+  }
+}
+
+// Troca de arma por tecla (1-4) durante TDM
+document.addEventListener('keydown', (e) => {
+  if (!tdmGameState.active) return;
+  const unlocked = tdmUnlockedWeapons();
+  const idx = ['Digit1','Digit2','Digit3','Digit4'].indexOf(e.code);
+  if (idx >= 0 && idx < unlocked.length) {
+    e.preventDefault();
+    tdmEquipWeapon(unlocked[idx]);
+  }
+  if (e.code === 'KeyR') tdmReloadWeapon();
+});
+
+// ── Overlay de XP ganho após a partida ───────────────────────────────────────
+function tdmShowXpGain(data) {
+  const { xpEarned, totalXp, matchKills, matchDeaths, isWinner, oldLevel, newLevel, leveledUp } = data;
+  const overlay = document.getElementById('tdm-xp-overlay');
+  if (!overlay) return;
+
+  const prog = tdmXpToNextLevel(totalXp);
+  const progPct = Math.min(100, Math.round((prog.current / prog.needed) * 100));
+
+  document.getElementById('tdm-xp-result').textContent = isWinner ? '🏆 VITÓRIA!' : '💀 DERROTA';
+  document.getElementById('tdm-xp-result').style.color = isWinner ? '#ffd700' : '#f87171';
+  document.getElementById('tdm-xp-kills-val').textContent = matchKills;
+  document.getElementById('tdm-xp-deaths-val').textContent = matchDeaths;
+  document.getElementById('tdm-xp-bonus').textContent = isWinner ? '+300 XP (vitória)' : '+50 XP (participação)';
+  document.getElementById('tdm-xp-earned').textContent = '+' + xpEarned + ' XP';
+  document.getElementById('tdm-xp-total').textContent = totalXp.toLocaleString('pt-BR') + ' XP total';
+  document.getElementById('tdm-xp-level').textContent = 'Nível ' + newLevel;
+  document.getElementById('tdm-xp-prog-fill').style.width = progPct + '%';
+  document.getElementById('tdm-xp-prog-text').textContent = prog.current.toLocaleString('pt-BR') + ' / ' + prog.needed.toLocaleString('pt-BR') + ' XP para o próximo nível';
+
+  const levelupEl = document.getElementById('tdm-xp-levelup');
+  if (levelupEl) levelupEl.style.display = leveledUp ? 'block' : 'none';
+  if (leveledUp) {
+    const unlocked = [...Object.entries(TDM_WEAPONS), ...Object.entries(TDM_POWERS)]
+      .filter(([,v]) => v.unlockLevel === newLevel);
+    const unlockEl = document.getElementById('tdm-xp-unlock');
+    if (unlockEl && unlocked.length) {
+      unlockEl.textContent = '🔓 Desbloqueado: ' + unlocked.map(([,v]) => v.emoji + ' ' + v.label).join(', ');
+      unlockEl.style.display = 'block';
+    }
+  }
+
+  overlay.style.display = 'flex';
+}
+
+function tdmCloseXpOverlay() {
+  const overlay = document.getElementById('tdm-xp-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
 
 // Override goToMenu (novamente) só para também limpar o lobby TDM ao sair
 // pelo menu de pausa — segue o mesmo padrão de override já usado acima
