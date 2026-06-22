@@ -3757,6 +3757,7 @@ let tdmWs = null;
 let tdmConnected = false;
 let tdmMyId = null;
 let tdmRoomId = null;
+let tdmNextRoomId = null; // sala pré-criada pelo servidor para a próxima partida
 let tdmRoster = []; // [{id, username, team}]
 
 function tdmEscape(s) {
@@ -4621,6 +4622,7 @@ function startTdmGame() {
         tdmRespawnSelf();
         break;
       case 'tdm_match_over':
+        if (msg.nextRoomId) tdmNextRoomId = msg.nextRoomId;
         tdmShowMatchOver(msg.winner, msg.kills);
         break;
       // Repassa mensagens do lobby que possam chegar (chat, lobby_update)
@@ -4920,9 +4922,10 @@ function tdmShowXpGain(data) {
 }
 
 function tdmGoToNextMatch() {
-  const savedRoomId = tdmRoomId; // sala da partida que acabou (resetada no servidor após 8s)
-  const savedTeam   = tdmGameState.myTeam;
-  // Limpar classes modal open que foram adicionadas para suprimir showPause()
+  const targetRoomId = tdmNextRoomId; // sala pré-criada, sem fantasmas
+  const savedTeam    = tdmGameState.myTeam;
+  const savedUser    = tdmGetUsername();
+  // Limpar classes modal open
   ['tdm-xp-overlay','tdm-match-over-overlay'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('modal','open');
@@ -4936,13 +4939,16 @@ function tdmGoToNextMatch() {
   if (_ge) _ge.style.display = '';
   const _ti = document.getElementById('tool-indicator');
   if (_ti) _ti.style.display = '';
-  if (state.pointerLocked) document.exitPointerLock();
-  // Bug 2 fix: reconecta na MESMA sala (já resetada para lobby no servidor)
-  // Todos os players que clicarem "próxima partida" caem na mesma sala
-  document.getElementById('tdm-lobby').style.display = 'flex';
-  document.getElementById('tdm-chat-log').innerHTML = '';
-  tdmWs = null;
-  tdmConnectLobby(savedRoomId, savedTeam, tdmGetUsername());
+  // Fechar WS antigo CORRETAMENTE para o servidor liberar o slot na sala velha
+  if (tdmWs) { tdmWs.onclose = null; tdmWs.close(); tdmWs = null; }
+  tdmNextRoomId = null;
+  // Curta pausa para o servidor processar o close antes do novo connect
+  setTimeout(() => {
+    document.getElementById('tdm-lobby').style.display = 'flex';
+    document.getElementById('tdm-chat-log').innerHTML = '';
+    // Entra na nextRoomId (sala limpa, sem fantasmas)
+    tdmConnectLobby(targetRoomId, savedTeam, savedUser);
+  }, 400);
 }
 
 function tdmCloseXpOverlay() {
