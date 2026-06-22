@@ -414,6 +414,53 @@
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════════════════
+     TEAM DEATHMATCH — HUD IN-GAME (Fase 3)
+     Totalmente isolado. display:none por padrão — só aparece durante TDM.
+     ════════════════════════════════════════════════════════════════════════ -->
+<div id="tdm-game-hud" style="display:none;position:fixed;top:0;left:0;right:0;z-index:30;pointer-events:none;">
+  <!-- Barra de topo: AZUL X vs VERMELHO X -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 18px;background:rgba(59,130,246,0.25);border-radius:8px 0 0 8px;">
+      <span style="font-size:13px;font-weight:900;color:#60a5fa;letter-spacing:1px;">🔵 TIME AZUL</span>
+      <span id="tdm-hud-blue-kills" style="font-size:22px;font-weight:900;color:#fff;min-width:26px;text-align:center;">0</span>
+    </div>
+    <div style="padding:4px 14px;background:rgba(255,255,255,0.06);font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:2px;">VS</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 18px;background:rgba(239,68,68,0.25);border-radius:0 8px 8px 0;">
+      <span id="tdm-hud-red-kills" style="font-size:22px;font-weight:900;color:#fff;min-width:26px;text-align:center;">0</span>
+      <span style="font-size:13px;font-weight:900;color:#f87171;letter-spacing:1px;">TIME VERMELHO 🔴</span>
+    </div>
+    <div style="margin-left:16px;font-size:11px;color:rgba(255,255,255,0.4);padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;">meta: 30 baixas</div>
+  </div>
+  <!-- HP bar do jogador TDM -->
+  <div style="display:flex;justify-content:center;margin-top:4px;">
+    <div style="background:rgba(0,0,0,0.55);border-radius:20px;padding:4px 14px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:11px;color:rgba(255,255,255,0.6);">❤️ HP</span>
+      <div style="width:120px;height:7px;background:rgba(255,255,255,0.12);border-radius:4px;overflow:hidden;">
+        <div id="tdm-hp-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#4ade80,#16a34a);border-radius:4px;transition:width 0.2s;"></div>
+      </div>
+      <span id="tdm-hp-text" style="font-size:11px;font-weight:700;color:#fff;min-width:38px;">100 HP</span>
+    </div>
+  </div>
+</div>
+
+<!-- Flash de dano TDM -->
+<div id="tdm-dmg-flash" style="display:none;position:fixed;inset:0;z-index:29;pointer-events:none;background:rgba(239,68,68,0.35);opacity:0;transition:opacity 0.15s;"></div>
+
+<!-- Overlay de morte TDM -->
+<div id="tdm-death-overlay" style="display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,0.7);flex-direction:column;align-items:center;justify-content:center;color:#fff;pointer-events:none;">
+  <div style="font-size:36px;font-weight:900;color:#f87171;letter-spacing:2px;margin-bottom:8px;">VOCÊ FOI ABATIDO</div>
+  <div id="tdm-death-killer" style="font-size:15px;opacity:0.7;margin-bottom:18px;"></div>
+  <div style="font-size:13px;opacity:0.5;">Renascendo em <span id="tdm-respawn-timer" style="font-weight:900;color:#ffd700;">3</span>s...</div>
+</div>
+
+<!-- Overlay de fim de partida TDM -->
+<div id="tdm-match-over-overlay" style="display:none;position:fixed;inset:0;z-index:56;background:rgba(0,0,0,0.82);flex-direction:column;align-items:center;justify-content:center;color:#fff;pointer-events:none;">
+  <div id="tdm-match-over-title" style="font-size:42px;font-weight:900;letter-spacing:3px;margin-bottom:8px;"></div>
+  <div id="tdm-match-over-subtitle" style="font-size:16px;opacity:0.6;margin-bottom:18px;"></div>
+  <div style="font-size:13px;opacity:0.5;">Voltando ao lobby em <span id="tdm-over-timer" style="font-weight:900;color:#ffd700;">5</span>s...</div>
+</div>
+
 <!-- Canvas 3D -->
 <canvas id="canvas"></canvas>
 
@@ -1531,6 +1578,7 @@ function loop() {
   updateEnemies(dt);
   updateLoot(dt);
   updatePeers(dt);
+  if (typeof tdmGameState !== 'undefined' && tdmGameState.active) tdmGameLoop(dt);
   renderer.render(scene, camera);
   renderGun();
 }
@@ -3860,10 +3908,550 @@ function tdmBeginCountdown(seconds) {
 // ao menu com aviso claro, sem fingir uma transição que ainda não existe.
 function tdmMatchPlaceholderTransition() {
   document.getElementById('tdm-countdown-overlay').style.display = 'none';
-  tdmDisconnect();
-  document.getElementById('tdm-lobby').style.display = 'none';
+  startTdmGame(); // Fase 3: agora vai para o jogo de verdade!
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TEAM DEATHMATCH — JOGO (Fase 3)
+// Bloco 100% isolado: usa os mesmos renderer/scene/camera já inicializados,
+// mas gerencia estado, estruturas e peers completamente separados.
+// ════════════════════════════════════════════════════════════════════════════
+
+const TDM_WIN_KILLS = 30;
+const TDM_SPAWN = {
+  blue: { x: -150, z: 50 },
+  red:  { x:  150, z: 50 },
+};
+
+const tdmGameState = {
+  active: false,
+  myTeam: null,
+  kills: { blue: 0, red: 0 },
+  myKills: 0,
+  myDeaths: 0,
+  hp: 100,
+  maxHp: 100,
+  dead: false,
+  finished: false,
+  tdmStructures: [],  // meshes TDM adicionados ao mapStructures — removidos no cleanup
+  positionSyncInterval: null,
+  lastShotTime: 0,
+  TDM_DAMAGE: 20,       // dano por bala de pistola TDM
+  TDM_FIRE_RATE: 0.45,  // segundos entre tiros
+};
+
+// Peers TDM: jogadores remotos na cena (azul ou vermelho)
+const tdmPeers = new Map(); // id → { mesh, label, team, username, targetX, targetY, targetZ, targetYaw, x, y, z, yaw, walkT }
+
+// ── Construção do mapa TDM ───────────────────────────────────────────────────
+
+function tdmMakeWallMesh(cx, cz, w, h, d, color) {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshLambertMaterial({ color })
+  );
+  body.position.y = 0;
+  group.add(body);
+  // Borda superior para distinguir do mapa base
+  const edge = new THREE.Mesh(
+    new THREE.BoxGeometry(w + 0.1, 0.18, d + 0.1),
+    new THREE.MeshLambertMaterial({ color: 0xffffff })
+  );
+  edge.position.y = h / 2 + 0.09;
+  group.add(edge);
+  group.position.set(cx, h / 2, cz);
+  scene.add(group);
+  // Registra na lista de colisão global
+  const entry = { mesh: group, x: cx, z: cz, w, h, d, type: 'block', _tdm: true };
+  mapStructures.push(entry);
+  tdmGameState.tdmStructures.push(entry);
+  return group;
+}
+
+function tdmBuildHQ(cx, cz, teamColor, wallColor) {
+  // QG: área interna 20×20, muros de 1u de espessura, 4u de altura
+  // Abertura (porta) de 5u no muro frontal orientado para o centro do mapa
+  const H = 4, T = 1;
+  const isBlue = cx < 0; // time azul está à esquerda (x negativo), porta abre à direita
+  const frontX = isBlue ? cx + 10 : cx - 10; // face da porta
+
+  // Muro traseiro
+  tdmMakeWallMesh(isBlue ? cx - 11 : cx + 11, cz, T, H, 24, wallColor);
+  // Muros Norte e Sul
+  tdmMakeWallMesh(cx, cz - 11, 22, H, T, wallColor);
+  tdmMakeWallMesh(cx, cz + 11, 22, H, T, wallColor);
+  // Muro frontal — dois segmentos deixando porta de 5u no centro (z=cz)
+  tdmMakeWallMesh(frontX, cz - 7.5, T, H, 9, wallColor);
+  tdmMakeWallMesh(frontX, cz + 7.5, T, H, 9, wallColor);
+
+  // Plataforma de piso colorida (decorativa, sem colisão — só visual)
+  const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(20, 0.12, 20),
+    new THREE.MeshLambertMaterial({ color: teamColor })
+  );
+  floor.position.set(cx, 0.06, cz);
+  scene.add(floor);
+
+  // Bandeira no centro do QG
+  const poleGeo = new THREE.CylinderGeometry(0.08, 0.08, 5, 8);
+  const pole = new THREE.Mesh(poleGeo, new THREE.MeshLambertMaterial({ color: 0xcccccc }));
+  pole.position.set(cx, 2.5, cz);
+  scene.add(pole);
+  const flag = new THREE.Mesh(
+    new THREE.BoxGeometry(2.5, 1.5, 0.05),
+    new THREE.MeshLambertMaterial({ color: teamColor })
+  );
+  flag.position.set(cx + 1.25, 4.5, cz);
+  scene.add(flag);
+}
+
+function tdmBuildHouse(cx, cz, angle) {
+  // Casa: 12×12 interior, 3.5 de altura, porta de 4u em uma face
+  // angle 0 = porta voltada para +x, 1 = +z, 2 = -x, 3 = -z
+  const H = 3.5, T = 1, S = 12;
+  const half = S / 2;
+  const gapH = 2;   // meia-largura da porta (porta total = 4u)
+  const wallColor = 0x8d6e63;
+
+  const faces = [
+    { x: cx + half + T/2, z: cz,        w: T,    d: S + 2*T }, // +X (leste)
+    { x: cx - half - T/2, z: cz,        w: T,    d: S + 2*T }, // -X (oeste)
+    { x: cx,              z: cz + half + T/2, w: S, d: T     }, // +Z (sul)
+    { x: cx,              z: cz - half - T/2, w: S, d: T     }, // -Z (norte)
+  ];
+  faces.forEach((f, i) => {
+    if (i === angle) {
+      // Face com porta — dois segmentos
+      if (f.w > f.d) {
+        // horizontal (N/S)
+        tdmMakeWallMesh(f.x - half/2 - gapH/2, f.z, f.w/2 - gapH, H, T, wallColor);
+        tdmMakeWallMesh(f.x + half/2 + gapH/2, f.z, f.w/2 - gapH, H, T, wallColor);
+      } else {
+        // vertical (E/W)
+        tdmMakeWallMesh(f.x, f.z - half/2 - gapH/2, T, H, f.d/2 - gapH, wallColor);
+        tdmMakeWallMesh(f.x, f.z + half/2 + gapH/2, T, H, f.d/2 - gapH, wallColor);
+      }
+    } else {
+      tdmMakeWallMesh(f.x, f.z, f.w, H, f.d, wallColor);
+    }
+  });
+  // Telhado semi-transparente (só visual)
+  const roof = new THREE.Mesh(
+    new THREE.BoxGeometry(S + 2*T + 0.5, 0.25, S + 2*T + 0.5),
+    new THREE.MeshLambertMaterial({ color: 0x5d4037, transparent: true, opacity: 0.7 })
+  );
+  roof.position.set(cx, H + 0.12, cz);
+  scene.add(roof);
+}
+
+function tdmBuildArena() {
+  // QG Azul: x=-150, z=50 (lado esquerdo do mapa)
+  tdmBuildHQ(-150, 50, 0x1d4ed8, 0x3b82f6);
+  // QG Vermelho: x=+150, z=50 (lado direito)
+  tdmBuildHQ(150, 50, 0x991b1b, 0xef4444);
+
+  // 4 casas como cobertura no campo de batalha
+  tdmBuildHouse(-65, 35, 0);   // porta para +x (direita)
+  tdmBuildHouse(-65, 65, 0);
+  tdmBuildHouse( 65, 35, 2);   // porta para -x (esquerda)
+  tdmBuildHouse( 65, 65, 2);
+}
+
+// ── Spawn do jogador no QG correto ───────────────────────────────────────────
+
+function tdmSpawnSelf() {
+  const sp = TDM_SPAWN[tdmGameState.myTeam] || TDM_SPAWN.blue;
+  if (camera) camera.position.set(sp.x, 1.7, sp.z);
+  if (state) { state.yaw = 0; state.pitch = 0; state.jumpVY = 0; }
+}
+
+// ── Peers TDM ────────────────────────────────────────────────────────────────
+
+function tdmAddOrUpdatePeer(data) {
+  if (data.id === tdmMyId) return; // ignora a si mesmo
+  if (!tdmPeers.has(data.id)) {
+    const teamColor = data.team === 'blue' ? 0x3b82f6 : 0xef4444;
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.9,0.4), new THREE.MeshLambertMaterial({ color: teamColor }));
+    body.position.y = 0.45; group.add(body);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), new THREE.MeshLambertMaterial({ color: teamColor }));
+    head.position.y = 1.15; group.add(head);
+    const eyeMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.06), eyeMat); eyeL.position.set(-0.12,1.18,0.26); group.add(eyeL);
+    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.06), eyeMat); eyeR.position.set(0.12,1.18,0.26); group.add(eyeR);
+    // Pernas
+    const legMat = new THREE.MeshLambertMaterial({ color: data.team === 'blue' ? 0x1e3a5f : 0x7f1d1d });
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.5,0.22), legMat); legL.position.set(-0.16,-0.25,0); group.add(legL);
+    const legR = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.5,0.22), legMat); legR.position.set(0.16,-0.25,0); group.add(legR);
+    // Distintivo de time acima da cabeça
+    const badgeColor = data.team === 'blue' ? 0x60a5fa : 0xf87171;
+    const badge = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), new THREE.MeshLambertMaterial({ color: badgeColor }));
+    badge.position.y = 1.6; group.add(badge);
+
+    group.position.set(data.x||0, (data.y||1.7)-1.7, data.z||50);
+    scene.add(group);
+
+    const label = document.createElement('div');
+    const lColor = data.team === 'blue' ? '#60a5fa' : '#f87171';
+    label.style.cssText = 'position:fixed;pointer-events:none;z-index:25;transform:translateX(-50%);';
+    label.innerHTML = `<div style="background:rgba(0,0,0,0.75);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;color:${lColor};white-space:nowrap;border:1px solid ${lColor}40;">${tdmEscape(data.username||'Jogador')}</div>`;
+    document.body.appendChild(label);
+
+    tdmPeers.set(data.id, {
+      mesh: group, label, team: data.team,
+      username: data.username,
+      x: data.x||0, y: data.y||1.7, z: data.z||50, yaw: data.yaw||0,
+      targetX: data.x||0, targetY: data.y||1.7, targetZ: data.z||50, targetYaw: data.yaw||0,
+      walkT: 0,
+    });
+  } else {
+    const peer = tdmPeers.get(data.id);
+    peer.targetX = data.x; peer.targetY = data.y; peer.targetZ = data.z; peer.targetYaw = data.yaw;
+  }
+}
+
+function tdmRemovePeer(id) {
+  const peer = tdmPeers.get(id);
+  if (!peer) return;
+  scene.remove(peer.mesh);
+  peer.label.remove();
+  tdmPeers.delete(id);
+}
+
+function tdmUpdatePeers(dt) {
+  tdmPeers.forEach(peer => {
+    const L = Math.min(1, dt * 12);
+    peer.x += (peer.targetX - peer.x) * L;
+    peer.y += (peer.targetY - peer.y) * L;
+    peer.z += (peer.targetZ - peer.z) * L;
+    let dy = peer.targetYaw - peer.yaw;
+    if (dy > Math.PI) dy -= Math.PI * 2;
+    if (dy < -Math.PI) dy += Math.PI * 2;
+    peer.yaw += dy * L;
+
+    const dx = peer.targetX - peer.mesh.position.x;
+    const dz = peer.targetZ - peer.mesh.position.z;
+    if (Math.sqrt(dx*dx + dz*dz) > 0.01) {
+      peer.walkT += dt * 7;
+      if (peer.mesh.children[5]) peer.mesh.children[5].rotation.x = Math.sin(peer.walkT)*0.35;
+      if (peer.mesh.children[6]) peer.mesh.children[6].rotation.x = -Math.sin(peer.walkT)*0.35;
+    }
+    peer.mesh.position.set(peer.x, peer.y - 1.7, peer.z);
+    peer.mesh.rotation.y = peer.yaw + Math.PI;
+
+    if (camera) {
+      const pos3d = peer.mesh.position.clone(); pos3d.y += 2.0;
+      const proj = pos3d.project(camera);
+      if (proj.z < 1) {
+        peer.label.style.display = 'block';
+        peer.label.style.left = ((proj.x*0.5+0.5)*window.innerWidth) + 'px';
+        peer.label.style.top  = ((-proj.y*0.5+0.5)*window.innerHeight) + 'px';
+      } else {
+        peer.label.style.display = 'none';
+      }
+    }
+  });
+}
+
+// ── Tiro TDM ─────────────────────────────────────────────────────────────────
+
+function tdmTryShoot() {
+  if (!tdmGameState.active || tdmGameState.dead || tdmGameState.finished) return;
+  const now = performance.now() / 1000;
+  if (now - tdmGameState.lastShotTime < tdmGameState.TDM_FIRE_RATE) return;
+  tdmGameState.lastShotTime = now;
+
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+
+  // Só verifica meshes de jogadores inimigos
+  const enemyMeshes = [];
+  const meshToId = new Map();
+  tdmPeers.forEach((peer, id) => {
+    if (peer.team !== tdmGameState.myTeam) {
+      enemyMeshes.push(peer.mesh);
+      meshToId.set(peer.mesh, id);
+      // Também adiciona os filhos (para melhor detecção)
+      peer.mesh.traverse(child => {
+        if (child.isMesh) {
+          enemyMeshes.push(child);
+          meshToId.set(child, id);
+        }
+      });
+    }
+  });
+
+  if (enemyMeshes.length === 0) return;
+  const hits = raycaster.intersectObjects(enemyMeshes);
+  if (hits.length === 0 || hits[0].distance > 120) return;
+
+  // Acha o root (peer.mesh) do objeto atingido
+  let targetId = meshToId.get(hits[0].object);
+  if (!targetId) return;
+
+  if (tdmWs && tdmWs.readyState === WebSocket.OPEN) {
+    tdmWs.send(JSON.stringify({ type: 'tdm_hit', targetId, damage: tdmGameState.TDM_DAMAGE }));
+  }
+  // Efeito visual de acerto
+  toast('💥 Acerto!');
+}
+
+// ── HP e morte ───────────────────────────────────────────────────────────────
+
+function tdmUpdateHP(hp) {
+  tdmGameState.hp = hp;
+  const pct = (hp / tdmGameState.maxHp) * 100;
+  const fill = document.getElementById('tdm-hp-fill');
+  const txt = document.getElementById('tdm-hp-text');
+  if (fill) {
+    fill.style.width = pct + '%';
+    fill.style.background = pct > 50
+      ? 'linear-gradient(90deg,#4ade80,#16a34a)'
+      : pct > 25 ? 'linear-gradient(90deg,#fbbf24,#d97706)'
+      : 'linear-gradient(90deg,#f87171,#dc2626)';
+  }
+  if (txt) txt.textContent = hp + ' HP';
+}
+
+function tdmFlashDamage() {
+  const flash = document.getElementById('tdm-dmg-flash');
+  if (!flash) return;
+  flash.style.display = 'block';
+  flash.style.opacity = '1';
+  setTimeout(() => { flash.style.opacity = '0'; setTimeout(() => { flash.style.display = 'none'; }, 200); }, 150);
+}
+
+function tdmShowDeath(killerUsername) {
+  tdmGameState.dead = true;
+  tdmGameState.myDeaths++;
+  const overlay = document.getElementById('tdm-death-overlay');
+  const killerEl = document.getElementById('tdm-death-killer');
+  const timerEl = document.getElementById('tdm-respawn-timer');
+  if (overlay) overlay.style.display = 'flex';
+  if (killerEl) killerEl.textContent = killerUsername ? `Abatido por: ${killerUsername}` : '';
+  let n = 3;
+  if (timerEl) timerEl.textContent = n;
+  const iv = setInterval(() => {
+    n--;
+    if (timerEl) timerEl.textContent = n;
+    if (n <= 0) clearInterval(iv);
+  }, 1000);
+}
+
+function tdmRespawnSelf() {
+  tdmGameState.dead = false;
+  tdmGameState.hp = 100;
+  tdmUpdateHP(100);
+  const overlay = document.getElementById('tdm-death-overlay');
+  if (overlay) overlay.style.display = 'none';
+  tdmSpawnSelf();
+  toast(tdmGameState.myTeam === 'blue' ? '🔵 Você renasceu! Vá ao combate!' : '🔴 Você renasceu! Vá ao combate!');
+}
+
+// ── HUD de kills ─────────────────────────────────────────────────────────────
+
+function tdmUpdateKillsHUD(kills) {
+  tdmGameState.kills = kills;
+  const blueEl = document.getElementById('tdm-hud-blue-kills');
+  const redEl  = document.getElementById('tdm-hud-red-kills');
+  if (blueEl) blueEl.textContent = kills.blue;
+  if (redEl)  redEl.textContent  = kills.red;
+}
+
+// ── Fim de partida ────────────────────────────────────────────────────────────
+
+function tdmShowMatchOver(winner, kills) {
+  tdmGameState.finished = true;
+  clearInterval(tdmGameState.positionSyncInterval);
+  const overlay = document.getElementById('tdm-match-over-overlay');
+  const titleEl = document.getElementById('tdm-match-over-title');
+  const subEl   = document.getElementById('tdm-match-over-subtitle');
+  const timerEl = document.getElementById('tdm-over-timer');
+  if (!overlay) return;
+  const myTeam = tdmGameState.myTeam;
+  const won = winner === myTeam;
+  if (titleEl) {
+    titleEl.textContent = won ? '🏆 VITÓRIA!' : '💀 DERROTA';
+    titleEl.style.color = won ? '#ffd700' : '#f87171';
+  }
+  if (subEl) {
+    const wName = winner === 'blue' ? 'Time Azul' : 'Time Vermelho';
+    subEl.textContent = `${wName} venceu — ${kills.blue} x ${kills.red}`;
+  }
+  overlay.style.display = 'flex';
+  let n = 5;
+  if (timerEl) timerEl.textContent = n;
+  const iv = setInterval(() => {
+    n--;
+    if (timerEl) timerEl.textContent = n;
+    if (n <= 0) { clearInterval(iv); tdmReturnToLobby(); }
+  }, 1000);
+}
+
+function tdmReturnToLobby() {
+  tdmGameCleanup();
+  // Reset overlay fim de partida
+  const over = document.getElementById('tdm-match-over-overlay');
+  if (over) over.style.display = 'none';
+  // Restaurar HUDs normais (se o jogador quiser usar Livre/Coop depois)
+  document.getElementById('toolbar').style.display = 'flex';
+  document.getElementById('left-panel').style.display = 'flex';
+  // Voltar para a tela de lobby (Fase 2 já tinha o lobby funcionando)
   document.getElementById('splash').style.display = 'flex';
-  toast('⚔️ Partida iniciada! Mapa e quartéis-generais chegam na Fase 3 — em breve direto pra batalha.');
+  if (state.pointerLocked) document.exitPointerLock();
+  toast('⚔️ Partida encerrada! Quer jogar novamente? Abra o Team Deathmatch.');
+}
+
+// ── Cleanup ───────────────────────────────────────────────────────────────────
+
+function tdmGameCleanup() {
+  tdmGameState.active = false;
+  tdmGameState.finished = false;
+  tdmGameState.dead = false;
+  tdmGameState.kills = { blue: 0, red: 0 };
+  clearInterval(tdmGameState.positionSyncInterval);
+  tdmGameState.positionSyncInterval = null;
+
+  // Remove peers TDM da cena
+  tdmPeers.forEach((_, id) => tdmRemovePeer(id));
+  tdmPeers.clear();
+
+  // Remove estruturas TDM do mapStructures e da cena
+  tdmGameState.tdmStructures.forEach(s => {
+    scene.remove(s.mesh);
+    const idx = mapStructures.indexOf(s);
+    if (idx !== -1) mapStructures.splice(idx, 1);
+  });
+  tdmGameState.tdmStructures = [];
+
+  // Esconde HUD TDM
+  const hudEl = document.getElementById('tdm-game-hud');
+  if (hudEl) hudEl.style.display = 'none';
+  const deathEl = document.getElementById('tdm-death-overlay');
+  if (deathEl) deathEl.style.display = 'none';
+  const flashEl = document.getElementById('tdm-dmg-flash');
+  if (flashEl) { flashEl.style.display = 'none'; flashEl.style.opacity = '0'; }
+}
+
+// ── Update loop do TDM ────────────────────────────────────────────────────────
+
+function tdmGameLoop(dt) {
+  if (!tdmGameState.active) return;
+  tdmUpdatePeers(dt);
+  // Tiro contínuo se mouse pressionado e não está morto
+  if (state.pointerLocked && state.keys['mouse0'] && !tdmGameState.dead) {
+    tdmTryShoot();
+  }
+}
+
+// ── Inicialização do jogo TDM (chamada ao fim da contagem regressiva) ─────────
+
+function startTdmGame() {
+  // 1. Esconder todos os overlays do lobby
+  document.getElementById('tdm-lobby').style.display = 'none';
+  document.getElementById('tdm-countdown-overlay').style.display = 'none';
+
+  // 2. Inicializar Three.js se necessário (mesmo padrão de startGame/startCoopMode)
+  if (!window._threeReady) {
+    initThree();
+    initGun();
+    initControls();
+    registerCurrentPlayer();
+    loop();
+    window._threeReady = true;
+  } else {
+    resetMap();
+  }
+
+  // 3. Determinar time do jogador a partir do roster
+  const myEntry = tdmRoster.find(p => p.id === tdmMyId);
+  tdmGameState.myTeam = myEntry ? myEntry.team : 'blue';
+  tdmGameState.active = true;
+  tdmGameState.finished = false;
+  tdmGameState.dead = false;
+  tdmGameState.hp = 100;
+  tdmGameState.maxHp = 100;
+  tdmGameState.kills = { blue: 0, red: 0 };
+  tdmGameState.myKills = 0;
+  tdmGameState.myDeaths = 0;
+  tdmGameState.tdmStructures = [];
+
+  // 4. Construir arena TDM (QGs + casas)
+  tdmBuildArena();
+
+  // 5. Spawnar jogador no QG correto
+  tdmSpawnSelf();
+
+  // 6. HUD
+  const hudEl = document.getElementById('tdm-game-hud');
+  if (hudEl) hudEl.style.display = 'block';
+  tdmUpdateHP(100);
+  tdmUpdateKillsHUD({ blue: 0, red: 0 });
+
+  // Esconder HUDs que não fazem parte do TDM
+  document.getElementById('coop-hud').style.display = 'none';
+
+  // 7. Sincronização de posição — envia a cada 50ms
+  clearInterval(tdmGameState.positionSyncInterval);
+  tdmGameState.positionSyncInterval = setInterval(() => {
+    if (!tdmWs || tdmWs.readyState !== WebSocket.OPEN || !camera) return;
+    tdmWs.send(JSON.stringify({
+      type: 'tdm_position_sync',
+      x: parseFloat(camera.position.x.toFixed(2)),
+      y: parseFloat(camera.position.y.toFixed(2)),
+      z: parseFloat(camera.position.z.toFixed(2)),
+      yaw: parseFloat(state.yaw.toFixed(3)),
+    }));
+  }, 50);
+
+  // 8. Handlers de mensagem do WS para o jogo (adicionados ao handler já existente)
+  // Nota: o onmessage do tdmWs já está definido no lobby — vamos extender o switch
+  const _origTdmOnMessage = tdmWs.onmessage;
+  tdmWs.onmessage = (e) => {
+    let msg; try { msg = JSON.parse(e.data); } catch { return; }
+    switch (msg.type) {
+      case 'tdm_position_sync':
+        tdmAddOrUpdatePeer(msg);
+        break;
+      case 'tdm_took_damage':
+        tdmGameState.hp = msg.hp;
+        tdmUpdateHP(msg.hp);
+        tdmFlashDamage();
+        break;
+      case 'tdm_player_died':
+        tdmUpdateKillsHUD(msg.kills);
+        if (msg.deadId === tdmMyId) {
+          tdmShowDeath(msg.killerUsername);
+        } else {
+          // Peer inimigo morreu — flasheia o mesh dele (remove por 3s e volta)
+          const deadPeer = tdmPeers.get(msg.deadId);
+          if (deadPeer) deadPeer.mesh.visible = false;
+          if (msg.killerId === tdmMyId) {
+            tdmGameState.myKills++;
+            toast('🎯 Você eliminou ' + tdmEscape(msg.killerUsername || 'inimigo') + '!');
+          }
+          setTimeout(() => {
+            const p = tdmPeers.get(msg.deadId);
+            if (p) p.mesh.visible = true;
+          }, 3000);
+        }
+        break;
+      case 'tdm_respawn':
+        tdmRespawnSelf();
+        break;
+      case 'tdm_match_over':
+        tdmShowMatchOver(msg.winner, msg.kills);
+        break;
+      // Repassa mensagens do lobby que possam chegar (chat, lobby_update)
+      default:
+        if (_origTdmOnMessage) _origTdmOnMessage(e);
+        break;
+    }
+  };
+
+  const teamName = tdmGameState.myTeam === 'blue' ? '🔵 Time Azul' : '🔴 Time Vermelho';
+  toast(`⚔️ Partida iniciada! Você é do ${teamName}. Meta: ${TDM_WIN_KILLS} baixas!`);
 }
 
 // Override goToMenu (novamente) só para também limpar o lobby TDM ao sair
@@ -3873,6 +4461,13 @@ const _origGoToMenuTdm = goToMenu;
 goToMenu = function() {
   tdmDisconnect();
   document.getElementById('tdm-lobby').style.display = 'none';
+  if (typeof tdmGameState !== 'undefined' && tdmGameState.active) {
+    tdmGameCleanup();
+  }
+  const over = document.getElementById('tdm-match-over-overlay');
+  if (over) over.style.display = 'none';
+  const death = document.getElementById('tdm-death-overlay');
+  if (death) death.style.display = 'none';
   _origGoToMenuTdm();
 };
 
