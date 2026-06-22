@@ -372,7 +372,10 @@
   <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:680px;margin-bottom:18px;">
     <button onclick="tdmLeaveLobby()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:8px 16px;border-radius:30px;cursor:pointer;font-size:13px;">← Sair</button>
     <div style="font-size:20px;font-weight:900;letter-spacing:1px;">🔫 TEAM DEATHMATCH</div>
-    <div id="tdm-player-count" style="background:rgba(255,255,255,0.08);padding:8px 14px;border-radius:30px;font-size:13px;font-weight:700;min-width:44px;text-align:center;">0/10</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button onclick="tdmOpenRanking()" style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.3);color:#ffd700;padding:8px 14px;border-radius:30px;cursor:pointer;font-size:12px;font-weight:700;">🏆 Ranking</button>
+      <div id="tdm-player-count" style="background:rgba(255,255,255,0.08);padding:8px 14px;border-radius:30px;font-size:13px;font-weight:700;min-width:44px;text-align:center;">0/10</div>
+    </div>
   </div>
 
   <div style="font-size:12px;opacity:0.55;margin-bottom:18px;text-align:center;">Aguardando jogadores na sala · mínimo 6 (3x3) para liberar o início</div>
@@ -530,6 +533,32 @@
     </div>
 
     <div style="text-align:center;margin-top:18px;font-size:10px;opacity:0.3;letter-spacing:1px;">SEGURE TAB</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     TEAM DEATHMATCH — RANKING GLOBAL (Fase 6)
+     Acessível pelo botão no lobby. Isolado, display:none por padrão.
+     ════════════════════════════════════════════════════════════════════════ -->
+<div id="tdm-ranking-overlay" style="display:none;position:fixed;inset:0;z-index:70;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:flex-start;padding:24px 16px;overflow-y:auto;font-family:'Segoe UI',sans-serif;color:#fff;">
+  <div style="width:100%;max-width:600px;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="font-size:22px;font-weight:900;letter-spacing:1px;">🏆 Ranking Global TDM</div>
+      <button onclick="tdmCloseRanking()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:8px 16px;border-radius:30px;cursor:pointer;font-size:13px;">✕ Fechar</button>
+    </div>
+    <div style="font-size:11px;opacity:0.4;margin-bottom:18px;">XP acumulado em todas as partidas · sessão atual</div>
+
+    <!-- Cabeçalho da tabela -->
+    <div style="display:grid;grid-template-columns:40px 1fr 60px 80px 60px 60px;gap:8px;padding:8px 12px;font-size:10px;letter-spacing:1px;opacity:0.4;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:4px;">
+      <span>#</span><span>Jogador</span><span style="text-align:center;">Nível</span><span style="text-align:right;">XP</span><span style="text-align:center;">Kills</span><span style="text-align:center;">Vitórias</span>
+    </div>
+
+    <!-- Linhas do ranking (preenchidas via JS) -->
+    <div id="tdm-ranking-rows" style="display:flex;flex-direction:column;gap:2px;">
+      <div style="text-align:center;padding:32px;opacity:0.4;font-size:13px;">Carregando...</div>
+    </div>
+    <div id="tdm-ranking-empty" style="display:none;text-align:center;padding:32px;opacity:0.4;font-size:13px;">Nenhuma partida registrada ainda nesta sessão.</div>
   </div>
 </div>
 
@@ -3802,6 +3831,8 @@ function startTdmMode() {
 
 function tdmLeaveLobby() {
   tdmDisconnect();
+  const rankOv = document.getElementById('tdm-ranking-overlay');
+  if (rankOv) rankOv.style.display = 'none';
   document.getElementById('tdm-lobby').style.display = 'none';
   document.getElementById('splash').style.display = 'flex';
 }
@@ -3838,6 +3869,9 @@ function tdmConnectLobby(rejoinRoomId, rejoinTeam, rejoinUsername) {
           tdmUpdateKillsHUD(msg.kills || { blue: 0, red: 0 });
           startTdmGame();
         }
+        break;
+      case 'tdm_ranking':
+        tdmRenderRanking(msg.ranking || []);
         break;
       case 'tdm_joined':
         tdmMyId = msg.playerId;
@@ -4959,6 +4993,63 @@ function tdmGoToNextMatch() {
 function tdmCloseXpOverlay() {
   // Mantido para compatibilidade — agora chama tdmGoToNextMatch
   tdmGoToNextMatch();
+}
+
+// ── Ranking Global (Fase 6) ───────────────────────────────────────────────────
+
+function tdmOpenRanking() {
+  const overlay = document.getElementById('tdm-ranking-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  document.getElementById('tdm-ranking-rows').innerHTML =
+    '<div style="text-align:center;padding:32px;opacity:0.4;font-size:13px;">Carregando...</div>';
+  document.getElementById('tdm-ranking-empty').style.display = 'none';
+  // Requisita o ranking do servidor via WS
+  if (tdmWs && tdmWs.readyState === WebSocket.OPEN) {
+    tdmWs.send(JSON.stringify({ type: 'tdm_get_ranking' }));
+  } else {
+    document.getElementById('tdm-ranking-rows').innerHTML =
+      '<div style="text-align:center;padding:32px;opacity:0.4;font-size:13px;">Sem conexão com o servidor.</div>';
+  }
+}
+
+function tdmCloseRanking() {
+  const overlay = document.getElementById('tdm-ranking-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function tdmRenderRanking(ranking) {
+  const rowsEl  = document.getElementById('tdm-ranking-rows');
+  const emptyEl = document.getElementById('tdm-ranking-empty');
+  if (!rowsEl) return;
+
+  if (!ranking || ranking.length === 0) {
+    rowsEl.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  const myUsername = tdmGetUsername();
+  rowsEl.innerHTML = ranking.map((p, i) => {
+    const isMe = p.username === myUsername;
+    const rank  = i + 1;
+    // Medalha para top 3
+    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}º`;
+    const levelBadge = `<span style="background:rgba(255,215,0,0.15);color:#ffd700;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;">Nv.${p.level}</span>`;
+    const xpFormatted = Number(p.xp).toLocaleString('pt-BR');
+    const rowBg = isMe
+      ? 'background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);'
+      : rank <= 3 ? 'background:rgba(255,255,255,0.04);' : '';
+    return `<div style="display:grid;grid-template-columns:40px 1fr 60px 80px 60px 60px;gap:8px;padding:10px 12px;border-radius:10px;align-items:center;font-size:13px;${rowBg}">
+      <span style="font-size:${rank<=3?'18':'13'}px;text-align:center;">${medal}</span>
+      <span style="font-weight:${isMe?'800':'500'};color:${isMe?'#ffd700':'rgba(255,255,255,0.9)'};">${tdmEscape(p.username)}${isMe?' <span style="font-size:10px;opacity:0.5;">(você)</span>':''}</span>
+      <span style="text-align:center;">${levelBadge}</span>
+      <span style="text-align:right;font-weight:700;color:#60a5fa;">${xpFormatted}</span>
+      <span style="text-align:center;color:#4ade80;">${p.kills}</span>
+      <span style="text-align:center;color:#ffd700;">${p.wins}</span>
+    </div>`;
+  }).join('');
 }
 
 // Override goToMenu (novamente) só para também limpar o lobby TDM ao sair
