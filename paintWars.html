@@ -274,6 +274,7 @@
     animation: splatAnim 0.4s forwards;
   }
   @keyframes splatAnim {
+  @keyframes tdmHitFade { 0%{opacity:1;transform:translate(-50%,-50%) scale(1.4)} 100%{opacity:0;transform:translate(-50%,-50%) scale(0.7)} }
     0% { transform: translate(-50%,-50%) scale(0); opacity: 1; }
     60% { transform: translate(-50%,-50%) scale(1.5); opacity: 0.8; }
     100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
@@ -3767,6 +3768,9 @@ function tdmConnectLobby() {
       case 'tdm_match_starting':
         tdmRoster = msg.roster || tdmRoster;
         tdmRenderLobby();
+        // FIX: bloquear auto-reconect antes da contagem — evita que proxy idle
+        // feche a conexão e o player entre em sala nova durante os 5s de countdown.
+        if (tdmWs) tdmWs._matchStarting = true;
         tdmBeginCountdown(msg.countdown || 5);
         break;
     }
@@ -3774,7 +3778,12 @@ function tdmConnectLobby() {
 
   tdmWs.onclose = () => {
     clearInterval(tdmWs?._ping);
+    clearInterval(tdmWs?._countdownPing);
     tdmConnected = false;
+    // FIX: se a partida já começou (contagem em curso ou jogo ativo),
+    // NÃO reconectar — o player está em transição para o mapa.
+    // Reconectar aqui jogaria o player em uma sala nova vazia.
+    if (tdmWs && (tdmWs._matchStarting || tdmGameState.active)) return;
     if (document.getElementById('tdm-lobby').style.display !== 'none') {
       tdmAppendChat({ system: true, text: 'Conexão perdida. Reconectando...' });
       setTimeout(() => {
@@ -3889,11 +3898,22 @@ function tdmBeginCountdown(seconds) {
   numEl.textContent = n;
   overlay.style.display = 'flex';
 
+  // FIX: ping a cada 1s durante a contagem para evitar que proxy/Railway feche
+  // a conexão idle. Sem isso players saem da sala e entram em lobby novo.
+  clearInterval(tdmWs?._countdownPing);
+  if (tdmWs) {
+    tdmWs._countdownPing = setInterval(() => {
+      if (tdmWs && tdmWs.readyState === WebSocket.OPEN)
+        tdmWs.send(JSON.stringify({ type: 'ping' }));
+    }, 1000);
+  }
+
   clearInterval(window._tdmCountdownInterval);
   window._tdmCountdownInterval = setInterval(() => {
     n--;
     if (n <= 0) {
       clearInterval(window._tdmCountdownInterval);
+      clearInterval(tdmWs?._countdownPing);
       numEl.textContent = '🔫';
       setTimeout(tdmMatchPlaceholderTransition, 600);
     } else {
@@ -4193,8 +4213,15 @@ function tdmTryShoot() {
   if (tdmWs && tdmWs.readyState === WebSocket.OPEN) {
     tdmWs.send(JSON.stringify({ type: 'tdm_hit', targetId, damage: tdmGameState.TDM_DAMAGE }));
   }
-  // Efeito visual de acerto
-  toast('💥 Acerto!');
+  // Efeito visual de acerto (hitmarker no crosshair) — sem toast para não spammar
+  const canvas = document.getElementById('canvas');
+  if (canvas) {
+    const hm = document.createElement('div');
+    hm.textContent = '✕';
+    hm.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#f87171;font-size:20px;font-weight:900;pointer-events:none;z-index:50;animation:tdmHitFade 0.35s forwards;';
+    document.body.appendChild(hm);
+    setTimeout(() => hm.remove(), 400);
+  }
 }
 
 // ── HP e morte ───────────────────────────────────────────────────────────────
@@ -4348,6 +4375,17 @@ function tdmGameLoop(dt) {
 // ── Inicialização do jogo TDM (chamada ao fim da contagem regressiva) ─────────
 
 function startTdmGame() {
+  // Guard: se WS caiu antes da transição, não trava o player em tela preta
+  if (!tdmWs || tdmWs.readyState !== WebSocket.OPEN) {
+    toast('⚠️ Conexão perdida durante a contagem. Voltando ao menu...');
+    document.getElementById('tdm-lobby').style.display = 'none';
+    document.getElementById('tdm-countdown-overlay').style.display = 'none';
+    document.getElementById('splash').style.display = 'flex';
+    return;
+  }
+  // Limpar ping de countdown
+  clearInterval(tdmWs?._countdownPing);
+
   // 1. Esconder todos os overlays do lobby
   document.getElementById('tdm-lobby').style.display = 'none';
   document.getElementById('tdm-countdown-overlay').style.display = 'none';
