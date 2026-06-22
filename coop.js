@@ -33,7 +33,35 @@ function tdmAssignTeam(room) {
 }
 
 function tdmRoster(room) {
-  return [...room.players.values()].map(p => ({ id: p.id, username: p.username, team: p.team }));
+  return [...room.players.values()].map(p => {
+    const xpData = tdmXpRegistry.get(p.username) || { xp: 0 };
+    return { id: p.id, username: p.username, team: p.team, xp: xpData.xp };
+  });
+}
+
+// ─── TDM XP REGISTRY (Fase 5) ────────────────────────────────────────────────
+// Registry em memória — persiste durante a sessão do servidor.
+const tdmXpRegistry = new Map(); // username → { xp, kills, deaths, wins, losses }
+
+function tdmGetXpData(username) {
+  if (!tdmXpRegistry.has(username)) {
+    tdmXpRegistry.set(username, { xp: 0, kills: 0, deaths: 0, wins: 0, losses: 0 });
+  }
+  return tdmXpRegistry.get(username);
+}
+
+// Espelha a tabela de thresholds do cliente para calcular level no servidor
+const TDM_LEVEL_XP_SRV = [0,0,300,800,1600,2800,4500,6800,9800,13800,19000,26000,35000,47000,62000,80000,102000,128000,158000,193000,234000];
+function tdmLevelFromXp(xp) {
+  let level = 1;
+  for (let i = TDM_LEVEL_XP_SRV.length - 1; i >= 1; i--) {
+    if (xp >= TDM_LEVEL_XP_SRV[i]) { level = i; break; }
+  }
+  return Math.min(level, 50);
+}
+
+function tdmMatchXpEarned(kills, isWinner) {
+  return (kills * 100) + (isWinner ? 300 : 50);
 }
 
 function tdmBroadcast(room, data) {
@@ -202,7 +230,34 @@ function setupCoopWS(wss) {
           });
           if (gs.kills[shooter.team] >= gs.WIN_KILLS) {
             gs.finished = true;
-            tdmBroadcast(troom, { type: 'tdm_match_over', winner: shooter.team, kills: gs.kills });
+            const winnerTeam = shooter.team;
+            // Fase 5: calcular e distribuir XP para cada jogador
+            for (const [pid2, pl2] of troom.players) {
+              const hp2 = gs.playerHp[pid2];
+              if (!hp2) continue;
+              const isWinner = hp2.team === winnerTeam;
+              const matchKills = hp2.kills || 0;
+              const matchDeaths = hp2.deaths || 0;
+              const xpEarned = tdmMatchXpEarned(matchKills, isWinner);
+              const xpData = tdmGetXpData(pl2.username);
+              const oldXp = xpData.xp;
+              xpData.xp += xpEarned;
+              xpData.kills += matchKills;
+              xpData.deaths += matchDeaths;
+              if (isWinner) xpData.wins++; else xpData.losses++;
+              const oldLevel = tdmLevelFromXp(oldXp);
+              const newLevel = tdmLevelFromXp(xpData.xp);
+              if (pl2.ws.readyState === 1) {
+                pl2.ws.send(JSON.stringify({
+                  type: 'tdm_xp_earned',
+                  xpEarned, totalXp: xpData.xp,
+                  matchKills, matchDeaths,
+                  isWinner, oldLevel, newLevel,
+                  leveledUp: newLevel > oldLevel,
+                }));
+              }
+            }
+            tdmBroadcast(troom, { type: 'tdm_match_over', winner: winnerTeam, kills: gs.kills });
           } else {
             // Respawn automático após 3 s
             setTimeout(() => {
@@ -217,6 +272,30 @@ function setupCoopWS(wss) {
           if (target.ws.readyState === 1)
             target.ws.send(JSON.stringify({ type: 'tdm_took_damage', hp: targetHp.hp }));
         }
+        return;
+      }
+
+      // ── TDM RANKING / XP QUERY (Fase 5) — isolado ──────────────────────────
+      if (msg.type === 'tdm_get_ranking') {
+        const sorted = [...tdmXpRegistry.entries()]
+          .sort(([,a],[,b]) => b.xp - a.xp)
+          .slice(0, 50)
+          .map(([username, d], i) => ({
+            rank: i + 1, username,
+            xp: d.xp, level: tdmLevelFromXp(d.xp),
+            kills: d.kills, deaths: d.deaths, wins: d.wins,
+          }));
+        ws.send(JSON.stringify({ type: 'tdm_ranking', ranking: sorted }));
+        return;
+      }
+
+      if (msg.type === 'tdm_get_my_xp' && msg.username) {
+        const d = tdmGetXpData(msg.username);
+        ws.send(JSON.stringify({
+          type: 'tdm_my_xp',
+          xp: d.xp, level: tdmLevelFromXp(d.xp),
+          kills: d.kills, deaths: d.deaths, wins: d.wins,
+        }));
         return;
       }
 
