@@ -4403,7 +4403,13 @@ function tdmUpdateKillsHUD(kills) {
 function tdmShowMatchOver(winner, kills) {
   tdmGameState.finished = true;
   clearInterval(tdmGameState.positionSyncInterval);
-  // Bug 1 fix: liberar cursor imediatamente para o usuário clicar no overlay de XP
+  // Fix cursor: marcar overlays como "modal open" ANTES de chamar exitPointerLock.
+  // O handler de pointerlockchange checa querySelectorAll('.modal.open') — se encontrar
+  // algum, não chama showPause(). Assim o pause não aparece sobre o overlay de XP.
+  const xpOv = document.getElementById('tdm-xp-overlay');
+  const moOv = document.getElementById('tdm-match-over-overlay');
+  if (xpOv) xpOv.classList.add('modal', 'open');
+  if (moOv) moOv.classList.add('modal', 'open');
   if (document.exitPointerLock) document.exitPointerLock();
   const overlay = document.getElementById('tdm-match-over-overlay');
   const titleEl = document.getElementById('tdm-match-over-title');
@@ -4916,6 +4922,11 @@ function tdmShowXpGain(data) {
 function tdmGoToNextMatch() {
   const savedRoomId = tdmRoomId; // sala da partida que acabou (resetada no servidor após 8s)
   const savedTeam   = tdmGameState.myTeam;
+  // Limpar classes modal open que foram adicionadas para suprimir showPause()
+  ['tdm-xp-overlay','tdm-match-over-overlay'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('modal','open');
+  });
   tdmGameCleanup();
   document.getElementById('tdm-match-over-overlay').style.display = 'none';
   document.getElementById('tdm-xp-overlay').style.display = 'none';
