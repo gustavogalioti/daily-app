@@ -4207,6 +4207,12 @@ function tdmAddOrUpdatePeer(data) {
     const badgeColor = data.team === 'blue' ? 0x60a5fa : 0xf87171;
     const badge = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), new THREE.MeshLambertMaterial({ color: badgeColor }));
     badge.position.y = 1.6; group.add(badge);
+    // BUG FIX: hitbox invisível de y=0 até y=2 — garante que o raycast (câmera em y=1.7)
+    // sempre acerte o inimigo, independente do ângulo leve de visão
+    const hitboxMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+    const hitbox = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.0, 0.6), hitboxMat);
+    hitbox.position.y = 1.0; // centro em y=1 → cobre de y=0 a y=2
+    group.add(hitbox);
 
     group.position.set(data.x||0, (data.y||1.7)-1.7, data.z||50);
     scene.add(group);
@@ -4534,6 +4540,8 @@ function startTdmGame() {
 
   // Esconder HUDs que não fazem parte do TDM
   document.getElementById('coop-hud').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('left-panel').style.display = 'none';
 
   // 7. Sincronização de posição — envia a cada 50ms
   clearInterval(tdmGameState.positionSyncInterval);
