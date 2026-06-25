@@ -11456,11 +11456,12 @@ function startDailyTower() {
   dtShowPanel('game');
   DT.canvas = document.getElementById('dt-canvas');
   DT.ctx = DT.canvas.getContext('2d');
-  const container = document.getElementById('dt-canvas-container');
-  // Aguardar o DOM tornar o container visível antes de medir clientWidth
-  const W = container.clientWidth || window.innerWidth || 360;
-  DT.canvas.width = W;
+  // Medir largura ANTES de mostrar o game area — usando o pai visível
+  const jogoTower = document.getElementById('jogo-tower');
+  const W = (jogoTower ? jogoTower.getBoundingClientRect().width : 0) || window.innerWidth || 360;
+  DT.canvas.width = Math.floor(W);
   DT.canvas.height = 360;
+  DT.canvas.style.width = '100%';
   DT.canvas.style.height = '360px';
 
   DT.running = true; DT.paused = false;
