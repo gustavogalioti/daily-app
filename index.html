@@ -8395,7 +8395,7 @@ async function loadDailyVerse() {
         el, cfg,
         x, y,
         vx: (Math.random() - .5) * 0.6,
-        vy: 0,
+        vy: (Math.random() - .5) * 0.2,
         dir: Math.random() > .5 ? 1 : -1,
         action: 'walk',
         actionTimer: 0,
@@ -8757,14 +8757,25 @@ async function loadDailyVerseV2() {
       el.onclick = () => openUserProfile(p.username);
       canvas.appendChild(el);
 
-      const x = 40 + (i / Math.max(list.length,1)) * (W - 100) + (Math.random() - .5) * 60;
-      const y = H * 0.72 + Math.random() * (H * 0.10);
+      // Zonas espalhadas pelo cenário (evitando a placa à esquerda)
+      const ZONES = [
+        { xMin:0.30, xMax:0.65, yMin:0.30, yMax:0.55 }, // centro-alto
+        { xMin:0.55, xMax:0.90, yMin:0.55, yMax:0.80 }, // direita-meio
+        { xMin:0.25, xMax:0.60, yMin:0.60, yMax:0.85 }, // centro-baixo
+        { xMin:0.05, xMax:0.30, yMin:0.65, yMax:0.90 }, // esquerda-baixo
+        { xMin:0.65, xMax:0.95, yMin:0.25, yMax:0.50 }, // direita-alto
+        { xMin:0.35, xMax:0.65, yMin:0.75, yMax:0.92 }, // centro-chão
+        { xMin:0.10, xMax:0.40, yMin:0.40, yMax:0.65 }, // esquerda-meio
+      ];
+      const zone = ZONES[i % ZONES.length];
+      const x = W * (zone.xMin + Math.random() * (zone.xMax - zone.xMin));
+      const y = H * (zone.yMin + Math.random() * (zone.yMax - zone.yMin));
 
       return {
         el,
         x, y,
         vx: (Math.random() - .5) * 0.6,
-        vy: 0,
+        vy: (Math.random() - .5) * 0.2,
         dir: Math.random() > .5 ? 1 : -1,
         actionTimer: 0,
         username: p.username,
@@ -8783,8 +8794,14 @@ function verseLoopV2(canvas, W, H) {
   if (!verseRunningV2) return;
   verseAgentsV2.forEach(agent => {
     agent.x += agent.vx * agent.dir;
+    agent.y += agent.vy;
+    // Limites X
     if (agent.x < 10) { agent.dir = 1; agent.x = 10; }
     if (agent.x > W - 70) { agent.dir = -1; agent.x = W - 70; }
+    // Limites Y — pode ir de 25% a 92% da altura
+    const yMin = H * 0.25, yMax = H * 0.88;
+    if (agent.y < yMin) { agent.vy = Math.abs(agent.vy) * 0.3; agent.y = yMin; }
+    if (agent.y > yMax) { agent.vy = -Math.abs(agent.vy) * 0.3; agent.y = yMax; }
 
     agent.actionTimer--;
     if (agent.actionTimer <= 0) {
@@ -8814,8 +8831,10 @@ function verseLoopV2(canvas, W, H) {
       } else if (r < 0.6) {
         agent.dir *= -1;
         agent.vx = 0.4 + Math.random()*0.4;
+        agent.vy = (Math.random()-.5)*0.25;
       } else {
         agent.vx = (Math.random()-.5)*0.5;
+        agent.vy = (Math.random()-.5)*0.2;
       }
     }
 
