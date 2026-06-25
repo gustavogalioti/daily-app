@@ -12,7 +12,7 @@ router.get('/me', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     const poke = await db.prepare('SELECT * FROM dailypokes WHERE user_id=$1').get(req.user.id);
-    res.json({ config: poke?.config || null });
+    res.json({ config: poke?.config || null, avatar_url: poke?.avatar_url || null });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 

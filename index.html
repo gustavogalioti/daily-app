@@ -11362,7 +11362,8 @@ const DT = {
   animFrame: null, lastTime: 0,
   canvas: null, ctx: null,
   pokeConfig: null,
-  enemyAnnounce: null, // {name, emoji, timer}
+  pokeAvatarUrl: null, // PNG do editor Dailypoke (novo sistema)
+  enemyAnnounce: null,
 };
 const dtKeys = { left: false, right: false, jump: false };
 
@@ -11425,14 +11426,12 @@ async function initDailyTowerHome() {
   try {
     const data = await api('/api/dailypoke/me').catch(()=>null);
     DT.pokeConfig = data?.config ? (typeof data.config==='string'?JSON.parse(data.config):data.config) : null;
+    DT.pokeAvatarUrl = data?.avatar_url || null; // PNG do editor Dailypoke
   } catch(e) {}
   const preview = document.getElementById('dt-player-preview');
   if (preview) {
-    // Novo sistema: avatar_url PNG do Cloudinary
-    const avatarUrl = (typeof currentUser !== 'undefined' && currentUser && currentUser.avatar_url)
-      ? currentUser.avatar_url : null;
-    if (avatarUrl && avatarUrl.startsWith('http')) {
-      preview.innerHTML = `<img src="${avatarUrl}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">`;
+    if (DT.pokeAvatarUrl) {
+      preview.innerHTML = `<img src="${DT.pokeAvatarUrl}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">`;
     } else if (DT.pokeConfig && typeof buildPokeSVG === 'function') {
       try {
         preview.innerHTML = buildPokeSVG(DT.pokeConfig).replace(/width="[^"]*"/,'width="56"').replace(/height="[^"]*"/,'height="56"');
@@ -11509,28 +11508,25 @@ function _startDailyTowerInner() {
 }
 
 function dtLoadPlayerAvatar() {
-  // Novo sistema: avatar_url do usuário (PNG do Cloudinary via dailypoke_editor)
-  const avatarUrl = (typeof currentUser !== 'undefined' && currentUser)
-    ? (currentUser.avatar_url || null) : null;
+  // Usa o PNG do editor Dailypoke (salvo em dailypokes.avatar_url no banco)
+  const pokeUrl = DT.pokeAvatarUrl || null;
 
-  if (avatarUrl && avatarUrl.startsWith('http')) {
-    // Carrega diretamente a imagem PNG do Cloudinary
+  if (pokeUrl && pokeUrl.startsWith('http')) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => { DT._pokeImg = img; };
-    img.onerror = () => { DT._pokeImg = null; }; // fallback para emoji
-    img.src = avatarUrl;
-    DT._pokeImgCfgHash = avatarUrl;
+    img.onerror = () => { DT._pokeImg = null; };
+    img.src = pokeUrl;
+    DT._pokeImgCfgHash = pokeUrl;
 
-    // HUD avatar
     const hAvatar = document.getElementById('dt-hud-avatar');
     if (hAvatar) {
-      hAvatar.innerHTML = `<img src="${avatarUrl}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;">`;
+      hAvatar.innerHTML = `<img src="${pokeUrl}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;">`;
     }
     return;
   }
 
-  // Fallback: tentar SVG legado se pokeConfig disponível
+  // Fallback: SVG legado se pokeConfig disponível
   const hAvatar = document.getElementById('dt-hud-avatar');
   if (DT.pokeConfig && typeof buildPokeSVG === 'function') {
     try {
