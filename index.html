@@ -8719,6 +8719,53 @@ function openPokeEditorAdmin() {
   document.body.appendChild(modal);
 }
 
+// ─── NPCs do DailyPokeVERSE ───
+const VERSE_NPCS = [
+  {
+    id: 'npc_tiodozap',
+    name: 'Tio do Zap',
+    avatar_url: '/npc_tiodozap.png',
+    isNpc: true,
+    falas: [
+      'A terra é plana!!!',
+      'A humanidade nunca foi pra lua',
+      'Os dados são manipulados!!!',
+    ]
+  },
+  {
+    id: 'npc_mandrake',
+    name: 'Mandrake',
+    avatar_url: '/npc_mandrake.png',
+    isNpc: true,
+    falas: [
+      'Qual é papai?',
+      'Aí meu deus como é bom ser vida loca',
+      'Que isso novinha??',
+    ]
+  },
+  {
+    id: 'npc_patriota',
+    name: 'Patriota',
+    avatar_url: '/npc_patriota.png',
+    isNpc: true,
+    falas: [
+      'Aqui é Brasil!!!!',
+    ]
+  },
+  {
+    id: 'npc_maromba',
+    name: 'Maromba',
+    avatar_url: '/npc_maromba.png',
+    isNpc: true,
+    falas: [
+      'Eu não como lanches nem do palhaço nem do rei',
+      'Onde está meu whey?',
+      'Que vontade de treinar costas!!!',
+      'Quem quer ir comigo treinar?',
+    ]
+  },
+];
+
 // ─── DailyPokeVERSE V2 (novos avatares PNG) ───
 
 async function loadDailyVerseV2() {
@@ -8730,7 +8777,8 @@ async function loadDailyVerseV2() {
 
   try {
     const { pokes } = await api('/api/dailypoke/all').catch(() => ({ pokes: [] }));
-    const list = pokes && pokes.length ? [...pokes] : [];
+    // Sempre incluir os NPCs + os DailyPokes dos usuários
+    const list = [...VERSE_NPCS, ...(pokes || [])];
 
     if (!list.length) {
       canvas.innerHTML += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--muted);font-size:13px;">Crie seu DailyPoke para aparecer aqui! 🎭</div>';
@@ -8778,8 +8826,10 @@ async function loadDailyVerseV2() {
         vy: (Math.random() - .5) * 0.2,
         dir: Math.random() > .5 ? 1 : -1,
         actionTimer: 0,
-        username: p.username,
-        name: (p.name || '').split(' ')[0] || p.username,
+        username: p.username || p.id || '',
+        name: (p.name || '').split(' ')[0] || p.username || '',
+        isNpc: !!p.isNpc,
+        falas: p.falas || null,
       };
     });
 
@@ -8807,7 +8857,19 @@ function verseLoopV2(canvas, W, H) {
     if (agent.actionTimer <= 0) {
       agent.actionTimer = 90 + Math.floor(Math.random() * 130);
       const r = Math.random();
-      if (r < 0.12) {
+
+      // NPCs: 50% de chance de soltar frase exclusiva
+      if (agent.isNpc && agent.falas && agent.falas.length && r < 0.50) {
+        agent.vx = 0;
+        const fala = agent.falas[Math.floor(Math.random() * agent.falas.length)];
+        showVerseBubbleV2(agent, fala);
+        const nearest = verseAgentsV2.filter(a => a !== agent).sort((a,b) => Math.abs(a.x-agent.x)-Math.abs(b.x-agent.x))[0];
+        if (nearest && Math.abs(nearest.x - agent.x) < 220) {
+          setTimeout(() => showVerseBubbleV2(nearest, getVerseGreeting(nearest.name, agent.name)), 1400);
+        }
+        setTimeout(() => { agent.vx = (Math.random()-.5)*0.5; }, 2800);
+
+      } else if (r < 0.12) {
         agent.vx = 0;
         const nearest = verseAgentsV2.filter(a => a !== agent).sort((a,b) => Math.abs(a.x-agent.x)-Math.abs(b.x-agent.x))[0];
         if (nearest && Math.abs(nearest.x - agent.x) < 200) {
