@@ -11428,8 +11428,15 @@ async function initDailyTowerHome() {
   } catch(e) {}
   const preview = document.getElementById('dt-player-preview');
   if (preview) {
-    if (DT.pokeConfig && typeof buildPokeSVG === 'function') {
-      preview.innerHTML = buildPokeSVG(DT.pokeConfig).replace(/width="[^"]*"/,'width="56"').replace(/height="[^"]*"/,'height="56"');
+    // Novo sistema: avatar_url PNG do Cloudinary
+    const avatarUrl = (typeof currentUser !== 'undefined' && currentUser && currentUser.avatar_url)
+      ? currentUser.avatar_url : null;
+    if (avatarUrl && avatarUrl.startsWith('http')) {
+      preview.innerHTML = `<img src="${avatarUrl}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">`;
+    } else if (DT.pokeConfig && typeof buildPokeSVG === 'function') {
+      try {
+        preview.innerHTML = buildPokeSVG(DT.pokeConfig).replace(/width="[^"]*"/,'width="56"').replace(/height="[^"]*"/,'height="56"');
+      } catch(e) { preview.textContent = '🧑'; }
     } else { preview.textContent = '🧑'; }
   }
   const nameEl = document.getElementById('dt-player-name');
@@ -11454,12 +11461,23 @@ function dtShowPanel(name) {
 
 function startDailyTower() {
   dtShowPanel('game');
+  // Defer to next frame so the DOM is painted and we get correct dimensions
+  requestAnimationFrame(() => _startDailyTowerInner());
+}
+
+function _startDailyTowerInner() {
   DT.canvas = document.getElementById('dt-canvas');
   DT.ctx = DT.canvas.getContext('2d');
-  // Medir largura ANTES de mostrar o game area — usando o pai visível
-  const jogoTower = document.getElementById('jogo-tower');
-  const W = (jogoTower ? jogoTower.getBoundingClientRect().width : 0) || window.innerWidth || 360;
-  DT.canvas.width = Math.floor(W);
+
+  // Medir largura após o DOM estar visível
+  const container = document.getElementById('dt-canvas-container');
+  let W = container ? (container.getBoundingClientRect().width || container.offsetWidth) : 0;
+  if (!W || W < 50) {
+    const jogoTower = document.getElementById('jogo-tower');
+    W = (jogoTower ? jogoTower.offsetWidth : 0) || window.innerWidth || 360;
+  }
+  W = Math.floor(W);
+  DT.canvas.width = W;
   DT.canvas.height = 360;
   DT.canvas.style.width = '100%';
   DT.canvas.style.height = '360px';
@@ -11468,31 +11486,73 @@ function startDailyTower() {
   DT.floor = 1; DT.hp = DT.maxHp = 100;
   DT.coins = 0; DT.kills = 0;
   DT.enemies = []; DT.bullets = []; DT.particles = [];
+  DT._pokeImg = null; // reset cached poke image
   DT.currentFloor = dtGenFloor(1);
   DT.nextFloor = dtGenFloor(2);
   const tW0 = Math.floor(DT.canvas.width * 0.65);
   DT.player = { x:Math.floor(tW0*0.2), y:0, w:28, h:38, vx:0, vy:0, onGround:false, facingRight:true, shootCD:0, invincible:0 };
   DT.player.y = DT.canvas.height - 40 - DT.player.h;
 
-  // Set HUD avatar to poke
-  const hAvatar = document.getElementById('dt-hud-avatar');
-  if (hAvatar) {
-    if (DT.pokeConfig && typeof buildPokeSVG==='function') {
-      hAvatar.innerHTML = buildPokeSVG(DT.pokeConfig).replace(/width="[^"]*"/,'width="40"').replace(/height="[^"]*"/,'height="40"');
-    } else { hAvatar.textContent='🧑'; }
-  }
+  // ── Carregar avatar do jogador (novo sistema PNG ou SVG legado) ──
+  dtLoadPlayerAvatar();
 
   dtUpdateHUD();
   DT.canvas.onclick = ()=>{ if(DT.running && !DT.paused) dtShoot(); };
   if (DT.animFrame) cancelAnimationFrame(DT.animFrame);
   DT.lastTime = performance.now();
-  // Announce enemies on floor 1
   const firstAlive = DT.currentFloor.enemies.filter(e=>e.hpCurrent>0);
   if(firstAlive.length>0) {
     const f=firstAlive[0];
     DT.enemyAnnounce={name:f.name,emoji:f.emoji,isBoss:f.isBoss,timer:240,color:f.color};
   } else { DT.enemyAnnounce=null; }
   DT.animFrame = requestAnimationFrame(dtLoop);
+}
+
+function dtLoadPlayerAvatar() {
+  // Novo sistema: avatar_url do usuário (PNG do Cloudinary via dailypoke_editor)
+  const avatarUrl = (typeof currentUser !== 'undefined' && currentUser)
+    ? (currentUser.avatar_url || null) : null;
+
+  if (avatarUrl && avatarUrl.startsWith('http')) {
+    // Carrega diretamente a imagem PNG do Cloudinary
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { DT._pokeImg = img; };
+    img.onerror = () => { DT._pokeImg = null; }; // fallback para emoji
+    img.src = avatarUrl;
+    DT._pokeImgCfgHash = avatarUrl;
+
+    // HUD avatar
+    const hAvatar = document.getElementById('dt-hud-avatar');
+    if (hAvatar) {
+      hAvatar.innerHTML = `<img src="${avatarUrl}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;">`;
+    }
+    return;
+  }
+
+  // Fallback: tentar SVG legado se pokeConfig disponível
+  const hAvatar = document.getElementById('dt-hud-avatar');
+  if (DT.pokeConfig && typeof buildPokeSVG === 'function') {
+    try {
+      const svgStr = buildPokeSVG(DT.pokeConfig)
+        .replace(/width="[^"]*"/, 'width="32"')
+        .replace(/height="[^"]*"/, 'height="48"');
+      const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => { DT._pokeImg = img; };
+      img.src = url;
+      if (hAvatar) {
+        hAvatar.innerHTML = buildPokeSVG(DT.pokeConfig)
+          .replace(/width="[^"]*"/, 'width="40"')
+          .replace(/height="[^"]*"/, 'height="40"');
+      }
+    } catch(e) {
+      if (hAvatar) hAvatar.textContent = '🧑';
+    }
+  } else {
+    if (hAvatar) hAvatar.textContent = '🧑';
+  }
 }
 
 function dtGenFloor(num) {
@@ -12261,9 +12321,8 @@ function dtDrawPlayer(p, groundY, towerW, towerX) {
   const ctx = DT.ctx;
   if (p.invincible > 0 && Math.floor(p.invincible) % 6 < 3) return;
 
-  // px/py: canvas-absolute position of player top-left
   const px = (towerX || 0) + p.x;
-  const py = p.y; // p.y is already in canvas coords
+  const py = p.y;
 
   // Shadow on ground
   const shadowX = (towerX || 0) + p.x + p.w / 2;
@@ -12272,32 +12331,21 @@ function dtDrawPlayer(p, groundY, towerW, towerX) {
   ctx.ellipse(shadowX, groundY - 2, 14, 4, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  if (DT.pokeConfig && typeof buildPokeSVG === 'function') {
-    if (!DT._pokeImg || DT._pokeImgCfgHash !== JSON.stringify(DT.pokeConfig)) {
-      const svgStr = buildPokeSVG(DT.pokeConfig)
-        .replace(/width="[^"]*"/, 'width="32"')
-        .replace(/height="[^"]*"/, 'height="48"');
-      const blob = new Blob([svgStr], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const img = new Image();
-      img.src = url;
-      img.onload = () => { DT._pokeImg = img; DT._pokeImgCfgHash = JSON.stringify(DT.pokeConfig); };
+  // Use cached image (PNG avatar_url or SVG blob — both loaded into DT._pokeImg)
+  if (DT._pokeImg && DT._pokeImg.complete && DT._pokeImg.naturalWidth > 0) {
+    ctx.save();
+    if (!p.facingRight) {
+      ctx.translate(px + p.w, py);
+      ctx.scale(-1, 1);
+      ctx.drawImage(DT._pokeImg, 0, 0, 36, 52);
+    } else {
+      ctx.drawImage(DT._pokeImg, px, py, 36, 52);
     }
-    if (DT._pokeImg) {
-      ctx.save();
-      if (!p.facingRight) {
-        ctx.translate(px + p.w, py);
-        ctx.scale(-1, 1);
-        ctx.drawImage(DT._pokeImg, 0, 0, 32, 48);
-      } else {
-        ctx.drawImage(DT._pokeImg, px, py, 32, 48);
-      }
-      ctx.restore();
-      return;
-    }
+    ctx.restore();
+    return;
   }
 
-  // Fallback emoji
+  // Fallback: emoji 🧑
   const cx = px + p.w / 2;
   ctx.font = '30px serif';
   ctx.textAlign = 'center';
@@ -12311,7 +12359,6 @@ function dtDrawPlayer(p, groundY, towerW, towerX) {
     ctx.fillText('🧑', cx, py + p.h);
   }
 }
-
 function dtDrawLabel(num, x, y, theme, isBoss, alpha) {
   const ctx=DT.ctx; ctx.save(); ctx.globalAlpha=alpha;
   ctx.fillStyle=isBoss?'#ef4444':'rgba(255,255,255,0.9)'; ctx.font='bold 11px Arial'; ctx.textAlign='left';
