@@ -63,11 +63,20 @@ async function _tdmSavePlayer(username, data) {
 }
 
 const MAX_COOP = 10;
+const MAX_PRIVATE = 10; // lobby privado: até 10 jogadores
 const rooms = new Map(); // roomId → Map<playerId, playerData>
 
 // Modo Livre: sala única global (sem limite)
 const FREE_ROOM = 'free_room_global';
 rooms.set(FREE_ROOM, new Map());
+
+// Salas privadas — prefixo 'priv_' + código de 6 chars
+// São criadas sob demanda e removidas quando ficam vazias.
+function getOrCreatePrivateRoom(code) {
+  const rid = 'priv_' + code.toUpperCase().slice(0,6);
+  if (!rooms.has(rid)) rooms.set(rid, new Map());
+  return rid;
+}
 
 // ─── TEAM DEATHMATCH — LOBBY (Fase 1) ────────────────────────────────────────
 // Estrutura 100% isolada da estrutura `rooms` usada por Livre/Coop acima.
@@ -376,8 +385,14 @@ function setupCoopWS(wss) {
       // ── JOIN (Modo Livre / Modo Coop) — código original, inalterado ────────
       if (msg.type === 'join') {
         pid = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,5);
-        // mode:'free' → sala global ilimitada; mode:'coop' → sala de até 10
-        rid = msg.mode === 'free' ? FREE_ROOM : getCoopRoom();
+        // mode:'free' → sala global; mode:'coop' → sala pública; mode:'private' → sala privada
+        if (msg.mode === 'free') {
+          rid = FREE_ROOM;
+        } else if (msg.mode === 'private' && msg.roomCode) {
+          rid = getOrCreatePrivateRoom(msg.roomCode);
+        } else {
+          rid = getCoopRoom();
+        }
         const room = rooms.get(rid);
         const player = {
           id: pid, ws,
@@ -385,7 +400,7 @@ function setupCoopWS(wss) {
           x: 0, y: 1.7, z: 30, yaw: 0,
         };
         room.set(pid, player);
-        const limit = rid === FREE_ROOM ? '∞' : MAX_COOP;
+        const limit = rid === FREE_ROOM ? '∞' : rid.startsWith('priv_') ? MAX_PRIVATE : MAX_COOP;
         ws.send(JSON.stringify({
           type: 'joined', playerId: pid, roomId: rid,
           roomCount: room.size, limit,
