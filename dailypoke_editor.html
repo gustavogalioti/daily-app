@@ -584,14 +584,41 @@ async function savePoke() {
 
 // INIT
 if (!IS_ADMIN_MODE) {
-  // Modo usuário: esconder ferramentas de calibração
   document.getElementById('mode-css').textContent =
     '.prop-bar{display:none!important}.crop-btn{display:none!important}';
 }
-buildCatMenus();
-renderZoneContent('body');
-updateCombos();
-draw();
+
+async function initEditor() {
+  // Tentar carregar config salva do usuário
+  const token = localStorage.getItem('daily_token');
+  if (token) {
+    try {
+      const res = await fetch('/api/dailypoke/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.config) {
+          const cfg = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
+          // Restaurar estado
+          if (cfg.gender) gender = cfg.gender;
+          if (cfg.sel) Object.assign(sel, cfg.sel);
+          if (cfg.hairColor !== undefined) hairColor = cfg.hairColor;
+          // Atualizar botão de gênero
+          document.querySelectorAll('.gbtn').forEach(b => {
+            b.classList.toggle('active', b.dataset.g === gender);
+          });
+        }
+      }
+    } catch(e) { console.warn('Não foi possível carregar config salva:', e); }
+  }
+  buildCatMenus();
+  renderZoneContent('body');
+  updateCombos();
+  draw();
+}
+
+initEditor();
 </script>
 </body>
 </html>
