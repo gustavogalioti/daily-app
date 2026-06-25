@@ -11597,7 +11597,7 @@ function _startDailyTowerInner() {
   DT._pokeImg = null; // reset cached poke image
   DT.currentFloor = dtGenFloor(1);
   DT.nextFloor = dtGenFloor(2);
-  const tW0 = Math.floor(DT.canvas.width * 0.65);
+  const tW0 = Math.floor(DT.canvas.width * 0.75);
   DT.player = { x:Math.floor(tW0*0.2), y:0, w:28, h:38, vx:0, vy:0, onGround:false, facingRight:true, shootCD:0, invincible:0 };
   DT.player.y = DT.canvas.height - 40 - DT.player.h;
 
@@ -11661,7 +11661,7 @@ function dtLoadPlayerAvatar() {
 }
 
 function dtGenFloor(num) {
-  const W = DT.canvas ? Math.floor(DT.canvas.width * 0.65) : 240;
+  const W = DT.canvas ? Math.floor(DT.canvas.width * 0.75) : 280;
   const theme = DT_THEMES[num % DT_THEMES.length];
   const isBoss = num > 0 && num % 25 === 0;
   const hasPlatform = Math.random() < 0.35;
@@ -11720,7 +11720,7 @@ function dtUpdate(dt) {
   const p = DT.player;
   const W = DT.canvas.width, H = DT.canvas.height;
   const groundY = H - 40;
-  const towerW = Math.floor(W * 0.65);
+  const towerW = Math.floor(W * 0.75);
 
   // ── MOVEMENT: suave, sem aceleração excessiva ──
   const TARGET_SPEED = 3.5;
@@ -11818,10 +11818,10 @@ function dtUpdate(dt) {
       e.speech = e.speeches[Math.floor(Math.random() * e.speeches.length)];
       e.speechTimer = 100 + Math.random() * 60;
     }
-    const eY = groundY - 36;
+    const eY = groundY - 30; // centro vertical do inimigo (pé no chão, corpo acima)
     if (p.invincible <= 0 &&
-        Math.abs((e.x + 18) - (p.x + p.w/2)) < 34 &&
-        Math.abs(eY - (p.y + p.h/2)) < 48) {
+        Math.abs((e.x + 18) - (p.x + p.w/2)) < 36 &&
+        Math.abs(eY - (p.y + p.h/2)) < 52) {
       dtTakeDamage(e.isBoss ? 18 : 8);
     }
   }
@@ -11835,8 +11835,8 @@ function dtUpdate(dt) {
     let hit = false;
     for (const e of DT.currentFloor.enemies) {
       if (e.hpCurrent <= 0) continue;
-      const eY = groundY - 36;
-      if (Math.abs(b.x - (e.x + 18)) < 26 && Math.abs(b.y - eY) < 30) {
+      const eY = groundY - 30; // centro do sprite ancorado no chão
+      if (Math.abs(b.x - (e.x + 18)) < 32 && Math.abs(b.y - eY) < 40) {
         e.hpCurrent--;
         e.hitTimer = 10;
         DT.bullets.splice(i, 1);
@@ -11910,7 +11910,7 @@ function dtAdvance() {
   DT.currentFloor = DT.nextFloor;
   DT.nextFloor = dtGenFloor(DT.floor+1);
   DT.player.y = DT.canvas.height - 40 - DT.player.h;
-  DT.player.x = Math.floor(DT.canvas.width * 0.65) * 0.15;
+  DT.player.x = Math.floor(DT.canvas.width * 0.75) * 0.15;
   document.getElementById('dt-m1').style.width=Math.min(DT.floor/200*100,100)+'%';
   document.getElementById('dt-m2').style.width=Math.min(DT.coins/50*100,100)+'%';
   // Announce enemies on new floor
@@ -11965,7 +11965,7 @@ function dtDraw() {
   const floorH=DT_FLOOR_H, ceilY=groundY-floorH, nextTop=ceilY-floorH;
 
   // Tower column: 65% of width, centered
-  const towerW = Math.floor(W * 0.65);
+  const towerW = Math.floor(W * 0.75);
   const towerX = Math.floor((W - towerW) / 2);
 
   // ── BACKGROUND SIDES (parallax city) ──
@@ -12380,24 +12380,25 @@ function dtDrawFloor(fl, x, y, w, h, alpha, groundY, towerX, towerW) {
   }
 
   // Enemies
-  const eg=groundY-38;
+  // eg = linha do chão onde os pés dos inimigos ficam
+  const eg = groundY;
   for(const e of fl.enemies){
     if(e.hpCurrent<=0) continue;
     const flash=e.hitTimer>0&&Math.floor(e.hitTimer)%4<2;
     const ex = x + e.x;
-    const eSize = e.isBoss ? 64 : 48;
     const eImg = (typeof dtGetEnemyImg==='function' && e.imgIdx!==undefined) ? dtGetEnemyImg(e.imgIdx) : null;
 
     ctx.save();
     if(flash) ctx.filter='brightness(3) saturate(0)';
 
     if(eImg && eImg.complete && eImg.naturalWidth>0) {
-      // Draw real PNG image
       const iw = eImg.naturalWidth, ih = eImg.naturalHeight;
-      const drawH = e.isBoss ? 72 : 52;
+      // Boss é maior, inimigo normal cabe bem em 56px de altura
+      const drawH = e.isBoss ? 80 : 58;
       const drawW = Math.round(iw/ih*drawH);
-      const drawX = ex + (e.isBoss?22:16) - drawW/2;
+      // Ancora o PÉ do sprite no chão (eg = groundY)
       const drawY = eg - drawH;
+      const drawX = ex + (e.isBoss?24:18) - drawW/2;
       if(!e.facingRight) {
         ctx.translate(drawX+drawW, drawY); ctx.scale(-1,1);
         ctx.drawImage(eImg, 0, 0, drawW, drawH);
@@ -12405,45 +12406,43 @@ function dtDrawFloor(fl, x, y, w, h, alpha, groundY, towerX, towerW) {
         ctx.drawImage(eImg, drawX, drawY, drawW, drawH);
       }
     } else {
-      // Fallback emoji
       ctx.font=`${e.isBoss?34:24}px serif`; ctx.textAlign='center';
       ctx.shadowBlur=e.isBoss?20:9; ctx.shadowColor=e.color;
-      ctx.fillText(e.emoji||'👾', ex+e.x+(e.isBoss?22:16), eg+(e.isBoss?-4:0));
+      ctx.fillText(e.emoji||'👾', ex+(e.isBoss?24:18), eg-(e.isBoss?8:4));
     }
     ctx.restore();
 
-    // HP bar
-    const bw=e.isBoss?72:38, hpPct=e.hpCurrent/e.hp;
-    const bx2=ex+e.x+(e.isBoss?22:16)-bw/2, by=eg-(e.isBoss?76:56);
+    // HP bar — acima do sprite
+    const bw=e.isBoss?76:42, hpPct=e.hpCurrent/e.hp;
+    const sprH = e.isBoss?80:58;
+    const bx2=ex+(e.isBoss?24:18)-bw/2, by=eg-sprH-10;
     ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(bx2,by,bw,5);
     ctx.fillStyle=hpPct>.5?'#22c55e':hpPct>.25?'#f59e0b':'#ef4444'; ctx.fillRect(bx2,by,bw*hpPct,5);
     ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(bx2,by,bw,2);
-    if(e.isBoss){ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.fillText(e.name,ex+e.x+22,by-4);}
+    if(e.isBoss){ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.fillText(e.name,ex+24,by-4);}
 
-    // Speech bubble
+    // Speech bubble — acima da barra de HP
     if(e.speech && e.speechTimer>0) {
-      const sAlpha = Math.min(1, e.speechTimer/20) * Math.min(1, (e.speechTimer>0?1:0));
       const fadeOut = e.speechTimer < 30 ? e.speechTimer/30 : 1;
       ctx.save();
-      ctx.globalAlpha = Math.min(1, e.speechTimer/20) * fadeOut;
-      const sx = ex + e.x + (e.isBoss?22:16);
-      const sy = eg - (e.isBoss?82:62);
-      const txt = e.speech;
+      ctx.globalAlpha = Math.min(1, e.speechTimer/15) * fadeOut;
+      const sprH = e.isBoss?80:58;
+      const sx = ex + (e.isBoss?24:18);
+      const sy = eg - sprH - 18; // acima do sprite
       ctx.font = 'bold 9px Arial';
-      const tw = ctx.measureText(txt).width;
-      const bpW = tw + 12, bpH = 16;
-      const bpX = sx - bpW/2, bpY = sy - bpH;
-      // Bubble
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.beginPath(); ctx.roundRect(bpX, bpY, bpW, bpH, 6); ctx.fill();
-      ctx.strokeStyle = e.color; ctx.lineWidth = 1.5;
-      ctx.stroke();
+      const tw = ctx.measureText(e.speech).width;
+      const bpW = Math.min(tw + 14, 140), bpH = 17;
+      const bpX = Math.max(x+4, sx - bpW/2), bpY = sy - bpH;
+      ctx.fillStyle = 'rgba(255,255,255,0.96)';
+      ctx.beginPath(); ctx.roundRect(bpX, bpY, bpW, bpH, 7); ctx.fill();
+      ctx.strokeStyle = e.color; ctx.lineWidth = 1.5; ctx.stroke();
       // Tail
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.beginPath(); ctx.moveTo(sx-4, sy); ctx.lineTo(sx+4, sy); ctx.lineTo(sx, sy+6); ctx.closePath(); ctx.fill();
-      // Text
+      ctx.fillStyle = 'rgba(255,255,255,0.96)';
+      ctx.beginPath(); ctx.moveTo(sx-4,sy); ctx.lineTo(sx+4,sy); ctx.lineTo(sx,sy+6); ctx.closePath(); ctx.fill();
+      // Text (truncate if needed)
       ctx.fillStyle = '#111'; ctx.textAlign = 'center';
-      ctx.fillText(txt, sx, bpY + 11);
+      const displayTxt = tw+14 > 140 ? e.speech.slice(0,16)+'…' : e.speech;
+      ctx.fillText(displayTxt, bpX+bpW/2, bpY+12);
       ctx.restore();
     }
   }
