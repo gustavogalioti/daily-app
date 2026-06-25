@@ -587,6 +587,10 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       </button>
 
 
+      <button class="nav-btn" data-tab="dailypoke" onclick="switchTab('dailypoke',this)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/><circle cx="12" cy="8" r="1.5" fill="currentColor"/></svg>
+        <span>Poke</span>
+      </button>
       <button class="nav-btn" data-tab="achievements" onclick="switchTab('achievements',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
         <span>Conquistas</span>
@@ -895,10 +899,56 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     </div>
 
     <!-- ─── JOGOS / DAILYPOKE ─── -->
-    <div id="tab-jogos" class="tab-content">
+    <div id="tab-dailypoke" class="tab-content">
+  <!-- Meu DailyPoke -->
+  <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;text-align:center;margin-bottom:12px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;margin-bottom:10px;">🎭 Meu DailyPoke</div>
+    <div id="my-poke-preview-v2" style="display:flex;justify-content:center;margin-bottom:12px;">
+      <div style="font-size:48px;color:var(--muted);">🎭</div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="openPokeEditorV2()">✏️ Criar / Editar meu avatar</button>
+  </div>
+
+  <!-- DailyPokes dos amigos -->
+  <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;margin-bottom:12px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px;">🎭 DailyPokes dos amigos</div>
+    <div id="friends-pokes-v2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:12px;">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+
+  <!-- Pokes recebidos / enviados -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:12px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;margin-bottom:10px;">📥 Recebidos</div>
+      <div id="pokes-received-v2" style="display:flex;flex-direction:column;gap:6px;">
+        <div class="page-loader"><div class="loader"></div></div>
+      </div>
+    </div>
+    <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:12px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;margin-bottom:10px;">📤 Enviados</div>
+      <div id="pokes-sent-v2" style="display:flex;flex-direction:column;gap:6px;">
+        <div class="page-loader"><div class="loader"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DailyPokeVERSE -->
+  <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);overflow:hidden;">
+    <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;">🌍 DailyPokeVERSE</div>
+      <div id="verse-online-count-v2" style="font-size:11px;color:var(--muted);">carregando...</div>
+    </div>
+    <div id="dailyverse-canvas-v2" style="position:relative;width:100%;height:420px;background:radial-gradient(ellipse at 50% 100%, #e8f5e9 0%, #f0f4ff 60%, #fff 100%);overflow:hidden;cursor:default;">
+      <div style="position:absolute;bottom:0;left:0;right:0;height:18px;background:rgba(0,0,0,.04);"></div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-jogos" class="tab-content">
       <!-- Sub-nav Jogos -->
       <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">
-        <button class="btn btn-primary btn-sm" onclick="showJogoSection('dailypoke',this)" id="btn-jogo-dp">🎭 DailyPoke</button>
+
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('catrunner',this)">🐱 Cat Runner</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('truco',this)" id="btn-jogo-truco">🃏 Truco</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('paintwars',this)" id="btn-jogo-pw">🎨 Paint Wars</button>
@@ -907,8 +957,8 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('outros',this)" style="opacity:.5;">🌾 Em breve</button>
       </div>
 
-      <!-- DailyPoke -->
-      <div id="jogo-dailypoke">
+      <!-- DailyPoke (versão antiga - preservada) -->
+      <div id="jogo-dailypoke" style="display:none;">
         <!-- Linha 1: Meu Poke -->
         <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:16px;text-align:center;margin-bottom:12px;">
           <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:10px;">Meu DailyPoke</div>
@@ -1743,6 +1793,15 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <button class="btn btn-ghost" onclick="forcePedroFriendship()" style="color:var(--accent2);border-color:var(--accent2);">🐱 Pedro: amigar com todos</button>
       </div>
 
+      <!-- EDITOR DAILYPOKE ADM -->
+      <div style="margin-bottom:24px;">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;">🎭 Editor DailyPoke (modo ADM)</div>
+        <div style="background:var(--surface2);border-radius:12px;padding:14px;">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Acesso completo com controles de calibração (escala, X, Y, recorte). Use para calibrar novos assets.</p>
+          <button class="btn btn-primary btn-sm" onclick="openPokeEditorAdmin()">🛠️ Abrir Editor ADM</button>
+        </div>
+      </div>
+
       <!-- MENSAGEM ÁGORA -->
       <div style="margin-bottom:24px;">
         <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;">💬 Mensagem do Topo — Ágora</div>
@@ -2425,7 +2484,7 @@ function switchTab(tab,btn){
     'friends':()=>{loadFriends();loadFriendRequests();},
     'communities':loadCommunities,'achievements':loadAchievements,
     'profile':loadProfile,'admin':loadAdmin,'daily-mandou':loadDailyMandou,
-    'mapa':loadMapa,'events':loadEvents,'jogos':()=>{showJogoSection('dailypoke',document.getElementById('btn-jogo-dp'));},'news':()=>loadNews('all',document.getElementById('news-filter-all'))
+    'mapa':loadMapa,'dailypoke':loadDailyPokeTab,'events':loadEvents,'jogos':()=>{showJogoSection('catrunner',document.querySelector("[onclick*=\'catrunner\']") || document.querySelector('.btn-ghost.btn-sm'));},'news':()=>loadNews('all',document.getElementById('news-filter-all'))
   };
   loaders[tab]?.();
 }
@@ -8447,6 +8506,268 @@ function verseLoop(canvas, W, H) {
 
   requestAnimationFrame(() => verseLoop(canvas, W, H));
 }
+
+// ═══ DAILYPOKE V2 — ABA PRÓPRIA ═══
+
+let verseAgentsV2 = [];
+let verseRunningV2 = false;
+
+async function loadDailyPokeTab() {
+  loadMyPokePreviewV2();
+  loadFriendsPokesV2();
+  loadPokesReceivedV2();
+  loadPokesSentV2();
+  loadDailyVerseV2();
+}
+
+async function loadMyPokePreviewV2() {
+  const el = document.getElementById('my-poke-preview-v2');
+  if (!el) return;
+  try {
+    const data = await api('/api/dailypoke/me');
+    if (data?.config) {
+      // Verificar se tem avatar_url salvo
+      const meData = await api('/api/dailypoke/friends').catch(() => null);
+      // Tentar pegar avatar_url do /all
+      const all = await api('/api/dailypoke/all').catch(() => ({ pokes: [] }));
+      const me = all.pokes?.find(p => p.user_id === currentUser?.id);
+      if (me?.avatar_url) {
+        el.innerHTML = `<img src="${me.avatar_url}" style="width:80px;height:128px;object-fit:contain;image-rendering:pixelated;" />`;
+      } else {
+        el.innerHTML = `<div style="font-size:48px;">🎭</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Salve o avatar para ver preview</div>`;
+      }
+    } else {
+      el.innerHTML = `<div style="font-size:48px;color:var(--muted);">🎭</div>`;
+    }
+  } catch(e) { el.innerHTML = `<div style="font-size:48px;color:var(--muted);">🎭</div>`; }
+}
+
+async function loadFriendsPokesV2() {
+  const el = document.getElementById('friends-pokes-v2');
+  if (!el) return;
+  try {
+    const { pokes } = await api('/api/dailypoke/friends');
+    if (!pokes?.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;">Seus amigos ainda não criaram DailyPoke</div>'; return; }
+    el.innerHTML = pokes.map(p => {
+      const img = p.avatar_url
+        ? `<img src="${p.avatar_url}" style="width:52px;height:83px;object-fit:contain;image-rendering:pixelated;" />`
+        : `<div style="font-size:32px;">🎭</div>`;
+      return `<div style="text-align:center;cursor:pointer;" onclick="openUserProfile('${p.username}')">
+        ${img}
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(p.name||'').split(' ')[0]||p.username}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;">Erro ao carregar</div>'; }
+}
+
+async function loadPokesReceivedV2() {
+  const el = document.getElementById('pokes-received-v2');
+  if (!el) return;
+  try {
+    const { pokes } = await api('/api/dailypoke/received');
+    if (!pokes?.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Nenhum poke recebido</div>'; return; }
+    el.innerHTML = pokes.slice(0,5).map(p => `
+      <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openUserProfile('${p.from_username}')">
+        <div style="font-size:20px;">👋</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;">${p.from_name||p.from_username}</div>
+          <div style="font-size:10px;color:var(--muted);">${p.action}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function loadPokesSentV2() {
+  const el = document.getElementById('pokes-sent-v2');
+  if (!el) return;
+  try {
+    const { pokes } = await api('/api/dailypoke/sent');
+    if (!pokes?.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Nenhum poke enviado</div>'; return; }
+    el.innerHTML = pokes.slice(0,5).map(p => `
+      <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openUserProfile('${p.to_username}')">
+        <div style="font-size:20px;">📤</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;">${p.to_name||p.to_username}</div>
+          <div style="font-size:10px;color:var(--muted);">${p.action}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+function openPokeEditorV2() {
+  const token = localStorage.getItem('daily_token') || '';
+  const url = '/dailypoke_editor.html?mode=user&token=' + encodeURIComponent(token);
+  const modal = document.createElement('div');
+  modal.id = 'poke-editor-modal-v2';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:20px;width:min(98vw,520px);height:min(98vh,720px);display:flex;flex-direction:column;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">✏️ Criar / Editar DailyPoke</div>
+        <button onclick="document.getElementById('poke-editor-modal-v2').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;">✕</button>
+      </div>
+      <iframe src="${url}" style="flex:1;border:none;width:100%;height:100%;" id="poke-editor-iframe"></iframe>
+    </div>`;
+  // Ouvir mensagem de salvo
+  window.addEventListener('message', function onPokeSaved(e) {
+    if (e.data?.type === 'poke-saved') {
+      window.removeEventListener('message', onPokeSaved);
+      modal.remove();
+      loadMyPokePreviewV2();
+      loadFriendsPokesV2();
+      loadDailyVerseV2();
+    }
+  });
+  document.body.appendChild(modal);
+}
+
+function openPokeEditorAdmin() {
+  const token = localStorage.getItem('daily_token') || '';
+  const url = '/dailypoke_editor.html?mode=admin&token=' + encodeURIComponent(token);
+  const modal = document.createElement('div');
+  modal.id = 'poke-editor-adm-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:20px;width:min(99vw,860px);height:min(99vh,780px);display:flex;flex-direction:column;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">🛠️ Editor DailyPoke — Modo ADM</div>
+        <button onclick="document.getElementById('poke-editor-adm-modal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;">✕</button>
+      </div>
+      <iframe src="${url}" style="flex:1;border:none;width:100%;height:100%;"></iframe>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+// ─── DailyPokeVERSE V2 (novos avatares PNG) ───
+
+async function loadDailyVerseV2() {
+  const canvas = document.getElementById('dailyverse-canvas-v2');
+  if (!canvas) return;
+  verseRunningV2 = false;
+  verseAgentsV2 = [];
+  canvas.querySelectorAll('.verse-agent-v2').forEach(e => e.remove());
+
+  try {
+    const { pokes } = await api('/api/dailypoke/all').catch(() => ({ pokes: [] }));
+    const list = pokes && pokes.length ? [...pokes] : [];
+
+    if (!list.length) {
+      canvas.innerHTML += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--muted);font-size:13px;">Crie seu DailyPoke para aparecer aqui! 🎭</div>';
+      return;
+    }
+
+    const W = canvas.offsetWidth || 400;
+    const H = 400;
+    document.getElementById('verse-online-count-v2').textContent = list.length + ' poke' + (list.length !== 1 ? 's' : '') + ' no verso';
+
+    verseAgentsV2 = list.map((p, i) => {
+      const el = document.createElement('div');
+      el.className = 'verse-agent-v2';
+      el.style.cssText = 'position:absolute;display:flex;flex-direction:column;align-items:center;pointer-events:auto;cursor:pointer;user-select:none;';
+      el.title = p.name || p.username || 'DailyPoke';
+
+      // Avatar: usa PNG exportado se disponível, senão emoji
+      const avatarImg = p.avatar_url
+        ? `<img src="${p.avatar_url}" style="width:46px;height:74px;object-fit:contain;image-rendering:pixelated;display:block;" draggable="false"/>`
+        : `<div style="font-size:36px;line-height:1;">🎭</div>`;
+
+      el.innerHTML = avatarImg + `<div style="font-size:9px;color:#555;margin-top:1px;max-width:55px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;">${(p.name||'').split(' ')[0]||p.username}</div>`;
+      el.onclick = () => openUserProfile(p.username);
+      canvas.appendChild(el);
+
+      const x = 40 + (i / Math.max(list.length,1)) * (W - 100) + (Math.random() - .5) * 60;
+      const y = H - 140 - Math.random() * 60;
+
+      return {
+        el,
+        x, y,
+        vx: (Math.random() - .5) * 0.6,
+        vy: 0,
+        dir: Math.random() > .5 ? 1 : -1,
+        actionTimer: 0,
+        username: p.username,
+        name: (p.name || '').split(' ')[0] || p.username,
+      };
+    });
+
+    verseRunningV2 = true;
+    verseLoopV2(canvas, W, H);
+    setInterval(() => triggerVerseSceneV2(), 8000);
+
+  } catch(e) { console.error('loadDailyVerseV2:', e); }
+}
+
+function verseLoopV2(canvas, W, H) {
+  if (!verseRunningV2) return;
+  verseAgentsV2.forEach(agent => {
+    agent.x += agent.vx * agent.dir;
+    if (agent.x < 10) { agent.dir = 1; agent.x = 10; }
+    if (agent.x > W - 70) { agent.dir = -1; agent.x = W - 70; }
+
+    agent.actionTimer--;
+    if (agent.actionTimer <= 0) {
+      agent.actionTimer = 90 + Math.floor(Math.random() * 130);
+      const r = Math.random();
+      if (r < 0.12) {
+        agent.vx = 0;
+        const nearest = verseAgentsV2.filter(a => a !== agent).sort((a,b) => Math.abs(a.x-agent.x)-Math.abs(b.x-agent.x))[0];
+        if (nearest && Math.abs(nearest.x - agent.x) < 200) {
+          showVerseBubbleV2(agent, getVerseGreeting(agent.name, nearest.name));
+          setTimeout(() => showVerseBubbleV2(nearest, getVerseGreeting(nearest.name, agent.name)), 1200);
+        }
+        setTimeout(() => { agent.vx = (Math.random()-.5)*0.5; }, 2500);
+      } else if (r < 0.22) {
+        agent.vx = 0;
+        const debate = VERSE_DEBATES[Math.floor(Math.random()*VERSE_DEBATES.length)];
+        const nearest = verseAgentsV2.filter(a => a !== agent).sort((a,b) => Math.abs(a.x-agent.x)-Math.abs(b.x-agent.x))[0];
+        showVerseBubbleV2(agent, debate[0]);
+        if (nearest && Math.abs(nearest.x - agent.x) < 250) {
+          setTimeout(() => showVerseBubbleV2(nearest, debate[1]), 1500);
+        }
+        setTimeout(() => { agent.vx = (Math.random()-.5)*0.5; }, 3500);
+      } else if (r < 0.38) {
+        agent.vx = 0;
+        showVerseBubbleV2(agent, VERSE_FALAS_SIMPLES[Math.floor(Math.random()*VERSE_FALAS_SIMPLES.length)]);
+        setTimeout(() => { agent.vx = (Math.random()-.5)*0.5; }, 2000);
+      } else if (r < 0.6) {
+        agent.dir *= -1;
+        agent.vx = 0.4 + Math.random()*0.4;
+      } else {
+        agent.vx = (Math.random()-.5)*0.5;
+      }
+    }
+
+    // Flip baseado na direção
+    agent.el.style.transform = agent.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+    agent.el.style.left = agent.x + 'px';
+    agent.el.style.top = agent.y + 'px';
+  });
+  requestAnimationFrame(() => verseLoopV2(canvas, W, H));
+}
+
+function triggerVerseSceneV2() {
+  if (verseAgentsV2.length < 2) return;
+  const a = verseAgentsV2[Math.floor(Math.random()*verseAgentsV2.length)];
+  const b = verseAgentsV2[Math.floor(Math.random()*verseAgentsV2.length)];
+  if (a === b) return;
+  const scene = VERSE_SCENES[Math.floor(Math.random()*VERSE_SCENES.length)];
+  showVerseBubbleV2(a, scene.emoji + ' ' + scene.label);
+  setTimeout(() => showVerseBubbleV2(b, scene.emoji + '!'), 600);
+}
+
+function showVerseBubbleV2(agent, text) {
+  if (!agent.el) return;
+  const old = agent.el.querySelector('.verse-bubble-v2');
+  if (old) old.remove();
+  const bubble = document.createElement('div');
+  bubble.className = 'verse-bubble-v2';
+  bubble.style.cssText = 'position:absolute;bottom:82px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #ddd;border-radius:10px;padding:3px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:10;pointer-events:none;';
+  bubble.textContent = text;
+  agent.el.appendChild(bubble);
+  setTimeout(() => bubble.remove(), 2500);
+}
+
+
 
 // ═══ MANDAR POKE — modal de cenas ═══
 async function openPokeActions() {

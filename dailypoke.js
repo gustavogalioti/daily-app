@@ -2,6 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
 const { authMiddleware } = require('./authmiddleware');
+const { uploadBase64Image } = require('./cloudinary');
 const { NotificationService } = require('./notif_service');
 
 const router = express.Router();
@@ -19,15 +20,16 @@ router.get('/me', authMiddleware, async (req, res) => {
 router.post('/save', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
-    const { config } = req.body;
-    if (!config) return res.status(400).json({ error: 'config obrigatório' });
+    const { config, avatar_url } = req.body;
+    if (!config) return res.status(400).json({ error: 'config obrigatorio' });
+    try { await db.prepare('ALTER TABLE dailypokes ADD COLUMN IF NOT EXISTS avatar_url TEXT').run(); } catch(e){}
     const existing = await db.prepare('SELECT id FROM dailypokes WHERE user_id=$1').get(req.user.id);
     if (existing) {
-      await db.prepare('UPDATE dailypokes SET config=$1, updated_at=NOW() WHERE user_id=$2')
-        .run(JSON.stringify(config), req.user.id);
+      await db.prepare('UPDATE dailypokes SET config=$1, avatar_url=$2, updated_at=NOW() WHERE user_id=$3')
+        .run(JSON.stringify(config), avatar_url || null, req.user.id);
     } else {
-      await db.prepare('INSERT INTO dailypokes (id,user_id,config) VALUES ($1,$2,$3)')
-        .run(uuidv4(), req.user.id, JSON.stringify(config));
+      await db.prepare('INSERT INTO dailypokes (id,user_id,config,avatar_url) VALUES ($1,$2,$3,$4)')
+        .run(uuidv4(), req.user.id, JSON.stringify(config), avatar_url || null);
     }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -114,7 +116,7 @@ router.get('/all', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     const pokes = await db.prepare(`
-      SELECT dp.config, u.id as user_id, u.username, u.name
+      SELECT dp.config, dp.avatar_url, u.id as user_id, u.username, u.name, u.avatar_url as user_avatar
       FROM dailypokes dp JOIN users u ON u.id = dp.user_id
       WHERE dp.config IS NOT NULL
       ORDER BY dp.updated_at DESC LIMIT 80
@@ -128,6 +130,16 @@ router.get('/user/:id', async (req, res) => {
     const db = getDB();
     const poke = await db.prepare('SELECT * FROM dailypokes WHERE user_id=$1').get(req.params.id);
     res.json({ config: poke?.config || null });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/dailypoke/upload-avatar — sobe PNG do avatar no Cloudinary
+router.post('/upload-avatar', authMiddleware, async (req, res) => {
+  try {
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ error: 'image obrigatorio' });
+    const url = await uploadBase64Image(image, 'dailypoke_avatars');
+    res.json({ url });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 

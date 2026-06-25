@@ -71,4 +71,23 @@ function getUploadedUrl(req, file) {
   return `/uploads/${file.filename}`;
 }
 
-module.exports = { createPhotoUpload, createAvatarUpload, getUploadedUrl, USE_CLOUDINARY };
+// Upload de imagem base64 diretamente (para DailyPoke avatar)
+async function uploadBase64Image(dataUrl, folder = 'daily/poke_avatars') {
+  if (USE_CLOUDINARY) {
+    const result = await cloudinary.uploader.upload(dataUrl, {
+      folder,
+      transformation: [{ width: 200, height: 320, crop: 'fit', quality: 'auto' }]
+    });
+    return result.secure_url;
+  }
+  // Fallback local: salvar como arquivo
+  const { v4: uuidv4 } = require('uuid');
+  const dir = require('path').join(__dirname, 'uploads', 'poke_avatars');
+  if (!require('fs').existsSync(dir)) require('fs').mkdirSync(dir, { recursive: true });
+  const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+  const filename = `poke_${uuidv4()}.png`;
+  require('fs').writeFileSync(require('path').join(dir, filename), base64Data, 'base64');
+  return `/uploads/poke_avatars/${filename}`;
+}
+
+module.exports = { createPhotoUpload, createAvatarUpload, getUploadedUrl, USE_CLOUDINARY, uploadBase64Image };
