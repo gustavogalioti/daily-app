@@ -8243,7 +8243,7 @@ function showJogoSection(sec, btn) {
     try { catGame.stop?.(); catGame.running = false; } catch(e) {}
   }
   if (sec !== 'tower') {
-    try { if (typeof dtLoop !== 'undefined') cancelAnimationFrame(dtLoop); } catch(e) {}
+    try { if (typeof DT !== 'undefined' && DT.animFrame) { cancelAnimationFrame(DT.animFrame); DT.animFrame = null; DT.running = false; } } catch(e) {}
   }
   // Pausar iframe do Paint Wars ao sair
   if (sec !== 'paintwars') {
@@ -11457,7 +11457,9 @@ function startDailyTower() {
   DT.canvas = document.getElementById('dt-canvas');
   DT.ctx = DT.canvas.getContext('2d');
   const container = document.getElementById('dt-canvas-container');
-  DT.canvas.width = container.clientWidth;
+  // Aguardar o DOM tornar o container visível antes de medir clientWidth
+  const W = container.clientWidth || window.innerWidth || 360;
+  DT.canvas.width = W;
   DT.canvas.height = 360;
   DT.canvas.style.height = '360px';
 
