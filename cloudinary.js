@@ -76,7 +76,8 @@ async function uploadBase64Image(dataUrl, folder = 'daily/poke_avatars') {
   if (USE_CLOUDINARY) {
     const result = await cloudinary.uploader.upload(dataUrl, {
       folder,
-      transformation: [{ width: 200, height: 320, crop: 'fit', quality: 'auto' }]
+      format: 'png',
+      transformation: [{ width: 200, height: 320, crop: 'fit' }]
     });
     return result.secure_url;
   }

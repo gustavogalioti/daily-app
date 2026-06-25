@@ -8532,7 +8532,7 @@ async function loadMyPokePreviewV2() {
       const all = await api('/api/dailypoke/all').catch(() => ({ pokes: [] }));
       const me = all.pokes?.find(p => p.user_id === currentUser?.id);
       if (me?.avatar_url) {
-        el.innerHTML = `<img src="${me.avatar_url}" style="width:80px;height:128px;object-fit:contain;image-rendering:pixelated;" />`;
+        el.innerHTML = `<img src="${me.avatar_url}" style="width:80px;height:128px;object-fit:contain;image-rendering:pixelated;background:transparent;" />`;
       } else {
         el.innerHTML = `<div style="font-size:48px;">🎭</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Salve o avatar para ver preview</div>`;
       }
@@ -8550,7 +8550,7 @@ async function loadFriendsPokesV2() {
     if (!pokes?.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;">Seus amigos ainda não criaram DailyPoke</div>'; return; }
     el.innerHTML = pokes.map(p => {
       const img = p.avatar_url
-        ? `<img src="${p.avatar_url}" style="width:52px;height:83px;object-fit:contain;image-rendering:pixelated;" />`
+        ? `<img src="${p.avatar_url}" style="width:52px;height:83px;object-fit:contain;image-rendering:pixelated;background:transparent;" />`
         : `<div style="font-size:32px;">🎭</div>`;
       return `<div style="text-align:center;cursor:pointer;" onclick="openUserProfile('${p.username}')">
         ${img}
@@ -8668,7 +8668,7 @@ async function loadDailyVerseV2() {
 
       // Avatar: usa PNG exportado se disponível, senão emoji
       const avatarImg = p.avatar_url
-        ? `<img src="${p.avatar_url}" style="width:46px;height:74px;object-fit:contain;image-rendering:pixelated;display:block;" draggable="false"/>`
+        ? `<img src="${p.avatar_url}" style="width:46px;height:74px;object-fit:contain;image-rendering:pixelated;display:block;background:transparent;" draggable="false"/>`
         : `<div style="font-size:36px;line-height:1;">🎭</div>`;
 
       el.innerHTML = avatarImg + `<div style="font-size:9px;color:#555;margin-top:1px;max-width:55px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;">${(p.name||'').split(' ')[0]||p.username}</div>`;
