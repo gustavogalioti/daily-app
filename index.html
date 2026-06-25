@@ -961,7 +961,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;">🌍 DailyPokeVERSE</div>
       <div id="verse-online-count-v2" style="font-size:11px;color:var(--muted);">carregando...</div>
     </div>
-    <div id="dailyverse-canvas-v2" style="position:relative;width:100%;height:420px;background:radial-gradient(ellipse at 50% 100%, #e8f5e9 0%, #f0f4ff 60%, #fff 100%);overflow:hidden;cursor:default;">
+    <div id="dailyverse-canvas-v2" style="position:relative;width:100%;height:480px;background:#fff url('/dailyverse_bg.png') center bottom / cover no-repeat;overflow:hidden;cursor:default;">
       <div style="position:absolute;bottom:0;left:0;right:0;height:18px;background:rgba(0,0,0,.04);"></div>
     </div>
   </div>
@@ -8738,7 +8738,7 @@ async function loadDailyVerseV2() {
     }
 
     const W = canvas.offsetWidth || 400;
-    const H = 400;
+    const H = canvas.offsetHeight || 480;
     document.getElementById('verse-online-count-v2').textContent = list.length + ' poke' + (list.length !== 1 ? 's' : '') + ' no verso';
 
     verseAgentsV2 = list.map((p, i) => {
@@ -8757,7 +8757,7 @@ async function loadDailyVerseV2() {
       canvas.appendChild(el);
 
       const x = 40 + (i / Math.max(list.length,1)) * (W - 100) + (Math.random() - .5) * 60;
-      const y = H - 140 - Math.random() * 60;
+      const y = H - 130 - Math.random() * 40;
 
       return {
         el,
