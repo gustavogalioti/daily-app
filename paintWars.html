@@ -20,11 +20,12 @@
     width: 20px; height: 20px;
   }
   #crosshair::before, #crosshair::after {
-    content: ''; position: absolute; background: rgba(255,255,255,0.85);
+    content: ''; position: absolute; background: rgba(0,0,0,0.92);
     border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
   }
-  #crosshair::before { width: 2px; height: 20px; left: 9px; top: 0; }
-  #crosshair::after { width: 20px; height: 2px; top: 9px; left: 0; }
+  #crosshair::before { width: 4px; height: 22px; left: 8px; top: -1px; }
+  #crosshair::after { width: 22px; height: 4px; top: 8px; left: -1px; }
 
   /* Top bar */
   #topbar {
@@ -340,12 +341,50 @@
         PvP em equipe 5x5.<br>30 baixas decidem a partida.
       </div>
     </div>
-    <button onclick="showSplashRanking()" style="
-      padding:11px 32px; border-radius:50px;
-      background:rgba(255,215,0,0.12); border:2px solid rgba(255,215,0,0.5);
-      color:#ffd700; font-weight:900; font-size:15px; cursor:pointer; letter-spacing:1px;
-      transition:all 0.15s;
-    " onmouseover="this.style.background='rgba(255,215,0,0.25)'" onmouseout="this.style.background='rgba(255,215,0,0.12)'">🏆 RANKING</button>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button onclick="showSplashRanking()" style="
+        padding:11px 32px; border-radius:50px;
+        background:rgba(255,215,0,0.12); border:2px solid rgba(255,215,0,0.5);
+        color:#ffd700; font-weight:900; font-size:15px; cursor:pointer; letter-spacing:1px;
+        transition:all 0.15s;
+      " onmouseover="this.style.background='rgba(255,215,0,0.25)'" onmouseout="this.style.background='rgba(255,215,0,0.12)'">🏆 RANKING</button>
+      <button onclick="showPrivateLobbyPanel()" style="
+        padding:11px 32px; border-radius:50px;
+        background:rgba(139,92,246,0.15); border:2px solid rgba(139,92,246,0.5);
+        color:#a78bfa; font-weight:900; font-size:15px; cursor:pointer; letter-spacing:1px;
+        transition:all 0.15s;
+      " onmouseover="this.style.background='rgba(139,92,246,0.3)'" onmouseout="this.style.background='rgba(139,92,246,0.15)'">🔐 LOBBY PRIVADO</button>
+    </div>
+  </div>
+
+  <!-- Painel Lobby Privado -->
+  <div id="private-lobby-panel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,10,10,0.97);border:1px solid rgba(139,92,246,0.4);border-radius:20px;padding:28px 32px;z-index:200;min-width:320px;max-width:420px;width:90%;box-shadow:0 0 40px rgba(139,92,246,0.3);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <span style="font-size:18px;font-weight:900;color:#a78bfa;">🔐 Lobby Privado</span>
+      <span onclick="hidePrivateLobbyPanel()" style="cursor:pointer;opacity:0.5;font-size:22px;">✕</span>
+    </div>
+    <div id="priv-lobby-create-section">
+      <p style="font-size:13px;opacity:0.6;margin-bottom:16px;">Crie uma sala e compartilhe o código com seus amigos.</p>
+      <button onclick="createPrivateLobby()" style="width:100%;padding:13px;border-radius:30px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;color:#fff;font-weight:900;font-size:15px;cursor:pointer;margin-bottom:14px;">✨ Criar Sala</button>
+      <div style="text-align:center;opacity:0.4;font-size:12px;margin-bottom:14px;">— ou entre com código —</div>
+      <div style="display:flex;gap:8px;">
+        <input id="priv-lobby-code-input" type="text" maxlength="6" placeholder="Código (6 letras)" style="flex:1;padding:11px 14px;border-radius:20px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;outline:none;" oninput="this.value=this.value.toUpperCase()">
+        <button onclick="joinPrivateLobby()" style="padding:11px 18px;border-radius:20px;background:rgba(139,92,246,0.3);border:1px solid rgba(139,92,246,0.5);color:#a78bfa;font-weight:900;cursor:pointer;font-size:14px;">Entrar</button>
+      </div>
+    </div>
+    <div id="priv-lobby-room-section" style="display:none;">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:12px;opacity:0.5;margin-bottom:6px;">Código da Sala</div>
+        <div id="priv-lobby-code-display" style="font-size:32px;font-weight:900;color:#a78bfa;letter-spacing:6px;background:rgba(139,92,246,0.1);border-radius:12px;padding:12px;cursor:pointer;" onclick="copyPrivateLobbyCode()" title="Clique para copiar">------</div>
+        <div style="font-size:11px;opacity:0.4;margin-top:6px;">Clique no código para copiar</div>
+      </div>
+      <div style="font-size:12px;opacity:0.5;margin-bottom:8px;">Jogadores na sala: <span id="priv-lobby-count">1</span>/10</div>
+      <div id="priv-lobby-players" style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;margin-bottom:16px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="startPrivateLobbyGame()" style="flex:1;padding:12px;border-radius:30px;background:linear-gradient(135deg,#ff6b35,#ffd700);border:none;color:#000;font-weight:900;font-size:14px;cursor:pointer;">🎮 Jogar (Modo Livre)</button>
+        <button onclick="leavePrivateLobby()" style="padding:12px 16px;border-radius:30px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Sair</button>
+      </div>
+    </div>
   </div>
   <div id="splash-controls">
     WASD / Setas — Mover &nbsp;·&nbsp; Mouse — Olhar<br>
@@ -1268,6 +1307,11 @@ function initThree() {
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
+  // Expõe chão globalmente para pintura por tiro/pincel
+  window._groundMesh = ground;
+  window._groundCtx = groundTexCanvas.getContext('2d');
+  window._groundTex = groundTex;
+  window._groundRepeat = 24; // tiles repetidos no shader
 
   // Wall texture (paintable canvas)
   wallCanvas = document.createElement('canvas');
@@ -1520,30 +1564,57 @@ function paintWall() {
   if (now - lastPaintTime < 80) return;
   lastPaintTime = now;
 
-  // Raycast to wall
+  // Raycast to wall or ground
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const hits = raycaster.intersectObject(wallMesh);
-  if (!hits.length) return;
 
-  const uv = hits[0].uv;
-  const px = Math.floor(uv.x * WALL_WIDTH);
-  const py = Math.floor((1 - uv.y) * WALL_HEIGHT);
+  // Tenta muro primeiro
+  const wallHits = raycaster.intersectObject(wallMesh);
+  if (wallHits.length) {
+    const uv = wallHits[0].uv;
+    const px = Math.floor(uv.x * WALL_WIDTH);
+    const py = Math.floor((1 - uv.y) * WALL_HEIGHT);
+    const size = TOOL_SIZES[state.tool] * 8;
+    const color = state.color;
+    if (state.tool === 'spray') paintSpray(px, py, size, color);
+    else if (state.tool === 'balde') paintFlood(px, py, color);
+    else paintRect(px, py, size, color);
+    wallTexture.needsUpdate = true;
+    addXP(2);
+    incrementHits();
+    spawnSplat(color);
+    wsBroadcastPaint(px, py, size, color, state.tool);
+    return;
+  }
 
-  const size = TOOL_SIZES[state.tool] * 8;
-  const color = state.color;
-
-  if (state.tool === 'spray') paintSpray(px, py, size, color);
-  else if (state.tool === 'balde') paintFlood(px, py, color);
-  else paintRect(px, py, size, color);
-
-  wallTexture.needsUpdate = true;
-  addXP(2);
-  incrementHits();
-  spawnSplat(color);
-
-  // Sincronizar pintura com outros jogadores via WS
-  wsBroadcastPaint(px, py, size, color, state.tool);
+  // Tenta chão
+  if (window._groundMesh && window._groundCtx && window._groundTex) {
+    const gHits = raycaster.intersectObject(window._groundMesh);
+    if (gHits.length && gHits[0].uv) {
+      const uv = gHits[0].uv;
+      const gx = Math.floor(uv.x * 512);
+      const gy = Math.floor(uv.y * 512);
+      const size = Math.max(4, TOOL_SIZES[state.tool] * 6);
+      const color = state.color === 'neon' ? '#ff00ff' : state.color === 'galaxy' ? '#7c3aed' : state.color;
+      window._groundCtx.fillStyle = color;
+      if (state.tool === 'spray' || state.tool === 'shotgun') {
+        for (let i = 0; i < 10; i++) {
+          const ax = gx + (Math.random()-0.5)*size*2;
+          const ay = gy + (Math.random()-0.5)*size*2;
+          window._groundCtx.beginPath();
+          window._groundCtx.arc(ax, ay, Math.random()*size*0.4+1, 0, Math.PI*2);
+          window._groundCtx.fill();
+        }
+      } else {
+        window._groundCtx.beginPath();
+        window._groundCtx.arc(gx, gy, size*0.5, 0, Math.PI*2);
+        window._groundCtx.fill();
+      }
+      window._groundTex.needsUpdate = true;
+      addXP(1);
+      spawnSplat(state.color);
+    }
+  }
 }
 
 function paintRect(px, py, size, color) {
@@ -2075,7 +2146,7 @@ function resetMap() {
   updateGunVisual('pistol');
 }
 
-function startGame() {
+function startGame(wsMode, roomCode) {
   document.getElementById('splash').style.display = 'none';
   if (!window._threeReady) {
     initThree();
@@ -2087,9 +2158,40 @@ function startGame() {
   } else {
     resetMap();
   }
-  // Conectar ao WS no modo livre
+  // Conectar ao WS no modo livre ou sala privada
   wsDisconnect();
-  wsConnect('free');
+  if (wsMode === 'private' && roomCode) {
+    // Reutiliza wsConnect mas sobrescreve o join message
+    gameWsMode = 'free';
+    const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/coop';
+    gameWs = new WebSocket(wsUrl);
+    gameWs.onopen = () => {
+      const username = state.playerName || 'Jogador';
+      gameWs.send(JSON.stringify({ type: 'join', mode: 'private', roomCode, username }));
+      gameWs._ping = setInterval(() => {
+        if (gameWs?.readyState === WebSocket.OPEN) gameWs.send('{"type":"ping"}');
+      }, 25000);
+    };
+    // Reutiliza handlers padrão do wsConnect via evento artificial
+    wsConnect.__attachHandlers && wsConnect.__attachHandlers(gameWs);
+    gameWs.onmessage = (e) => {
+      let msg; try { msg = JSON.parse(e.data); } catch { return; }
+      switch(msg.type) {
+        case 'joined': gameMyId=msg.playerId; gameRoomId=msg.roomId; gameWsConnected=true;
+          msg.players.forEach(p=>addPeer(p)); updateRoomBadge(msg.roomCount, ''+msg.limit);
+          toast('🔐 Sala privada ' + roomCode + ' · ' + msg.roomCount + ' jogador(es)'); break;
+        case 'player_joined': addPeer(msg.player); updateRoomBadge(msg.roomCount,''+msg.limit);
+          toast('👤 '+msg.player.username+' entrou!'); break;
+        case 'player_moved': movePeer(msg.id,msg.x,msg.y,msg.z,msg.yaw); break;
+        case 'player_left': removePeer(msg.id); updateRoomBadge(msg.roomCount,''+msg.limit); break;
+        case 'paint': applyRemotePaint(msg.px,msg.py,msg.size,msg.color,msg.tool); break;
+      }
+    };
+    gameWs.onclose = () => { clearInterval(gameWs?._ping); };
+    gameWs.onerror = () => clearInterval(gameWs?._ping);
+  } else {
+    wsConnect('free');
+  }
   setTimeout(() => toast('Bem-vindo ao DAILY Paint Wars! Clique na tela para pintar 🎨'), 500);
 }
 
@@ -3053,7 +3155,7 @@ function resolveStructureCollisions() {
     const pz = camera.position.z;
 
     if (s.type === 'stair') {
-      const rampZstart = s.z + s.d / 2;       // início dos degraus (z maior = lado do jogador)
+      const rampZstart = s.z + s.d / 2;
       const rampZend   = rampZstart + s.rampLen;
       const platXmin   = s.x - s.w / 2;
       const platXmax   = s.x + s.w / 2;
@@ -3061,11 +3163,11 @@ function resolveStructureCollisions() {
       const platZmax   = s.z + s.d / 2;
 
       // Na rampa → groundY sobe gradualmente
-      if (px > platXmin - PR && px < platXmax + PR &&
+      // FIX: só aplica se o jogador está DENTRO da faixa X da plataforma (sem PR extra)
+      // para evitar que o groundY fique preso ao sair lateralmente.
+      if (px > platXmin && px < platXmax &&
           pz >= rampZstart - PR && pz <= rampZend + PR) {
         const t = Math.max(0, Math.min(1, (pz - rampZstart) / s.rampLen));
-        // t=0 → pé da rampa (y=1.7), t=1 → topo (y=1.7+ph)
-        // Mas jogador vem de z alto (t cresce ao diminuir z)
         const rampY = 1.7 + (1 - t) * s.h;
         state.groundY = Math.max(state.groundY, rampY);
         onElevated = true;
@@ -3073,7 +3175,8 @@ function resolveStructureCollisions() {
       }
 
       // No topo da plataforma
-      if (px > platXmin - PR && px < platXmax + PR &&
+      // FIX: só aplica elevação se o jogador está dentro da plataforma (sem PR no z)
+      if (px > platXmin && px < platXmax &&
           pz >= platZmin && pz <= platZmax) {
         state.groundY = Math.max(state.groundY, s.h + 1.7);
         onElevated = true;
@@ -3478,6 +3581,133 @@ function clearAllLoot() {
   playerInventory.lastShot = 0;
   inventoryUpdateHUD();
 }
+
+// ─── LOBBY PRIVADO ────────────────────────────────────────────────────────────
+let privLobbyWs = null;
+let privLobbyCode = null;
+let privLobbyMyId = null;
+
+function showPrivateLobbyPanel() {
+  document.getElementById('private-lobby-panel').style.display = 'block';
+}
+function hidePrivateLobbyPanel() {
+  document.getElementById('private-lobby-panel').style.display = 'none';
+}
+
+function generateRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function createPrivateLobby() {
+  const code = generateRoomCode();
+  joinPrivateLobbyWithCode(code);
+}
+
+function joinPrivateLobby() {
+  const input = document.getElementById('priv-lobby-code-input');
+  const code = (input.value || '').trim().toUpperCase();
+  if (code.length < 4) { toast('⚠️ Código inválido.'); return; }
+  joinPrivateLobbyWithCode(code);
+}
+
+function joinPrivateLobbyWithCode(code) {
+  if (privLobbyWs) { privLobbyWs.onclose = null; privLobbyWs.close(); }
+  privLobbyCode = code;
+  const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/coop';
+  privLobbyWs = new WebSocket(wsUrl);
+
+  privLobbyWs.onopen = () => {
+    const username = state.playerName || 'Jogador';
+    privLobbyWs.send(JSON.stringify({ type: 'join', mode: 'private', roomCode: code, username }));
+    privLobbyWs._ping = setInterval(() => {
+      if (privLobbyWs?.readyState === WebSocket.OPEN) privLobbyWs.send('{"type":"ping"}');
+    }, 25000);
+  };
+
+  privLobbyWs.onmessage = (e) => {
+    let msg; try { msg = JSON.parse(e.data); } catch { return; }
+    if (msg.type === 'joined') {
+      privLobbyMyId = msg.playerId;
+      // Mostrar seção de sala
+      document.getElementById('priv-lobby-create-section').style.display = 'none';
+      document.getElementById('priv-lobby-room-section').style.display = 'block';
+      document.getElementById('priv-lobby-code-display').textContent = code;
+      const allPlayers = [{ id: msg.playerId, username: state.playerName || 'Você' }, ...msg.players];
+      renderPrivateLobbyPlayers(allPlayers, msg.roomCount);
+      toast('🔐 Sala ' + code + ' criada! Compartilhe o código.');
+    } else if (msg.type === 'player_joined') {
+      toast('👤 ' + msg.player.username + ' entrou no lobby!');
+      privRefreshPlayers();
+    } else if (msg.type === 'player_left') {
+      privRefreshPlayers();
+    }
+  };
+
+  privLobbyWs.onclose = () => {
+    clearInterval(privLobbyWs?._ping);
+  };
+}
+
+function privRefreshPlayers() {
+  // Re-request player list via a ping (players tracked server-side)
+  // Simple approach: count from roomCount in badge
+  const badge = document.getElementById('free-room-badge');
+  // Just keep the display as-is; full sync happens on join events
+}
+
+function renderPrivateLobbyPlayers(players, count) {
+  const el = document.getElementById('priv-lobby-players');
+  const countEl = document.getElementById('priv-lobby-count');
+  if (countEl) countEl.textContent = count || players.length;
+  if (!el) return;
+  el.innerHTML = players.map(p =>
+    `<div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:6px 10px;font-size:13px;display:flex;align-items:center;gap:8px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+      ${p.username || 'Jogador'}
+     </div>`
+  ).join('');
+}
+
+function copyPrivateLobbyCode() {
+  if (!privLobbyCode) return;
+  const url = location.origin + location.pathname + '?lobby=' + privLobbyCode;
+  navigator.clipboard.writeText(url).then(() => toast('📋 Link copiado: ' + url));
+}
+
+function startPrivateLobbyGame() {
+  // Entra no modo livre mas usando a sala privada
+  hidePrivateLobbyPanel();
+  // Desconecta lobby WS e reconecta como free com o mesmo roomCode
+  if (privLobbyWs) { privLobbyWs.onclose = null; privLobbyWs.close(); privLobbyWs = null; }
+  // Abre o jogo em Modo Livre com sala privada
+  startGame('private', privLobbyCode);
+}
+
+function leavePrivateLobby() {
+  if (privLobbyWs) { privLobbyWs.onclose = null; privLobbyWs.close(); privLobbyWs = null; }
+  privLobbyCode = null;
+  privLobbyMyId = null;
+  document.getElementById('priv-lobby-create-section').style.display = 'block';
+  document.getElementById('priv-lobby-room-section').style.display = 'none';
+  hidePrivateLobbyPanel();
+}
+
+// Auto-join lobby from URL ?lobby=CODE
+(function() {
+  const params = new URLSearchParams(location.search);
+  const lobbyCode = params.get('lobby');
+  if (lobbyCode) {
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        showPrivateLobbyPanel();
+        joinPrivateLobbyWithCode(lobbyCode.toUpperCase());
+      }, 800);
+    });
+  }
+})();
 
 // ─── WEBSOCKET CLIENT (Modo Livre + Modo Coop) ────────────────────────────────
 // Mesmo servidor, mesmo código — modo define a sala
@@ -4320,6 +4550,42 @@ function tdmUpdatePeers(dt) {
 
 // ── Tiro TDM ─────────────────────────────────────────────────────────────────
 
+// Aplica mancha de tiro no muro ou chão e sincroniza via WS
+function tdmApplyBulletPaint(raycaster) {
+  const teamColor = tdmGameState.myTeam === 'red' ? '#ef4444' : '#3b82f6';
+  const size = 6 + Math.random() * 6;
+  if (wallMesh && wallCtx && wallTexture) {
+    const wallHits = raycaster.intersectObject(wallMesh);
+    if (wallHits.length) {
+      const uv = wallHits[0].uv;
+      const px = Math.floor(uv.x * WALL_WIDTH);
+      const py = Math.floor((1 - uv.y) * WALL_HEIGHT);
+      paintSpray(px, py, size, teamColor);
+      wallTexture.needsUpdate = true;
+      wsBroadcastPaint(px, py, size, teamColor, 'spray');
+      return;
+    }
+  }
+  if (window._groundMesh && window._groundCtx && window._groundTex) {
+    const gHits = raycaster.intersectObject(window._groundMesh);
+    if (gHits.length && gHits[0].uv) {
+      const uv = gHits[0].uv;
+      const gx = Math.floor(uv.x * 512);
+      const gy = Math.floor(uv.y * 512);
+      window._groundCtx.fillStyle = teamColor;
+      const r = Math.max(2, size * 0.5);
+      for (let i = 0; i < 6; i++) {
+        const ax = gx + (Math.random()-0.5)*r*2;
+        const ay = gy + (Math.random()-0.5)*r*2;
+        window._groundCtx.beginPath();
+        window._groundCtx.arc(ax, ay, Math.random()*r*0.5+1, 0, Math.PI*2);
+        window._groundCtx.fill();
+      }
+      window._groundTex.needsUpdate = true;
+    }
+  }
+}
+
 function tdmTryShoot() {
   if (!tdmGameState.active || tdmGameState.dead || tdmGameState.finished) return;
   if (tdmPlayerState.reloading) return;
@@ -4331,6 +4597,9 @@ function tdmTryShoot() {
 
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+
+  // Marca de tiro no cenário (sempre, mesmo sem inimigos à frente)
+  tdmApplyBulletPaint(raycaster);
 
   // Só verifica meshes de jogadores inimigos
   const enemyMeshes = [];
