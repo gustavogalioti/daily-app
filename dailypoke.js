@@ -63,12 +63,13 @@ router.post('/send', authMiddleware, async (req, res) => {
     await db.prepare('INSERT INTO dailypoke_actions (id,from_user_id,to_user_id,action) VALUES ($1,$2,$3,$4)')
       .run(id, req.user.id, to_user_id, finalAction);
     const sender = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
-    const sceneText = scene ? ` quer fazer uma cena com você: ${scene}` : ' te mandou um poke! 👋';
+    const senderPoke = await db.prepare('SELECT avatar_url FROM dailypokes WHERE user_id=$1').get(req.user.id);
     try {
       await NotificationService.sendDailyPoke(db, {
         toUserId: to_user_id,
         fromUser: { id: req.user.id, name: sender?.name || 'Alguém' },
-        scene: scene || null
+        scene: finalAction,
+        pokeAvatarUrl: senderPoke?.avatar_url || null,
       });
     } catch(notifErr) { console.error('poke notif erro:', notifErr.message); }
     res.status(201).json({ ok: true });
@@ -128,8 +129,8 @@ router.get('/all', authMiddleware, async (req, res) => {
 router.get('/user/:id', async (req, res) => {
   try {
     const db = getDB();
-    const poke = await db.prepare('SELECT * FROM dailypokes WHERE user_id=$1').get(req.params.id);
-    res.json({ config: poke?.config || null });
+    const poke = await db.prepare('SELECT config, avatar_url FROM dailypokes WHERE user_id=$1').get(req.params.id);
+    res.json({ config: poke?.config || null, avatar_url: poke?.avatar_url || null });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 

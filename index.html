@@ -6641,11 +6641,11 @@ function renderNotifItem(n) {
   if (n.type === 'poke' && !n.read) {
     const d = typeof n.data === 'string' ? JSON.parse(n.data||'{}') : (n.data||{});
     const action = d.action || d.scene || 'wave';
-    const fromId = n.from_user_id || d.from_user_id || '';
-    const fromAvatar = n.from_avatar || '';
-    const fromName = n.from_name || n.from_username || 'Alguém';
+    const fromId = d.from_user_id || n.from_user_id || '';
+    const pokeAvatar = d.poke_avatar_url || '';  // avatar do DailyPoke, não foto de perfil
+    const fromName = (d.from_name || n.from_name || n.from_username || 'Alguém').replace(/'/g, "\'");
     actions = `<div class="notif-actions">
-      <button class="btn btn-primary btn-xs" onclick="openReceivedPokeModal('${fromId}','${fromName}','${fromAvatar}','${action}','${n.id}');closeNotifPanel();">🎭 Ver poke</button>
+      <button class="btn btn-primary btn-xs" onclick="openReceivedPokeModal('${fromId}','${fromName}','${pokeAvatar}','${action}','${n.id}');closeNotifPanel();">🎭 Ver poke</button>
     </div>`;
   }
   if (n.type === 'testimonial' && !n.read) {
@@ -9518,12 +9518,12 @@ async function openReceivedPokeModal(fromUserId, fromName, fromAvatarUrl, action
   // Fechar modal anterior se existir
   document.getElementById('received-poke-modal')?.remove();
 
-  // Buscar avatar_url atualizado se não tiver
+  // Buscar poke avatar_url do remetente (sempre busca para garantir o DailyPoke, não foto de perfil)
   let avatarUrl = fromAvatarUrl;
-  if (!avatarUrl && fromUserId) {
+  if (fromUserId) {
     try {
       const d = await api('/api/dailypoke/user/' + fromUserId);
-      avatarUrl = d?.avatar_url || '';
+      if (d?.avatar_url) avatarUrl = d.avatar_url;
     } catch(e) {}
   }
 

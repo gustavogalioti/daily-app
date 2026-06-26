@@ -174,16 +174,22 @@ const NotificationService = {
   },
 
   // 6. DailyPoke
-  async sendDailyPoke(db, { toUserId, fromUser, scene }) {
+  async sendDailyPoke(db, { toUserId, fromUser, scene, pokeAvatarUrl }) {
     const sceneText = scene ? ` com cena: ${scene}` : '';
     await notify(db, {
       userId: toUserId, fromUserId: fromUser.id,
       type: 'poke',
       title: `🎭 Você recebeu um DailyPoke!`,
       body: `${fromUser.name} enviou um DailyPoke para você${sceneText}.`,
-      url: `${SITE_URL}/?tab=jogos`,
+      url: `${SITE_URL}/?tab=dailypoke`,
       tag: 'dailypoke',
       prefKey: 'notif_dailypoke',
+      data: {
+        action: scene || 'wave',
+        poke_avatar_url: pokeAvatarUrl || null,
+        from_user_id: fromUser.id,
+        from_name: fromUser.name,
+      },
     });
   },
 
