@@ -1650,7 +1650,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
           <!-- Controls -->
           <div style="background:rgba(6,6,10,.99);padding:5px 12px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid rgba(255,255,255,.05);">
-            <button id="dc-btn-jump" style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#2a2040);border:2px solid rgba(255,255,255,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#fff;flex-shrink:0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dcKeys.jump=true;event.preventDefault();" ontouchend="setTimeout(()=>{dcKeys.jump=false;},80);" onmousedown="dcKeys.jump=true;" onmouseup="setTimeout(()=>{dcKeys.jump=false;},80);"><span style="font-size:20px;">↑</span><span style="font-size:7px;color:#8888aa;">PULAR</span></button>
+            <button id="dc-btn-jump" style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#2a2040);border:2px solid rgba(255,255,255,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#fff;flex-shrink:0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dcKeys.jump=true;event.preventDefault();" ontouchend="setTimeout(()=>{dcKeys.jump=false;},80);" onmousedown="dcKeys.jump=true;" onmouseup="setTimeout(()=>{dcKeys.jump=false;},80);"><span style="font-size:20px;">↑</span><span style="font-size:7px;color:#8888aa;">PULAR</span></button><button style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#2a2040);border:2px solid rgba(255,255,255,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#fff;flex-shrink:0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dcKeys.down=true;event.preventDefault();" ontouchend="dcKeys.down=false;" onmousedown="dcKeys.down=true;" onmouseup="dcKeys.down=false;"><span style="font-size:18px;">↓</span><span style="font-size:7px;color:#8888aa;">DESCER</span></button>
             <div style="display:flex;gap:6px;align-items:center;">
               <button style="width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#e8e8f0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dcKeys.left=true;event.preventDefault();" ontouchend="dcKeys.left=false;" onmousedown="dcKeys.left=true;" onmouseup="dcKeys.left=false;"><span style="font-size:18px;">◀</span><span style="font-size:7px;color:#8888aa;">ANDAR</span></button>
               <button style="width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#e8e8f0;user-select:none;-webkit-tap-highlight-color:transparent;" ontouchstart="dcKeys.right=true;event.preventDefault();" ontouchend="dcKeys.right=false;" onmousedown="dcKeys.right=true;" onmouseup="dcKeys.right=false;"><span style="font-size:18px;">▶</span><span style="font-size:7px;color:#8888aa;">ANDAR</span></button>
@@ -11974,14 +11974,14 @@ function dcGenPhaseLayout(phaseIdx) {
     // Fase 1 - Recepção: balcão central longo + plataformas menores
     [
       // Nível intermediário — balcão frontal (faixa vermelha)
-      {x:  80,y:ground-128,w:300,h:14,color:'#c0392b'},
-      {x: 460,y:ground-128,w:280,h:14,color:'#c0392b'},
-      {x: 840,y:ground-128,w:300,h:14,color:'#c0392b'},
-      {x:1240,y:ground-128,w:280,h:14,color:'#c0392b'},
-      {x:1620,y:ground-128,w:300,h:14,color:'#c0392b'},
-      {x:2020,y:ground-128,w:280,h:14,color:'#c0392b'},
-      {x:2400,y:ground-128,w:300,h:14,color:'#c0392b'},
-      {x:2800,y:ground-128,w:320,h:14,color:'#c0392b'},
+      {x:  80,y:ground-128,w:300,h:14,color:'#8B1A1A'},
+      {x: 460,y:ground-128,w:280,h:14,color:'#7a1a1a'},
+      {x: 840,y:ground-128,w:300,h:14,color:'#7a1a1a'},
+      {x:1240,y:ground-128,w:280,h:14,color:'#7a1a1a'},
+      {x:1620,y:ground-128,w:300,h:14,color:'#7a1a1a'},
+      {x:2020,y:ground-128,w:280,h:14,color:'#7a1a1a'},
+      {x:2400,y:ground-128,w:300,h:14,color:'#7a1a1a'},
+      {x:2800,y:ground-128,w:320,h:14,color:'#7a1a1a'},
       // Nível superior — topo do balcão
       {x: 160,y:ground-178,w:180,h:14,color:'#2255aa'},
       {x: 520,y:ground-178,w:160,h:14,color:'#2255aa'},
@@ -12231,8 +12231,8 @@ function _startCorpTowerInner() {
   DC.qBlocks=layout.qBlocks;
 
   DC.player={
-    x:80, y:ground-44,
-    w:28, h:44,
+    x:80, y:ground-58,
+    w:38, h:58,
     vx:0, vy:0,
     onGround:false, facingRight:true,
     invincible:0, invFlash:0,
@@ -12325,11 +12325,17 @@ function dcUpdate(dt) {
     p.y=ground-p.h; p.vy=0; p.onGround=true; p.jumping=false;
   }
 
-  // ── PLATFORM COLLISION ──
+  // ── PLATFORM COLLISION (↓ para descer) ──
   for(const pl of DC.platforms){
     const sx=pl.x-DC.scrollX, sy=pl.y;
-    if(p.vy>=0 && p.y+p.h<=sy+pl.h+p.vy*dt+4 && p.y+p.h>=sy &&
+    // Se player pressionou ↓/S enquanto está em cima da plataforma → cai
+    if(dcKeys.down && p.onGround && p.y+p.h<=sy+4 && p.y+p.h>=sy-4 &&
        p.x+p.w-4>sx && p.x+4<sx+pl.w){
+      p.y+=6; p.onGround=false; // atravessa
+      continue;
+    }
+    if(p.vy>=0 && p.y+p.h<=sy+pl.h+p.vy*dt+6 && p.y+p.h>=sy-2 &&
+       p.x+p.w-6>sx && p.x+6<sx+pl.w){
       p.y=sy-p.h; p.vy=0; p.onGround=true; p.jumping=false;
     }
   }
@@ -12401,34 +12407,40 @@ function dcUpdate(dt) {
       e.speechTimer=120+Math.random()*80;
     }
 
-    // ── STOMP: player jumps on enemy ──
-    if(p.invincible<=0 && p.vy>0){
-      const esx=e.x-DC.scrollX;
-      const playerFoot=p.y+p.h;
-      const enemyTop=e.y;
-      if(playerFoot>=enemyTop-4 && playerFoot<=enemyTop+14 &&
-         p.x+p.w-4>esx && p.x+4<esx+e.w){
-        // HIT ENEMY
-        e.hpCurrent--;
-        e.hitTimer=20;
-        dcParticles(esx+e.w/2, e.y, e.color, 6);
-        p.vy=-7; // bounce up
-        if(e.hpCurrent<=0){
-          e.dead=true; e.deadTimer=40;
-          DC.kills++; DC.coins+=e.pts;
-          dcToast(`💀 ${e.name}! +${e.pts}🟡`, '#22c55e');
-          if(e.isBoss) dcToast('🔥 CHEFE DERROTADO!','#f5a623');
-        }
-        continue;
+    // ── STOMP: player cai em cima do inimigo ──
+    const esx=e.x-DC.scrollX;
+    const playerFoot = p.y + p.h;
+    const enemyTop   = e.y;
+    // hitbox horizontal: overlap real das larguras (com 4px de tolerância)
+    const hOverlap = p.x + p.w - 6 > esx && p.x + 6 < esx + e.w;
+    // hitbox vertical stomp: pé do player entre -8 e +20px do topo do inimigo
+    const isStomping = p.vy > 0 && playerFoot >= enemyTop - 8 && playerFoot <= enemyTop + 20 && hOverlap;
+
+    if(p.invincible <= 0 && isStomping){
+      e.hpCurrent--;
+      e.hitTimer = 20;
+      dcParticles(esx + e.w/2, e.y, e.color, 6);
+      p.vy = -8; // bounce generoso
+      if(e.hpCurrent <= 0){
+        e.dead = true; e.deadTimer = 40;
+        DC.kills++; DC.coins += e.pts;
+        dcToast(`💀 ${e.name}! +${e.pts}🟡`, '#22c55e');
+        if(e.isBoss) dcToast('🔥 CHEFE DERROTADO!','#f5a623');
       }
+      continue; // não verifica dano lateral no mesmo frame
     }
 
-    // ── PLAYER DAMAGE: enemy hits player (side) ──
-    if(p.invincible<=0){
-      const esx=e.x-DC.scrollX;
-      if(Math.abs(p.x+p.w/2-(e.x+e.w/2))<(p.w/2+e.w/2-6) &&
-         Math.abs(p.y+p.h/2-(e.y+e.h/2))<(p.h/2+e.h/2-8)){
-        dcTakeDamage(e.isBoss?2:1);
+    // ── PLAYER DAMAGE: contato lateral (não é stomp) ──
+    if(p.invincible <= 0 && !isStomping){
+      // Overlap real em X e Y — mais restrito em Y para não punir stomp próximo
+      const cx = Math.abs(p.x + p.w/2 - (e.x + e.w/2));
+      const cy = Math.abs(p.y + p.h/2 - (e.y + e.h/2));
+      const minX = p.w/2 + e.w/2 - 8;
+      const minY = p.h/2 + e.h/2 - 12;
+      // Só dano se centro do player está ABAIXO do topo do inimigo + 24px
+      // (evita punir o momento em que o player está descendo mas na zona de stomp)
+      if(cx < minX && cy < minY && p.y + p.h > enemyTop + 20){
+        dcTakeDamage(e.isBoss ? 2 : 1);
       }
     }
   }
@@ -12668,7 +12680,7 @@ function dcDraw(){
     const eImg = e.imgUrl ? dcGetEnemyImg(e.imgUrl) : null;
     if(eImg && eImg.complete && eImg.naturalWidth > 0) {
       const iw=eImg.naturalWidth, ih=eImg.naturalHeight;
-      const dH = e.isBoss ? 90 : e.mini ? 32 : 62;
+      const dH = e.isBoss ? 110 : e.mini ? 38 : 76;
       const dW = Math.round(iw/ih*dH);
       const dX = esx + e.w/2 - dW/2;
       const dY = e.y + e.h - dH;
@@ -12680,7 +12692,7 @@ function dcDraw(){
       }
     } else {
       // Fallback emoji com glow
-      ctx.font=`${e.isBoss?48:e.mini?20:32}px serif`;
+      ctx.font=`${e.isBoss?58:e.mini?24:40}px serif`;
       ctx.textAlign='center';
       ctx.shadowBlur = e.isBoss ? 20 : 10;
       ctx.shadowColor = e.color;
@@ -12883,12 +12895,14 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') dcKeys.left=true;
   if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') dcKeys.right=true;
   if((e.key==='ArrowUp'||e.key==='w'||e.key==='W'||e.key===' ')&&!dcKeys.jump){e.preventDefault();dcKeys.jump=true;}
+  if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){dcKeys.down=true;}
   if(e.key==='Escape') dcTogglePause();
 });
 document.addEventListener('keyup',e=>{
   if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') dcKeys.left=false;
   if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') dcKeys.right=false;
   if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'||e.key===' ') dcKeys.jump=false;
+  if(e.key==='ArrowDown'||e.key==='s'||e.key==='S') dcKeys.down=false;
 });
 
 
