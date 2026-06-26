@@ -64,4 +64,80 @@ router.get('/me', authMiddleware, async (req, res) => {
   res.json({ user });
 });
 
+// ─── ESQUECI MINHA SENHA ──────────────────────────────────────────────────────
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const db = getDB();
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'E-mail obrigatório' });
+
+    const user = await db.prepare('SELECT id,name,email FROM users WHERE email=$1').get(email.toLowerCase().trim());
+    // Sempre responder OK (não revelar se email existe)
+    if (!user) return res.json({ ok: true });
+
+    // Criar token de reset (válido 1h)
+    const token     = uuidv4().replace(/-/g,'') + uuidv4().replace(/-/g,'');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    // Criar tabela se não existir
+    await db.prepare(`CREATE TABLE IF NOT EXISTS password_resets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`).run().catch(() => {});
+
+    // Invalidar tokens anteriores do mesmo usuário
+    await db.prepare('UPDATE password_resets SET used=TRUE WHERE user_id=$1').run(user.id).catch(() => {});
+
+    // Salvar novo token
+    await db.prepare('INSERT INTO password_resets (id,user_id,token,expires_at) VALUES ($1,$2,$3,$4)')
+      .run(uuidv4(), user.id, token, expiresAt);
+
+    // Enviar email
+    const siteUrl   = process.env.SITE_URL || 'https://www.yourdaily.com.br';
+    const resetLink = `${siteUrl}/?reset_token=${token}`;
+    const { sendPasswordResetEmail } = require('./email');
+    await sendPasswordResetEmail({ to: user.email, name: user.name, resetLink });
+
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('[Auth] forgot-password:', e.message);
+    res.status(500).json({ error: 'Erro ao enviar e-mail. Tente novamente.' });
+  }
+});
+
+// ─── REDEFINIR SENHA ──────────────────────────────────────────────────────────
+router.post('/reset-password', async (req, res) => {
+  try {
+    const db = getDB();
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Dados inválidos' });
+    if (password.length < 6)  return res.status(400).json({ error: 'Senha deve ter ao menos 6 caracteres' });
+
+    // Buscar token válido
+    const reset = await db.prepare(`
+      SELECT pr.*, u.id AS uid FROM password_resets pr
+      JOIN users u ON u.id = pr.user_id
+      WHERE pr.token=$1 AND pr.used=FALSE AND pr.expires_at > NOW()
+    `).get(token);
+
+    if (!reset) return res.status(400).json({ error: 'Link inválido ou expirado. Solicite um novo.' });
+
+    // Atualizar senha
+    const hashed = await bcrypt.hash(password, 12);
+    await db.prepare('UPDATE users SET password=$1 WHERE id=$2').run(hashed, reset.user_id);
+
+    // Invalidar token
+    await db.prepare('UPDATE password_resets SET used=TRUE WHERE id=$1').run(reset.id);
+
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('[Auth] reset-password:', e.message);
+    res.status(500).json({ error: 'Erro ao redefinir senha' });
+  }
+});
+
 module.exports = router;

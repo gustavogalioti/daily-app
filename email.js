@@ -71,4 +71,33 @@ async function sendNotificationEmail({ to, name, notificationId, siteUrl }) {
   await t.sendMail({ from: process.env.EMAIL_FROM || 'DAILY <noreply@daily.app>', to, subject: '📷 Hora da foto! Você tem 1 minuto — DAILY', html });
 }
 
-module.exports = { sendWelcomeEmail, sendNotificationEmail };
+module.exports = { sendWelcomeEmail, sendNotificationEmail, sendPasswordResetEmail };
+
+async function sendPasswordResetEmail({ to, name, resetLink }) {
+  const t = createTransporter();
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #eee;">
+      <div style="background:linear-gradient(135deg,#f97316,#ff6b35);padding:32px;text-align:center;">
+        <div style="font-family:Georgia,serif;font-size:32px;font-weight:900;color:#fff;letter-spacing:-1px;">D<span style="color:#fff3e0;">.</span>AILY</div>
+      </div>
+      <div style="padding:32px;">
+        <h2 style="color:#1a1a1a;margin:0 0 12px;">Redefinição de senha 🔑</h2>
+        <p style="color:#555;line-height:1.6;margin:0 0 24px;">Olá, <strong>${name}</strong>! Recebemos uma solicitação para redefinir a senha da sua conta DAILY.</p>
+        <p style="color:#555;line-height:1.6;margin:0 0 24px;">Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>1 hora</strong>.</p>
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${resetLink}" style="background:#f97316;color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block;">Redefinir minha senha →</a>
+        </div>
+        <p style="color:#999;font-size:12px;line-height:1.6;margin:0;">Se você não solicitou isso, ignore este e-mail. Sua senha permanecerá a mesma.<br><br>Link direto: <a href="${resetLink}" style="color:#f97316;">${resetLink}</a></p>
+      </div>
+      <div style="background:#f9f9f9;padding:16px;text-align:center;">
+        <p style="color:#bbb;font-size:11px;margin:0;">© DAILY · yourdaily.com.br</p>
+      </div>
+    </div>
+  `;
+  await t.sendMail({
+    from: process.env.EMAIL_FROM || 'DAILY <noreply@yourdaily.com.br>',
+    to,
+    subject: '🔑 Redefinição de senha — DAILY',
+    html,
+  });
+}

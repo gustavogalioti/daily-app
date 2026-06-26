@@ -579,6 +579,9 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <button type="button" id="btn-login"
         style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;"
         onclick="doLogin()">Entrar →</button>
+      <div style="text-align:center;margin-top:4px;">
+        <button type="button" onclick="openForgotPassword()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline;">Esqueci minha senha</button>
+      </div>
       <p style="font-size:12px;color:var(--muted);text-align:center;line-height:1.6;">Compartilhe momentos, faça amigos, participe de comunidades, explore o mapa, vá a eventos e colecione conquistas. O Daily é a sua rede — viva ela!</p>
     </div>
 
@@ -2664,6 +2667,75 @@ function mostrarCadastro(){
 }
 
 
+
+// ═══ ESQUECI MINHA SENHA ═══
+function openForgotPassword() {
+  document.getElementById('forgot-email').value =
+    document.getElementById('login-email')?.value || '';
+  document.getElementById('forgot-btn').disabled = false;
+  document.getElementById('forgot-btn').textContent = 'Enviar link →';
+  openModal('modal-forgot');
+}
+
+async function submitForgotPassword() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) { toast('Digite seu e-mail','error'); return; }
+  const btn = document.getElementById('forgot-btn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    const res  = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao enviar');
+    closeModal('modal-forgot');
+    toast('E-mail enviado! Verifique sua caixa de entrada 📧', 'success');
+  } catch(e) {
+    toast(e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Enviar link →';
+  }
+}
+
+// Verificar token de reset na URL ao carregar
+(function checkResetToken() {
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('reset_token');
+  if (!token) return;
+  // Mostrar tela de nova senha
+  window.__resetToken = token;
+  document.getElementById('screen-reset-password').style.display = 'flex';
+})();
+
+async function submitNewPassword() {
+  const np  = document.getElementById('reset-password-new').value;
+  const cp  = document.getElementById('reset-password-confirm').value;
+  if (!np || np.length < 6) { toast('Mínimo 6 caracteres','error'); return; }
+  if (np !== cp) { toast('As senhas não coincidem','error'); return; }
+  const btn = document.getElementById('reset-btn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    const res  = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: window.__resetToken, password: np })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao redefinir');
+    document.getElementById('screen-reset-password').style.display = 'none';
+    // Limpar token da URL sem reload
+    window.history.replaceState({}, '', window.location.pathname);
+    toast('Senha atualizada! Faça login com a nova senha 🎉', 'success');
+    // Focar no campo de login
+    setTimeout(() => {
+      document.getElementById('login-email')?.focus();
+    }, 500);
+  } catch(e) {
+    toast(e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Salvar nova senha →';
+  }
+}
 
 async function doLogin(e){
   if(e) e.preventDefault();
@@ -8021,6 +8093,43 @@ async function submitDQPhoto(qid) {
 
 
 <!-- ─── TELA AGENDA ─── -->
+<!-- ═══ MODAL ESQUECI MINHA SENHA ═══ -->
+<div id="modal-forgot" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-forgot')">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-header">
+      <div class="modal-title">🔑 Recuperar senha</div>
+      <button class="modal-close" onclick="closeModal('modal-forgot')">×</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:14px;">
+      <p style="font-size:13px;color:var(--muted);line-height:1.5;margin:0;">Digite o e-mail cadastrado na sua conta. Você receberá um link para criar uma nova senha.</p>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">E-mail</label>
+        <input id="forgot-email" type="email" placeholder="seu@email.com" style="margin-top:6px;width:100%;box-sizing:border-box;">
+      </div>
+      <button id="forgot-btn" class="btn btn-primary" style="width:100%;" onclick="submitForgotPassword()">Enviar link →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN NOVA SENHA (acessado via link do email) ═══ -->
+<div id="screen-reset-password" style="display:none;position:fixed;inset:0;z-index:900;background:var(--surface2);flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">
+  <div style="width:100%;max-width:380px;background:var(--surface);border-radius:20px;padding:28px;box-shadow:var(--shadow-md);">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:6px;">Nova senha</div>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 20px;line-height:1.5;">Escolha uma senha forte para sua conta DAILY.</p>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Nova senha</label>
+        <input id="reset-password-new" type="password" placeholder="Mínimo 6 caracteres" style="margin-top:6px;width:100%;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Confirmar senha</label>
+        <input id="reset-password-confirm" type="password" placeholder="Repita a senha" style="margin-top:6px;width:100%;box-sizing:border-box;">
+      </div>
+      <button id="reset-btn" class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="submitNewPassword()">Salvar nova senha →</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ SCREEN ANIVERSARIANTES ═══ -->
 <div id="screen-birthday" style="display:none;position:fixed;inset:0;z-index:660;flex-direction:column;background:var(--surface2);overflow-y:auto;">
 
