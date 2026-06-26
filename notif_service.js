@@ -11,6 +11,15 @@ const SITE_URL      = process.env.SITE_URL || 'https://web-production-da5a8.up.r
 
 webpush.setVapidDetails('mailto:admin@daily.app', VAPID_PUBLIC, VAPID_PRIVATE);
 
+// Só enviar para subscrições do domínio oficial
+const OFFICIAL_DOMAINS = ['yourdaily.com.br', 'fcm.googleapis.com', 'updates.push.services.mozilla.com', 'notify.windows.com', 'push.apple.com'];
+function isOfficialEndpoint(subscription) {
+  if (!subscription || !subscription.endpoint) return false;
+  // FCM/Mozilla/Windows/Apple são válidos (gerados pelo browser, não pelo domínio)
+  // Bloquear apenas endpoints do Railway
+  return !subscription.endpoint.includes('railway.app') && !subscription.endpoint.includes('web-production');
+}
+
 // ─── ANTI-SPAM: janela de consolidação por usuário+tipo ───────────────────────
 const spamWindow = new Map(); // key: `${userId}:${type}` → timestamp
 
@@ -43,6 +52,7 @@ async function sendPushToUser(db, userId, { title, body, url, icon, tag }) {
       try {
         const subscription = typeof sub.subscription === 'string'
           ? JSON.parse(sub.subscription) : sub.subscription;
+        if (!isOfficialEndpoint(subscription)) continue;
         await webpush.sendNotification(subscription, payload);
         sent++;
       } catch(e) {
@@ -235,6 +245,7 @@ const NotificationService = {
       try {
         const subscription = typeof sub.subscription === 'string'
           ? JSON.parse(sub.subscription) : sub.subscription;
+        if (!isOfficialEndpoint(subscription)) continue;
         await webpush.sendNotification(subscription, payload);
         sent++;
       } catch(e) {
@@ -264,6 +275,7 @@ const NotificationService = {
       try {
         const subscription = typeof sub.subscription === 'string'
           ? JSON.parse(sub.subscription) : sub.subscription;
+        if (!isOfficialEndpoint(subscription)) continue;
         // Verificar preferência
         const wants = await userWants(db, sub.user_id, 'notif_daily_question');
         if (!wants) continue;

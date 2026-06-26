@@ -191,6 +191,11 @@ async function initPG() {
   // Migração: remover UNIQUE constraint antigo se existir
   try { await pool.query('ALTER TABLE push_subscriptions DROP CONSTRAINT IF EXISTS push_subscriptions_user_id_key'); } catch(e) {}
   try { await pool.query('ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS device_key TEXT'); } catch(e) {}
+  // Limpar subscrições de domínios antigos (railway.app)
+  try {
+    await pool.query(`DELETE FROM push_subscriptions WHERE subscription::text LIKE '%railway.app%' OR subscription::text LIKE '%web-production%'`);
+    console.log('[DB] Subscrições push de domínios antigos removidas');
+  } catch(e) { console.log('[DB] Cleanup push_subscriptions:', e.message); }
   try { await pool.query(`CREATE TABLE IF NOT EXISTS friendships (
       id TEXT PRIMARY KEY, requester_id TEXT NOT NULL, addressee_id TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending', message TEXT,

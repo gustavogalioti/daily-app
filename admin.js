@@ -92,14 +92,26 @@ router.post('/push-subscribe', authMiddleware, async (req, res) => {
   const { subscription } = req.body;
   if (!subscription) return res.status(400).json({ error: 'Subscription obrigatória' });
   const subStr = JSON.stringify(subscription);
-  // device_key = endpoint da subscription (único por device)
   const deviceKey = subscription.endpoint ? subscription.endpoint.slice(-40) : uuidv4();
+
+  // Remover subscrições antigas de domínios não-oficiais (railway, etc)
+  try {
+    const all = await db.prepare('SELECT id, subscription FROM push_subscriptions WHERE user_id=$1').all(req.user.id);
+    for (const row of all) {
+      try {
+        const s = JSON.parse(row.subscription);
+        if (s.endpoint && !s.endpoint.includes('yourdaily.com.br')) {
+          await db.prepare('DELETE FROM push_subscriptions WHERE id=$1').run(row.id);
+        }
+      } catch(e) {}
+    }
+  } catch(e) {}
+
   try {
     await db.prepare(
       'INSERT INTO push_subscriptions (id,user_id,subscription,device_key) VALUES ($1,$2,$3,$4) ON CONFLICT (user_id,device_key) DO UPDATE SET subscription=$3'
     ).run(uuidv4(), req.user.id, subStr, deviceKey);
   } catch(e) {
-    // fallback se ON CONFLICT não funcionar
     try {
       await db.prepare('INSERT INTO push_subscriptions (id,user_id,subscription,device_key) VALUES ($1,$2,$3,$4)').run(uuidv4(), req.user.id, subStr, deviceKey);
     } catch(e2) {
