@@ -11918,23 +11918,35 @@ const DC_PHASES = [
 ];
 
 // ── INIMIGOS ───────────────────────────────────────────────────
-// Inimigos do Corp Tower — mesmo padrão visual do Daily Tower (emoji + glow)
+// Inimigos do Corp Tower — sprites PNG (mesmo sistema do Daily Tower)
 const DC_ENEMY_TYPES = {
-  boleto:      { name:'Boleto Vencido',        hp:2, speed:1.4, pts:15, color:'#ef4444', emoji:'🧾', w:36, h:48, mini:false, speeches:['VENCIDO!','Juros acumulando!','Paga logo!','R$ 847,23!'] },
-  boleto_mini: { name:'Boleto Mini',            hp:1, speed:2.0, pts:8,  color:'#f87171', emoji:'🧾', w:22, h:30, mini:true,  speeches:['Vencido!','Jurosinhos!','Paga!'] },
-  cartao:      { name:'Cartão Recusado',        hp:2, speed:1.1, pts:20, color:'#1e293b', emoji:'💳', w:38, h:48, mini:false, speeches:['RECUSADO!','Saldo insuficiente!','Nem tenta.','Código 05!'] },
-  wifi:        { name:'Wi-Fi Ruim',             hp:2, speed:1.6, pts:12, color:'#6b7280', emoji:'📶', w:32, h:44, mini:false, speeches:['...carregando...','Sem conexão!','Buffer infinito!','404!'] },
-  wifi_mini:   { name:'Wi-Fi Mini',             hp:1, speed:2.4, pts:6,  color:'#9ca3af', emoji:'📶', w:20, h:28, mini:true,  speeches:['sem sinal...','buffer!','...'] },
-  taxacao:     { name:'Taxação de Importação',  hp:3, speed:0.9, pts:22, color:'#1e40af', emoji:'🪙', w:38, h:48, mini:false, speeches:['COBRANÇA!','R$ 428,00!','Taxou tudo!','60% imposto!'] },
-  fake_news:   { name:'Fake News',              hp:2, speed:1.8, pts:18, color:'#b91c1c', emoji:'📰', w:34, h:44, mini:false, speeches:['URGENTE! Compartilhe!','Fonte: Zap Zap!','É TUDO VERDADE!','EXCLUSIVO!!'] },
-  obra:        { name:'Obra às 7h da Manhã',    hp:2, speed:1.3, pts:15, color:'#f59e0b', emoji:'🔨', w:36, h:48, mini:false, speeches:['SILÊNCIO? NUNCA!','Furadeira ligada!','Bom dia vizinhos!','TRIIIIM!'] },
+  boleto:      { name:'Boleto Vencido',        hp:2, speed:1.4, pts:15, color:'#ef4444', emoji:'🧾', imgUrl:'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/enemy_boleto.png',   w:36, h:48, mini:false, speeches:['VENCIDO!','Juros acumulando!','Paga logo!','R$ 847,23!'] },
+  boleto_mini: { name:'Boleto Mini',            hp:1, speed:2.0, pts:8,  color:'#f87171', emoji:'🧾', imgUrl:'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/enemy_boleto.png',   w:22, h:30, mini:true,  speeches:['Vencido!','Jurosinhos!','Paga!'] },
+  cartao:      { name:'Cartão Recusado',        hp:2, speed:1.1, pts:20, color:'#1e293b', emoji:'💳', imgUrl:'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/enemy_cartao.png',   w:38, h:48, mini:false, speeches:['RECUSADO!','Saldo insuficiente!','Nem tenta.','Código 05!'] },
+  wifi:        { name:'Wi-Fi Ruim',             hp:2, speed:1.6, pts:12, color:'#6b7280', emoji:'📶', imgUrl:'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/enemy_wifi.png',     w:32, h:44, mini:false, speeches:['...carregando...','Sem conexão!','Buffer infinito!','404!'] },
+  wifi_mini:   { name:'Wi-Fi Mini',             hp:1, speed:2.4, pts:6,  color:'#9ca3af', emoji:'📶', imgUrl:'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/enemy_wifi.png',     w:20, h:28, mini:true,  speeches:['sem sinal...','buffer!','...'] },
+  taxacao:     { name:'Taxação de Importação',  hp:3, speed:0.9, pts:22, color:'#1e40af', emoji:'🪙', imgUrl:'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/enemy_taxacao.png',  w:38, h:48, mini:false, speeches:['COBRANÇA!','R$ 428,00!','Taxou tudo!','60% imposto!'] },
+  fake_news:   { name:'Fake News',              hp:2, speed:1.8, pts:18, color:'#b91c1c', emoji:'📰', imgUrl:'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/enemy_fakenews.png', w:34, h:44, mini:false, speeches:['URGENTE! Compartilhe!','Fonte: Zap Zap!','É TUDO VERDADE!','EXCLUSIVO!!'] },
+  obra:        { name:'Obra às 7h da Manhã',    hp:2, speed:1.3, pts:15, color:'#f59e0b', emoji:'🔨', imgUrl:null,                       w:36, h:48, mini:false, speeches:['SILÊNCIO? NUNCA!','Furadeira ligada!','Bom dia vizinhos!','TRIIIIM!'] },
 };
 
-// ── BOSSES — mesmo padrão emoji do Daily Tower ────────────────
+// ── BOSSES com sprites PNG ────────────────────────────────────
 const DC_BOSSES = [
-  { name:'COACH DE REDE SOCIAL', hp:20, speed:1.2, pts:300, color:'#1e40af', emoji:'🤵', isBoss:true, speeches:['MINDSET!','Networking agora!','Disciplina e FOCO!','Saiu da zona de conforto?','Entregue resultado!'] },
-  { name:'TRÂNSITO DE SÃO PAULO', hp:35, speed:0.8, pts:500, color:'#374151', emoji:'🚌', isBoss:true, speeches:['999km na Marginal!','CAOS TOTAL!','Zona Leste→','Ninguém sai daqui!','Bloqueio total!'] },
+  { name:'COACH DE REDE SOCIAL', hp:20, speed:1.2, pts:300, color:'#1e40af', emoji:'🤵', imgUrl:'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/enemy_coach.png',   isBoss:true, speeches:['MINDSET!','Networking agora!','Disciplina e FOCO!','Saiu da zona de conforto?','Entregue resultado!'] },
+  { name:'TRÂNSITO DE SÃO PAULO', hp:35, speed:0.8, pts:500, color:'#374151', emoji:'🚌', imgUrl:'https://raw.githubusercontent.com/gustavogalioti/daily-app/main/enemy_transito.png', isBoss:true, speeches:['999km na Marginal!','CAOS TOTAL!','Zona Leste→','Ninguém sai daqui!','Bloqueio total!'] },
 ];
+
+// ── CACHE DE IMAGENS DOS INIMIGOS (igual Daily Tower) ─────────
+const _dcEnemyImgCache = {};
+function dcGetEnemyImg(imgUrl) {
+  if(!imgUrl) return null;
+  if(_dcEnemyImgCache[imgUrl]) return _dcEnemyImgCache[imgUrl];
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.src = imgUrl;
+  _dcEnemyImgCache[imgUrl] = img;
+  return img;
+}
 
 // ── LAYOUT DE FASES ───────────────────────────────────────────
 // Plataformas e coins definidos por fase
@@ -12559,19 +12571,34 @@ function dcDraw(){
     ctx.save();
     if(flash) ctx.filter='brightness(3) saturate(0)';
 
-    // Emoji com glow igual Daily Tower
-    ctx.font=`${e.isBoss?48:e.mini?20:32}px serif`;
-    ctx.textAlign='center';
-    ctx.shadowBlur = e.isBoss ? 20 : 10;
-    ctx.shadowColor = e.color;
-    if(!e.facingRight){
-      ctx.translate(drawX, drawY);
-      ctx.scale(-1,1);
-      ctx.fillText(e.emoji||'👾', 0, -4);
+    // PNG sprite (igual Daily Tower) ou fallback emoji
+    const eImg = e.imgUrl ? dcGetEnemyImg(e.imgUrl) : null;
+    if(eImg && eImg.complete && eImg.naturalWidth > 0) {
+      const iw=eImg.naturalWidth, ih=eImg.naturalHeight;
+      const dH = e.isBoss ? 90 : e.mini ? 32 : 62;
+      const dW = Math.round(iw/ih*dH);
+      const dX = esx + e.w/2 - dW/2;
+      const dY = e.y + e.h - dH;
+      if(!e.facingRight){
+        ctx.translate(dX+dW, dY); ctx.scale(-1,1);
+        ctx.drawImage(eImg, 0, 0, dW, dH);
+      } else {
+        ctx.drawImage(eImg, dX, dY, dW, dH);
+      }
     } else {
-      ctx.fillText(e.emoji||'👾', drawX, drawY-4);
+      // Fallback emoji com glow
+      ctx.font=`${e.isBoss?48:e.mini?20:32}px serif`;
+      ctx.textAlign='center';
+      ctx.shadowBlur = e.isBoss ? 20 : 10;
+      ctx.shadowColor = e.color;
+      if(!e.facingRight){
+        ctx.translate(drawX, drawY); ctx.scale(-1,1);
+        ctx.fillText(e.emoji||'👾', 0, -4);
+      } else {
+        ctx.fillText(e.emoji||'👾', drawX, drawY-4);
+      }
+      ctx.shadowBlur=0;
     }
-    ctx.shadowBlur=0;
     ctx.restore();
 
     // HP bar — acima do sprite
