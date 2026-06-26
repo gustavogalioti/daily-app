@@ -71,9 +71,15 @@ process.on('uncaughtException', (err) => {
     ['/api/news', './news'],
     ['/api/turnos', './turnos'],
     ['/api/mural', './mural'],
+    ['/api/birthdays', './birthdays'],
   ];
   for (const [path, file] of routeFiles) {
-    try { app.use(path, require(file)); console.log('  ✓', path); }
+    try {
+      const mod = require(file);
+      // Suporte a módulos que exportam { router, ... }
+      app.use(path, mod.router || mod);
+      console.log('  ✓', path);
+    }
     catch(e) { console.error('ROTA FALHOU', path, e.message); }
   }
 
@@ -240,6 +246,19 @@ process.on('uncaughtException', (err) => {
     }
     setInterval(checkAnniversaries, 60 * 60 * 1000);
     console.log('  ✓ News scheduler ativo');
+
+    // Scheduler aniversariantes: roda a cada hora, Pedro posta às 6h
+    try {
+      const { runBirthdayScheduler } = require('./birthdays');
+      async function checkBirthdayScheduler() {
+        const h = new Date().getHours();
+        if (h === 6) await runBirthdayScheduler(getDB());
+      }
+      setInterval(checkBirthdayScheduler, 60 * 60 * 1000);
+      // Rodar imediatamente também (caso servidor reinicie às 6h)
+      checkBirthdayScheduler();
+      console.log('  ✓ Birthday scheduler ativo');
+    } catch(e) { console.error('birthday_scheduler:', e.message); }
   } catch(e) { console.error('news_scheduler:', e.message); }
 
     const PORT = process.env.PORT || 3000;

@@ -155,6 +155,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .photo-card img{width:100%;display:block;background:var(--surface2);}
 .photo-card-body{padding:10px 12px;}
 .photo-card-author{display:flex;align-items:center;gap:6px;overflow:hidden;}
+@media(min-width:700px){.bday-photos-grid{grid-template-columns:repeat(4,1fr)!important;}}
 .reactions-row{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
 .reaction-chip{display:flex;align-items:center;gap:4px;background:var(--surface2);border:1.5px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;transition:all .15s;font-weight:500;}
 .reaction-chip:hover,.reaction-chip.mine{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
@@ -1636,6 +1637,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <button class="btn btn-ghost btn-sm" onclick="loadNews('flash',this)">⚡ Flash</button>
         <button class="btn btn-ghost btn-sm" onclick="loadNews('records',this)">🏆 Recordes</button>
         <button class="btn btn-ghost btn-sm" onclick="loadNews('social',this)">🤝 Social</button>
+        <button class="btn btn-ghost btn-sm" onclick="openBirthdayTab(this)" id="news-filter-birthday">🎂 Aniversariantes</button>
       </div>
       <div id="news-feed" style="display:flex;flex-direction:column;gap:12px;">
         <div class="page-loader"><div class="loader"></div></div>
@@ -7784,6 +7786,89 @@ async function submitDQPhoto(qid) {
 
 
 <!-- ─── TELA AGENDA ─── -->
+<!-- ═══ SCREEN ANIVERSARIANTES ═══ -->
+<div id="screen-birthday" style="display:none;position:fixed;inset:0;z-index:660;flex-direction:column;background:var(--surface2);overflow-y:auto;">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#ff6b9d,#ff9a6c,#ffd700);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:10;">
+    <button onclick="closeBirthdayTab()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#fff;line-height:1;padding:0 8px 0 0;">‹</button>
+    <div style="flex:1;">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:#fff;">🎂 Aniversariantes do Dia</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.8);" id="birthday-date-label"></div>
+    </div>
+  </div>
+
+  <div style="max-width:800px;margin:0 auto;width:100%;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px;">
+
+    <!-- Quadro de aniversariantes -->
+    <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);overflow:hidden;">
+      <div style="padding:14px 16px;background:linear-gradient(135deg,rgba(255,107,157,.1),rgba(255,215,0,.1));border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+        <img src="pedro.jpg" style="width:32px;height:32px;border-radius:50%;border:2px solid #f97316;object-fit:cover;" onerror="this.style.display='none'">
+        <div>
+          <div style="font-weight:800;font-size:14px;color:var(--text1);">🎉 Festejando hoje!</div>
+          <div style="font-size:11px;color:var(--muted);">Pedro separou uma listinha especial</div>
+        </div>
+      </div>
+      <div id="birthday-users-grid" style="padding:16px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;">
+        <div class="page-loader"><div class="loader"></div></div>
+      </div>
+    </div>
+
+    <!-- Fotos dos aniversariantes (só eles podem postar) -->
+    <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);overflow:hidden;">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-weight:800;font-size:13px;color:var(--text1);">📸 Momento do Aniversariante</div>
+        <button id="birthday-photo-btn" onclick="openBirthdayPhotoUpload()" class="btn btn-primary btn-sm" style="display:none;font-size:11px;">+ Postar foto</button>
+      </div>
+      <div id="birthday-photos-grid" style="padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;" class="bday-photos-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--muted);font-size:13px;">Carregando fotos... 📸</div>
+      </div>
+    </div>
+
+    <!-- Chat / Nuvem de Parabéns -->
+    <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);overflow:hidden;">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+        <div style="font-weight:800;font-size:13px;color:var(--text1);">🎉 Mural de Parabéns</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Deseje feliz aniversário!</div>
+      </div>
+
+      <!-- Seletor de aniversariante para desejar -->
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Para quem?</div>
+        <div id="birthday-wish-targets" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+        <div style="display:flex;gap:8px;">
+          <input id="birthday-wish-input" type="text" placeholder="Escreva sua mensagem de parabéns... 🎂" style="flex:1;border-radius:20px;padding:9px 14px;border:1.5px solid var(--border);font-size:13px;">
+          <button onclick="sendBirthdayWish()" class="btn btn-primary btn-sm" style="border-radius:20px;white-space:nowrap;">Enviar 🎉</button>
+        </div>
+      </div>
+
+      <!-- Nuvem de palavras visual -->
+      <div id="birthday-wordcloud" style="padding:14px;min-height:60px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;"></div>
+
+      <!-- Lista de mensagens -->
+      <div id="birthday-chat-list" style="padding:0 14px 14px;display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal upload foto aniversário -->
+<div id="modal-birthday-photo" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-birthday-photo')">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-header">
+      <div class="modal-title">🎂 Postar sua foto de aniversário</div>
+      <button class="modal-close" onclick="closeModal('modal-birthday-photo')">×</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+      <img id="bday-photo-prev" style="width:100%;border-radius:10px;display:none;max-height:240px;object-fit:cover;">
+      <label class="drop-zone" for="bday-photo-file" style="padding:20px;">📸 Escolher foto</label>
+      <input type="file" id="bday-photo-file" accept="image/*" style="display:none;" onchange="onBdayPhotoSel(event)">
+      <input type="text" id="bday-photo-caption" placeholder="Legenda (opcional)" style="border-radius:8px;padding:9px 12px;border:1.5px solid var(--border);">
+      <button class="btn btn-primary" style="width:100%;" onclick="submitBirthdayPhoto()">Publicar 🎉</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ SCREEN MURAL DE LEMBRETES ═══ -->
 <div id="screen-mural" style="display:none;position:fixed;inset:0;z-index:660;flex-direction:column;background:#e8d5b7;overflow:hidden;">
 
@@ -7871,6 +7956,228 @@ async function submitDQPhoto(qid) {
 // ═══════════════════════════════════════
 // RATEIO DE GASTOS
 // ═══════════════════════════════════════
+// ═══ ANIVERSARIANTES ═══
+let birthdayUsers   = [];
+let selectedWishTarget = null;
+let bdayPhotoFile   = null;
+
+function openBirthdayTab(btn) {
+  // Atualizar botões filtro
+  document.querySelectorAll('[onclick^="loadNews"],[onclick^="openBirthdayTab"]').forEach(b => {
+    b.className = b.className.replace('btn-primary','btn-ghost');
+  });
+  if (btn) { btn.className = btn.className.replace('btn-ghost','btn-primary'); }
+
+  const sc = document.getElementById('screen-birthday');
+  sc.style.display = 'flex';
+  sc.style.flexDirection = 'column';
+
+  // Label de data
+  const now = new Date();
+  document.getElementById('birthday-date-label').textContent =
+    now.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+
+  loadBirthdayScreen();
+}
+
+function closeBirthdayTab() {
+  document.getElementById('screen-birthday').style.display = 'none';
+  // Resetar botão filtro
+  document.querySelectorAll('[onclick^="loadNews"],[onclick^="openBirthdayTab"]').forEach(b => {
+    b.className = b.className.replace('btn-primary','btn-ghost');
+  });
+  document.getElementById('news-filter-all').className =
+    document.getElementById('news-filter-all').className.replace('btn-ghost','btn-primary');
+}
+
+async function loadBirthdayScreen() {
+  await Promise.all([loadBirthdayUsers(), loadBirthdayPhotos(), loadBirthdayChat()]);
+}
+
+async function loadBirthdayUsers() {
+  const grid = document.getElementById('birthday-users-grid');
+  try {
+    const { users } = await api('/api/birthdays/today');
+    birthdayUsers = users;
+
+    // Mostrar/esconder botão de postar foto
+    const isBirthday = users.some(u => u.id === currentUser?.id);
+    const photoBtn = document.getElementById('birthday-photo-btn');
+    if (photoBtn) photoBtn.style.display = isBirthday ? 'block' : 'none';
+
+    // Seletor de para quem desejar
+    const targets = document.getElementById('birthday-wish-targets');
+    if (targets) {
+      targets.innerHTML = users.map(u =>
+        `<button class="btn btn-sm ${selectedWishTarget===u.id?'btn-primary':'btn-ghost'}"
+          onclick="selectWishTarget('${u.id}',this)"
+          style="display:flex;align-items:center;gap:5px;border-radius:20px;">
+          <img src="${u.avatar_url||avatarUrl(u.name)}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">
+          ${u.name.split(' ')[0]}
+        </button>`
+      ).join('');
+      if (users.length === 1) {
+        selectedWishTarget = users[0].id;
+        targets.querySelector('button')?.classList.replace('btn-ghost','btn-primary');
+      }
+    }
+
+    if (!users.length) {
+      grid.innerHTML = `<div style="width:100%;text-align:center;padding:32px;color:var(--muted);font-size:13px;">
+        😢 Nenhum aniversariante hoje.<br>Mas amanhã pode ser seu dia! 🎂
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = users.map(u => `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;width:80px;" onclick="openUserProfile('${u.username}')">
+        <div style="position:relative;">
+          <img src="${u.avatar_url||avatarUrl(u.name)}"
+            style="width:72px;height:72px;border-radius:50%;object-fit:cover;
+              border:3px solid #ffd700;box-shadow:0 0 12px rgba(255,215,0,.5);">
+          <div style="position:absolute;bottom:-4px;right:-4px;font-size:18px;line-height:1;">🎂</div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--text1);text-align:center;line-height:1.2;word-break:break-word;">${u.name.split(' ')[0]}</div>
+        <div style="font-size:10px;color:var(--muted);">@${u.username}</div>
+      </div>
+    `).join('');
+  } catch(e) {
+    grid.innerHTML = `<p class="text-muted" style="width:100%;text-align:center;">${e.message}</p>`;
+  }
+}
+
+async function loadBirthdayPhotos() {
+  const grid = document.getElementById('birthday-photos-grid');
+  try {
+    const { photos } = await api('/api/birthdays/photos');
+    if (!photos.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--muted);font-size:13px;">
+        Nenhuma foto ainda. Aniversariante, poste a primeira! 📸
+      </div>`;
+      return;
+    }
+    grid.innerHTML = photos.map(p => `
+      <div style="position:relative;border-radius:8px;overflow:hidden;cursor:pointer;aspect-ratio:1;" onclick="openUserProfile('${p.author_username}')">
+        <img src="${p.image_url}" style="width:100%;height:100%;object-fit:cover;">
+        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.65));padding:6px 6px 4px;">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <img src="${p.author_avatar||avatarUrl(p.author_name)}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;border:1px solid #fff;">
+            <span style="font-size:9px;color:#fff;font-weight:700;">${p.author_name.split(' ')[0]}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted);">${e.message}</div>`;
+  }
+}
+
+async function loadBirthdayChat() {
+  const list      = document.getElementById('birthday-chat-list');
+  const wordcloud = document.getElementById('birthday-wordcloud');
+  try {
+    const { messages } = await api('/api/birthdays/chat');
+
+    // Nuvem de palavras — palavras mais frequentes em tamanhos diferentes
+    if (messages.length) {
+      const freq = {};
+      messages.forEach(m => {
+        m.message.split(/\s+/).forEach(w => {
+          const clean = w.replace(/[^a-záéíóúãõâêôàç!🎉🎂]/gi,'').toLowerCase();
+          if (clean.length > 2) freq[clean] = (freq[clean]||0) + 1;
+        });
+      });
+      const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,20);
+      const max    = sorted[0]?.[1] || 1;
+      wordcloud.innerHTML = sorted.map(([w,c]) => {
+        const size = 11 + Math.round((c/max) * 18);
+        const opacity = 0.5 + (c/max) * 0.5;
+        return `<span style="font-size:${size}px;color:var(--accent);opacity:${opacity};font-weight:${c===max?800:400};">${w}</span>`;
+      }).join('');
+    } else {
+      wordcloud.innerHTML = '<span style="color:var(--muted);font-size:12px;">Seja o primeiro a desejar parabéns! 🎉</span>';
+    }
+
+    // Lista de mensagens
+    list.innerHTML = messages.map(m => {
+      const av = m.from_avatar || avatarUrl(m.from_name||'U');
+      return `<div style="display:flex;gap:8px;align-items:flex-start;">
+        <img src="${av}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="openUserProfile('${m.from_username}')">
+        <div style="flex:1;background:var(--surface2);border-radius:12px;padding:8px 10px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+            <span style="font-weight:700;font-size:11px;color:var(--accent);">${m.from_name}</span>
+            <span style="font-size:9px;color:var(--muted);">→</span>
+            <span style="font-size:11px;color:var(--text2);">🎂 ${m.to_name.split(' ')[0]}</span>
+            <span style="font-size:9px;color:var(--muted);margin-left:auto;">${timeAgo(m.created_at)}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text1);line-height:1.4;">${m.message}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = `<p class="text-muted" style="text-align:center;">${e.message}</p>`;
+  }
+}
+
+function selectWishTarget(userId, btn) {
+  selectedWishTarget = userId;
+  document.querySelectorAll('#birthday-wish-targets button').forEach(b => {
+    b.className = b.className.replace('btn-primary','btn-ghost');
+  });
+  btn.className = btn.className.replace('btn-ghost','btn-primary');
+}
+
+async function sendBirthdayWish() {
+  const input = document.getElementById('birthday-wish-input');
+  const text  = input.value.trim();
+  if (!text) { toast('Escreva uma mensagem!','error'); return; }
+  if (!selectedWishTarget && birthdayUsers.length > 1) {
+    toast('Selecione para quem deseja parabéns!','error'); return;
+  }
+  const toId = selectedWishTarget || birthdayUsers[0]?.id;
+  if (!toId) { toast('Nenhum aniversariante hoje!','error'); return; }
+  try {
+    await api('/api/birthdays/wishes', { method:'POST', body: JSON.stringify({ to_user_id: toId, message: text }) });
+    input.value = '';
+    toast('Parabéns enviados! 🎉','success');
+    loadBirthdayChat();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+function openBirthdayPhotoUpload() {
+  document.getElementById('bday-photo-prev').style.display = 'none';
+  document.getElementById('bday-photo-caption').value = '';
+  bdayPhotoFile = null;
+  openModal('modal-birthday-photo');
+}
+
+function onBdayPhotoSel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  bdayPhotoFile = file;
+  const prev = document.getElementById('bday-photo-prev');
+  prev.src = URL.createObjectURL(file);
+  prev.style.display = 'block';
+}
+
+async function submitBirthdayPhoto() {
+  if (!bdayPhotoFile) { toast('Selecione uma foto!','error'); return; }
+  try {
+    const btn = document.querySelector('#modal-birthday-photo .btn-primary');
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    const imageUrl = await uploadBase64Image(bdayPhotoFile);
+    const caption  = document.getElementById('bday-photo-caption').value.trim();
+    await api('/api/birthdays/photos', { method:'POST', body: JSON.stringify({ image_url: imageUrl, caption }) });
+    closeModal('modal-birthday-photo');
+    toast('Foto publicada! 🎂','success');
+    loadBirthdayPhotos();
+  } catch(e) {
+    toast(e.message,'error');
+    const btn = document.querySelector('#modal-birthday-photo .btn-primary');
+    btn.disabled = false; btn.textContent = 'Publicar 🎉';
+  }
+}
+
 // ═══ MURAL DE LEMBRETES ═══
 let muralAgendaId = null;
 let selectedPostitColor = '#fef08a';
