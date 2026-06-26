@@ -9129,20 +9129,98 @@ async function loadFriendsPokesV2() {
     _allFriendsPokes = pokes || [];
     if (!_allFriendsPokes.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;">Seus amigos ainda não criaram DailyPoke</div>'; return; }
     const show = _allFriendsPokes.slice(0, 4);
-    el.innerHTML = show.map(p => pokeAvatarCard(p, '52px', '83px')).join('');
+    el.innerHTML = show.map(p => pokeAvatarCard(p, '52px', '83px', true)).join('');
     const btnMore = document.getElementById('btn-more-friends-pokes');
     if (btnMore) btnMore.style.display = _allFriendsPokes.length > 4 ? 'block' : 'none';
   } catch(e) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;">Erro ao carregar</div>'; }
 }
 
-function pokeAvatarCard(p, w, h) {
+function pokeAvatarCard(p, w, h, sendable=false) {
   const img = p.avatar_url
     ? `<img src="${p.avatar_url}" style="width:${w};height:${h};object-fit:contain;image-rendering:pixelated;background:transparent;" />`
     : `<div style="font-size:32px;line-height:${h};">🎭</div>`;
-  return `<div style="text-align:center;cursor:pointer;" onclick="openUserProfile('${p.username}')">
+  const onclick = sendable
+    ? `openSendPokeModal('${p.user_id}','${(p.name||p.username||'').replace(/'/g,"\'")}','${p.avatar_url||''}')`
+    : `openUserProfile('${p.username}')`;
+  return `<div style="text-align:center;cursor:pointer;position:relative;" onclick="${onclick}">
     ${img}
+    ${sendable ? `<div style="position:absolute;top:2px;right:2px;background:var(--accent);color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3);">👋</div>` : ''}
     <div style="font-size:10px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(p.name||'').split(' ')[0]||p.username}</div>
   </div>`;
+}
+
+// Popup para enviar poke
+const POKE_ACTIONS = [
+  { emoji:'👋', label:'wave' },
+  { emoji:'🤗', label:'abraçando' },
+  { emoji:'🍻', label:'brindando' },
+  { emoji:'🌸', label:'flor' },
+  { emoji:'🏄', label:'surfando' },
+  { emoji:'⚽', label:'futebol' },
+  { emoji:'🎣', label:'pescando' },
+  { emoji:'💃', label:'dançando' },
+  { emoji:'🥊', label:'brigando' },
+  { emoji:'🏃', label:'correndo' },
+  { emoji:'🏀', label:'basquete' },
+];
+
+function openSendPokeModal(toUserId, toName, avatarUrl) {
+  const existing = document.getElementById('send-poke-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'send-poke-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const avatarHtml = avatarUrl
+    ? `<img src="${avatarUrl}" style="width:60px;height:96px;object-fit:contain;image-rendering:pixelated;background:transparent;" />`
+    : `<div style="font-size:48px;">🎭</div>`;
+
+  const actionsHtml = POKE_ACTIONS.map(a => `
+    <button onclick="sendPoke('${toUserId}','${a.label}',this)" style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:10px 8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;min-width:56px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span style="font-size:22px;">${a.emoji}</span>
+      <span style="font-size:10px;color:var(--muted);">${a.label}</span>
+    </button>`).join('');
+
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:20px;width:min(98vw,360px);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">👋 Mandar poke</div>
+        <button onclick="document.getElementById('send-poke-modal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);">✕</button>
+      </div>
+      <div style="padding:16px;text-align:center;">
+        ${avatarHtml}
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-top:8px;">Para: ${toName}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Escolha a ação:</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+          ${actionsHtml}
+        </div>
+      </div>
+    </div>`;
+
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
+
+async function sendPoke(toUserId, action, btn) {
+  if (btn) { btn.disabled = true; btn.style.opacity = '.5'; }
+  try {
+    const res = await api('/api/dailypoke/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to_user_id: toUserId, action })
+    });
+    if (res.ok !== false) {
+      document.getElementById('send-poke-modal')?.remove();
+      toast('Poke enviado! ' + action + ' 👋','success');
+      loadPokesSentV2();
+    } else {
+      throw new Error(res.error || 'Erro');
+    }
+  } catch(e) {
+    toast('Erro ao enviar poke: ' + e.message,'error');
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  }
 }
 
 function openFriendsPokesPopup() {
@@ -9156,7 +9234,7 @@ function openFriendsPokesPopup() {
         <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);">✕</button>
       </div>
       <div style="overflow-y:auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:14px;">
-        ${_allFriendsPokes.map(p => pokeAvatarCard(p, '60px', '96px')).join('')}
+        ${_allFriendsPokes.map(p => pokeAvatarCard(p, '60px', '96px', true)).join('')}
       </div>
     </div>`;
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
