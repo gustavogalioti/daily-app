@@ -503,6 +503,56 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 /* Painel escrever na Ágora com @mention */
 .agora-compose { position: relative; }
 
+
+/* ── DailyPoke Modal Animações ── */
+@keyframes dp-wave {
+  0%,100%{transform:rotate(0deg)} 15%{transform:rotate(-8deg) translateX(-3px)} 30%{transform:rotate(8deg) translateX(3px)} 45%{transform:rotate(-6deg) translateX(-2px)} 60%{transform:rotate(6deg) translateX(2px)} 75%{transform:rotate(-4deg)}
+}
+@keyframes dp-hug {
+  0%,100%{transform:scale(1) translateX(0)} 25%{transform:scale(1.08) translateX(6px)} 50%{transform:scale(1.12) translateX(0)} 75%{transform:scale(1.08) translateX(-6px)}
+}
+@keyframes dp-toast {
+  0%,100%{transform:translateY(0) rotate(0deg)} 20%{transform:translateY(-18px) rotate(-4deg)} 40%{transform:translateY(-12px) rotate(4deg)} 60%{transform:translateY(-20px) rotate(-2deg)} 80%{transform:translateY(-8px) rotate(2deg)}
+}
+@keyframes dp-flower {
+  0%,100%{transform:rotate(0deg) scale(1)} 25%{transform:rotate(-5deg) scale(1.04)} 75%{transform:rotate(5deg) scale(1.04)}
+}
+@keyframes dp-surf {
+  0%,100%{transform:rotate(0deg) translateY(0)} 20%{transform:rotate(-10deg) translateY(-4px)} 50%{transform:rotate(10deg) translateY(4px)} 80%{transform:rotate(-6deg) translateY(-2px)}
+}
+@keyframes dp-soccer {
+  0%,100%{transform:translateY(0) rotate(0deg)} 20%{transform:translateY(-14px) rotate(-8deg)} 35%{transform:translateY(-6px) rotate(12deg)} 50%{transform:translateY(-16px) rotate(-4deg)} 70%{transform:translateY(-8px) rotate(6deg)}
+}
+@keyframes dp-fish {
+  0%,100%{transform:rotate(0deg)} 33%{transform:rotate(4deg) translateY(-3px)} 66%{transform:rotate(-4deg) translateY(3px)}
+}
+@keyframes dp-dance {
+  0%,100%{transform:translateX(0) rotate(0deg) scale(1)} 12%{transform:translateX(-8px) rotate(-6deg) scale(1.05)} 25%{transform:translateX(0) rotate(0deg) translateY(-10px)} 37%{transform:translateX(8px) rotate(6deg) scale(1.05)} 50%{transform:translateX(0) translateY(-14px)} 62%{transform:translateX(-6px) rotate(-4deg)} 75%{transform:translateX(0) translateY(-8px)} 87%{transform:translateX(6px) rotate(4deg)}
+}
+@keyframes dp-fight {
+  0%,100%{transform:translateX(0) rotate(0deg)} 10%{transform:translateX(-6px) rotate(-4deg)} 20%{transform:translateX(6px) rotate(4deg)} 30%{transform:translateX(-8px) rotate(-6deg)} 40%{transform:translateX(8px) rotate(6deg)} 60%{transform:translateX(-4px) rotate(-3deg)} 70%{transform:translateX(10px) rotate(8deg)} 90%{transform:translateX(-2px)}
+}
+@keyframes dp-run {
+  0%,100%{transform:translateX(0) translateY(0)} 20%{transform:translateX(14px) translateY(-8px)} 40%{transform:translateX(24px) translateY(0)} 50%{transform:translateX(28px) scaleX(-1) translateY(-4px)} 70%{transform:translateX(14px) scaleX(-1) translateY(-8px)} 90%{transform:translateX(2px) translateY(-2px)}
+}
+@keyframes dp-bball {
+  0%,100%{transform:translateY(0) rotate(0deg)} 30%{transform:translateY(-22px) rotate(-6deg)} 50%{transform:translateY(-28px) rotate(6deg)} 70%{transform:translateY(-16px) rotate(-3deg)}
+}
+@keyframes dp-particle {
+  0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(.4)}
+}
+.dp-anim-wave   {animation:dp-wave   1.4s ease-in-out infinite}
+.dp-anim-abraçando {animation:dp-hug 1.6s ease-in-out infinite}
+.dp-anim-brindando {animation:dp-toast 1.2s ease-in-out infinite}
+.dp-anim-flor      {animation:dp-flower 2s ease-in-out infinite}
+.dp-anim-surfando  {animation:dp-surf 1.8s ease-in-out infinite}
+.dp-anim-futebol   {animation:dp-soccer 1.4s ease-in-out infinite}
+.dp-anim-pescando  {animation:dp-fish 2.5s ease-in-out infinite}
+.dp-anim-dançando  {animation:dp-dance 1.6s ease-in-out infinite}
+.dp-anim-brigando  {animation:dp-fight .6s ease-in-out infinite}
+.dp-anim-correndo  {animation:dp-run 1s ease-in-out infinite}
+.dp-anim-basquete  {animation:dp-bball 1.3s ease-in-out infinite}
+.dp-particle {position:absolute;pointer-events:none;font-size:18px;animation:dp-particle 1.2s ease-out forwards;opacity:0}
 </style>
 </head>
 <body>
@@ -6341,6 +6391,16 @@ function renderNotifItem(n) {
       <button class="btn btn-ghost btn-xs" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'));showJogoSection('${n.type==='quiz_result'?'quiz':'catrunner'}');closeNotifPanel();">${n.type==='quiz_result'?'🧠 Ver resultado':'🎮 Recuperar o topo'}</button>
     </div>`;
   }
+  if (n.type === 'poke' && !n.read) {
+    const d = typeof n.data === 'string' ? JSON.parse(n.data||'{}') : (n.data||{});
+    const action = d.action || d.scene || 'wave';
+    const fromId = n.from_user_id || d.from_user_id || '';
+    const fromAvatar = n.from_avatar || '';
+    const fromName = n.from_name || n.from_username || 'Alguém';
+    actions = `<div class="notif-actions">
+      <button class="btn btn-primary btn-xs" onclick="openReceivedPokeModal('${fromId}','${fromName}','${fromAvatar}','${action}','${n.id}');closeNotifPanel();">🎭 Ver poke</button>
+    </div>`;
+  }
   if (n.type === 'testimonial' && !n.read) {
     const d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
     actions = `<div class="notif-actions">
@@ -9149,6 +9209,118 @@ function pokeAvatarCard(p, w, h, sendable=false) {
   </div>`;
 }
 
+// ── Modal de poke RECEBIDO com animação ──
+const POKE_PARTICLES = {
+  wave:      ['👋','✨','💫'],
+  abraçando: ['🤗','💕','❤️'],
+  brindando: ['🍻','🎉','✨'],
+  flor:      ['🌸','🌺','💐'],
+  surfando:  ['🌊','🏄','☀️'],
+  futebol:   ['⚽','🥅','🎯'],
+  pescando:  ['🎣','🐟','🌊'],
+  dançando:  ['💃','🎶','✨'],
+  brigando:  ['🥊','💥','⚡'],
+  correndo:  ['🏃','💨','🔥'],
+  basquete:  ['🏀','🎯','💪'],
+};
+const POKE_EMOJIS = {
+  wave:'👋', abraçando:'🤗', brindando:'🍻', flor:'🌸', surfando:'🏄',
+  futebol:'⚽', pescando:'🎣', dançando:'💃', brigando:'🥊', correndo:'🏃', basquete:'🏀'
+};
+
+async function openReceivedPokeModal(fromUserId, fromName, fromAvatarUrl, action, notifId) {
+  // Fechar modal anterior se existir
+  document.getElementById('received-poke-modal')?.remove();
+
+  // Buscar avatar_url atualizado se não tiver
+  let avatarUrl = fromAvatarUrl;
+  if (!avatarUrl && fromUserId) {
+    try {
+      const d = await api('/api/dailypoke/user/' + fromUserId);
+      avatarUrl = d?.avatar_url || '';
+    } catch(e) {}
+  }
+
+  const actionKey = action || 'wave';
+  const emoji = POKE_EMOJIS[actionKey] || '👋';
+  const particles = POKE_PARTICLES[actionKey] || ['✨'];
+  const animClass = 'dp-anim-' + actionKey;
+
+  const avatarHtml = avatarUrl
+    ? `<img src="${avatarUrl}" class="${animClass}" style="width:74px;height:120px;object-fit:contain;image-rendering:pixelated;background:transparent;transform-origin:bottom center;display:block;" />`
+    : `<div class="${animClass}" style="font-size:64px;line-height:1;display:block;transform-origin:bottom center;">🎭</div>`;
+
+  const modal = document.createElement('div');
+  modal.id = 'received-poke-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:24px;width:min(98vw,320px);overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.25);">
+      <!-- Header laranja -->
+      <div style="background:linear-gradient(135deg,#ff5f00,#ff8c00);padding:20px;text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Poke recebido de</div>
+        <div style="font-size:17px;font-weight:800;color:#fff;font-family:'Syne',sans-serif;">${fromName}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.9);margin-top:2px;">${emoji} ${actionKey}</div>
+      </div>
+
+      <!-- Stage do avatar -->
+      <div id="rp-stage" style="position:relative;height:190px;background:#fafafa;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;border-bottom:1px solid var(--border);">
+        <!-- Sombra no chão -->
+        <div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);width:56px;height:8px;background:rgba(0,0,0,.07);border-radius:50%;filter:blur(4px);"></div>
+        <!-- Emoji flutuante -->
+        <div style="position:absolute;top:16px;right:16px;font-size:34px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.15));animation:dp-flower 2s ease-in-out infinite;">${emoji}</div>
+        <!-- Avatar animado -->
+        <div style="margin-bottom:14px;display:flex;align-items:flex-end;justify-content:center;">
+          ${avatarHtml}
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;align-items:center;">
+        <div style="display:inline-flex;align-items:center;gap:6px;background:#fff3ec;color:#ff5f00;border:1.5px solid #ffd0b5;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;">🔔 Novo poke!</div>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:24px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text);">
+          <span>${emoji}</span><span>${actionKey}</span>
+        </div>
+        <button onclick="replyToPoke('${fromUserId}','${fromName}','${avatarUrl}')" style="width:100%;padding:12px;background:#ff5f00;color:#fff;border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">👋 Mandar poke de volta</button>
+        <button onclick="document.getElementById('received-poke-modal').remove()" style="font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;">Dispensar</button>
+      </div>
+    </div>`;
+
+  // Partículas ao abrir
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+
+  // Disparar partículas no stage
+  setTimeout(() => {
+    const stage = document.getElementById('rp-stage');
+    if (!stage) return;
+    for (let i = 0; i < 7; i++) {
+      const p = document.createElement('div');
+      p.className = 'dp-particle';
+      p.textContent = particles[Math.floor(Math.random() * particles.length)];
+      const angle = (Math.random() * 280 - 140) * Math.PI / 180;
+      const dist = 40 + Math.random() * 55;
+      p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+      p.style.setProperty('--ty', -Math.abs(Math.sin(angle) * dist) - 20 + 'px');
+      p.style.left = (20 + Math.random() * 60) + '%';
+      p.style.top = (20 + Math.random() * 50) + '%';
+      p.style.animationDelay = (i * 0.07) + 's';
+      stage.appendChild(p);
+      setTimeout(() => p.remove(), 1500);
+    }
+  }, 100);
+
+  // Marcar notificação como lida
+  if (notifId) {
+    api('/api/user-notifications/' + notifId + '/read', { method: 'PUT' }).catch(() => {});
+  }
+}
+
+function replyToPoke(toUserId, toName, avatarUrl) {
+  document.getElementById('received-poke-modal')?.remove();
+  openSendPokeModal(toUserId, toName, avatarUrl);
+}
+
 // Popup para enviar poke
 const POKE_ACTIONS = [
   { emoji:'👋', label:'wave' },
@@ -9262,7 +9434,8 @@ async function loadPokesReceivedV2() {
     _allPokesReceived = pokes || [];
     if (!_allPokesReceived.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Nenhum poke recebido</div>'; return; }
     el.innerHTML = _allPokesReceived.slice(0,5).map(p =>
-      pokeActivityRow('👋', p.from_name||p.from_username, p.from_username, p.action, `openUserProfile('${p.from_username}')`)
+      pokeActivityRow('👋', p.from_name||p.from_username, p.from_username, p.action,
+        `openReceivedPokeModal('${p.from_user_id||''}','${(p.from_name||p.from_username||'').replace(/'/g,"\\'")}','${p.from_avatar_url||''}','${p.action||'wave'}','')`)
     ).join('');
     const btn = document.getElementById('btn-more-received');
     if (btn) btn.style.display = _allPokesReceived.length > 5 ? 'block' : 'none';
@@ -9292,7 +9465,8 @@ function openPokesPopup(type) {
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;';
   const rows = list.map(p => isReceived
-    ? pokeActivityRow('👋', p.from_name||p.from_username, p.from_username, p.action, `openUserProfile('${p.from_username}')`)
+    ? pokeActivityRow('👋', p.from_name||p.from_username, p.from_username, p.action,
+        `openReceivedPokeModal('${p.from_user_id||""}','${(p.from_name||p.from_username||"").replace(/'/g,"\\'")}','${p.from_avatar_url||""}','${p.action||"wave"}','")`)
     : pokeActivityRow('📤', p.to_name||p.to_username, p.to_username, p.action, `openUserProfile('${p.to_username}')`)
   ).join('');
   modal.innerHTML = `
