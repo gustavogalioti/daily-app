@@ -7095,6 +7095,7 @@ async function openAgendaModal(agendaId) {
             <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
               ${is_owner ? `<button class="btn btn-sm" style="background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);" onclick="openAgendaInvite('${agendaId}')">👥 Convidar</button>` : ''}
               <button class="btn btn-sm" style="background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);" onclick="openRateio('${agendaId}')">💰 Rateio</button>
+              <button class="btn btn-sm" style="background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.5);" onclick="openMural('${agendaId}','${agenda.title}')">📌 Mural de Lembretes</button>
             </div>
           </div>
 
@@ -7783,6 +7784,67 @@ async function submitDQPhoto(qid) {
 
 
 <!-- ─── TELA AGENDA ─── -->
+<!-- ═══ SCREEN MURAL DE LEMBRETES ═══ -->
+<div id="screen-mural" style="display:none;position:fixed;inset:0;z-index:660;flex-direction:column;background:#e8d5b7;overflow:hidden;">
+
+  <!-- Header -->
+  <div style="background:rgba(0,0,0,.15);backdrop-filter:blur(8px);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
+    <button onclick="closeMural()" style="background:none;border:none;font-size:26px;cursor:pointer;color:#fff;line-height:1;padding:0 8px 0 0;">‹</button>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#fff;flex:1;" id="mural-title">📌 Mural de Lembretes</div>
+    <button onclick="openAddPostIt()" style="background:#f5c842;color:#333;border:none;border-radius:20px;padding:7px 16px;font-weight:700;font-size:13px;cursor:pointer;box-shadow:2px 3px 8px rgba(0,0,0,.25);">+ Post-it</button>
+  </div>
+
+  <!-- Mural (cortiça) -->
+  <div id="mural-board" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:20px;background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%226%22 height=%226%22><rect width=%226%22 height=%226%22 fill=%22%23c8a96e%22/><circle cx=%221%22 cy=%221%22 r=%221%22 fill=%22%23b8966a%22 opacity=%.4/><circle cx=%224%22 cy=%223%22 r=%221.2%22 fill=%22%23d4a96a%22 opacity=%.3/><circle cx=%222%22 cy=%225%22 r=%22.8%22 fill=%22%23b09060%22 opacity=%.5/></svg>');box-sizing:border-box;">
+    <!-- moldura de madeira simulada via border -->
+    <div id="mural-inner" style="min-height:100%;border:18px solid #8b6914;border-radius:4px;box-shadow:inset 0 0 40px rgba(0,0,0,.3),0 4px 20px rgba(0,0,0,.4);background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%228%22 height=%228%22><rect width=%228%22 height=%228%22 fill=%22%23c8a87a%22/><rect x=%220%22 y=%220%22 width=%224%22 height=%224%22 fill=%22%23c0a070%22 opacity=%.3/><rect x=%224%22 y=%224%22 width=%224%22 height=%224%22 fill=%22%23d0b080%22 opacity=%.3/></svg>');padding:24px;box-sizing:border-box;position:relative;display:flex;flex-wrap:wrap;gap:18px;align-content:flex-start;">
+      <div id="mural-empty" style="width:100%;text-align:center;padding:60px 20px;color:rgba(100,70,20,.5);font-size:14px;display:none;">
+        📌 Nenhum lembrete ainda.<br>Seja o primeiro a adicionar!
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Add Post-it -->
+<div id="modal-postit" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-postit')">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-header">
+      <div class="modal-title">📌 Novo Lembrete</div>
+      <button class="modal-close" onclick="closeModal('modal-postit')">×</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Cor do Post-it</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;" id="postit-colors">
+          <div class="postit-color-opt selected" data-color="#fef08a" onclick="selectPostitColor(this,'#fef08a')" style="width:36px;height:36px;border-radius:6px;background:#fef08a;cursor:pointer;border:3px solid #333;box-shadow:2px 2px 6px rgba(0,0,0,.2);"></div>
+          <div class="postit-color-opt" data-color="#86efac" onclick="selectPostitColor(this,'#86efac')" style="width:36px;height:36px;border-radius:6px;background:#86efac;cursor:pointer;border:3px solid transparent;box-shadow:2px 2px 6px rgba(0,0,0,.2);"></div>
+          <div class="postit-color-opt" data-color="#93c5fd" onclick="selectPostitColor(this,'#93c5fd')" style="width:36px;height:36px;border-radius:6px;background:#93c5fd;cursor:pointer;border:3px solid transparent;box-shadow:2px 2px 6px rgba(0,0,0,.2);"></div>
+          <div class="postit-color-opt" data-color="#f9a8d4" onclick="selectPostitColor(this,'#f9a8d4')" style="width:36px;height:36px;border-radius:6px;background:#f9a8d4;cursor:pointer;border:3px solid transparent;box-shadow:2px 2px 6px rgba(0,0,0,.2);"></div>
+          <div class="postit-color-opt" data-color="#fdba74" onclick="selectPostitColor(this,'#fdba74')" style="width:36px;height:36px;border-radius:6px;background:#fdba74;cursor:pointer;border:3px solid transparent;box-shadow:2px 2px 6px rgba(0,0,0,.2);"></div>
+          <div class="postit-color-opt" data-color="#c4b5fd" onclick="selectPostitColor(this,'#c4b5fd')" style="width:36px;height:36px;border-radius:6px;background:#c4b5fd;cursor:pointer;border:3px solid transparent;box-shadow:2px 2px 6px rgba(0,0,0,.2);"></div>
+          <div class="postit-color-opt" data-color="#ffffff" onclick="selectPostitColor(this,'#ffffff')" style="width:36px;height:36px;border-radius:6px;background:#ffffff;cursor:pointer;border:3px solid transparent;box-shadow:2px 2px 6px rgba(0,0,0,.2);"></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Texto do Lembrete</div>
+        <textarea id="postit-text" placeholder="Escreva seu lembrete aqui..." style="min-height:100px;resize:none;font-size:14px;line-height:1.5;border-radius:8px;border:1.5px solid var(--border);padding:10px;width:100%;box-sizing:border-box;"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="submitPostIt()">📌 Adicionar ao Mural</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ver Post-it (comentários/reações) -->
+<div id="modal-postit-view" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-postit-view')">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">📌 Lembrete</div>
+      <button class="modal-close" onclick="closeModal('modal-postit-view')">×</button>
+    </div>
+    <div id="postit-view-body" style="padding:16px;"></div>
+  </div>
+</div>
+
 <div id="screen-agenda" style="display:none;position:fixed;inset:0;z-index:650;flex-direction:column;background:var(--surface2);overflow-y:auto;">
   <div style="background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
     <button onclick="closeAgendaScreen()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--text);line-height:1;padding:0 8px 0 0;">‹</button>
@@ -7809,6 +7871,179 @@ async function submitDQPhoto(qid) {
 // ═══════════════════════════════════════
 // RATEIO DE GASTOS
 // ═══════════════════════════════════════
+// ═══ MURAL DE LEMBRETES ═══
+let muralAgendaId = null;
+let selectedPostitColor = '#fef08a';
+
+function openMural(agendaId, title) {
+  muralAgendaId = agendaId;
+  const sc = document.getElementById('screen-mural');
+  sc.style.display = 'flex';
+  sc.style.flexDirection = 'column';
+  document.getElementById('mural-title').textContent = '📌 Mural — ' + (title || 'Lembretes');
+  loadMural();
+}
+
+function closeMural() {
+  document.getElementById('screen-mural').style.display = 'none';
+}
+
+function openAddPostIt() {
+  document.getElementById('postit-text').value = '';
+  selectedPostitColor = '#fef08a';
+  document.querySelectorAll('.postit-color-opt').forEach(el => {
+    el.style.border = el.dataset.color === '#fef08a' ? '3px solid #333' : '3px solid transparent';
+  });
+  openModal('modal-postit');
+}
+
+function selectPostitColor(el, color) {
+  selectedPostitColor = color;
+  document.querySelectorAll('.postit-color-opt').forEach(e => e.style.border = '3px solid transparent');
+  el.style.border = '3px solid #333';
+}
+
+async function loadMural() {
+  const inner = document.getElementById('mural-inner');
+  const empty = document.getElementById('mural-empty');
+  try {
+    const { postits } = await api('/api/mural/' + muralAgendaId);
+    // Limpar post-its (manter empty div)
+    [...inner.children].forEach(c => { if (c.id !== 'mural-empty') c.remove(); });
+    if (!postits.length) {
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    postits.forEach(p => inner.appendChild(buildPostitEl(p)));
+  } catch(e) {
+    empty.style.display = 'block';
+  }
+}
+
+function buildPostitEl(p) {
+  const div = document.createElement('div');
+  // Leve rotação aleatória baseada no id para dar efeito natural
+  const rot = ((parseInt(p.id.slice(-4), 16) % 11) - 5) * 0.8;
+  const av = p.author_avatar || avatarUrl(p.author_name || 'U');
+  div.style.cssText = `
+    width:160px;min-height:160px;background:${p.color||'#fef08a'};
+    border-radius:2px;padding:14px 12px 10px;
+    box-shadow:3px 4px 10px rgba(0,0,0,.25),0 1px 3px rgba(0,0,0,.15);
+    transform:rotate(${rot}deg);cursor:pointer;
+    display:flex;flex-direction:column;gap:8px;
+    position:relative;flex-shrink:0;
+    transition:transform .15s,box-shadow .15s;
+    font-family:'DM Sans',sans-serif;
+  `;
+  // Alfinete
+  div.innerHTML = `
+    <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:14px;height:14px;background:radial-gradient(circle at 35% 35%,#e0e0e0,#888);border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,.4);z-index:1;"></div>
+    <div style="font-size:13px;color:#333;line-height:1.45;word-break:break-word;flex:1;margin-top:4px;">${p.text}</div>
+    <div style="display:flex;align-items:center;gap:6px;border-top:1px solid rgba(0,0,0,.1);padding-top:6px;margin-top:auto;">
+      <img src="${av}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+      <div style="font-size:10px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${p.author_name?.split(' ')[0]||'?'}</div>
+      <div style="font-size:10px;color:#888;">${p.reaction_count||0} 💬</div>
+    </div>
+  `;
+  div.addEventListener('mouseenter', () => {
+    div.style.transform = `rotate(${rot}deg) scale(1.06)`;
+    div.style.boxShadow = '6px 8px 20px rgba(0,0,0,.35)';
+    div.style.zIndex = '10';
+  });
+  div.addEventListener('mouseleave', () => {
+    div.style.transform = `rotate(${rot}deg)`;
+    div.style.boxShadow = '3px 4px 10px rgba(0,0,0,.25)';
+    div.style.zIndex = '';
+  });
+  div.addEventListener('click', () => openPostitView(p.id));
+  return div;
+}
+
+async function submitPostIt() {
+  const text = document.getElementById('postit-text').value.trim();
+  if (!text) { toast('Escreva algo no lembrete!', 'error'); return; }
+  try {
+    await api('/api/mural/' + muralAgendaId, {
+      method: 'POST',
+      body: JSON.stringify({ text, color: selectedPostitColor })
+    });
+    closeModal('modal-postit');
+    toast('Lembrete adicionado! 📌', 'success');
+    loadMural();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function openPostitView(postitId) {
+  const body = document.getElementById('postit-view-body');
+  openModal('modal-postit-view');
+  body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { postit, comments } = await api('/api/mural/postit/' + postitId);
+    const av = postit.author_avatar || avatarUrl(postit.author_name || 'U');
+    const reactions = ['👍','❤️','😂','🔥','😮'];
+    const userReacted = postit.user_reaction;
+    body.innerHTML = `
+      <div style="background:${postit.color||'#fef08a'};border-radius:10px;padding:16px;margin-bottom:14px;box-shadow:3px 4px 12px rgba(0,0,0,.2);">
+        <p style="font-size:14px;color:#333;line-height:1.5;margin:0 0 10px;">${postit.text}</p>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <img src="${av}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">
+          <span style="font-size:11px;color:#555;">${postit.author_name}</span>
+          <span style="font-size:10px;color:#888;margin-left:auto;">${timeAgo(postit.created_at)}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        ${reactions.map(e => `<button onclick="reactPostit('${postitId}','${e}',this)"
+          style="background:${userReacted===e?'var(--accent-light)':'var(--surface2)'};
+          border:1.5px solid ${userReacted===e?'var(--accent)':'var(--border)'};
+          border-radius:20px;padding:5px 12px;cursor:pointer;font-size:14px;
+          color:${userReacted===e?'var(--accent)':'var(--text2)'};font-weight:600;">
+          ${e} <span style="font-size:11px;">${(postit.reactions||{})[e]||0}</span>
+        </button>`).join('')}
+      </div>
+      <div style="font-weight:700;font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">💬 Comentários (${comments.length})</div>
+      <div id="postit-comments-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+        ${comments.length ? comments.map(c => {
+          const cav = c.author_avatar || avatarUrl(c.author_name||'U');
+          return `<div style="display:flex;gap:8px;align-items:flex-start;">
+            <img src="${cav}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+            <div style="background:var(--surface2);border-radius:10px;padding:8px 10px;flex:1;">
+              <div style="font-weight:700;font-size:11px;color:var(--accent);">${c.author_name}</div>
+              <div style="font-size:13px;color:var(--text1);margin-top:2px;">${c.text}</div>
+            </div>
+          </div>`;
+        }).join('') : '<p style="color:var(--muted);font-size:13px;text-align:center;">Sem comentários ainda.</p>'}
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input id="postit-comment-input" type="text" placeholder="Comentar..." style="flex:1;border-radius:20px;padding:8px 14px;border:1.5px solid var(--border);font-size:13px;">
+        <button onclick="submitPostitComment('${postitId}')" class="btn btn-primary btn-sm" style="border-radius:20px;">Enviar</button>
+      </div>
+    `;
+  } catch(e) { body.innerHTML = `<p class="text-muted">${e.message}</p>`; }
+}
+
+async function reactPostit(postitId, emoji, btn) {
+  try {
+    await api('/api/mural/postit/' + postitId + '/react', {
+      method: 'POST', body: JSON.stringify({ emoji })
+    });
+    openPostitView(postitId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function submitPostitComment(postitId) {
+  const input = document.getElementById('postit-comment-input');
+  const text = input.value.trim();
+  if (!text) return;
+  try {
+    await api('/api/mural/postit/' + postitId + '/comment', {
+      method: 'POST', body: JSON.stringify({ text })
+    });
+    input.value = '';
+    openPostitView(postitId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
 let rateioAgendaId = null;
 let rateioData = null;
 

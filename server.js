@@ -70,6 +70,7 @@ process.on('uncaughtException', (err) => {
     ['/api/notif-prefs', './notif_prefs'],
     ['/api/news', './news'],
     ['/api/turnos', './turnos'],
+    ['/api/mural', './mural'],
   ];
   for (const [path, file] of routeFiles) {
     try { app.use(path, require(file)); console.log('  ✓', path); }
