@@ -11918,169 +11918,22 @@ const DC_PHASES = [
 ];
 
 // ── INIMIGOS ───────────────────────────────────────────────────
+// Inimigos do Corp Tower — mesmo padrão visual do Daily Tower (emoji + glow)
 const DC_ENEMY_TYPES = {
-  boleto: {
-    name:'Boleto Vencido', hp:2, speed:1.4, pts:15, color:'#ef4444', w:36, h:36, mini:false,
-    speeches:['VENCIDO!','Juros acumulando!','Paga logo!','R$ 847,23!'],
-    draw(ctx,x,y,w,h,dir,hit) {
-      const c = hit ? '#fff' : '#ef4444';
-      ctx.fillStyle = c; ctx.fillRect(x,y,w,h);
-      ctx.fillStyle='#fff'; ctx.fillRect(x+4,y+4,w-8,4);
-      ctx.fillStyle='#fca5a5'; ctx.fillRect(x+4,y+12,w-8,3);
-      ctx.fillStyle='#fca5a5'; ctx.fillRect(x+4,y+18,w-12,3);
-      ctx.fillStyle='#7f1d1d'; ctx.font='bold 8px Arial'; ctx.textAlign='center';
-      ctx.fillText('VENC.',x+w/2,y+h-4);
-      // eyes
-      ctx.fillStyle='#7f1d1d';
-      ctx.fillRect(x+8,y+h-14,4,4); ctx.fillRect(x+w-12,y+h-14,4,4);
-    }
-  },
-  boleto_mini: {
-    name:'Boleto Mini', hp:1, speed:2.0, pts:8, color:'#f87171', w:22, h:22, mini:true,
-    speeches:['Vencido!','Jurosinhos!','Paga!'],
-    draw(ctx,x,y,w,h,dir,hit) {
-      ctx.fillStyle = hit?'#fff':'#f87171'; ctx.fillRect(x,y,w,h);
-      ctx.fillStyle='#fff'; ctx.fillRect(x+2,y+2,w-4,3);
-      ctx.fillStyle='#7f1d1d';
-      ctx.fillRect(x+5,y+h-8,3,3); ctx.fillRect(x+w-8,y+h-8,3,3);
-    }
-  },
-  cartao: {
-    name:'Cartão Recusado', hp:2, speed:1.1, pts:20, color:'#1e293b', w:40, h:28, mini:false,
-    speeches:['RECUSADO!','Saldo insuficiente!','Nem tenta.','Código 05!'],
-    draw(ctx,x,y,w,h,dir,hit) {
-      ctx.fillStyle = hit?'#fff':'#1e293b'; ctx.fillRect(x,y,w,h); ctx.strokeStyle='#64748b';ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);
-      ctx.fillStyle='#f59e0b'; ctx.fillRect(x+4,y+4,w-8,6);
-      ctx.fillStyle=hit?'#1e293b':'#fff'; ctx.font='bold 7px Arial'; ctx.textAlign='center';
-      ctx.fillText('RECUSADO',x+w/2,y+h-5);
-      ctx.fillStyle='#ef4444';
-      ctx.fillRect(x+8,y+16,4,4); ctx.fillRect(x+w-12,y+16,4,4);
-    }
-  },
-  wifi: {
-    name:'Wi-Fi Ruim', hp:2, speed:1.6, pts:12, color:'#374151', w:32, h:32, mini:false,
-    speeches:['...carregando...','Sem conexão!','Buffer infinito!','404 Not Found'],
-    draw(ctx,x,y,w,h,dir,hit) {
-      ctx.fillStyle=hit?'#fff':'#374151'; ctx.beginPath();ctx.arc(x+w/2,y+h/2,w/2,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#9ca3af'; ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(x+w/2,y+h/2-2,w*0.35,Math.PI,0);ctx.stroke();
-      ctx.beginPath();ctx.arc(x+w/2,y+h/2-2,w*0.2,Math.PI,0);ctx.stroke();
-      ctx.fillStyle='#9ca3af'; ctx.beginPath();ctx.arc(x+w/2,y+h/2+2,3,0,Math.PI*2);ctx.fill();
-      // X mark
-      ctx.strokeStyle='#ef4444'; ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(x+w/2-5,y+h-10);ctx.lineTo(x+w/2+5,y+h-4);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x+w/2+5,y+h-10);ctx.lineTo(x+w/2-5,y+h-4);ctx.stroke();
-    }
-  },
-  wifi_mini: {
-    name:'Wi-Fi Mini', hp:1, speed:2.4, pts:6, color:'#4b5563', w:20, h:20, mini:true,
-    speeches:['sem sinal...','buffer!','...'],
-    draw(ctx,x,y,w,h,dir,hit) {
-      ctx.fillStyle=hit?'#fff':'#4b5563'; ctx.beginPath();ctx.arc(x+w/2,y+h/2,w/2,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#9ca3af'; ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.arc(x+w/2,y+h/2-1,w*0.3,Math.PI,0);ctx.stroke();
-      ctx.fillStyle='#ef4444'; ctx.fillRect(x+w/2-3,y+h-7,6,5);
-    }
-  },
-  taxacao: {
-    name:'Taxação de Importação', hp:3, speed:0.9, pts:22, color:'#1e40af', w:38, h:38, mini:false,
-    speeches:['COBRANÇA!','R$ 428,00!','Taxou tudo!','60% de imposto!'],
-    draw(ctx,x,y,w,h,dir,hit) {
-      ctx.fillStyle=hit?'#fff':'#1e40af'; ctx.fillRect(x,y+h*0.2,w,h*0.8);
-      ctx.fillStyle=hit?'#93c5fd':'#1e40af'; ctx.fillRect(x+w*0.2,y,w*0.6,h*0.5);
-      ctx.fillStyle='#fff'; ctx.font='bold 7px Arial'; ctx.textAlign='center';
-      ctx.fillText('TAXA',x+w/2,y+h/2+2); ctx.fillText('60%',x+w/2,y+h*0.8);
-      ctx.fillStyle='#1e40af';
-      ctx.fillRect(x+6,y+h-12,5,5); ctx.fillRect(x+w-11,y+h-12,5,5);
-    }
-  },
-  fake_news: {
-    name:'Fake News', hp:2, speed:1.8, pts:18, color:'#b91c1c', w:34, h:30, mini:false,
-    speeches:['URGENTE! Compartilhe!','Fonte: Zap Zap!','É TUDO VERDADE!','EXCLUSIVO!!'],
-    draw(ctx,x,y,w,h,dir,hit) {
-      ctx.fillStyle=hit?'#fff':'#b91c1c'; ctx.beginPath();ctx.roundRect(x,y,w,h,4);ctx.fill();
-      ctx.fillStyle='#fff'; ctx.font='bold 6px Arial'; ctx.textAlign='center';
-      ctx.fillText('URGENTE!',x+w/2,y+8);
-      ctx.fillStyle='#fca5a5'; ctx.fillRect(x+4,y+12,w-8,2); ctx.fillRect(x+4,y+17,w-12,2);
-      ctx.fillStyle='#7f1d1d';
-      ctx.fillRect(x+8,y+h-8,4,4); ctx.fillRect(x+w-12,y+h-8,4,4);
-    }
-  },
-  obra: {
-    name:'Obra às 7h da Manhã', hp:2, speed:1.3, pts:15, color:'#92400e', w:36, h:36, mini:false,
-    speeches:['SILÊNCIO? NUNCA!','Furadeira ligada!','Bom dia vizinhos!','TRIIIIIIM!'],
-    draw(ctx,x,y,w,h,dir,hit) {
-      // capacete
-      ctx.fillStyle=hit?'#fff':'#f59e0b'; ctx.beginPath();ctx.arc(x+w/2,y+h*0.3,w*0.35,Math.PI,0);ctx.fill();
-      // corpo
-      ctx.fillStyle=hit?'#fff':'#92400e'; ctx.fillRect(x+w*0.2,y+h*0.35,w*0.6,h*0.5);
-      // furadeira
-      ctx.fillStyle='#374151'; ctx.fillRect(x+(dir>0?w*0.6:0),y+h*0.45,w*0.35,h*0.15);
-      // olhos
-      ctx.fillStyle='#7c2d12'; ctx.fillRect(x+10,y+h*0.22,4,4); ctx.fillRect(x+w-14,y+h*0.22,4,4);
-      // pés
-      ctx.fillStyle=hit?'#fff':'#78350f'; ctx.fillRect(x+4,y+h-6,12,6); ctx.fillRect(x+w-16,y+h-6,12,6);
-    }
-  },
+  boleto:      { name:'Boleto Vencido',        hp:2, speed:1.4, pts:15, color:'#ef4444', emoji:'🧾', w:36, h:48, mini:false, speeches:['VENCIDO!','Juros acumulando!','Paga logo!','R$ 847,23!'] },
+  boleto_mini: { name:'Boleto Mini',            hp:1, speed:2.0, pts:8,  color:'#f87171', emoji:'🧾', w:22, h:30, mini:true,  speeches:['Vencido!','Jurosinhos!','Paga!'] },
+  cartao:      { name:'Cartão Recusado',        hp:2, speed:1.1, pts:20, color:'#1e293b', emoji:'💳', w:38, h:48, mini:false, speeches:['RECUSADO!','Saldo insuficiente!','Nem tenta.','Código 05!'] },
+  wifi:        { name:'Wi-Fi Ruim',             hp:2, speed:1.6, pts:12, color:'#6b7280', emoji:'📶', w:32, h:44, mini:false, speeches:['...carregando...','Sem conexão!','Buffer infinito!','404!'] },
+  wifi_mini:   { name:'Wi-Fi Mini',             hp:1, speed:2.4, pts:6,  color:'#9ca3af', emoji:'📶', w:20, h:28, mini:true,  speeches:['sem sinal...','buffer!','...'] },
+  taxacao:     { name:'Taxação de Importação',  hp:3, speed:0.9, pts:22, color:'#1e40af', emoji:'🪙', w:38, h:48, mini:false, speeches:['COBRANÇA!','R$ 428,00!','Taxou tudo!','60% imposto!'] },
+  fake_news:   { name:'Fake News',              hp:2, speed:1.8, pts:18, color:'#b91c1c', emoji:'📰', w:34, h:44, mini:false, speeches:['URGENTE! Compartilhe!','Fonte: Zap Zap!','É TUDO VERDADE!','EXCLUSIVO!!'] },
+  obra:        { name:'Obra às 7h da Manhã',    hp:2, speed:1.3, pts:15, color:'#f59e0b', emoji:'🔨', w:36, h:48, mini:false, speeches:['SILÊNCIO? NUNCA!','Furadeira ligada!','Bom dia vizinhos!','TRIIIIM!'] },
 };
 
-// ── BOSSES ────────────────────────────────────────────────────
+// ── BOSSES — mesmo padrão emoji do Daily Tower ────────────────
 const DC_BOSSES = [
-  {
-    name:'COACH DE REDE SOCIAL', hp:20, speed:1.2, pts:300, color:'#1e40af', w:60, h:60,
-    speeches:['MINDSET!','Networking agora!','Disciplina e FOCO!','Saiu da zona de conforto?','Entregue resultado!'],
-    draw(ctx,x,y,w,h,dir,hit,hpFrac) {
-      // corpo
-      ctx.fillStyle=hit?'#fff':'#1e3a8a'; ctx.fillRect(x+w*0.15,y+h*0.3,w*0.7,h*0.65);
-      // cabeça
-      ctx.fillStyle=hit?'#fff':'#f3d0a0'; ctx.beginPath();ctx.arc(x+w/2,y+h*0.25,w*0.25,0,Math.PI*2);ctx.fill();
-      // cabelo
-      ctx.fillStyle='#1e293b'; ctx.beginPath();ctx.arc(x+w/2,y+h*0.12,w*0.22,Math.PI,0);ctx.fill();
-      // gravata
-      ctx.fillStyle='#ef4444'; ctx.fillRect(x+w/2-4,y+h*0.38,8,h*0.3);
-      // olhos
-      ctx.fillStyle='#1e3a8a'; ctx.fillRect(x+w/2-10,y+h*0.2,5,5); ctx.fillRect(x+w/2+5,y+h*0.2,5,5);
-      // braço com celular
-      ctx.fillStyle='#1e3a8a'; ctx.fillRect(x+(dir>0?w*0.7:0),y+h*0.38,w*0.25,h*0.15);
-      ctx.fillStyle='#0f172a'; ctx.fillRect(x+(dir>0?w*0.73:0)+2,y+h*0.36,w*0.18,h*0.12);
-      // HP bar
-      ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(x,y-14,w,8);
-      ctx.fillStyle=hpFrac>0.5?'#22c55e':hpFrac>0.25?'#f59e0b':'#ef4444';
-      ctx.fillRect(x,y-14,w*hpFrac,8);
-      ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.strokeRect(x,y-14,w,8);
-      // label
-      ctx.fillStyle='#fff'; ctx.font='bold 8px Arial'; ctx.textAlign='center';
-      ctx.fillText('COACH',x+w/2,y-18);
-    }
-  },
-  {
-    name:'TRÂNSITO DE SÃO PAULO', hp:35, speed:0.8, pts:500, color:'#374151', w:90, h:54,
-    speeches:['999km na Marginal!','CAOS TOTAL!','Zona Leste→','Ninguém sai daqui!','Bloqueio total!'],
-    draw(ctx,x,y,w,h,dir,hit,hpFrac) {
-      // ônibus gigante
-      ctx.fillStyle=hit?'#fff':'#1e3a5f'; ctx.fillRect(x,y+h*0.15,w,h*0.7);
-      ctx.fillStyle=hit?'#fff':'#374151'; ctx.fillRect(x,y,w,h*0.2);
-      // janelas
-      for(let i=0;i<4;i++){
-        ctx.fillStyle='#7dd3fc'; ctx.fillRect(x+8+i*20,y+h*0.1,14,h*0.35);
-      }
-      // rodas
-      ctx.fillStyle='#111'; ctx.beginPath();ctx.arc(x+w*0.2,y+h,14,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(x+w*0.8,y+h,14,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#6b7280'; ctx.beginPath();ctx.arc(x+w*0.2,y+h,7,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(x+w*0.8,y+h,7,0,Math.PI*2);ctx.fill();
-      // fumaça
-      ctx.fillStyle='rgba(100,100,100,0.6)';
-      ctx.beginPath();ctx.arc(x+(dir>0?0:w),y+h*0.5,8+Math.random()*4,0,Math.PI*2);ctx.fill();
-      // HP bar
-      ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(x,y-14,w,8);
-      ctx.fillStyle=hpFrac>0.5?'#22c55e':hpFrac>0.25?'#f59e0b':'#ef4444';
-      ctx.fillRect(x,y-14,w*hpFrac,8);
-      ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.strokeRect(x,y-14,w,8);
-      ctx.fillStyle='#fff'; ctx.font='bold 8px Arial'; ctx.textAlign='center';
-      ctx.fillText('TRÂNSITO SP',x+w/2,y-18);
-    }
-  },
+  { name:'COACH DE REDE SOCIAL', hp:20, speed:1.2, pts:300, color:'#1e40af', emoji:'🤵', isBoss:true, speeches:['MINDSET!','Networking agora!','Disciplina e FOCO!','Saiu da zona de conforto?','Entregue resultado!'] },
+  { name:'TRÂNSITO DE SÃO PAULO', hp:35, speed:0.8, pts:500, color:'#374151', emoji:'🚌', isBoss:true, speeches:['999km na Marginal!','CAOS TOTAL!','Zona Leste→','Ninguém sai daqui!','Bloqueio total!'] },
 ];
 
 // ── LAYOUT DE FASES ───────────────────────────────────────────
@@ -12681,49 +12534,79 @@ function dcDraw(){
     ctx.fillStyle='#fde68a'; ctx.beginPath(); ctx.arc(sx-1,c.y+bob-1,3,0,Math.PI*2); ctx.fill();
   }
 
-  // ── ENEMIES ──
+  // ── ENEMIES — padrão visual igual Daily Tower ──
   for(const e of DC.enemies){
     if(e.dead){
-      // animação de morte: pisca e some
       if(e.deadTimer>0 && Math.floor(e.deadTimer)%4<2){
-        const sx=e.x-DC.scrollX;
-        ctx.globalAlpha=e.deadTimer/40;
-        ctx.fillStyle=e.color||'#ef4444';
-        ctx.beginPath(); ctx.arc(sx+e.w/2, e.y+e.h/2, e.w/2, 0, Math.PI*2); ctx.fill();
-        ctx.globalAlpha=1;
+        const esx=e.x-DC.scrollX;
+        ctx.save(); ctx.globalAlpha=e.deadTimer/40;
+        ctx.font=`${e.isBoss?40:28}px serif`; ctx.textAlign='center';
+        ctx.fillText(e.emoji||'👾', esx+e.w/2, e.y+e.h*0.8);
+        ctx.restore();
       }
       continue;
     }
     if(e.hpCurrent<=0) continue;
-    const sx=e.x-DC.scrollX;
-    if(sx>W+50||sx<-50) continue;
+    const esx=e.x-DC.scrollX;
+    if(esx>W+60||esx<-60) continue;
 
-    // Desenhar inimigo
+    const flash = e.hitTimer>0 && Math.floor(e.hitTimer)%4<2;
+    const drawH = e.isBoss ? 80 : (e.mini ? 32 : 58);
+    const drawW = drawH;
+    const drawX = esx + e.w/2;
+    const drawY = e.y + e.h; // âncora no pé
+
     ctx.save();
-    if(e.facingRight){
-      ctx.translate(sx+e.w,e.y); ctx.scale(-1,1);
-      if(e.draw) e.draw(ctx,0,0,e.w,e.h,1,e.hitTimer>0,e.hpCurrent/e.hp);
-      else dcDrawDefaultEnemy(ctx,0,0,e.w,e.h,e.color,e.name,e.hitTimer>0);
+    if(flash) ctx.filter='brightness(3) saturate(0)';
+
+    // Emoji com glow igual Daily Tower
+    ctx.font=`${e.isBoss?48:e.mini?20:32}px serif`;
+    ctx.textAlign='center';
+    ctx.shadowBlur = e.isBoss ? 20 : 10;
+    ctx.shadowColor = e.color;
+    if(!e.facingRight){
+      ctx.translate(drawX, drawY);
+      ctx.scale(-1,1);
+      ctx.fillText(e.emoji||'👾', 0, -4);
     } else {
-      ctx.translate(sx,e.y);
-      if(e.draw) e.draw(ctx,0,0,e.w,e.h,-1,e.hitTimer>0,e.hpCurrent/e.hp);
-      else dcDrawDefaultEnemy(ctx,0,0,e.w,e.h,e.color,e.name,e.hitTimer>0);
+      ctx.fillText(e.emoji||'👾', drawX, drawY-4);
     }
+    ctx.shadowBlur=0;
     ctx.restore();
 
-    // HP bar para inimigos com hp>1
-    if(e.hp>1 && !e.isBoss){
-      ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx,e.y-8,e.w,5);
-      ctx.fillStyle='#22c55e'; ctx.fillRect(sx,e.y-8,e.w*(e.hpCurrent/e.hp),5);
+    // HP bar — acima do sprite
+    const bw = e.isBoss ? 76 : e.mini ? 22 : 42;
+    const hpPct = e.hpCurrent/e.hp;
+    const barY = e.y - 10;
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(esx+e.w/2-bw/2, barY, bw, 5);
+    ctx.fillStyle = hpPct>.5?'#22c55e':hpPct>.25?'#f59e0b':'#ef4444';
+    ctx.fillRect(esx+e.w/2-bw/2, barY, bw*hpPct, 5);
+    ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(esx+e.w/2-bw/2, barY, bw, 2);
+
+    // Nome do boss acima da barra
+    if(e.isBoss){
+      ctx.fillStyle='#fff'; ctx.font='bold 8px Arial'; ctx.textAlign='center';
+      ctx.fillText(e.name, esx+e.w/2, barY-4);
     }
 
-    // Speech bubble
+    // Speech bubble — igual Daily Tower
     if(e.speech && e.speechTimer>0){
-      const sw=ctx.measureText(e.speech).width+14;
-      const bubX=sx+e.w/2-sw/2; const bubY=e.y-28;
-      ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.beginPath();ctx.roundRect(bubX,bubY,sw,20,8);ctx.fill();
-      ctx.fillStyle='#1e293b'; ctx.font='bold 9px Arial'; ctx.textAlign='left';
-      ctx.fillText(e.speech,bubX+7,bubY+14);
+      const fadeOut = e.speechTimer<30 ? e.speechTimer/30 : 1;
+      ctx.save(); ctx.globalAlpha=Math.min(1,e.speechTimer/15)*fadeOut;
+      const sx2=esx+e.w/2, sy2=e.y-14;
+      ctx.font='bold 9px Arial';
+      const tw=ctx.measureText(e.speech).width;
+      const bpW=Math.min(tw+14,140), bpH=17;
+      const bpX=Math.max(4,sx2-bpW/2), bpY=sy2-bpH;
+      ctx.fillStyle='rgba(255,255,255,0.96)';
+      ctx.beginPath(); ctx.roundRect(bpX,bpY,bpW,bpH,7); ctx.fill();
+      ctx.strokeStyle=e.color; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.96)';
+      ctx.beginPath(); ctx.moveTo(sx2-4,sy2); ctx.lineTo(sx2+4,sy2); ctx.lineTo(sx2,sy2+6); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#111'; ctx.textAlign='center';
+      const dt2=tw+14>140?e.speech.slice(0,16)+'…':e.speech;
+      ctx.fillText(dt2,bpX+bpW/2,bpY+12);
+      ctx.restore();
     }
   }
 
@@ -12770,21 +12653,9 @@ function dcDraw(){
 }
 
 function dcDrawDefaultPlayer(ctx,x,y,w,h,right){
-  ctx.fillStyle='#f97316'; ctx.fillRect(x+w*0.2,y,w*0.6,h*0.45);
-  ctx.fillStyle='#fed7aa'; ctx.beginPath();ctx.arc(x+w/2,y+h*0.2,w*0.3,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#f97316'; ctx.fillRect(x+w*0.1,y+h*0.4,w*0.8,h*0.4);
-  ctx.fillStyle='#7c2d12'; ctx.fillRect(x+w*0.1,y+h*0.8,w*0.35,h*0.2);
-  ctx.fillRect(x+w*0.55,y+h*0.8,w*0.35,h*0.2);
-  ctx.fillStyle='#1e293b'; ctx.fillRect(x+w/2-4,y+h*0.14,3,3);
-  ctx.fillRect(x+w/2+2,y+h*0.14,3,3);
-}
-
-function dcDrawDefaultEnemy(ctx,x,y,w,h,color,name,hit){
-  ctx.fillStyle=hit?'#fff':color;
-  ctx.fillRect(x,y,w,h);
-  ctx.fillStyle=hit?color:'#fff';
-  ctx.font='bold 7px Arial'; ctx.textAlign='center';
-  ctx.fillText(name.substring(0,8),x+w/2,y+h-4);
+  // Fallback: emoji 🧑 igual ao Daily Tower
+  ctx.font='30px serif'; ctx.textAlign='center';
+  ctx.fillText('🧑', x+w/2, y+h);
 }
 
 // ── PARTICLES ────────────────────────────────────────────────
