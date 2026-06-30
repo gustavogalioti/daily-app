@@ -28,6 +28,12 @@ app.get('/index.html', (req, res) => {
   res.sendFile(require('path').join(__dirname, 'index.html'));
 });
 
+app.get('/dailyworldv2.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(require('path').join(__dirname, 'dailyworldv2.html'));
+});
+
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
