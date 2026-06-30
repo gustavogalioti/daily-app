@@ -1091,11 +1091,12 @@ async function checkAndEnter() {
   try {
     var meR = await fetch(API+'/api/auth/me', {headers:{'Authorization':'Bearer '+TOKEN}});
     var meD = await meR.json();
-    if(!meD || !meD.is_admin) {
+    var u=meD.user||meD;
+    if(!u || !u.is_admin) {
       showScreen('s-coming');
       return;
     }
-    USER = meD;
+    USER = u;
   } catch(e) {
     showScreen('s-coming');
     return;
@@ -1246,8 +1247,9 @@ function buildPixels() {
           fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+TOKEN}})
                 .then(function(r){return r.json();})
                 .then(function(meData){
-                  if(!meData || !meData.is_admin){showScreen('s-coming');return;}
-                  USER=meData;
+                  var mu=meData&&meData.user?meData.user:meData;
+                  if(!mu || !mu.is_admin){showScreen('s-coming');return;}
+                  USER=mu;
                   return fetch(API+'/api/dailypoke/me',{headers:{'Authorization':'Bearer '+TOKEN}});
                 })
                 .then(function(r){if(!r)return null;return r.json();})
