@@ -95,6 +95,9 @@ body{background:#1a1a2e;font-family:'Courier New',monospace;color:#fff;height:10
 .intro-bubble::after{content:'';position:absolute;border:8px solid transparent;}
 .ib-next{background:#e94560;border:none;color:#fff;padding:5px 14px;border-radius:10px;font-size:10px;font-family:inherit;cursor:pointer;margin-top:8px;float:right;}
 
+/* ─── COMING SOON ─────────────────────────────────────────────────────── */
+#s-coming{background:linear-gradient(160deg,#0d0d1a,#1a1030);}
+
 /* LOADING overlay */
 #loadOverlay{position:fixed;inset:0;background:#0d0d1a;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:1000;gap:12px;}
 .load-logo{font-size:32px;font-weight:900;color:#fff;}
@@ -122,6 +125,19 @@ body{background:#1a1a2e;font-family:'Courier New',monospace;color:#fff;height:10
 </div>
 
 
+
+<!-- COMING SOON (non-admin) -->
+<div class="screen" id="s-coming">
+  <div style="text-align:center;padding:40px 24px;">
+    <div style="font-size:64px;margin-bottom:20px;">🏗️</div>
+    <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;">Daily<span style="color:#e94560;">World</span></div>
+    <div style="font-size:11px;letter-spacing:4px;color:#555;margin:8px 0 32px;text-transform:uppercase;">Em construção</div>
+    <div style="font-size:13px;color:#666;line-height:1.8;max-width:280px;margin:0 auto;">
+      Estamos construindo algo incrível.<br>Em breve você vai poder explorar seu mundo aqui.
+    </div>
+    <div style="margin-top:40px;font-size:9px;color:#333;letter-spacing:2px;">yourdaily.com.br</div>
+  </div>
+</div>
 
 <!-- NO DAILYPOKE -->
 <div class="screen" id="s-nopoke">
@@ -1068,8 +1084,20 @@ async function checkAndEnter() {
   // Get token from Daily app localStorage
   TOKEN = localStorage.getItem('daily_token') || '';
   if(!TOKEN) {
-    showToast('Entre no Daily primeiro!');
-    showScreen('s-landing');
+    showScreen('s-coming');
+    return;
+  }
+  // Check if user is admin
+  try {
+    var meR = await fetch(API+'/api/auth/me', {headers:{'Authorization':'Bearer '+TOKEN}});
+    var meD = await meR.json();
+    if(!meD || !meD.is_admin) {
+      showScreen('s-coming');
+      return;
+    }
+    USER = meD;
+  } catch(e) {
+    showScreen('s-coming');
     return;
   }
   // Check if user has a Dailypoke
@@ -1214,10 +1242,18 @@ function buildPixels() {
           if(saved && saved.roomId) {
             var room = ROOMS.find(function(r){return r.id===saved.roomId;});
             if(room) {
-              fetch(API+'/api/dailypoke/me',{headers:{'Authorization':'Bearer '+TOKEN}})
+              // Admin check first
+          fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+TOKEN}})
                 .then(function(r){return r.json();})
+                .then(function(meData){
+                  if(!meData || !meData.is_admin){showScreen('s-coming');return;}
+                  USER=meData;
+                  return fetch(API+'/api/dailypoke/me',{headers:{'Authorization':'Bearer '+TOKEN}});
+                })
+                .then(function(r){if(!r)return null;return r.json();})
                 .then(function(data){
-                  if(data && data.config){
+                  if(!data) return;
+                  if(data.config){
                     POKE=data;
                     if(data.avatar_url){pokeImg=new Image();pokeImg.src=data.avatar_url;}
                     enterRoom(room, saved);
