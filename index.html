@@ -1832,7 +1832,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <h2 style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;">🎮 Mais jogos</h2>
           <div class="game-cards">
             <div class="game-card-soon"><div style="font-size:44px;">🌾</div><div>Fazendinha</div></div>
-            <div class="game-card-soon"><div style="font-size:44px;">🏙️</div><div>DailyWorld</div></div>
+            <div class="game-card-soon" onclick="openDailyWorld()" style="cursor:pointer;" title="DailyWorld"><div style="font-size:44px;">🏙️</div><div>DailyWorld</div></div>
             <div class="game-card-soon"><div style="font-size:44px;">🧨</div><div>MemeForce</div></div>
             <div class="game-card-soon"><div style="font-size:44px;">🌳</div><div>AlimenTREE</div></div>
            <div class="game-card-soon"><div style="font-size:44px;">🃏</div><div>Daily TRUNFO</div></div> 
@@ -14856,4 +14856,8 @@ document.addEventListener('keyup',e=>{
   if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'||e.key===' ') dtKeys.jump=false;
 });
 
+
+function openDailyWorld() {
+  window.location.href = '/dailyworldv2.html';
+}
 </script>
