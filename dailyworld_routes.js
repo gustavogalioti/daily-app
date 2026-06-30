@@ -22,41 +22,48 @@ async function loadFullUser(req, res, next) {
 // dailyworld_saves: per-user save (their room choice, furniture, poke position)
 // dailyworld_room_configs: GLOBAL admin-defined config per room (grid, levels,
 //   stairs, default furniture catalog tweaks). Set by admin, read by everyone.
+// IMPORTANT: this module is require()'d before the database finishes
+// connecting (server.js calls initDB() asynchronously afterward), so
+// calling ensureTables() once at import time is unreliable — getDB()
+// may not be ready yet and the CREATE TABLE silently never runs.
+// Instead, ensureTables() is awaited at the top of every route handler
+// below ("lazy" / on-demand), guaranteeing the tables exist by the time
+// any query actually runs, regardless of startup timing.
+let tablesReady = false;
 async function ensureTables() {
-  try {
-    const db = getDB();
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS dailyworld_saves (
-        id TEXT PRIMARY KEY,
-        user_id TEXT UNIQUE NOT NULL,
-        room_id TEXT,
-        placed_data TEXT,
-        poke_pos TEXT,
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `).run();
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS dailyworld_room_configs (
-        room_id TEXT PRIMARY KEY,
-        room_config TEXT,
-        default_furniture TEXT,
-        updated_by TEXT,
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `).run();
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS dailyworld_furniture_configs (
-        furniture_id TEXT PRIMARY KEY,
-        scale REAL,
-        offset_y REAL,
-        offset_x REAL,
-        updated_by TEXT,
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `).run();
-  } catch(e) { console.error('dailyworld tables:', e.message); }
+  if(tablesReady) return;
+  const db = getDB();
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS dailyworld_saves (
+      id TEXT PRIMARY KEY,
+      user_id TEXT UNIQUE NOT NULL,
+      room_id TEXT,
+      placed_data TEXT,
+      poke_pos TEXT,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `).run();
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS dailyworld_room_configs (
+      room_id TEXT PRIMARY KEY,
+      room_config TEXT,
+      default_furniture TEXT,
+      updated_by TEXT,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `).run();
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS dailyworld_furniture_configs (
+      furniture_id TEXT PRIMARY KEY,
+      scale REAL,
+      offset_y REAL,
+      offset_x REAL,
+      updated_by TEXT,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `).run();
+  tablesReady = true;
 }
-ensureTables();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // USER SAVE (their personal room/furniture/poke state)
@@ -65,6 +72,7 @@ ensureTables();
 // GET /api/dailyworld/me
 router.get('/me', authMiddleware, async (req, res) => {
   try {
+    await ensureTables();
     const db = getDB();
     const save = await db.prepare('SELECT * FROM dailyworld_saves WHERE user_id=$1').get(req.user.id);
     if(!save) return res.json({ save: null });
@@ -81,6 +89,7 @@ router.get('/me', authMiddleware, async (req, res) => {
 // POST /api/dailyworld/save
 router.post('/save', authMiddleware, async (req, res) => {
   try {
+    await ensureTables();
     const db = getDB();
     const { roomId, placed, pokePos } = req.body;
     const existing = await db.prepare('SELECT id FROM dailyworld_saves WHERE user_id=$1').get(req.user.id);
@@ -104,6 +113,7 @@ router.post('/save', authMiddleware, async (req, res) => {
 // Returns: { studio: {roomConfig:{...}, defaultFurniture:[...]}, suite: {...}, ... }
 router.get('/room-configs', optionalAuth, async (req, res) => {
   try {
+    await ensureTables();
     const db = getDB();
     const rows = await db.prepare('SELECT * FROM dailyworld_room_configs').all();
     const out = {};
@@ -121,6 +131,7 @@ router.get('/room-configs', optionalAuth, async (req, res) => {
 router.post('/room-configs', authMiddleware, loadFullUser, async (req, res) => {
   try {
     if(!req.user.is_admin) return res.status(403).json({ error: 'Apenas administradores podem editar a configuração global.' });
+    await ensureTables();
     const db = getDB();
     const { roomId, roomConfig, defaultFurniture } = req.body;
     if(!roomId) return res.status(400).json({ error: 'roomId obrigatório' });
@@ -144,6 +155,7 @@ router.post('/room-configs', authMiddleware, loadFullUser, async (req, res) => {
 // GET /api/dailyworld/furniture-configs — public
 router.get('/furniture-configs', optionalAuth, async (req, res) => {
   try {
+    await ensureTables();
     const db = getDB();
     const rows = await db.prepare('SELECT * FROM dailyworld_furniture_configs').all();
     const out = {};
@@ -158,6 +170,7 @@ router.get('/furniture-configs', optionalAuth, async (req, res) => {
 router.post('/furniture-configs', authMiddleware, loadFullUser, async (req, res) => {
   try {
     if(!req.user.is_admin) return res.status(403).json({ error: 'Apenas administradores podem editar a configuração global.' });
+    await ensureTables();
     const db = getDB();
     const { furnitureId, scale, offsetY, offsetX } = req.body;
     if(!furnitureId) return res.status(400).json({ error: 'furnitureId obrigatório' });
