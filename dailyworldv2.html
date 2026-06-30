@@ -79,6 +79,14 @@ body{background:#1a1a2e;font-family:'Courier New',monospace;color:#fff;height:10
 .statusbar span{color:#e94560;}
 
 /* TOAST */
+.ap-section{display:flex;flex-direction:column;gap:4px;border-bottom:1px solid #0f3460;padding-bottom:8px;}
+.ap-title{font-size:7px;color:#e94560;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;}
+.ap-row{display:flex;align-items:center;gap:4px;}
+.ap-label{font-size:7px;color:#aac;min-width:52px;flex:1;}
+.ap-val{font-size:8px;color:#fff;min-width:24px;text-align:right;}
+.ap-row input[type=range]{flex:1;accent-color:#e94560;height:14px;}
+.ap-btn{background:#0f3460;border:1px solid #1a4a8a;color:#fff;padding:4px 6px;border-radius:3px;cursor:pointer;font-size:8px;text-align:center;font-family:inherit;white-space:nowrap;}
+.ap-btn:active,.ap-btn.active{background:#e94560;border-color:#e94560;}
 .toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:#e94560;color:#fff;padding:8px 20px;border-radius:20px;font-size:11px;letter-spacing:1px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:999;}
 .toast.on{opacity:1;}
 
@@ -175,6 +183,9 @@ body{background:#1a1a2e;font-family:'Courier New',monospace;color:#fff;height:10
       <div class="smenu-sep"></div>
       <div class="smenu-btn" onclick="showToast('Em breve!')" title="Amigos">👥</div>
       <div class="smenu-label">Amigos</div>
+      <div class="smenu-sep" id="adminSep" style="display:none"></div>
+      <div class="smenu-btn" id="btnAdmin" onclick="toggleAdminEditor()" title="Editor Admin" style="display:none;border-color:#e94560;">🔧</div>
+      <div class="smenu-label" id="adminLabel" style="display:none;color:#e94560;">Admin</div>
     </div>
 
     <!-- Edit sidebar -->
@@ -193,6 +204,15 @@ body{background:#1a1a2e;font-family:'Courier New',monospace;color:#fff;height:10
     <!-- Intro bubbles -->
     <div class="intro-overlay" id="introOverlay"></div>
   </div>
+  <!-- ADMIN PANEL -->
+  <div id="adminPanel" style="display:none;position:absolute;right:0;top:0;bottom:0;width:220px;background:rgba(10,15,30,0.97);border-left:1px solid #e94560;flex-direction:column;z-index:70;overflow:hidden;">
+    <div style="background:#e94560;padding:8px 10px;font-size:9px;letter-spacing:2px;display:flex;align-items:center;justify-content:space-between;">
+      <span>🔧 ADMIN — GRID EDITOR</span>
+      <span onclick="toggleAdminEditor()" style="cursor:pointer;font-size:14px;">✕</span>
+    </div>
+    <div id="adminPanelContent" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+
   <div class="statusbar">
     <div>Tile: <span id="sTile">—</span></div>
     <div>Modo: <span id="sMode">explorar</span></div>
@@ -519,12 +539,15 @@ var FURN_CATALOG = [
 ];
 
 var state = {
-  room: null,       // chosen room object
-  placed: [],       // furniture placed
-  pokePos: null,    // {col,row} current poke position
+  room: null,
+  roomConfig: null, // multi-level grid config
+  placed: [],
+  pokePos: null,
   editMode: false,
-  selected: null,   // index of selected furniture
+  selected: null,
   introStep: 0,
+  activeEditLevel: 0,
+  showGrid: false,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -546,32 +569,85 @@ function loadFurnitureImgs(cb) {
   });
 }
 
-function G() { return state.room ? state.room.grid : {tileW:132,tileH:72,originX:393,originY:222,cols:4,rows:6}; }
+// ═══════════════════════════════════════════════════════════════════════════
+// GRID & LEVEL SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
 
-function iso(c,r) {
-  var g=G();
-  return {x: g.originX+(c-r)*(g.tileW/2), y: g.originY+(c+r)*(g.tileH/2)};
+// roomConfig holds the full multi-level definition for each room
+// Stored in state.roomConfig, defaulting from room.grid
+var DEFAULT_LEVEL_HEIGHT = 80; // px between levels visually
+
+function getRoomConfig() {
+  if(state.roomConfig) return state.roomConfig;
+  var g = state.room ? state.room.grid : {tileW:66,tileH:36,originX:393,originY:300,cols:8,rows:8};
+  return {
+    levels: [
+      {z:0, tileW:g.tileW, tileH:g.tileH, originX:g.originX, originY:g.originY, cols:g.cols, rows:g.rows}
+    ],
+    stairs: [],  // [{fromLevel,fromCol,fromRow,toLevel,toCol,toRow}]
+    levelHeight: DEFAULT_LEVEL_HEIGHT
+  };
 }
-function screenToIso(sx,sy) {
-  var g=G();
-  var dx=sx-g.originX, dy=sy-g.originY;
-  return {col:Math.floor((dx/(g.tileW/2)+dy/(g.tileH/2))/2), row:Math.floor((dy/(g.tileH/2)-dx/(g.tileW/2))/2)};
+
+function getLevel(z) {
+  var cfg = getRoomConfig();
+  return cfg.levels.find(function(l){return l.z===z;}) || cfg.levels[0];
 }
-function canvasXY(clientX, clientY) {
-  var r=canvas.getBoundingClientRect();
-  return {x:(clientX-r.left)*(CW/r.width), y:(clientY-r.top)*(CH/r.height)};
+
+function isoLevel(col, row, z) {
+  var lv = getLevel(z);
+  var cfg = getRoomConfig();
+  return {
+    x: lv.originX + (col - row) * (lv.tileW / 2),
+    y: lv.originY + (col + row) * (lv.tileH / 2) - z * cfg.levelHeight
+  };
 }
+
+// For backwards compat — iso uses level 0
+function iso(c, r) { return isoLevel(c, r, 0); }
+
+function screenToIsoLevel(sx, sy, z) {
+  var lv = getLevel(z);
+  var cfg = getRoomConfig();
+  var adjY = sy + z * cfg.levelHeight;
+  var dx = sx - lv.originX, dy = adjY - lv.originY;
+  return {
+    col: Math.floor((dx/(lv.tileW/2) + dy/(lv.tileH/2)) / 2),
+    row: Math.floor((dy/(lv.tileH/2) - dx/(lv.tileW/2)) / 2)
+  };
+}
+
+function screenToIso(sx, sy) {
+  // Try each level, pick closest valid tile
+  var cfg = getRoomConfig();
+  var best = null, bestZ = 0;
+  for(var zi=cfg.levels.length-1;zi>=0;zi--) {
+    var lv = cfg.levels[zi];
+    var is = screenToIsoLevel(sx, sy, lv.z);
+    if(is.col>=0 && is.col<lv.cols && is.row>=0 && is.row<lv.rows) {
+      best = is; bestZ = lv.z; break;
+    }
+  }
+  if(!best) {
+    var lv0 = cfg.levels[0];
+    best = screenToIsoLevel(sx, sy, 0);
+    bestZ = 0;
+  }
+  best.level = bestZ;
+  return best;
+}
+
 function inGrid(is) {
-  var g=G();
-  return is.col>=0 && is.col<g.cols && is.row>=0 && is.row<g.rows;
+  var lv = getLevel(is.level||0);
+  if(!lv) return false;
+  return is.col>=0 && is.col<lv.cols && is.row>=0 && is.row<lv.rows;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════════════════════════════════
-function drawTile(col,row,fill,a) {
-  a=a||0.35;
-  var p=[iso(col,row),iso(col+1,row),iso(col+1,row+1),iso(col,row+1)];
+function drawTile(col, row, fill, a, z) {
+  z = z||0;
+  a = a||0.35;
+  var p = [isoLevel(col,row,z), isoLevel(col+1,row,z),
+           isoLevel(col+1,row+1,z), isoLevel(col,row+1,z)];
   ctx.save(); ctx.globalAlpha=a; ctx.fillStyle=fill;
   ctx.beginPath(); ctx.moveTo(p[0].x,p[0].y);
   for(var i=1;i<p.length;i++) ctx.lineTo(p[i].x,p[i].y);
@@ -580,14 +656,269 @@ function drawTile(col,row,fill,a) {
   ctx.restore();
 }
 
-function blocked(col,row,cols,rows,excl) {
-  var g=G();
+// ═══════════════════════════════════════════════════════════════════════════
+// SMOOTH POKE MOVEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+var pokeMove = {
+  // Logical position (integers)
+  col: 1, row: 1, level: 0,
+  // Pixel position (interpolated)
+  px: 0, py: 0,
+  // Target
+  path: [],        // [{col,row,level}] remaining steps
+  walking: false,
+  flipped: false,
+  // Animation
+  animFrame: null,
+  stepProgress: 0, // 0..1
+  fromPx: 0, fromPy: 0,
+  toPx: 0,   toPy: 0,
+  STEP_MS: 220,    // ms per tile
+  lastTime: 0,
+};
+
+function pokeScreenPos(col, row, level) {
+  return isoLevel(col, row, level||0);
+}
+
+function initPokePixelPos() {
+  var p = pokeScreenPos(pokeMove.col, pokeMove.row, pokeMove.level);
+  pokeMove.px = p.x; pokeMove.py = p.y;
+}
+
+function walkPokeTo(col, row, level) {
+  level = level||0;
+  var lv = getLevel(level);
+  if(!lv) return;
+  if(col<0||col>=lv.cols||row<0||row>=lv.rows) return;
+  // Simple path: step toward target on same level, handle stairs
+  var path = buildPath(pokeMove.col, pokeMove.row, pokeMove.level, col, row, level);
+  if(!path || path.length===0) return;
+  // Determine flip direction from first step
+  var first = path[0];
+  var dcol = first.col - pokeMove.col;
+  var drow = first.row - pokeMove.row;
+  if(dcol > 0 || drow < 0) pokeMove.flipped = false;
+  if(dcol < 0 || drow > 0) pokeMove.flipped = true;
+  pokeMove.path = path;
+  if(!pokeMove.walking) startPokeWalk();
+}
+
+function buildPath(fc, fr, fl, tc, tr, tl) {
+  // Simple BFS across levels
+  var path = [];
+  var cfg = getRoomConfig();
+  var cc=fc, cr=fr, cl=fl;
+  var maxSteps = 30;
+  while((cc!==tc || cr!==tr || cl!==tl) && maxSteps-->0) {
+    // Check if there's a stair at current pos that takes us to target level
+    if(cl !== tl) {
+      var stair = cfg.stairs.find(function(s){
+        return s.fromLevel===cl && s.fromCol===cc && s.fromRow===cr;
+      });
+      if(stair && stair.toLevel===tl) {
+        path.push({col:stair.toCol, row:stair.toRow, level:stair.toLevel});
+        cc=stair.toCol; cr=stair.toRow; cl=stair.toLevel; continue;
+      }
+    }
+    // Step toward target on current level
+    var nc=cc, nr=cr;
+    if(tc > cc) nc++;
+    else if(tc < cc) nc--;
+    else if(tr > cr) nr++;
+    else if(tr < cr) nr--;
+    else break;
+    path.push({col:nc, row:nr, level:cl});
+    cc=nc; cr=nr;
+  }
+  return path;
+}
+
+function startPokeWalk() {
+  if(pokeMove.path.length===0) {
+    pokeMove.walking = false; return;
+  }
+  pokeMove.walking = true;
+  var next = pokeMove.path.shift();
+  // Update flip based on direction
+  var dcol = next.col - pokeMove.col;
+  var drow = next.row - pokeMove.row;
+  if(dcol > 0 || drow < 0) pokeMove.flipped = false;
+  if(dcol < 0 || drow > 0) pokeMove.flipped = true;
+
+  pokeMove.fromPx = pokeMove.px;
+  pokeMove.fromPy = pokeMove.py;
+  var toP = pokeScreenPos(next.col, next.row, next.level);
+  pokeMove.toPx = toP.x;
+  pokeMove.toPy = toP.y;
+  pokeMove.stepProgress = 0;
+  pokeMove.lastTime = performance.now();
+  // Update logical position
+  pokeMove.col = next.col;
+  pokeMove.row = next.row;
+  pokeMove.level = next.level;
+  state.pokePos = {col:pokeMove.col, row:pokeMove.row, level:pokeMove.level};
+
+  if(pokeMove.animFrame) cancelAnimationFrame(pokeMove.animFrame);
+  pokeMove.animFrame = requestAnimationFrame(tickPokeWalk);
+}
+
+function tickPokeWalk(now) {
+  var elapsed = now - pokeMove.lastTime;
+  pokeMove.stepProgress = Math.min(1, elapsed / pokeMove.STEP_MS);
+  // Ease in-out
+  var t = pokeMove.stepProgress;
+  var ease = t<0.5 ? 2*t*t : -1+(4-2*t)*t;
+  pokeMove.px = pokeMove.fromPx + (pokeMove.toPx - pokeMove.fromPx) * ease;
+  pokeMove.py = pokeMove.fromPy + (pokeMove.toPy - pokeMove.fromPy) * ease;
+  render();
+  if(pokeMove.stepProgress < 1) {
+    pokeMove.animFrame = requestAnimationFrame(tickPokeWalk);
+  } else {
+    pokeMove.px = pokeMove.toPx;
+    pokeMove.py = pokeMove.toPy;
+    if(pokeMove.path.length > 0) {
+      startPokeWalk();
+    } else {
+      pokeMove.walking = false;
+      render();
+    }
+  }
+}
+
+function drawPoke() {
+  if(!pokeImg) return;
+  var g = getRoomConfig().levels[0];
+  var size = g.tileW * (pokeMove.level > 0 ? 0.8 : 0.9);
+  var dx = pokeMove.px - size/2;
+  var dy = pokeMove.py - size * 1.15;
+  var bob = pokeMove.walking ? Math.sin(Date.now()/100)*2.5 : 0;
+  ctx.save();
+  if(pokeMove.flipped) {
+    ctx.translate(dx+size/2, dy+size/2);
+    ctx.scale(-1,1);
+    ctx.translate(-(dx+size/2), -(dy+size/2));
+  }
+  // Shadow
+  ctx.globalAlpha=0.18;
+  ctx.fillStyle='#000';
+  ctx.beginPath();
+  ctx.ellipse(pokeMove.px, pokeMove.py+2, size*0.28, size*0.08, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.drawImage(pokeImg, dx, dy+bob, size, size);
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER — MULTI LEVEL
+// ═══════════════════════════════════════════════════════════════════════════
+function render() {
+  ctx.clearRect(0,0,CW,CH);
+  if(roomImg.complete && roomImg.src) ctx.drawImage(roomImg,0,0,CW,CH);
+
+  var cfg = getRoomConfig();
+
+  // Draw each level
+  cfg.levels.forEach(function(lv) {
+    var z = lv.z;
+
+    // Grid (edit mode or admin)
+    if(state.editMode || state.showGrid) {
+      var alpha = z===state.activeEditLevel ? 0.5 : 0.15;
+      ctx.save(); ctx.strokeStyle='rgba(100,200,255,'+alpha+')'; ctx.lineWidth=0.8;
+      for(var c=0;c<=lv.cols;c++){
+        var a=isoLevel(c,0,z), b=isoLevel(c,lv.rows,z);
+        ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+      }
+      for(var r=0;r<=lv.rows;r++){
+        var a=isoLevel(0,r,z), b=isoLevel(lv.cols,r,z);
+        ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+      }
+      ctx.restore();
+      // Dot at each corner
+      ctx.fillStyle='rgba(255,220,50,'+(z===state.activeEditLevel?0.8:0.2)+')';
+      for(var c=0;c<=lv.cols;c++) for(var r=0;r<=lv.rows;r++) {
+        var pt=isoLevel(c,r,z);
+        ctx.beginPath();ctx.arc(pt.x,pt.y,2,0,Math.PI*2);ctx.fill();
+      }
+    }
+
+    // Stairs markers
+    cfg.stairs.forEach(function(s){
+      if(s.fromLevel===z) {
+        var pt=isoLevel(s.fromCol,s.fromRow,z);
+        ctx.save();ctx.globalAlpha=0.7;
+        ctx.fillStyle='#ffaa00';
+        ctx.font='12px monospace';
+        ctx.fillText('▲',pt.x-5,pt.y+5);
+        ctx.restore();
+      }
+      if(s.toLevel===z) {
+        var pt=isoLevel(s.toCol,s.toRow,z);
+        ctx.save();ctx.globalAlpha=0.7;
+        ctx.fillStyle='#ffaa00';
+        ctx.font='12px monospace';
+        ctx.fillText('▼',pt.x-5,pt.y+5);
+        ctx.restore();
+      }
+    });
+
+    // Hover tile for this level
+    if(hoverTile && (hoverTile.level||0)===z) {
+      if(state.editMode && dragState.mode) {
+        var it = dragState.mode==='canvas' ? state.placed[dragState.idx]
+               : FURN_CATALOG.find(function(c){return c.id===dragState.catId;});
+        if(it) {
+          var col=Math.max(0,Math.min(lv.cols-it.cols,hoverTile.col));
+          var row=Math.max(0,Math.min(lv.rows-it.rows,hoverTile.row));
+          var bl=blocked(col,row,it.cols,it.rows,z,dragState.mode==='canvas'?dragState.idx:null);
+          for(var dc=0;dc<it.cols;dc++) for(var dr=0;dr<it.rows;dr++)
+            drawTile(col+dc,row+dr,bl?'#ff4444':'#44ffaa',0.45,z);
+          if(!bl){
+            var prev={id:it.id,img:it.img,cols:it.cols,rows:it.rows,
+              scale:it.scale,offsetY:it.offsetY,offsetX:it.offsetX,flipped:it.flipped||false,
+              col:col,row:row,level:z};
+            ctx.save();ctx.globalAlpha=0.65;drawFurniture(prev,null);ctx.restore();
+          }
+        }
+      } else if(!dragState.mode) {
+        drawTile(hoverTile.col,hoverTile.row,'rgba(255,255,255,0.08)',0.3,z);
+      }
+    }
+
+    // Furniture on this level (sorted by depth)
+    var lvFurn = state.placed.filter(function(it){ return (it.level||0)===z; });
+    var sorted = lvFurn.map(function(it,i){return{it:it,i:state.placed.indexOf(it)};})
+      .sort(function(a,b){return(a.it.col+a.it.row)-(b.it.col+b.it.row);});
+    sorted.forEach(function(e){
+      if(e.i===state.selected && state.editMode)
+        for(var dc=0;dc<e.it.cols;dc++) for(var dr=0;dr<e.it.rows;dr++)
+          drawTile(e.it.col+dc,e.it.row+dr,'#e94560',0.2,z);
+      drawFurniture(e.it,e.i);
+    });
+
+    // Poke on this level
+    if(!state.editMode && pokeMove.level===z) drawPoke();
+  });
+
+  document.getElementById('sMode').textContent = state.editMode ? 'edição' : 'explorar';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FURNITURE (multi-level aware)
+// ═══════════════════════════════════════════════════════════════════════════
+function blocked(col, row, cols, rows, z, excl) {
+  z = z||0;
+  var lv = getLevel(z);
+  if(!lv) return true;
   for(var dc=0;dc<cols;dc++) for(var dr=0;dr<rows;dr++) {
-    var c=col+dc,r=row+dr;
-    if(c<0||r<0||c>=g.cols||r>=g.rows) return true;
+    var c=col+dc, r=row+dr;
+    if(c<0||r<0||c>=lv.cols||r>=lv.rows) return true;
     for(var i=0;i<state.placed.length;i++) {
       if(i===excl) continue;
       var p=state.placed[i];
+      if((p.level||0)!==z) continue;
       for(var pc=0;pc<p.cols;pc++) for(var pr=0;pr<p.rows;pr++)
         if(p.col+pc===c&&p.row+pr===r) return true;
     }
@@ -597,285 +928,167 @@ function blocked(col,row,cols,rows,excl) {
 
 function drawFurniture(item, idx) {
   var img = furnitureImgs[item.id]; if(!img) return;
-  var g = G();
-  var anchor = iso(item.col+item.cols, item.row+item.rows);
-  var sc = (g.tileW*item.cols/img.width)*1.8*item.scale;
+  var z = item.level||0;
+  var lv = getLevel(z);
+  var anchor = isoLevel(item.col+item.cols, item.row+item.rows, z);
+  var sc = (lv.tileW*item.cols/img.width)*1.8*item.scale;
   var dw=img.width*sc, dh=img.height*sc;
   var dx=anchor.x-dw*(0.5+item.offsetX), dy=anchor.y-dh*item.offsetY;
   ctx.save();
   if(item.flipped){ctx.translate(dx+dw/2,dy+dh/2);ctx.scale(-1,1);ctx.translate(-(dx+dw/2),-(dy+dh/2));}
-  if(idx===state.selected){ctx.shadowColor='#e94560';ctx.shadowBlur=18;}
+  if(idx===state.selected&&state.editMode){ctx.shadowColor='#e94560';ctx.shadowBlur=18;}
   ctx.drawImage(img,dx,dy,dw,dh);
   ctx.restore();
 }
 
-function drawPoke() {
-  if(!pokeImg || !state.pokePos) return;
-  var pos = iso(state.pokePos.col, state.pokePos.row);
-  var g = G();
-  var size = g.tileW * 0.7;
-  var dx = pos.x - size/2 + (pokeMove.flipped?-4:4);
-  var dy = pos.y - size * 1.1;
-  ctx.save();
-  // Walking bob animation
-  var bob = pokeMove.walking ? Math.sin(Date.now()/120)*3 : 0;
-  if(pokeMove.flipped) {
-    ctx.translate(dx+size/2, dy+size/2+bob);
-    ctx.scale(-1,1);
-    ctx.translate(-(dx+size/2), -(dy+size/2+bob));
-  }
-  ctx.drawImage(pokeImg, dx, dy+bob, size, size);
-  ctx.restore();
-}
-
-function render() {
-  ctx.clearRect(0,0,CW,CH);
-  if(roomImg.complete && roomImg.src) ctx.drawImage(roomImg,0,0,CW,CH);
-
-  // In edit mode: show subtle grid
-  if(state.editMode) {
-    var g=G();
-    ctx.save(); ctx.strokeStyle='rgba(100,200,255,0.3)'; ctx.lineWidth=0.8;
-    for(var c=0;c<=g.cols;c++){var a=iso(c,0),b=iso(c,g.rows);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
-    for(var r=0;r<=g.rows;r++){var a=iso(0,r),b=iso(g.cols,r);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
-    ctx.restore();
-
-    // Drag drop preview
-    if(dragState.mode && hoverTile) {
-      var it = dragState.mode==='canvas' ? state.placed[dragState.idx]
-             : FURN_CATALOG.find(function(c){return c.id===dragState.catId;});
-      if(it) {
-        var g2=G();
-        var col=Math.max(0,Math.min(g2.cols-it.cols,hoverTile.col));
-        var row=Math.max(0,Math.min(g2.rows-it.rows,hoverTile.row));
-        var bl=blocked(col,row,it.cols,it.rows,dragState.mode==='canvas'?dragState.idx:null);
-        for(var dc=0;dc<it.cols;dc++) for(var dr=0;dr<it.rows;dr++)
-          drawTile(col+dc,row+dr,bl?'#ff4444':'#44ffaa',0.45);
-        if(!bl) {
-          var prev={id:it.id,img:it.img,cols:it.cols,rows:it.rows,scale:it.scale,offsetY:it.offsetY,offsetX:it.offsetX,flipped:it.flipped||false,col:col,row:row};
-          ctx.save(); ctx.globalAlpha=0.65; drawFurniture(prev,null); ctx.restore();
-        }
-      }
-    }
-  }
-
-  // Furniture (sorted by depth)
-  var sorted = state.placed.map(function(it,i){return{it:it,i:i};})
-    .sort(function(a,b){return(a.it.col+a.it.row)-(b.it.col+b.it.row);});
-  sorted.forEach(function(e) {
-    if(e.i===state.selected && state.editMode)
-      for(var dc=0;dc<e.it.cols;dc++) for(var dr=0;dr<e.it.rows;dr++)
-        drawTile(e.it.col+dc,e.it.row+dr,'#e94560',0.2);
-    drawFurniture(e.it,e.i);
-  });
-
-  // Dailypoke
-  if(!state.editMode) drawPoke();
-
-  // Status
-  document.getElementById('sMode').textContent = state.editMode ? 'edição' : 'explorar';
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
-// POKE MOVEMENT
+// ADMIN GRID EDITOR
 // ═══════════════════════════════════════════════════════════════════════════
-var pokeMove = {
-  target: null,
-  walking: false,
-  flipped: false,
-  animFrame: null,
+var adminEditor = {
+  open: false,
+  activeLevel: 0,
+  stairFrom: null,  // {col,row,level} waiting for second click
 };
 
-function walkPokeTo(col, row) {
-  if(!inGrid({col:col,row:row})) return;
-  // Check not blocked by furniture
-  for(var i=0;i<state.placed.length;i++) {
-    var p=state.placed[i];
-    for(var dc=0;dc<p.cols;dc++) for(var dr=0;dr<p.rows;dr++)
-      if(p.col+dc===col&&p.row+dr===row) return;
-  }
-  pokeMove.target = {col:col,row:row};
-  // Determine direction for flipping
-  if(state.pokePos) {
-    var dx = col - state.pokePos.col;
-    var dy = row - state.pokePos.row;
-    // In isometric: col+ = right-down, row+ = left-down
-    // Flip when moving to higher col or lower row (moving "right" visually)
-    if(dx > 0 || dy < 0) pokeMove.flipped = false;
-    if(dx < 0 || dy > 0) pokeMove.flipped = true;
-  }
-  animatePoke();
-}
-
-function animatePoke() {
-  if(!pokeMove.target || !state.pokePos) return;
-  var tc=pokeMove.target.col, tr=pokeMove.target.row;
-  var cc=state.pokePos.col,   cr=state.pokePos.row;
-  if(tc===cc && tr===cr) { pokeMove.walking=false; pokeMove.target=null; return; }
-  pokeMove.walking = true;
-  // Step one tile toward target
-  var nc = cc, nr = cr;
-  if(tc > cc) nc++;
-  else if(tc < cc) nc--;
-  else if(tr > cr) nr++;
-  else if(tr < cr) nr--;
-  state.pokePos = {col:nc, row:nr};
-  render();
-  setTimeout(animatePoke, 180);
-}
-
-// Walking animation loop
-setInterval(function() { if(pokeMove.walking) render(); }, 80);
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DRAG STATE
-// ═══════════════════════════════════════════════════════════════════════════
-var dragState = { mode:null, idx:null, catId:null };
-var hoverTile = null;
-var lpTimer = null, tStart = null;
-
-var dg  = document.getElementById('dg');
-var dgi = document.getElementById('dgi');
-var pr  = document.getElementById('pr');
-
-function showGhost(src,cx,cy){dgi.src=src;dg.style.display='block';dg.style.left=cx+'px';dg.style.top=cy+'px';}
-function moveGhost(cx,cy){dg.style.left=cx+'px';dg.style.top=cy+'px';}
-function hideGhost(){dg.style.display='none';}
-function showRing(cx,cy){pr.style.display='block';pr.style.left=cx+'px';pr.style.top=cy+'px';pr.style.animation='none';requestAnimationFrame(function(){pr.style.animation='rg 0.8s ease-out forwards';});}
-function hideRing(){pr.style.display='none';pr.style.animation='none';}
-function cancelLP(){if(lpTimer){clearTimeout(lpTimer);lpTimer=null;}hideRing();}
-
-function findFurnitureAt(iso) {
-  for(var i=state.placed.length-1;i>=0;i--) {
-    var p=state.placed[i];
-    for(var dc=0;dc<p.cols;dc++) for(var dr=0;dr<p.rows;dr++)
-      if(p.col+dc===iso.col&&p.row+dr===iso.row) return i;
-  }
-  return null;
-}
-
-function finishDrop() {
-  hideGhost();
-  if(dragState.mode==='canvas' && dragState.idx!==null && hoverTile) {
-    var it=state.placed[dragState.idx];
-    var g=G();
-    var nc=Math.max(0,Math.min(g.cols-it.cols,hoverTile.col));
-    var nr=Math.max(0,Math.min(g.rows-it.rows,hoverTile.row));
-    if(!blocked(nc,nr,it.cols,it.rows,dragState.idx)){it.col=nc;it.row=nr;autoSave();}
-    else showToast('Espaço ocupado!');
-  }
-  dragState.mode=null; dragState.idx=null; dragState.catId=null;
+function toggleAdminEditor() {
+  adminEditor.open = !adminEditor.open;
+  state.activeEditLevel = adminEditor.activeLevel;
+  buildAdminPanel();
+  document.getElementById('adminPanel').style.display = adminEditor.open ? 'flex' : 'none';
   render();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CANVAS EVENTS
-// ═══════════════════════════════════════════════════════════════════════════
-function initCanvasEvents() {
-  canvas.addEventListener('touchstart', function(e) {
-    e.preventDefault();
-    var t=e.touches[0];
-    tStart={x:t.clientX,y:t.clientY};
-    var cv=canvasXY(t.clientX,t.clientY);
-    var is=screenToIso(cv.x,cv.y);
-    hoverTile = inGrid(is)?is:null;
+function buildAdminPanel() {
+  var panel = document.getElementById('adminPanelContent');
+  if(!panel) return;
+  panel.innerHTML = '';
+  var cfg = getRoomConfig();
 
-    if(state.editMode) {
-      var idx=findFurnitureAt(is);
-      if(idx!==null) {
-        // Long press = drag
-        showRing(t.clientX,t.clientY);
-        lpTimer=setTimeout(function(){
-          lpTimer=null; hideRing();
-          dragState.mode='canvas'; dragState.idx=idx;
-          state.selected=idx;
-          showGhost(furnitureImgs[state.placed[idx].id].src||IMG_MONITOR,t.clientX,t.clientY);
-          render();
-        },900);
-      } else {
-        // Tap empty = deselect, close actions
-        state.selected=null;
-        closeActions();
-        render();
-      }
-    } else {
-      // Explore mode: tap tile = walk poke there
-      if(hoverTile) walkPokeTo(hoverTile.col, hoverTile.row);
-    }
-  },{passive:false});
+  function mk(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;}
+  function slider(lbl,val,min,max,step,cb){
+    var row=mk('div','ap-row');
+    var l=mk('div','ap-label',lbl);
+    var s=document.createElement('input');s.type='range';s.min=min;s.max=max;s.step=step;s.value=val;
+    var v=mk('div','ap-val',parseFloat(val).toFixed(step<1?2:0));
+    s.oninput=function(e){v.textContent=parseFloat(e.target.value).toFixed(step<1?2:0);cb(parseFloat(e.target.value));};
+    row.appendChild(l);row.appendChild(s);row.appendChild(v);
+    return row;
+  }
 
-  canvas.addEventListener('touchmove', function(e) {
-    e.preventDefault();
-    var t=e.touches[0];
-    if(lpTimer&&tStart&&(Math.abs(t.clientX-tStart.x)>10||Math.abs(t.clientY-tStart.y)>10)) cancelLP();
-    var cv=canvasXY(t.clientX,t.clientY);
-    var is=screenToIso(cv.x,cv.y);
-    hoverTile = inGrid(is)?is:null;
-    if(dragState.mode==='canvas') { moveGhost(t.clientX,t.clientY); render(); }
-  },{passive:false});
-
-  canvas.addEventListener('touchend', function(e) {
-    e.preventDefault(); cancelLP();
-    if(dragState.mode==='canvas') {
-      finishDrop();
-    } else if(e.changedTouches.length>0 && state.editMode) {
-      var t=e.changedTouches[0];
-      var cv=canvasXY(t.clientX,t.clientY);
-      var is=screenToIso(cv.x,cv.y);
-      var idx=findFurnitureAt(is);
-      if(idx!==null) {
-        state.selected=idx;
-        showItemActions(t.clientX, t.clientY);
-      }
-      render();
-    }
-  },{passive:false});
-
-  // Mouse events for desktop
-  canvas.addEventListener('mousedown', function(e) {
-    tStart={x:e.clientX,y:e.clientY};
-    var cv=canvasXY(e.clientX,e.clientY);
-    var is=screenToIso(cv.x,cv.y);
-    hoverTile=inGrid(is)?is:null;
-    if(state.editMode) {
-      var idx=findFurnitureAt(is);
-      if(idx!==null) {
-        state.selected=idx;
-        showRing(e.clientX,e.clientY);
-        lpTimer=setTimeout(function(){
-          lpTimer=null; hideRing();
-          dragState.mode='canvas'; dragState.idx=idx;
-          showGhost(IMG_MONITOR,e.clientX,e.clientY); render();
-        },700);
-      } else { state.selected=null; closeActions(); render(); }
-    } else {
-      if(hoverTile) walkPokeTo(hoverTile.col, hoverTile.row);
-    }
+  // Level selector
+  var lvSec = mk('div','ap-section');
+  lvSec.appendChild(mk('div','ap-title','NÍVEIS'));
+  var lvRow = mk('div','ap-row');
+  cfg.levels.forEach(function(lv) {
+    var btn = mk('div','ap-btn'+(adminEditor.activeLevel===lv.z?' active':''), 'Nível '+lv.z);
+    btn.onclick=function(){adminEditor.activeLevel=lv.z;state.activeEditLevel=lv.z;buildAdminPanel();render();};
+    lvRow.appendChild(btn);
   });
-  canvas.addEventListener('mousemove', function(e) {
-    if(lpTimer&&tStart&&(Math.abs(e.clientX-tStart.x)>8||Math.abs(e.clientY-tStart.y)>8)) cancelLP();
-    var cv=canvasXY(e.clientX,e.clientY);
-    var is=screenToIso(cv.x,cv.y);
-    hoverTile=inGrid(is)?is:null;
-    if(dragState.mode==='canvas'){moveGhost(e.clientX,e.clientY);render();}
-    document.getElementById('sTile').textContent = hoverTile?('('+hoverTile.col+','+hoverTile.row+')') : '—';
+  // Add level
+  if(cfg.levels.length < 2) {
+    var addBtn = mk('div','ap-btn','+Nível');
+    addBtn.onclick=function(){
+      cfg.levels.push({z:1,tileW:cfg.levels[0].tileW,tileH:cfg.levels[0].tileH,
+        originX:cfg.levels[0].originX,originY:cfg.levels[0].originY-DEFAULT_LEVEL_HEIGHT,
+        cols:cfg.levels[0].cols,rows:Math.floor(cfg.levels[0].rows/2)});
+      buildAdminPanel();render();
+    };
+    lvRow.appendChild(addBtn);
+  }
+  lvSec.appendChild(lvRow);
+  panel.appendChild(lvSec);
+
+  // Active level sliders
+  var lv = getLevel(adminEditor.activeLevel);
+  var gridSec = mk('div','ap-section');
+  gridSec.appendChild(mk('div','ap-title','NÍVEL '+adminEditor.activeLevel+' — GRID'));
+  gridSec.appendChild(slider('Tile W',lv.tileW,20,200,1,function(v){lv.tileW=v;render();}));
+  gridSec.appendChild(slider('Tile H',lv.tileH,10,100,1,function(v){lv.tileH=v;render();}));
+  gridSec.appendChild(slider('Origin X',lv.originX,0,1000,1,function(v){lv.originX=v;render();}));
+  gridSec.appendChild(slider('Origin Y',lv.originY,0,1000,1,function(v){lv.originY=v;render();}));
+  gridSec.appendChild(slider('Cols',lv.cols,2,20,1,function(v){lv.cols=v;render();}));
+  gridSec.appendChild(slider('Rows',lv.rows,2,20,1,function(v){lv.rows=v;render();}));
+  if(adminEditor.activeLevel>0) {
+    gridSec.appendChild(slider('Altura nível (px)',cfg.levelHeight||80,20,200,4,function(v){cfg.levelHeight=v;render();}));
+  }
+  panel.appendChild(gridSec);
+
+  // Stairs
+  var stairSec = mk('div','ap-section');
+  stairSec.appendChild(mk('div','ap-title','ESCADAS'));
+  var stairStatus = mk('div','ap-label', adminEditor.stairFrom ?
+    'Clique no tile DESTINO (nível '+( adminEditor.stairFrom.level===0?1:0)+')' :
+    'Clique num tile para marcar escada');
+  stairSec.appendChild(stairStatus);
+
+  // List existing stairs
+  cfg.stairs.forEach(function(s,i){
+    var row=mk('div','ap-row');
+    row.appendChild(mk('div','ap-label','L'+s.fromLevel+'('+s.fromCol+','+s.fromRow+') ↔ L'+s.toLevel+'('+s.toCol+','+s.toRow+')'));
+    var del=mk('div','ap-btn','✕');
+    del.onclick=(function(idx){return function(){cfg.stairs.splice(idx,1);buildAdminPanel();render();};})(i);
+    row.appendChild(del);
+    stairSec.appendChild(row);
   });
-  canvas.addEventListener('mouseup',function(){cancelLP();if(dragState.mode==='canvas')finishDrop();});
-  canvas.addEventListener('dragover',function(e){e.preventDefault();});
-  canvas.addEventListener('drop',function(e){
-    e.preventDefault();
-    if(!dragState.catId||!hoverTile) return;
-    var cat=FURN_CATALOG.find(function(c){return c.id===dragState.catId;});
-    if(!cat) return;
-    var g=G();
-    var col=Math.max(0,Math.min(g.cols-cat.cols,hoverTile.col));
-    var row=Math.max(0,Math.min(g.rows-cat.rows,hoverTile.row));
-    if(blocked(col,row,cat.cols,cat.rows)){showToast('Espaço ocupado!');dragState.catId=null;return;}
-    var newItem=Object.assign({},cat,{col:col,row:row,flipped:false});
-    state.placed.push(newItem); state.selected=state.placed.length-1;
-    dragState.catId=null; autoSave(); render();
-  });
+  panel.appendChild(stairSec);
+
+  // Save config
+  var saveSec = mk('div','ap-section');
+  saveSec.appendChild(mk('div','ap-title','SALVAR'));
+  var saveBtn = mk('div','ap-btn','📋 Copiar Config');
+  saveBtn.onclick=function(){
+    var out=JSON.stringify({roomConfig:cfg},null,2);
+    try{navigator.clipboard.writeText(out);}catch(e){}
+    showToast('Config copiada!');
+  };
+  saveSec.appendChild(saveBtn);
+
+  var applyBtn = mk('div','ap-btn','✓ Aplicar a este quarto');
+  applyBtn.onclick=function(){
+    if(state.room) state.room.roomConfig=JSON.parse(JSON.stringify(cfg));
+    autoSave();
+    showToast('Config salva neste quarto!');
+  };
+  saveSec.appendChild(applyBtn);
+  panel.appendChild(saveSec);
 }
+
+// When user taps tile in admin mode with stair tool active
+function handleAdminTileClick(iso) {
+  if(!adminEditor.open) return false;
+  if(!adminEditor.stairFrom) {
+    // First click — set stair origin
+    adminEditor.stairFrom = {col:iso.col, row:iso.row, level:adminEditor.activeLevel};
+    showToast('Agora clique no tile destino (outro nível)');
+    buildAdminPanel();
+    return true;
+  } else {
+    // Second click — create stair
+    var from = adminEditor.stairFrom;
+    var to = {col:iso.col, row:iso.row, level:adminEditor.activeLevel};
+    if(from.level === to.level) {
+      showToast('Selecione um tile em outro nível!');
+      adminEditor.stairFrom = null;
+      buildAdminPanel();
+      return true;
+    }
+    var cfg = getRoomConfig();
+    cfg.stairs.push({
+      fromLevel:from.level, fromCol:from.col, fromRow:from.row,
+      toLevel:to.level,   toCol:to.col,   toRow:to.row
+    });
+    // Bidirectional
+    cfg.stairs.push({
+      fromLevel:to.level, fromCol:to.col, fromRow:to.row,
+      toLevel:from.level, toCol:from.col, toRow:from.row
+    });
+    adminEditor.stairFrom = null;
+    buildAdminPanel(); render();
+    showToast('Escada criada!');
+    return true;
+  }
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ITEM ACTIONS
@@ -1032,8 +1245,9 @@ function showIntroStep() {
 function autoSave() {
   var saveData = {
     roomId: state.room.id,
-    placed: state.placed.map(function(p){ return {id:p.id,col:p.col,row:p.row,cols:p.cols,rows:p.rows,flipped:p.flipped}; }),
+    placed: state.placed.map(function(p){ return {id:p.id,col:p.col,row:p.row,cols:p.cols,rows:p.rows,flipped:p.flipped,level:p.level||0}; }),
     pokePos: state.pokePos,
+    roomConfig: state.roomConfig||null,
   };
   localStorage.setItem('dw_save', JSON.stringify(saveData));
   // Also try to persist to server
@@ -1060,6 +1274,7 @@ function loadSave() {
 
 function applySave(data) {
   if(!data) return;
+  if(data.roomConfig) state.roomConfig = data.roomConfig;
   if(data.placed) {
     state.placed = data.placed.map(function(p) {
       var cat = FURN_CATALOG.find(function(c){return c.id===p.id;});
@@ -1097,6 +1312,12 @@ async function checkAndEnter() {
       return;
     }
     USER = u;
+    if(u.is_admin) {
+      var ab=document.getElementById('btnAdmin');
+      var as=document.getElementById('adminSep');
+      var al=document.getElementById('adminLabel');
+      if(ab){ab.style.display='flex';} if(as){as.style.display='block';} if(al){al.style.display='block';}
+    }
   } catch(e) {
     showScreen('s-coming');
     return;
@@ -1173,7 +1394,14 @@ function enterRoom(room, savedData) {
     state.pokePos = {col:1, row:1};
     localStorage.setItem('dw_save', JSON.stringify({roomId:room.id,placed:[],pokePos:{col:1,row:1}}));
   }
-  if(!state.pokePos) state.pokePos = {col:1, row:1};
+  if(!state.pokePos) state.pokePos = {col:1, row:1, level:0};
+  // Init poke smooth movement
+  pokeMove.col = state.pokePos.col;
+  pokeMove.row = state.pokePos.row;
+  pokeMove.level = state.pokePos.level||0;
+  initPokePixelPos();
+  // Load roomConfig if saved
+  state.roomConfig = (state.room && state.room.roomConfig) ? state.room.roomConfig : null;
   // Resize canvas
   var wrap = document.getElementById('gameWrap');
   canvas.width = CW; canvas.height = CH;
@@ -1250,6 +1478,7 @@ function buildPixels() {
                   var mu=meData&&meData.user?meData.user:meData;
                   if(!mu || !mu.is_admin){showScreen('s-coming');return;}
                   USER=mu;
+                  if(mu.is_admin){var ab=document.getElementById('btnAdmin');var as=document.getElementById('adminSep');var al=document.getElementById('adminLabel');if(ab)ab.style.display='flex';if(as)as.style.display='block';if(al)al.style.display='block';}
                   return fetch(API+'/api/dailypoke/me',{headers:{'Authorization':'Bearer '+TOKEN}});
                 })
                 .then(function(r){if(!r)return null;return r.json();})
