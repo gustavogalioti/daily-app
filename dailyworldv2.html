@@ -958,6 +958,56 @@ function toggleAdminEditor() {
   render();
 }
 
+// Admin-only: switch active room while keeping admin panel open.
+// Each room's calibration (roomConfig) and furniture (placed) are stored
+// separately per room id, in state.adminRoomData, so admin can hop between
+// rooms without losing work on each one.
+state.adminRoomData = state.adminRoomData || {};
+
+function adminSwitchRoom(targetRoom) {
+  // Save current room's working data before switching
+  if(state.room) {
+    state.adminRoomData[state.room.id] = {
+      roomConfig: state.roomConfig ? JSON.parse(JSON.stringify(state.roomConfig)) : null,
+      placed: state.placed.map(function(p){return {id:p.id,col:p.col,row:p.row,cols:p.cols,rows:p.rows,flipped:p.flipped,level:p.level||0};}),
+    };
+  }
+
+  state.room = targetRoom;
+  roomImg = new Image();
+  roomImg.onload = function(){ render(); };
+  roomImg.src = targetRoom.full;
+
+  // Restore this room's previously-edited data if we have it in this session,
+  // else fall back to whatever is saved on the room object / start fresh.
+  var cached = state.adminRoomData[targetRoom.id];
+  if(cached) {
+    state.roomConfig = cached.roomConfig;
+    state.placed = cached.placed.map(function(p){
+      var cat = FURN_CATALOG.find(function(c){return c.id===p.id;});
+      if(!cat) return null;
+      return Object.assign({},cat,{col:p.col,row:p.row,flipped:p.flipped||false,level:p.level||0});
+    }).filter(Boolean);
+  } else {
+    state.roomConfig = targetRoom.roomConfig ? JSON.parse(JSON.stringify(targetRoom.roomConfig)) : null;
+    state.placed = [];
+  }
+
+  state.pokePos = {col:1,row:1,level:0};
+  pokeMove.col=1; pokeMove.row=1; pokeMove.level=0;
+  initPokePixelPos();
+  state.selected = null;
+  closeActions();
+
+  adminEditor.activeLevel = 0;
+  adminEditor.stairFrom = null;
+  state.activeEditLevel = 0;
+
+  buildAdminPanel();
+  showToast('Editando: '+targetRoom.name);
+  render();
+}
+
 function buildAdminPanel() {
   var panel = document.getElementById('adminPanelContent');
   if(!panel) return;
@@ -965,6 +1015,28 @@ function buildAdminPanel() {
   var cfg = getRoomConfig();
 
   function mk(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;}
+
+  // Room switcher (admin only) — lets admin jump between rooms to calibrate each
+  var roomSec = mk('div','ap-section');
+  roomSec.appendChild(mk('div','ap-title','🏠 TROCAR QUARTO (ADM)'));
+  var roomSel = document.createElement('select');
+  roomSel.style.cssText = 'width:100%;background:#0f1a2e;border:1px solid #0f3460;color:#fff;padding:5px;border-radius:4px;font-size:9px;font-family:inherit;';
+  ROOMS.forEach(function(r){
+    var opt = document.createElement('option');
+    opt.value = r.id; opt.textContent = r.name;
+    if(state.room && state.room.id===r.id) opt.selected = true;
+    roomSel.appendChild(opt);
+  });
+  roomSel.onchange = function(e) {
+    var target = ROOMS.find(function(r){return r.id===e.target.value;});
+    if(!target) return;
+    adminSwitchRoom(target);
+  };
+  roomSec.appendChild(roomSel);
+  var roomHint = mk('div','ap-label','Calibre cada quarto e salve antes de trocar.');
+  roomHint.style.cssText = 'font-size:6px;color:#555;margin-top:3px;line-height:1.4;';
+  roomSec.appendChild(roomHint);
+  panel.appendChild(roomSec);
   function slider(lbl,val,min,max,step,cb){
     var row=mk('div','ap-row');
     var l=mk('div','ap-label',lbl);
@@ -1045,7 +1117,21 @@ function buildAdminPanel() {
 
   var applyBtn = mk('div','ap-btn','✓ Aplicar a este quarto');
   applyBtn.onclick=function(){
-    if(state.room) state.room.roomConfig=JSON.parse(JSON.stringify(cfg));
+    if(state.room) {
+      var savedCfg = JSON.parse(JSON.stringify(cfg));
+      var savedFurn = state.placed.map(function(p){return {id:p.id,col:p.col,row:p.row,cols:p.cols,rows:p.rows,flipped:p.flipped,level:p.level||0};});
+      // Persist onto the ROOMS array entry so switching rooms via the
+      // dropdown (or future sessions) picks up this calibration as default.
+      state.room.roomConfig = savedCfg;
+      state.room.defaultFurniture = savedFurn;
+      var roomInList = ROOMS.find(function(r){return r.id===state.room.id;});
+      if(roomInList) {
+        roomInList.roomConfig = savedCfg;
+        roomInList.defaultFurniture = savedFurn;
+      }
+      // Also update the in-session cache used by adminSwitchRoom
+      state.adminRoomData[state.room.id] = { roomConfig: savedCfg, placed: savedFurn };
+    }
     autoSave();
     showToast('Config salva neste quarto!');
   };
