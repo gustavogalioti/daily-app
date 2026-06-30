@@ -470,6 +470,48 @@ var FURN_CATALOG = [
   {id:'stove',    name:'Fogão',   img:IMG_STOVE,      cols:1,rows:1,scale:2.10,offsetY:0.74,offsetX:-0.01,flipped:false}
 ];
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL CONFIGS — admin-defined, loaded for EVERY user (not just admin)
+// ═══════════════════════════════════════════════════════════════════════════
+var globalConfigsLoaded = false;
+
+async function loadGlobalConfigs() {
+  // Apply admin-saved furniture scale/offset onto the catalog
+  try {
+    var fr = await fetch(API+'/api/dailyworld/furniture-configs');
+    if(fr.ok) {
+      var fd = await fr.json();
+      var fcfg = fd.configs || {};
+      FURN_CATALOG.forEach(function(cat) {
+        var saved = fcfg[cat.id];
+        if(saved) {
+          if(typeof saved.scale==='number')   cat.scale   = saved.scale;
+          if(typeof saved.offsetY==='number') cat.offsetY = saved.offsetY;
+          if(typeof saved.offsetX==='number') cat.offsetX = saved.offsetX;
+        }
+      });
+    }
+  } catch(e) { console.warn('furniture-configs load failed', e); }
+
+  // Apply admin-saved room grid/level configs onto each room
+  try {
+    var rr = await fetch(API+'/api/dailyworld/room-configs');
+    if(rr.ok) {
+      var rd = await rr.json();
+      var rcfg = rd.configs || {};
+      ROOMS.forEach(function(room) {
+        var saved = rcfg[room.id];
+        if(saved) {
+          if(saved.roomConfig) room.roomConfig = saved.roomConfig;
+          if(saved.defaultFurniture) room.defaultFurniture = saved.defaultFurniture;
+        }
+      });
+    }
+  } catch(e) { console.warn('room-configs load failed', e); }
+
+  globalConfigsLoaded = true;
+}
+
 var state = {
   room: null,
   roomConfig: null, // multi-level grid config
@@ -1051,27 +1093,49 @@ function buildAdminPanel() {
   };
   saveSec.appendChild(saveBtn);
 
-  var applyBtn = mk('div','ap-btn','✓ Aplicar a este quarto');
-  applyBtn.onclick=function(){
-    if(state.room) {
-      var savedCfg = JSON.parse(JSON.stringify(cfg));
-      var savedFurn = state.placed.map(function(p){return {id:p.id,col:p.col,row:p.row,cols:p.cols,rows:p.rows,flipped:p.flipped,level:p.level||0};});
-      // Persist onto the ROOMS array entry so switching rooms via the
-      // dropdown (or future sessions) picks up this calibration as default.
-      state.room.roomConfig = savedCfg;
-      state.room.defaultFurniture = savedFurn;
-      var roomInList = ROOMS.find(function(r){return r.id===state.room.id;});
-      if(roomInList) {
-        roomInList.roomConfig = savedCfg;
-        roomInList.defaultFurniture = savedFurn;
-      }
-      // Also update the in-session cache used by adminSwitchRoom
-      state.adminRoomData[state.room.id] = { roomConfig: savedCfg, placed: savedFurn };
+  var applyBtn = mk('div','ap-btn','✓ Aplicar a este quarto (PERMANENTE)');
+  applyBtn.onclick=async function(){
+    if(!state.room) return;
+    var savedCfg = JSON.parse(JSON.stringify(cfg));
+    var savedFurn = state.placed.map(function(p){return {id:p.id,col:p.col,row:p.row,cols:p.cols,rows:p.rows,flipped:p.flipped,level:p.level||0};});
+
+    // Update in-memory copies immediately (instant feedback)
+    state.room.roomConfig = savedCfg;
+    state.room.defaultFurniture = savedFurn;
+    var roomInList = ROOMS.find(function(r){return r.id===state.room.id;});
+    if(roomInList) {
+      roomInList.roomConfig = savedCfg;
+      roomInList.defaultFurniture = savedFurn;
     }
+    state.adminRoomData[state.room.id] = { roomConfig: savedCfg, placed: savedFurn };
     autoSave();
-    showToast('Config salva neste quarto!');
+
+    // Persist to server — this is what makes it permanent and visible
+    // to every user, not just this browser session.
+    applyBtn.textContent = 'Salvando...';
+    try {
+      var resp = await fetch(API+'/api/dailyworld/room-configs', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
+        body: JSON.stringify({roomId: state.room.id, roomConfig: savedCfg, defaultFurniture: savedFurn})
+      });
+      if(resp.ok) {
+        showToast('✓ Salvo permanentemente para todos os usuários!');
+      } else {
+        var errData = await resp.json().catch(function(){return {};});
+        showToast('Erro ao salvar no servidor: '+(errData.error||resp.status));
+      }
+    } catch(e) {
+      showToast('Erro de rede ao salvar: '+e.message);
+    }
+    applyBtn.textContent = '✓ Aplicar a este quarto (PERMANENTE)';
   };
   saveSec.appendChild(applyBtn);
+
+  var applyHint = mk('div','ap-label','Salva no banco de dados — todos os usuários verão esta calibração.');
+  applyHint.style.cssText='font-size:6px;color:#555;margin-top:3px;line-height:1.4;';
+  saveSec.appendChild(applyHint);
+
   panel.appendChild(saveSec);
 }
 
@@ -1580,13 +1644,20 @@ function enterRoom(room, savedData) {
   roomImg = new Image();
   roomImg.onload = function() { render(); };
   roomImg.src = room.full;
-  // Apply save or start fresh
+  // Apply save or start fresh.
+  // "Fresh" now means: if the admin defined default furniture for this room,
+  // every new visitor sees that as their starting layout (not an empty room).
   if(savedData) {
     applySave(savedData);
   } else {
-    state.placed = [];
-    state.pokePos = {col:1, row:1};
-    localStorage.setItem('dw_save', JSON.stringify({roomId:room.id,placed:[],pokePos:{col:1,row:1}}));
+    var defaults = room.defaultFurniture || [];
+    state.placed = defaults.map(function(p) {
+      var cat = FURN_CATALOG.find(function(c){return c.id===p.id;});
+      if(!cat) return null;
+      return Object.assign({}, cat, {col:p.col, row:p.row, flipped:p.flipped||false, level:p.level||0});
+    }).filter(Boolean);
+    state.pokePos = {col:1, row:1, level:0};
+    localStorage.setItem('dw_save', JSON.stringify({roomId:room.id,placed:defaults,pokePos:{col:1,row:1,level:0}}));
   }
   if(!state.pokePos) state.pokePos = {col:1, row:1, level:0};
   // Init poke smooth movement
@@ -1654,11 +1725,14 @@ function buildPixels() {
     setTimeout(function() {
       document.getElementById('loadOverlay').style.opacity='0';
       document.getElementById('loadOverlay').style.transition='opacity 0.6s';
-      setTimeout(function() {
+      setTimeout(async function() {
         document.getElementById('loadOverlay').style.display='none';
+        // Load admin-defined global configs (room grids, furniture scale)
+        // BEFORE entering any room, so every user — admin or not — sees
+        // the calibrated version.
+        await loadGlobalConfigs();
         // Single entry path — always goes through checkAndEnter(),
         // which does the admin check + dailypoke check + room routing.
-        // No more duplicated fast-path logic that could silently fail.
         checkAndEnter();
       }, 600);
     }, 400);
