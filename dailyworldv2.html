@@ -510,15 +510,19 @@ function loadFurnitureImgs(cb) {
 var DEFAULT_LEVEL_HEIGHT = 80; // px between levels visually
 
 function getRoomConfig() {
-  if(state.roomConfig) return state.roomConfig;
-  var g = state.room ? state.room.grid : {tileW:66,tileH:36,originX:393,originY:300,cols:8,rows:8};
-  return {
-    levels: [
-      {z:0, tileW:g.tileW, tileH:g.tileH, originX:g.originX, originY:g.originY, cols:g.cols, rows:g.rows}
-    ],
-    stairs: [],  // [{fromLevel,fromCol,fromRow,toLevel,toCol,toRow}]
-    levelHeight: DEFAULT_LEVEL_HEIGHT
-  };
+  // IMPORTANT: must return the SAME persistent object every time, otherwise
+  // admin sliders edit a throwaway copy that render() never sees.
+  if(!state.roomConfig) {
+    var g = state.room ? state.room.grid : {tileW:66,tileH:36,originX:393,originY:300,cols:8,rows:8};
+    state.roomConfig = {
+      levels: [
+        {z:0, tileW:g.tileW, tileH:g.tileH, originX:g.originX, originY:g.originY, cols:g.cols, rows:g.rows}
+      ],
+      stairs: [],
+      levelHeight: DEFAULT_LEVEL_HEIGHT
+    };
+  }
+  return state.roomConfig;
 }
 
 function getLevel(z) {
