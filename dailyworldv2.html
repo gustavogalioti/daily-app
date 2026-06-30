@@ -1534,6 +1534,13 @@ function showScreen(id) {
 
 
 
+function showAdminButton() {
+  var ab=document.getElementById('btnAdmin');
+  var as=document.getElementById('adminSep');
+  var al=document.getElementById('adminLabel');
+  if(ab){ab.style.display='flex';} if(as){as.style.display='block';} if(al){al.style.display='block';}
+}
+
 async function checkAndEnter() {
   // Get token from Daily app localStorage
   TOKEN = localStorage.getItem('daily_token') || '';
@@ -1541,42 +1548,54 @@ async function checkAndEnter() {
     showScreen('s-coming');
     return;
   }
-  // Check if user is admin
+
+  // Check if user is admin — be explicit about every failure mode so
+  // a network hiccup doesn't silently dump the admin into "coming soon".
+  var u = null;
   try {
     var meR = await fetch(API+'/api/auth/me', {headers:{'Authorization':'Bearer '+TOKEN}});
-    var meD = await meR.json();
-    var u=meD.user||meD;
-    if(!u || !u.is_admin) {
+    if(!meR.ok) {
+      showToast('Falha ao verificar usuário (HTTP '+meR.status+')');
       showScreen('s-coming');
       return;
     }
-    USER = u;
-    if(u.is_admin) {
-      var ab=document.getElementById('btnAdmin');
-      var as=document.getElementById('adminSep');
-      var al=document.getElementById('adminLabel');
-      if(ab){ab.style.display='flex';} if(as){as.style.display='block';} if(al){al.style.display='block';}
-    }
+    var meD = await meR.json();
+    u = (meD && meD.user) ? meD.user : meD;
   } catch(e) {
+    showToast('Erro de rede ao verificar admin: '+e.message);
     showScreen('s-coming');
     return;
   }
-  // Check if user has a Dailypoke
+
+  if(!u || !u.is_admin) {
+    showScreen('s-coming');
+    return;
+  }
+  USER = u;
+  showAdminButton();
+
+  // Check if user has a Dailypoke — failure here should NOT block admin,
+  // just skip straight to room selection so admin can still calibrate.
   try {
     var r = await fetch(API+'/api/dailypoke/me',{
       headers:{'Authorization':'Bearer '+TOKEN}
     });
-    var data = await r.json();
-    if(!data.config) {
-      showScreen('s-nopoke'); return;
+    if(r.ok) {
+      var data = await r.json();
+      if(!data.config) {
+        showScreen('s-nopoke'); return;
+      }
+      POKE = data;
+      if(data.avatar_url) {
+        pokeImg = new Image();
+        pokeImg.src = data.avatar_url;
+      }
+    } else {
+      showToast('Dailypoke check falhou (HTTP '+r.status+'), seguindo mesmo assim');
     }
-    POKE = data;
-    // Load poke avatar
-    if(data.avatar_url) {
-      pokeImg = new Image();
-      pokeImg.src = data.avatar_url;
-    }
-  } catch(e) {}
+  } catch(e) {
+    showToast('Erro ao checar Dailypoke, seguindo mesmo assim');
+  }
 
   // Check if room already chosen
   var saved = loadSave();
@@ -1694,7 +1713,6 @@ function buildPixels() {
 
   // Load furniture images
   loadFurnitureImgs(function() {
-    // Loading complete
     document.getElementById('loadFill').style.width='100%';
     document.getElementById('loadTxt').textContent='Pronto!';
     setTimeout(function() {
@@ -1702,44 +1720,10 @@ function buildPixels() {
       document.getElementById('loadOverlay').style.transition='opacity 0.6s';
       setTimeout(function() {
         document.getElementById('loadOverlay').style.display='none';
-        // Check token and go to right screen
-        TOKEN = localStorage.getItem('daily_token') || '';
-        if(TOKEN) {
-          // Has token — try to enter directly
-          var saved = loadSave();
-          if(saved && saved.roomId) {
-            var room = ROOMS.find(function(r){return r.id===saved.roomId;});
-            if(room) {
-              // Admin check first
-          fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+TOKEN}})
-                .then(function(r){return r.json();})
-                .then(function(meData){
-                  var mu=meData&&meData.user?meData.user:meData;
-                  if(!mu || !mu.is_admin){showScreen('s-coming');return;}
-                  USER=mu;
-                  if(mu.is_admin){var ab=document.getElementById('btnAdmin');var as=document.getElementById('adminSep');var al=document.getElementById('adminLabel');if(ab)ab.style.display='flex';if(as)as.style.display='block';if(al)al.style.display='block';}
-                  return fetch(API+'/api/dailypoke/me',{headers:{'Authorization':'Bearer '+TOKEN}});
-                })
-                .then(function(r){if(!r)return null;return r.json();})
-                .then(function(data){
-                  if(!data) return;
-                  if(data.config){
-                    POKE=data;
-                    if(data.avatar_url){pokeImg=new Image();pokeImg.src=data.avatar_url;}
-                    enterRoom(room, saved);
-                  } else {
-                    showScreen('s-nopoke');
-                  }
-                }).catch(function(){
-                  enterRoom(room, saved);
-                });
-              return;
-            }
-          }
-          checkAndEnter();
-        } else {
-          showScreen('s-landing');
-        }
+        // Single entry path — always goes through checkAndEnter(),
+        // which does the admin check + dailypoke check + room routing.
+        // No more duplicated fast-path logic that could silently fail.
+        checkAndEnter();
       }, 600);
     }, 400);
   });
