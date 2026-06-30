@@ -656,7 +656,9 @@ var pokeMove = {
 };
 
 function pokeScreenPos(col, row, level) {
-  return isoLevel(col, row, level||0);
+  // Anchor at the FRONT-BOTTOM corner of the tile the poke is standing on,
+  // same as furniture. This makes feet touch the ground regardless of grid calibration.
+  return isoLevel(col + 1, row + 1, level||0);
 }
 
 function initPokePixelPos() {
@@ -767,24 +769,29 @@ function tickPokeWalk(now) {
 function drawPoke() {
   if(!pokeImg) return;
   var g = getRoomConfig().levels[0];
-  var size = g.tileW * (pokeMove.level > 0 ? 0.8 : 0.9);
-  var dx = pokeMove.px - size/2;
-  var dy = pokeMove.py - size * 1.15;
+  // Scale poke relative to tile size so it looks right after grid calibration
+  var size = g.tileW * 1.2;
+  // anchor = front-bottom of poke's tile (same logic as furniture)
+  // feet land at anchor.y, sprite draws upward from there
+  var anchorX = pokeMove.px;
+  var anchorY = pokeMove.py;
+  var dx = anchorX - size / 2;
+  var dy = anchorY - size;        // top of sprite = anchorY - full height
   var bob = pokeMove.walking ? Math.sin(Date.now()/100)*2.5 : 0;
   ctx.save();
   if(pokeMove.flipped) {
-    ctx.translate(dx+size/2, dy+size/2);
-    ctx.scale(-1,1);
-    ctx.translate(-(dx+size/2), -(dy+size/2));
+    ctx.translate(anchorX, anchorY);
+    ctx.scale(-1, 1);
+    ctx.translate(-anchorX, -anchorY);
   }
-  // Shadow
-  ctx.globalAlpha=0.18;
-  ctx.fillStyle='#000';
+  // Drop shadow at feet
+  ctx.globalAlpha = 0.2;
+  ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(pokeMove.px, pokeMove.py+2, size*0.28, size*0.08, 0, 0, Math.PI*2);
+  ctx.ellipse(anchorX, anchorY - 2, size * 0.25, size * 0.07, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.globalAlpha=1;
-  ctx.drawImage(pokeImg, dx, dy+bob, size, size);
+  ctx.globalAlpha = 1;
+  ctx.drawImage(pokeImg, dx, dy + bob, size, size);
   ctx.restore();
 }
 
