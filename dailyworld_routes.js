@@ -5,6 +5,19 @@ const { authMiddleware, optionalAuth } = require('./authmiddleware');
 
 const router = express.Router();
 
+// The JWT payload only contains {id, username, name} — it does NOT include
+// is_admin. So any route that needs to check admin status must look it up
+// fresh from the database using req.user.id, rather than trusting the token.
+async function loadFullUser(req, res, next) {
+  try {
+    const db = getDB();
+    const full = await db.prepare('SELECT id, is_admin FROM users WHERE id=$1').get(req.user.id);
+    if(!full) return res.status(401).json({ error: 'Usuário não encontrado' });
+    req.user.is_admin = full.is_admin;
+    next();
+  } catch(e) { res.status(500).json({ error: e.message }); }
+}
+
 // ─── TABLES ──────────────────────────────────────────────────────────────────
 // dailyworld_saves: per-user save (their room choice, furniture, poke position)
 // dailyworld_room_configs: GLOBAL admin-defined config per room (grid, levels,
@@ -105,7 +118,7 @@ router.get('/room-configs', optionalAuth, async (req, res) => {
 });
 
 // POST /api/dailyworld/room-configs — admin only, upserts one room's config
-router.post('/room-configs', authMiddleware, async (req, res) => {
+router.post('/room-configs', authMiddleware, loadFullUser, async (req, res) => {
   try {
     if(!req.user.is_admin) return res.status(403).json({ error: 'Apenas administradores podem editar a configuração global.' });
     const db = getDB();
@@ -142,7 +155,7 @@ router.get('/furniture-configs', optionalAuth, async (req, res) => {
 });
 
 // POST /api/dailyworld/furniture-configs — admin only
-router.post('/furniture-configs', authMiddleware, async (req, res) => {
+router.post('/furniture-configs', authMiddleware, loadFullUser, async (req, res) => {
   try {
     if(!req.user.is_admin) return res.status(403).json({ error: 'Apenas administradores podem editar a configuração global.' });
     const db = getDB();
