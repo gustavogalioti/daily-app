@@ -23,19 +23,7 @@ body{background:#1a1a2e;font-family:'Courier New',monospace;color:#fff;height:10
 .px{position:absolute;border-radius:2px;animation:pxFloat 4s infinite;}
 @keyframes pxFloat{0%{transform:translateY(0) rotate(0);opacity:0;}50%{opacity:0.4;}100%{transform:translateY(-120px) rotate(45deg);opacity:0;}}
 
-/* ─── LOGIN ─────────────────────────────────────────────────────────── */
-#s-login{background:#0d0d1a;}
-.login-box{background:#16213e;border:1px solid #0f3460;border-radius:16px;padding:32px 28px;width:320px;max-width:90vw;}
-.login-title{font-size:16px;font-weight:bold;color:#e94560;letter-spacing:2px;margin-bottom:24px;text-align:center;}
-.login-field{margin-bottom:14px;}
-.login-field label{font-size:9px;color:#888;letter-spacing:2px;display:block;margin-bottom:5px;}
-.login-field input{width:100%;background:#0f1a2e;border:1px solid #0f3460;color:#fff;padding:10px 12px;border-radius:8px;font-size:13px;font-family:inherit;}
-.login-field input:focus{outline:none;border-color:#e94560;}
-.login-submit{width:100%;background:#e94560;color:#fff;border:none;padding:12px;border-radius:8px;font-size:13px;font-family:inherit;cursor:pointer;margin-top:8px;letter-spacing:1px;}
-.login-submit:active{opacity:0.85;}
-.login-err{color:#ff6b6b;font-size:10px;text-align:center;margin-top:10px;min-height:16px;}
-.login-back{color:#444;font-size:9px;text-align:center;margin-top:16px;cursor:pointer;letter-spacing:1px;}
-.login-back:hover{color:#888;}
+
 
 /* ─── NO POKE ─────────────────────────────────────────────────────────── */
 #s-nopoke{background:#0d0d1a;}
@@ -130,26 +118,10 @@ body{background:#1a1a2e;font-family:'Courier New',monospace;color:#fff;height:10
   <div class="pixel-deco" id="pixelDeco"></div>
   <div class="land-logo">Daily<span>World</span></div>
   <div class="land-slogan">Seu mundo, do seu jeito</div>
-  <button class="land-btn" onclick="showLogin()">ENTRAR</button>
+  <button class="land-btn" onclick="checkAndEnter()">ENTRAR</button>
 </div>
 
-<!-- LOGIN -->
-<div class="screen" id="s-login">
-  <div class="login-box">
-    <div class="login-title">ENTRAR</div>
-    <div class="login-field">
-      <label>USUÁRIO OU EMAIL</label>
-      <input type="text" id="loginUser" placeholder="@seuusuario" autocomplete="username">
-    </div>
-    <div class="login-field">
-      <label>SENHA</label>
-      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
-    </div>
-    <button class="login-submit" onclick="doLogin()">ENTRAR</button>
-    <div class="login-err" id="loginErr"></div>
-    <div class="login-back" onclick="showScreen('s-landing')">← Voltar</div>
-  </div>
-</div>
+
 
 <!-- NO DAILYPOKE -->
 <div class="screen" id="s-nopoke">
@@ -1090,33 +1062,16 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
-function showLogin() { showScreen('s-login'); }
 
-async function doLogin() {
-  var login = document.getElementById('loginUser').value.trim();
-  var pass  = document.getElementById('loginPass').value;
-  var err   = document.getElementById('loginErr');
-  if(!login||!pass){err.textContent='Preencha todos os campos.';return;}
-  err.textContent='';
-  try {
-    var r = await fetch(API+'/api/auth/login',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({login,password:pass})
-    });
-    var data = await r.json();
-    if(!r.ok){err.textContent=data.error||'Erro ao entrar.';return;}
-    TOKEN = data.token;
-    USER  = data.user;
-    localStorage.setItem('daily_token', TOKEN);
-    localStorage.setItem('daily_user', JSON.stringify(USER));
-    await checkAndEnter();
-  } catch(e) {
-    err.textContent = 'Erro de conexão.';
-  }
-}
 
 async function checkAndEnter() {
+  // Get token from Daily app localStorage
+  TOKEN = localStorage.getItem('daily_token') || '';
+  if(!TOKEN) {
+    showToast('Entre no Daily primeiro!');
+    showScreen('s-landing');
+    return;
+  }
   // Check if user has a Dailypoke
   try {
     var r = await fetch(API+'/api/dailypoke/me',{
@@ -1251,22 +1206,18 @@ function buildPixels() {
       document.getElementById('loadOverlay').style.transition='opacity 0.6s';
       setTimeout(function() {
         document.getElementById('loadOverlay').style.display='none';
-        // Check if already logged in
-        var savedToken = localStorage.getItem('daily_token');
-        var savedUser  = localStorage.getItem('daily_user');
-        if(savedToken && savedUser) {
-          TOKEN = savedToken;
-          try { USER = JSON.parse(savedUser); } catch(e){}
-          // Try to go straight to room if save exists
+        // Check token and go to right screen
+        TOKEN = localStorage.getItem('daily_token') || '';
+        if(TOKEN) {
+          // Has token — try to enter directly
           var saved = loadSave();
           if(saved && saved.roomId) {
             var room = ROOMS.find(function(r){return r.id===saved.roomId;});
             if(room) {
-              // Quick check poke
               fetch(API+'/api/dailypoke/me',{headers:{'Authorization':'Bearer '+TOKEN}})
                 .then(function(r){return r.json();})
                 .then(function(data){
-                  if(data.config){
+                  if(data && data.config){
                     POKE=data;
                     if(data.avatar_url){pokeImg=new Image();pokeImg.src=data.avatar_url;}
                     enterRoom(room, saved);
@@ -1274,7 +1225,6 @@ function buildPixels() {
                     showScreen('s-nopoke');
                   }
                 }).catch(function(){
-                  // Offline fallback — enter anyway with local data
                   enterRoom(room, saved);
                 });
               return;
