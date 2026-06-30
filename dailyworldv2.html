@@ -1091,6 +1091,159 @@ function handleAdminTileClick(iso) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+// DRAG STATE
+// ═══════════════════════════════════════════════════════════════════════════
+var dragState = { mode:null, idx:null, catId:null };
+var hoverTile = null;
+var lpTimer = null, tStart = null;
+
+var dg  = document.getElementById('dg');
+var dgi = document.getElementById('dgi');
+var pr  = document.getElementById('pr');
+
+function showGhost(src,cx,cy){dgi.src=src;dg.style.display='block';dg.style.left=cx+'px';dg.style.top=cy+'px';}
+function moveGhost(cx,cy){dg.style.left=cx+'px';dg.style.top=cy+'px';}
+function hideGhost(){dg.style.display='none';}
+function showRing(cx,cy){pr.style.display='block';pr.style.left=cx+'px';pr.style.top=cy+'px';pr.style.animation='none';requestAnimationFrame(function(){pr.style.animation='rg 0.8s ease-out forwards';});}
+function hideRing(){pr.style.display='none';pr.style.animation='none';}
+function cancelLP(){if(lpTimer){clearTimeout(lpTimer);lpTimer=null;}hideRing();}
+
+function findFurnitureAt(iso) {
+  var z = iso.level||0;
+  for(var i=state.placed.length-1;i>=0;i--) {
+    var p=state.placed[i];
+    if((p.level||0)!==z) continue;
+    for(var dc=0;dc<p.cols;dc++) for(var dr=0;dr<p.rows;dr++)
+      if(p.col+dc===iso.col&&p.row+dr===iso.row) return i;
+  }
+  return null;
+}
+
+function finishDrop() {
+  hideGhost();
+  if(dragState.mode==='canvas' && dragState.idx!==null && hoverTile) {
+    var it=state.placed[dragState.idx];
+    var z = it.level||0;
+    var lv=getLevel(z);
+    var nc=Math.max(0,Math.min(lv.cols-it.cols,hoverTile.col));
+    var nr=Math.max(0,Math.min(lv.rows-it.rows,hoverTile.row));
+    if(!blocked(nc,nr,it.cols,it.rows,z,dragState.idx)){it.col=nc;it.row=nr;autoSave();}
+    else showToast('Espaço ocupado!');
+  }
+  dragState.mode=null; dragState.idx=null; dragState.catId=null;
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CANVAS EVENTS
+// ═══════════════════════════════════════════════════════════════════════════
+function initCanvasEvents() {
+  canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    var t=e.touches[0];
+    tStart={x:t.clientX,y:t.clientY};
+    var cv=canvasXY(t.clientX,t.clientY);
+    var is=screenToIso(cv.x,cv.y);
+    hoverTile = inGrid(is)?is:null;
+
+    if(state.editMode) {
+      var idx=findFurnitureAt(is);
+      if(idx!==null) {
+        showRing(t.clientX,t.clientY);
+        lpTimer=setTimeout(function(){
+          lpTimer=null; hideRing();
+          dragState.mode='canvas'; dragState.idx=idx;
+          state.selected=idx;
+          var fi=state.placed[idx];
+          showGhost(furnitureImgs[fi.id]?furnitureImgs[fi.id].src:IMG_MONITOR,t.clientX,t.clientY);
+          render();
+        },900);
+      } else {
+        state.selected=null;
+        closeActions();
+        render();
+      }
+    } else {
+      if(hoverTile && !handleAdminTileClick(hoverTile)) walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
+    }
+  },{passive:false});
+
+  canvas.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    var t=e.touches[0];
+    if(lpTimer&&tStart&&(Math.abs(t.clientX-tStart.x)>10||Math.abs(t.clientY-tStart.y)>10)) cancelLP();
+    var cv=canvasXY(t.clientX,t.clientY);
+    var is=screenToIso(cv.x,cv.y);
+    hoverTile = inGrid(is)?is:null;
+    if(dragState.mode==='canvas') { moveGhost(t.clientX,t.clientY); render(); }
+  },{passive:false});
+
+  canvas.addEventListener('touchend', function(e) {
+    e.preventDefault(); cancelLP();
+    if(dragState.mode==='canvas') {
+      finishDrop();
+    } else if(e.changedTouches.length>0 && state.editMode) {
+      var t=e.changedTouches[0];
+      var cv=canvasXY(t.clientX,t.clientY);
+      var is=screenToIso(cv.x,cv.y);
+      var idx=findFurnitureAt(is);
+      if(idx!==null) {
+        state.selected=idx;
+        showItemActions(t.clientX, t.clientY);
+      }
+      render();
+    }
+  },{passive:false});
+
+  // Mouse events for desktop
+  canvas.addEventListener('mousedown', function(e) {
+    tStart={x:e.clientX,y:e.clientY};
+    var cv=canvasXY(e.clientX,e.clientY);
+    var is=screenToIso(cv.x,cv.y);
+    hoverTile=inGrid(is)?is:null;
+    if(state.editMode) {
+      var idx=findFurnitureAt(is);
+      if(idx!==null) {
+        state.selected=idx;
+        showRing(e.clientX,e.clientY);
+        lpTimer=setTimeout(function(){
+          lpTimer=null; hideRing();
+          dragState.mode='canvas'; dragState.idx=idx;
+          showGhost(IMG_MONITOR,e.clientX,e.clientY); render();
+        },700);
+      } else { state.selected=null; closeActions(); render(); }
+    } else {
+      if(hoverTile && !handleAdminTileClick(hoverTile)) walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
+    }
+  });
+  canvas.addEventListener('mousemove', function(e) {
+    if(lpTimer&&tStart&&(Math.abs(e.clientX-tStart.x)>8||Math.abs(e.clientY-tStart.y)>8)) cancelLP();
+    var cv=canvasXY(e.clientX,e.clientY);
+    var is=screenToIso(cv.x,cv.y);
+    hoverTile=inGrid(is)?is:null;
+    if(dragState.mode==='canvas'){moveGhost(e.clientX,e.clientY);render();}
+    var tEl = document.getElementById('sTile');
+    if(tEl) tEl.textContent = hoverTile?('('+hoverTile.col+','+hoverTile.row+',L'+(hoverTile.level||0)+')') : '—';
+  });
+  canvas.addEventListener('mouseup',function(){cancelLP();if(dragState.mode==='canvas')finishDrop();});
+  canvas.addEventListener('dragover',function(e){e.preventDefault();});
+  canvas.addEventListener('drop',function(e){
+    e.preventDefault();
+    if(!dragState.catId||!hoverTile) return;
+    var cat=FURN_CATALOG.find(function(c){return c.id===dragState.catId;});
+    if(!cat) return;
+    var z = hoverTile.level||0;
+    var lv=getLevel(z);
+    var col=Math.max(0,Math.min(lv.cols-cat.cols,hoverTile.col));
+    var row=Math.max(0,Math.min(lv.rows-cat.rows,hoverTile.row));
+    if(blocked(col,row,cat.cols,cat.rows,z)){showToast('Espaço ocupado!');dragState.catId=null;return;}
+    var newItem=Object.assign({},cat,{col:col,row:row,flipped:false,level:z});
+    state.placed.push(newItem); state.selected=state.placed.length-1;
+    dragState.catId=null; autoSave(); render();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ITEM ACTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 function showItemActions(cx, cy) {
