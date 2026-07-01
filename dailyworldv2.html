@@ -1124,28 +1124,60 @@ function buildAdminPanel() {
 
   // Add stair form
   var addForm = mk('div','');
-  addForm.style.cssText='margin-top:6px;display:flex;flex-direction:column;gap:4px;';
+  addForm.style.cssText='margin-top:6px;display:flex;flex-direction:column;gap:5px;';
   addForm.appendChild(mk('div','ap-label','Adicionar escada:'));
 
-  var row1 = mk('div','ap-row'); row1.appendChild(mk('div','ap-label','De — L0 Col:'));
+  // Capture buttons — tap tile on canvas to fill in the coords
+  var capState = {active:null}; // 'from' or 'to'
+  window._stairCapture = capState;
+
+  function capBtn(label, fillFn) {
+    var b = mk('div','ap-btn', label);
+    b.style.cssText += ';text-align:left;';
+    b.onclick = function() {
+      capState.active = fillFn;
+      showToast('Toque no tile no cenário...');
+      b.textContent = '👆 Toque no tile...';
+      setTimeout(function(){ b.textContent = label; }, 4000);
+    };
+    return b;
+  }
+
   var fc=numInput(0,28); var fr=numInput(0,28);
-  row1.appendChild(fc); row1.appendChild(mk('span','ap-label','Row:')); row1.appendChild(fr);
-  addForm.appendChild(row1);
-
-  var row2 = mk('div','ap-row'); row2.appendChild(mk('div','ap-label','Para — L1 Col:'));
   var tc=numInput(0,28); var tr=numInput(0,28);
-  row2.appendChild(tc); row2.appendChild(mk('span','ap-label','Row:')); row2.appendChild(tr);
-  addForm.appendChild(row2);
 
-  var addBtn2 = mk('div','ap-btn','+ Adicionar escada');
+  var row1 = mk('div','ap-row');
+  row1.appendChild(mk('div','ap-label','De L0 — Col:'));
+  row1.appendChild(fc);
+  row1.appendChild(mk('span','ap-label','Row:'));
+  row1.appendChild(fr);
+  addForm.appendChild(row1);
+  addForm.appendChild(capBtn('📍 Capturar tile de ORIGEM (L0)', function(col,row){
+    fc.value=col; fr.value=row;
+    showToast('Origem: ('+col+','+row+')');
+  }));
+
+  var row2 = mk('div','ap-row');
+  row2.appendChild(mk('div','ap-label','Para L1 — Col:'));
+  row2.appendChild(tc);
+  row2.appendChild(mk('span','ap-label','Row:'));
+  row2.appendChild(tr);
+  addForm.appendChild(row2);
+  addForm.appendChild(capBtn('📍 Capturar tile de DESTINO (L1)', function(col,row){
+    tc.value=col; tr.value=row;
+    showToast('Destino: ('+col+','+row+')');
+  }));
+
+  var addBtn2 = mk('div','ap-btn','✓ Adicionar escada');
+  addBtn2.style.marginTop='2px';
   addBtn2.onclick = function() {
     var fromC=parseInt(fc.value), fromR=parseInt(fr.value);
     var toC=parseInt(tc.value),   toR=parseInt(tr.value);
-    if(isNaN(fromC)||isNaN(fromR)||isNaN(toC)||isNaN(toR)){showToast('Preencha todos os campos');return;}
+    if(isNaN(fromC)||isNaN(fromR)||isNaN(toC)||isNaN(toR)){showToast('Preencha os campos');return;}
     cfg.stairs.push({fromLevel:0,fromCol:fromC,fromRow:fromR,toLevel:1,toCol:toC,toRow:toR});
     cfg.stairs.push({fromLevel:1,fromCol:toC,fromRow:toR,toLevel:0,toCol:fromC,toRow:fromR});
     buildAdminPanel(); render();
-    showToast('Escada adicionada!');
+    showToast('Escada criada! ('+fromC+','+fromR+') ↔ ('+toC+','+toR+')');
   };
   addForm.appendChild(addBtn2);
   stairSec.appendChild(addForm);
@@ -1370,7 +1402,13 @@ function initCanvasEvents() {
         render();
       }
     } else {
-      if(hoverTile) walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
+      // Stair capture mode — tap fills the stair form instead of walking
+    if(window._stairCapture && window._stairCapture.active && hoverTile) {
+      window._stairCapture.active(hoverTile.col, hoverTile.row);
+      window._stairCapture.active = null;
+    } else if(hoverTile) {
+      walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
+    }
     }
   },{passive:false});
 
@@ -1419,7 +1457,13 @@ function initCanvasEvents() {
         },700);
       } else { state.selected=null; closeActions(); render(); }
     } else {
-      if(hoverTile) walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
+      // Stair capture mode — tap fills the stair form instead of walking
+    if(window._stairCapture && window._stairCapture.active && hoverTile) {
+      window._stairCapture.active(hoverTile.col, hoverTile.row);
+      window._stairCapture.active = null;
+    } else if(hoverTile) {
+      walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
+    }
     }
   });
   canvas.addEventListener('mousemove', function(e) {
