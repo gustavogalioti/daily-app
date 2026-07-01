@@ -596,7 +596,7 @@ function screenToIsoLevel(sx, sy, z) {
 }
 
 function screenToIso(sx, sy) {
-  // Try each level, pick closest valid tile
+  // Try each level from top down, pick first that has a valid tile
   var cfg = getRoomConfig();
   var best = null, bestZ = 0;
   for(var zi=cfg.levels.length-1;zi>=0;zi--) {
@@ -606,9 +606,15 @@ function screenToIso(sx, sy) {
       best = is; bestZ = lv.z; break;
     }
   }
+  // Fallback: even if outside grid bounds, return the nearest tile on level 0
+  // so tapping near the floor edge still moves the poke
   if(!best) {
     var lv0 = cfg.levels[0];
-    best = screenToIsoLevel(sx, sy, 0);
+    var raw = screenToIsoLevel(sx, sy, 0);
+    best = {
+      col: Math.max(0, Math.min(lv0.cols-1, raw.col)),
+      row: Math.max(0, Math.min(lv0.rows-1, raw.row))
+    };
     bestZ = 0;
   }
   best.level = bestZ;
@@ -766,11 +772,18 @@ function tickPokeWalk(now) {
   }
 }
 
+// 30fps idle render so poke is always visible and taps register instantly
+// Guard: only render if canvas and game screen are ready
+(function idleLoop(){
+  if(ctx && state.room && !pokeMove.walking) render();
+  setTimeout(idleLoop, 33);
+})();
+
 function drawPoke() {
   if(!pokeImg) return;
-  var g = getRoomConfig().levels[0];
-  // Scale poke relative to tile size so it looks right after grid calibration
-  var size = g.tileW * 1.2;
+  // Fixed size independent of grid — changing tileW slider should NOT
+  // resize the character. 72px base looks good on mobile.
+  var size = 72;
   // anchor = front-bottom of poke's tile (same logic as furniture)
   // feet land at anchor.y, sprite draws upward from there
   var anchorX = pokeMove.px;
@@ -1595,6 +1608,7 @@ async function checkAndEnter() {
       POKE = data;
       if(data.avatar_url) {
         pokeImg = new Image();
+        pokeImg.onload = function() { render(); };
         pokeImg.src = data.avatar_url;
       }
     } else {
