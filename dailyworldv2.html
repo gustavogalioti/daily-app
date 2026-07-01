@@ -690,34 +690,75 @@ function walkPokeTo(col, row, level) {
   if(!pokeMove.walking) startPokeWalk();
 }
 
+// Returns true if tile (col,row) exists on BOTH level zA and zB
+// — meaning the grids overlap there, making it a natural transition point.
+function isOverlapTile(col, row, zA, zB) {
+  var lvA = getLevel(zA);
+  var lvB = getLevel(zB);
+  if(!lvA || !lvB) return false;
+  return col >= 0 && col < lvA.cols && row >= 0 && row < lvA.rows &&
+         col >= 0 && col < lvB.cols && row >= 0 && row < lvB.rows;
+}
+
+// Get all overlap tiles between level zA and zB
+function getOverlapTiles(zA, zB) {
+  var lvA = getLevel(zA);
+  var lvB = getLevel(zB);
+  if(!lvA || !lvB) return [];
+  var tiles = [];
+  var maxC = Math.min(lvA.cols, lvB.cols);
+  var maxR = Math.min(lvA.rows, lvB.rows);
+  for(var c=0; c<maxC; c++) for(var r=0; r<maxR; r++)
+    tiles.push({col:c, row:r});
+  return tiles;
+}
+
 function buildPath(fc, fr, fl, tc, tr, tl) {
-  // Simple BFS across levels
-  var path = [];
+  // BFS pathfinding across levels.
+  // Level transitions happen automatically at any tile that exists on both levels
+  // (the grids "overlap" there) — no manual stair configuration needed.
   var cfg = getRoomConfig();
-  var cc=fc, cr=fr, cl=fl;
-  var maxSteps = 30;
-  while((cc!==tc || cr!==tr || cl!==tl) && maxSteps-->0) {
-    // Check if there's a stair at current pos that takes us to target level
-    if(cl !== tl) {
-      var stair = cfg.stairs.find(function(s){
-        return s.fromLevel===cl && s.fromCol===cc && s.fromRow===cr;
-      });
-      if(stair && stair.toLevel===tl) {
-        path.push({col:stair.toCol, row:stair.toRow, level:stair.toLevel});
-        cc=stair.toCol; cr=stair.toRow; cl=stair.toLevel; continue;
+  var visited = {};
+  var queue = [{col:fc, row:fr, level:fl, path:[]}];
+  var key = function(c,r,l){ return c+','+r+','+l; };
+  visited[key(fc,fr,fl)] = true;
+
+  while(queue.length > 0) {
+    var cur = queue.shift();
+    if(cur.col===tc && cur.row===tr && cur.level===tl) return cur.path;
+    if(cur.path.length > 40) continue;
+
+    var lv = getLevel(cur.level);
+    if(!lv) continue;
+
+    // 4-directional moves on current level
+    var moves = [
+      {col:cur.col+1, row:cur.row,   level:cur.level},
+      {col:cur.col-1, row:cur.row,   level:cur.level},
+      {col:cur.col,   row:cur.row+1, level:cur.level},
+      {col:cur.col,   row:cur.row-1, level:cur.level},
+    ];
+
+    // Level transitions: if current tile exists on another level too, can switch
+    cfg.levels.forEach(function(otherLv) {
+      if(otherLv.z === cur.level) return;
+      if(isOverlapTile(cur.col, cur.row, cur.level, otherLv.z)) {
+        moves.push({col:cur.col, row:cur.row, level:otherLv.z});
       }
-    }
-    // Step toward target on current level
-    var nc=cc, nr=cr;
-    if(tc > cc) nc++;
-    else if(tc < cc) nc--;
-    else if(tr > cr) nr++;
-    else if(tr < cr) nr--;
-    else break;
-    path.push({col:nc, row:nr, level:cl});
-    cc=nc; cr=nr;
+    });
+
+    moves.forEach(function(next) {
+      var k = key(next.col, next.row, next.level);
+      if(visited[k]) return;
+      var nextLv = getLevel(next.level);
+      if(!nextLv) return;
+      if(next.col < 0 || next.col >= nextLv.cols || next.row < 0 || next.row >= nextLv.rows) return;
+      visited[k] = true;
+      queue.push({col:next.col, row:next.row, level:next.level,
+                  path: cur.path.concat([{col:next.col, row:next.row, level:next.level}])});
+    });
   }
-  return path;
+  return []; // no path found
 }
 
 function startPokeWalk() {
@@ -1083,104 +1124,31 @@ function buildAdminPanel() {
   }
   panel.appendChild(gridSec);
 
-  // Stairs — input-based (no canvas click needed)
+  // Transitions between levels — automatic via grid overlap
   var stairSec = mk('div','ap-section');
-  stairSec.appendChild(mk('div','ap-title','ESCADAS'));
+  stairSec.appendChild(mk('div','ap-title','🔀 TRANSIÇÕES DE NÍVEL'));
 
-  // Helper: numeric input
-  function numInput(val, w) {
-    var inp = document.createElement('input');
-    inp.type='number'; inp.value=val; inp.min=0; inp.max=99; inp.step=1;
-    inp.style.cssText='width:'+(w||32)+'px;background:#0f1a2e;border:1px solid #0f3460;'
-      +'color:#fff;padding:2px 4px;border-radius:3px;font-size:9px;font-family:inherit;';
-    return inp;
+  if(cfg.levels.length < 2) {
+    stairSec.appendChild(mk('div','ap-label','Adicione um Nível 1 para ativar transições.'));
+  } else {
+    var overlaps = getOverlapTiles(0, 1);
+    var info = mk('div','ap-label',
+      overlaps.length > 0
+        ? '✓ '+overlaps.length+' tile(s) sobrepostos entre Nível 0 e Nível 1 — personagem transita automaticamente nesses pontos.'
+        : '⚠ Nenhuma sobreposição entre os níveis. Ajuste Origin X/Y ou Cols/Rows do Nível 1 até os grids se sobreporem onde fica a escada.'
+    );
+    info.style.lineHeight = '1.5';
+    stairSec.appendChild(info);
+
+    if(overlaps.length > 0) {
+      var preview = mk('div','ap-label',
+        'Tiles de transição: ' + overlaps.slice(0,6).map(function(t){return '('+t.col+','+t.row+')';}).join(' ') +
+        (overlaps.length > 6 ? ' ...' : '')
+      );
+      preview.style.color = '#ffaa00';
+      stairSec.appendChild(preview);
+    }
   }
-
-  // List existing stairs with delete
-  if(cfg.stairs.length === 0) {
-    stairSec.appendChild(mk('div','ap-label','Nenhuma escada definida.'));
-  }
-  // Only show "from" stairs (not the reverse bidirectional pair)
-  var shownStairs = cfg.stairs.filter(function(s){ return s.fromLevel < s.toLevel; });
-  shownStairs.forEach(function(s, i) {
-    var row = mk('div','ap-row');
-    row.style.cssText='flex-wrap:wrap;gap:2px;font-size:8px;color:#aac;';
-    row.appendChild(mk('span','','L'+s.fromLevel+'('+s.fromCol+','+s.fromRow+')'));
-    row.appendChild(mk('span','','↔'));
-    row.appendChild(mk('span','','L'+s.toLevel+'('+s.toCol+','+s.toRow+')'));
-    var del = mk('div','ap-btn','✕');
-    del.style.marginLeft='auto';
-    del.onclick = (function(fc,fr,fl){ return function(){
-      // Remove both directions
-      cfg.stairs = cfg.stairs.filter(function(s2){
-        return !((s2.fromLevel===fl&&s2.fromCol===fc&&s2.fromRow===fr)||
-                 (s2.toLevel===fl&&s2.toCol===fc&&s2.toRow===fr));
-      });
-      buildAdminPanel(); render();
-    }; })(s.fromCol, s.fromRow, s.fromLevel);
-    row.appendChild(del);
-    stairSec.appendChild(row);
-  });
-
-  // Add stair form
-  var addForm = mk('div','');
-  addForm.style.cssText='margin-top:6px;display:flex;flex-direction:column;gap:5px;';
-  addForm.appendChild(mk('div','ap-label','Adicionar escada:'));
-
-  // Capture buttons — tap tile on canvas to fill in the coords
-  var capState = {active:null}; // 'from' or 'to'
-  window._stairCapture = capState;
-
-  function capBtn(label, fillFn) {
-    var b = mk('div','ap-btn', label);
-    b.style.cssText += ';text-align:left;';
-    b.onclick = function() {
-      capState.active = fillFn;
-      showToast('Toque no tile no cenário...');
-      b.textContent = '👆 Toque no tile...';
-      setTimeout(function(){ b.textContent = label; }, 4000);
-    };
-    return b;
-  }
-
-  var fc=numInput(0,28); var fr=numInput(0,28);
-  var tc=numInput(0,28); var tr=numInput(0,28);
-
-  var row1 = mk('div','ap-row');
-  row1.appendChild(mk('div','ap-label','De L0 — Col:'));
-  row1.appendChild(fc);
-  row1.appendChild(mk('span','ap-label','Row:'));
-  row1.appendChild(fr);
-  addForm.appendChild(row1);
-  addForm.appendChild(capBtn('📍 Capturar tile de ORIGEM (L0)', function(col,row){
-    fc.value=col; fr.value=row;
-    showToast('Origem: ('+col+','+row+')');
-  }));
-
-  var row2 = mk('div','ap-row');
-  row2.appendChild(mk('div','ap-label','Para L1 — Col:'));
-  row2.appendChild(tc);
-  row2.appendChild(mk('span','ap-label','Row:'));
-  row2.appendChild(tr);
-  addForm.appendChild(row2);
-  addForm.appendChild(capBtn('📍 Capturar tile de DESTINO (L1)', function(col,row){
-    tc.value=col; tr.value=row;
-    showToast('Destino: ('+col+','+row+')');
-  }));
-
-  var addBtn2 = mk('div','ap-btn','✓ Adicionar escada');
-  addBtn2.style.marginTop='2px';
-  addBtn2.onclick = function() {
-    var fromC=parseInt(fc.value), fromR=parseInt(fr.value);
-    var toC=parseInt(tc.value),   toR=parseInt(tr.value);
-    if(isNaN(fromC)||isNaN(fromR)||isNaN(toC)||isNaN(toR)){showToast('Preencha os campos');return;}
-    cfg.stairs.push({fromLevel:0,fromCol:fromC,fromRow:fromR,toLevel:1,toCol:toC,toRow:toR});
-    cfg.stairs.push({fromLevel:1,fromCol:toC,fromRow:toR,toLevel:0,toCol:fromC,toRow:fromR});
-    buildAdminPanel(); render();
-    showToast('Escada criada! ('+fromC+','+fromR+') ↔ ('+toC+','+toR+')');
-  };
-  addForm.appendChild(addBtn2);
-  stairSec.appendChild(addForm);
   panel.appendChild(stairSec);
 
   // Furniture scale/offset editor
