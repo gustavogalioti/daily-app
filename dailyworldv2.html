@@ -1102,6 +1102,47 @@ function buildAdminPanel() {
   });
   panel.appendChild(stairSec);
 
+  // Furniture scale/offset editor
+  var furnSec = mk('div','ap-section');
+  furnSec.appendChild(mk('div','ap-title','📦 MÓVEIS — ESCALA/POSIÇÃO'));
+  var furnHint = mk('div','ap-label','Ajuste visual de cada móvel. Salva para todos os usuários.');
+  furnHint.style.cssText='font-size:6px;color:#555;margin-bottom:4px;line-height:1.4;';
+  furnSec.appendChild(furnHint);
+
+  FURN_CATALOG.forEach(function(cat) {
+    var fSec = mk('div','');
+    fSec.style.cssText='border-top:1px solid #0f3460;padding-top:6px;margin-top:6px;';
+    fSec.appendChild(mk('div','ap-label', cat.name.toUpperCase()));
+
+    fSec.appendChild(slider('Scale', cat.scale, 0.1, 5.0, 0.01, function(v){
+      cat.scale=v; render();
+    }));
+    fSec.appendChild(slider('OffsetY', cat.offsetY, 0.0, 2.0, 0.01, function(v){
+      cat.offsetY=v; render();
+    }));
+    fSec.appendChild(slider('OffsetX', cat.offsetX, -1.0, 1.0, 0.01, function(v){
+      cat.offsetX=v; render();
+    }));
+
+    var saveBtn = mk('div','ap-btn','💾 Salvar '+cat.name);
+    saveBtn.style.marginTop='3px';
+    (function(c){ saveBtn.onclick = async function() {
+      saveBtn.textContent = 'Salvando...';
+      try {
+        var resp = await fetch(API+'/api/dailyworld/furniture-configs', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
+          body: JSON.stringify({furnitureId:c.id, scale:c.scale, offsetY:c.offsetY, offsetX:c.offsetX})
+        });
+        showToast(resp.ok ? '✓ '+c.name+' salvo!' : 'Erro: '+(await resp.json()).error);
+      } catch(e) { showToast('Erro: '+e.message); }
+      saveBtn.textContent = '💾 Salvar '+c.name;
+    }; })(cat);
+    fSec.appendChild(saveBtn);
+    furnSec.appendChild(fSec);
+  });
+  panel.appendChild(furnSec);
+
   // Save config
   var saveSec = mk('div','ap-section');
   saveSec.appendChild(mk('div','ap-title','SALVAR'));
@@ -1419,12 +1460,13 @@ function buildEditSidebar() {
     nm.textContent = cat.name;
     d.appendChild(img); d.appendChild(nm);
 
-    // Click = place at first free tile
+    // Click = place at first free tile on active level
     d.addEventListener('click', function() {
-      var g=G();
-      for(var r=0;r<g.rows;r++) for(var c=0;c<g.cols;c++)
-        if(!blocked(c,r,cat.cols,cat.rows)) {
-          state.placed.push(Object.assign({},cat,{col:c,row:r,flipped:false}));
+      var z = state.activeEditLevel||0;
+      var lv = getLevel(z);
+      for(var r=0;r<lv.rows;r++) for(var c=0;c<lv.cols;c++)
+        if(!blocked(c,r,cat.cols,cat.rows,z,null)) {
+          state.placed.push(Object.assign({},cat,{col:c,row:r,flipped:false,level:z}));
           state.selected=state.placed.length-1;
           autoSave(); render(); showToast(cat.name+' adicionado!'); return;
         }
@@ -1453,13 +1495,14 @@ function buildEditSidebar() {
     d.addEventListener('touchend',function(e){
       e.preventDefault(); hideGhost();
       if(dragState.catId && hoverTile) {
-        var g=G();
+        var z = hoverTile.level||0;
+        var lv = getLevel(z);
         var cat2=FURN_CATALOG.find(function(x){return x.id===dragState.catId;});
         if(cat2) {
-          var col=Math.max(0,Math.min(g.cols-cat2.cols,hoverTile.col));
-          var row=Math.max(0,Math.min(g.rows-cat2.rows,hoverTile.row));
-          if(!blocked(col,row,cat2.cols,cat2.rows)){
-            state.placed.push(Object.assign({},cat2,{col:col,row:row,flipped:false}));
+          var col=Math.max(0,Math.min(lv.cols-cat2.cols,hoverTile.col));
+          var row=Math.max(0,Math.min(lv.rows-cat2.rows,hoverTile.row));
+          if(!blocked(col,row,cat2.cols,cat2.rows,z,null)){
+            state.placed.push(Object.assign({},cat2,{col:col,row:row,flipped:false,level:z}));
             state.selected=state.placed.length-1;
             autoSave(); showToast(cat2.name+' colocado!');
           } else showToast('Espaço ocupado!');
