@@ -1083,23 +1083,72 @@ function buildAdminPanel() {
   }
   panel.appendChild(gridSec);
 
-  // Stairs
+  // Stairs — input-based (no canvas click needed)
   var stairSec = mk('div','ap-section');
   stairSec.appendChild(mk('div','ap-title','ESCADAS'));
-  var stairStatus = mk('div','ap-label', adminEditor.stairFrom ?
-    'Clique no tile DESTINO (nível '+( adminEditor.stairFrom.level===0?1:0)+')' :
-    'Clique num tile para marcar escada');
-  stairSec.appendChild(stairStatus);
 
-  // List existing stairs
-  cfg.stairs.forEach(function(s,i){
-    var row=mk('div','ap-row');
-    row.appendChild(mk('div','ap-label','L'+s.fromLevel+'('+s.fromCol+','+s.fromRow+') ↔ L'+s.toLevel+'('+s.toCol+','+s.toRow+')'));
-    var del=mk('div','ap-btn','✕');
-    del.onclick=(function(idx){return function(){cfg.stairs.splice(idx,1);buildAdminPanel();render();};})(i);
+  // Helper: numeric input
+  function numInput(val, w) {
+    var inp = document.createElement('input');
+    inp.type='number'; inp.value=val; inp.min=0; inp.max=99; inp.step=1;
+    inp.style.cssText='width:'+(w||32)+'px;background:#0f1a2e;border:1px solid #0f3460;'
+      +'color:#fff;padding:2px 4px;border-radius:3px;font-size:9px;font-family:inherit;';
+    return inp;
+  }
+
+  // List existing stairs with delete
+  if(cfg.stairs.length === 0) {
+    stairSec.appendChild(mk('div','ap-label','Nenhuma escada definida.'));
+  }
+  // Only show "from" stairs (not the reverse bidirectional pair)
+  var shownStairs = cfg.stairs.filter(function(s){ return s.fromLevel < s.toLevel; });
+  shownStairs.forEach(function(s, i) {
+    var row = mk('div','ap-row');
+    row.style.cssText='flex-wrap:wrap;gap:2px;font-size:8px;color:#aac;';
+    row.appendChild(mk('span','','L'+s.fromLevel+'('+s.fromCol+','+s.fromRow+')'));
+    row.appendChild(mk('span','','↔'));
+    row.appendChild(mk('span','','L'+s.toLevel+'('+s.toCol+','+s.toRow+')'));
+    var del = mk('div','ap-btn','✕');
+    del.style.marginLeft='auto';
+    del.onclick = (function(fc,fr,fl){ return function(){
+      // Remove both directions
+      cfg.stairs = cfg.stairs.filter(function(s2){
+        return !((s2.fromLevel===fl&&s2.fromCol===fc&&s2.fromRow===fr)||
+                 (s2.toLevel===fl&&s2.toCol===fc&&s2.toRow===fr));
+      });
+      buildAdminPanel(); render();
+    }; })(s.fromCol, s.fromRow, s.fromLevel);
     row.appendChild(del);
     stairSec.appendChild(row);
   });
+
+  // Add stair form
+  var addForm = mk('div','');
+  addForm.style.cssText='margin-top:6px;display:flex;flex-direction:column;gap:4px;';
+  addForm.appendChild(mk('div','ap-label','Adicionar escada:'));
+
+  var row1 = mk('div','ap-row'); row1.appendChild(mk('div','ap-label','De — L0 Col:'));
+  var fc=numInput(0,28); var fr=numInput(0,28);
+  row1.appendChild(fc); row1.appendChild(mk('span','ap-label','Row:')); row1.appendChild(fr);
+  addForm.appendChild(row1);
+
+  var row2 = mk('div','ap-row'); row2.appendChild(mk('div','ap-label','Para — L1 Col:'));
+  var tc=numInput(0,28); var tr=numInput(0,28);
+  row2.appendChild(tc); row2.appendChild(mk('span','ap-label','Row:')); row2.appendChild(tr);
+  addForm.appendChild(row2);
+
+  var addBtn2 = mk('div','ap-btn','+ Adicionar escada');
+  addBtn2.onclick = function() {
+    var fromC=parseInt(fc.value), fromR=parseInt(fr.value);
+    var toC=parseInt(tc.value),   toR=parseInt(tr.value);
+    if(isNaN(fromC)||isNaN(fromR)||isNaN(toC)||isNaN(toR)){showToast('Preencha todos os campos');return;}
+    cfg.stairs.push({fromLevel:0,fromCol:fromC,fromRow:fromR,toLevel:1,toCol:toC,toRow:toR});
+    cfg.stairs.push({fromLevel:1,fromCol:toC,fromRow:toR,toLevel:0,toCol:fromC,toRow:fromR});
+    buildAdminPanel(); render();
+    showToast('Escada adicionada!');
+  };
+  addForm.appendChild(addBtn2);
+  stairSec.appendChild(addForm);
   panel.appendChild(stairSec);
 
   // Furniture scale/offset editor
@@ -1321,7 +1370,7 @@ function initCanvasEvents() {
         render();
       }
     } else {
-      if(hoverTile && !handleAdminTileClick(hoverTile)) walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
+      if(hoverTile) walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
     }
   },{passive:false});
 
@@ -1370,7 +1419,7 @@ function initCanvasEvents() {
         },700);
       } else { state.selected=null; closeActions(); render(); }
     } else {
-      if(hoverTile && !handleAdminTileClick(hoverTile)) walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
+      if(hoverTile) walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
     }
   });
   canvas.addEventListener('mousemove', function(e) {
