@@ -763,24 +763,23 @@ function buildPath(fc, fr, fl, tc, tr, tl) {
 
 function startPokeWalk() {
   if(pokeMove.path.length===0) {
-    pokeMove.walking = false; return;
+    pokeMove.walking = false; render(); return;
   }
   pokeMove.walking = true;
   var next = pokeMove.path.shift();
-  // Update flip based on direction
-  var dcol = next.col - pokeMove.col;
-  var drow = next.row - pokeMove.row;
-  if(dcol > 0 || drow < 0) pokeMove.flipped = false;
-  if(dcol < 0 || drow > 0) pokeMove.flipped = true;
+
+  // Flip based on screen-space X direction — correct for isometric
+  var fromP = pokeScreenPos(pokeMove.col, pokeMove.row, pokeMove.level);
+  var toP   = pokeScreenPos(next.col, next.row, next.level);
+  var dsx = toP.x - fromP.x;
+  if(Math.abs(dsx) > 2) pokeMove.flipped = (dsx < 0);
 
   pokeMove.fromPx = pokeMove.px;
   pokeMove.fromPy = pokeMove.py;
-  var toP = pokeScreenPos(next.col, next.row, next.level);
   pokeMove.toPx = toP.x;
   pokeMove.toPy = toP.y;
   pokeMove.stepProgress = 0;
   pokeMove.lastTime = performance.now();
-  // Update logical position
   pokeMove.col = next.col;
   pokeMove.row = next.row;
   pokeMove.level = next.level;
@@ -813,12 +812,11 @@ function tickPokeWalk(now) {
   }
 }
 
-// 30fps idle render so poke is always visible and taps register instantly
-// Guard: only render if canvas and game screen are ready
-(function idleLoop(){
+// Idle render — fires only when poke is not walking
+// setInterval avoids stacking calls that caused teleport glitch
+setInterval(function(){
   if(ctx && state.room && !pokeMove.walking) render();
-  setTimeout(idleLoop, 33);
-})();
+}, 100);
 
 function drawPoke() {
   if(!pokeImg) return;
