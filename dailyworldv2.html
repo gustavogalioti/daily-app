@@ -1243,6 +1243,16 @@ function finishDrop() {
 // ═══════════════════════════════════════════════════════════════════════════
 // CANVAS EVENTS
 // ═══════════════════════════════════════════════════════════════════════════
+function canvasXY(clientX, clientY) {
+  // Convert screen coordinates to canvas internal coordinates,
+  // accounting for CSS scaling (canvas may be stretched to fill screen).
+  var r = canvas.getBoundingClientRect();
+  return {
+    x: (clientX - r.left) * (CW / r.width),
+    y: (clientY - r.top)  * (CH / r.height)
+  };
+}
+
 function initCanvasEvents() {
   canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
