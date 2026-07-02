@@ -643,23 +643,8 @@ function drawTile(col, row, fill, a, z) {
 // ═══════════════════════════════════════════════════════════════════════════
 // SMOOTH POKE MOVEMENT
 // ═══════════════════════════════════════════════════════════════════════════
-var pokeMove = {
-  // Logical position (integers)
-  col: 1, row: 1, level: 0,
-  // Pixel position (interpolated)
-  px: 0, py: 0,
-  // Target
-  path: [],        // [{col,row,level}] remaining steps
-  walking: false,
-  flipped: false,
-  // Animation
-  animFrame: null,
-  stepProgress: 0, // 0..1
-  fromPx: 0, fromPy: 0,
-  toPx: 0,   toPy: 0,
-  STEP_MS: 220,    // ms per tile
-  lastTime: 0,
-};
+
+// Movement state is now in `poke` object (see movement system below)
 
 function pokeScreenPos(col, row, level) {
   // Anchor at the FRONT-BOTTOM corner of the tile the poke is standing on,
@@ -668,155 +653,181 @@ function pokeScreenPos(col, row, level) {
 }
 
 function initPokePixelPos() {
-  var p = pokeScreenPos(pokeMove.col, pokeMove.row, pokeMove.level);
-  pokeMove.px = p.x; pokeMove.py = p.y;
+  var p = pokeScreenPos(poke.col, poke.row, poke.level);
+  poke.px = p.x; poke.py = p.y;
 }
 
-function walkPokeTo(col, row, level) {
-  level = level||0;
-  var lv = getLevel(level);
-  if(!lv) return;
-  if(col<0||col>=lv.cols||row<0||row>=lv.rows) return;
-  // Simple path: step toward target on same level, handle stairs
-  var path = buildPath(pokeMove.col, pokeMove.row, pokeMove.level, col, row, level);
-  if(!path || path.length===0) return;
-  // Determine flip direction from first step
-  var first = path[0];
-  var dcol = first.col - pokeMove.col;
-  var drow = first.row - pokeMove.row;
-  if(dcol > 0 || drow < 0) pokeMove.flipped = false;
-  if(dcol < 0 || drow > 0) pokeMove.flipped = true;
-  pokeMove.path = path;
-  if(!pokeMove.walking) startPokeWalk();
+// ═══════════════════════════════════════════════════════════════════════════
+// POKE MOVEMENT — clean rewrite
+// State: logical grid position + interpolated pixel position
+// ═══════════════════════════════════════════════════════════════════════════
+var poke = {
+  // Logical (grid) position
+  col: 1, row: 1, level: 0,
+  // Pixel position (interpolated for smooth animation)
+  px: 0, py: 0,
+  // Animation state
+  path: [],        // [{col,row,level}] remaining steps
+  walking: false,
+  flipped: false,
+  rafId: null,
+  // Interpolation
+  fromPx: 0, fromPy: 0,
+  toPx:   0, toPy:   0,
+  startTime: 0,
+  MS_PER_TILE: 200,
+};
+
+// Pixel position of the FRONT-BOTTOM anchor of a tile (same as furniture)
+function tileAnchor(col, row, level) {
+  return isoLevel(col + 1, row + 1, level || 0);
 }
 
-// Returns true if tile (col,row) exists on BOTH level zA and zB
-// — meaning the grids overlap there, making it a natural transition point.
+function initPokePixelPos() {
+  var p = tileAnchor(poke.col, poke.row, poke.level);
+  poke.px = p.x;
+  poke.py = p.y;
+}
+
+// ── Level overlap helpers ────────────────────────────────────────────────────
 function isOverlapTile(col, row, zA, zB) {
-  var lvA = getLevel(zA);
-  var lvB = getLevel(zB);
-  if(!lvA || !lvB) return false;
+  var lvA = getLevel(zA), lvB = getLevel(zB);
+  if (!lvA || !lvB) return false;
   return col >= 0 && col < lvA.cols && row >= 0 && row < lvA.rows &&
          col >= 0 && col < lvB.cols && row >= 0 && row < lvB.rows;
 }
 
-// Get all overlap tiles between level zA and zB
 function getOverlapTiles(zA, zB) {
-  var lvA = getLevel(zA);
-  var lvB = getLevel(zB);
-  if(!lvA || !lvB) return [];
+  var lvA = getLevel(zA), lvB = getLevel(zB);
+  if (!lvA || !lvB) return [];
   var tiles = [];
   var maxC = Math.min(lvA.cols, lvB.cols);
   var maxR = Math.min(lvA.rows, lvB.rows);
-  for(var c=0; c<maxC; c++) for(var r=0; r<maxR; r++)
-    tiles.push({col:c, row:r});
+  for (var c = 0; c < maxC; c++)
+    for (var r = 0; r < maxR; r++)
+      tiles.push({ col: c, row: r });
   return tiles;
 }
 
+// ── BFS pathfinding ─────────────────────────────────────────────────────────
 function buildPath(fc, fr, fl, tc, tr, tl) {
-  // BFS pathfinding across levels.
-  // Level transitions happen automatically at any tile that exists on both levels
-  // (the grids "overlap" there) — no manual stair configuration needed.
+  if (fc === tc && fr === tr && fl === tl) return [];
   var cfg = getRoomConfig();
   var visited = {};
-  var queue = [{col:fc, row:fr, level:fl, path:[]}];
-  var key = function(c,r,l){ return c+','+r+','+l; };
-  visited[key(fc,fr,fl)] = true;
+  var queue   = [{ col: fc, row: fr, level: fl, path: [] }];
+  var key     = function(c, r, l) { return c + ',' + r + ',' + l; };
+  visited[key(fc, fr, fl)] = true;
 
-  while(queue.length > 0) {
+  while (queue.length > 0) {
     var cur = queue.shift();
-    if(cur.col===tc && cur.row===tr && cur.level===tl) return cur.path;
-    if(cur.path.length > 40) continue;
+    if (cur.col === tc && cur.row === tr && cur.level === tl) return cur.path;
+    if (cur.path.length >= 40) continue;
 
     var lv = getLevel(cur.level);
-    if(!lv) continue;
+    if (!lv) continue;
 
     // 4-directional moves on current level
-    var moves = [
-      {col:cur.col+1, row:cur.row,   level:cur.level},
-      {col:cur.col-1, row:cur.row,   level:cur.level},
-      {col:cur.col,   row:cur.row+1, level:cur.level},
-      {col:cur.col,   row:cur.row-1, level:cur.level},
+    var neighbors = [
+      { col: cur.col + 1, row: cur.row,     level: cur.level },
+      { col: cur.col - 1, row: cur.row,     level: cur.level },
+      { col: cur.col,     row: cur.row + 1, level: cur.level },
+      { col: cur.col,     row: cur.row - 1, level: cur.level },
     ];
 
-    // Level transitions: if current tile exists on another level too, can switch
+    // Level transitions at overlapping tiles
     cfg.levels.forEach(function(otherLv) {
-      if(otherLv.z === cur.level) return;
-      if(isOverlapTile(cur.col, cur.row, cur.level, otherLv.z)) {
-        moves.push({col:cur.col, row:cur.row, level:otherLv.z});
+      if (otherLv.z === cur.level) return;
+      if (isOverlapTile(cur.col, cur.row, cur.level, otherLv.z)) {
+        neighbors.push({ col: cur.col, row: cur.row, level: otherLv.z });
       }
     });
 
-    moves.forEach(function(next) {
-      var k = key(next.col, next.row, next.level);
-      if(visited[k]) return;
-      var nextLv = getLevel(next.level);
-      if(!nextLv) return;
-      if(next.col < 0 || next.col >= nextLv.cols || next.row < 0 || next.row >= nextLv.rows) return;
+    neighbors.forEach(function(n) {
+      var k = key(n.col, n.row, n.level);
+      if (visited[k]) return;
+      var nlv = getLevel(n.level);
+      if (!nlv) return;
+      if (n.col < 0 || n.col >= nlv.cols || n.row < 0 || n.row >= nlv.rows) return;
       visited[k] = true;
-      queue.push({col:next.col, row:next.row, level:next.level,
-                  path: cur.path.concat([{col:next.col, row:next.row, level:next.level}])});
+      queue.push({
+        col: n.col, row: n.row, level: n.level,
+        path: cur.path.concat([{ col: n.col, row: n.row, level: n.level }])
+      });
     });
   }
-  return []; // no path found
+  return []; // no path
 }
 
-function startPokeWalk() {
-  if(pokeMove.path.length===0) {
-    pokeMove.walking = false; render(); return;
+// ── Walk command ─────────────────────────────────────────────────────────────
+function walkPokeTo(col, row, level) {
+  level = level || 0;
+  var lv = getLevel(level);
+  if (!lv) return;
+  if (col < 0 || col >= lv.cols || row < 0 || row >= lv.rows) return;
+
+  var path = buildPath(poke.col, poke.row, poke.level, col, row, level);
+  if (!path || path.length === 0) return;
+
+  poke.path = path;
+  if (!poke.walking) _nextStep();
+}
+
+// ── Step-by-step animation ───────────────────────────────────────────────────
+function _nextStep() {
+  if (poke.path.length === 0) {
+    poke.walking = false;
+    render();
+    return;
   }
-  pokeMove.walking = true;
-  var next = pokeMove.path.shift();
 
-  // Flip based on screen-space X direction — correct for isometric
-  var fromP = pokeScreenPos(pokeMove.col, pokeMove.row, pokeMove.level);
-  var toP   = pokeScreenPos(next.col, next.row, next.level);
-  var dsx = toP.x - fromP.x;
-  if(Math.abs(dsx) > 2) pokeMove.flipped = (dsx < 0);
+  poke.walking = true;
+  var step = poke.path.shift();
 
-  pokeMove.fromPx = pokeMove.px;
-  pokeMove.fromPy = pokeMove.py;
-  pokeMove.toPx = toP.x;
-  pokeMove.toPy = toP.y;
-  pokeMove.stepProgress = 0;
-  pokeMove.lastTime = performance.now();
-  pokeMove.col = next.col;
-  pokeMove.row = next.row;
-  pokeMove.level = next.level;
-  state.pokePos = {col:pokeMove.col, row:pokeMove.row, level:pokeMove.level};
+  // Flip: compare screen-X of destination vs current anchor
+  var fromAnchor = tileAnchor(poke.col, poke.row, poke.level);
+  var toAnchor   = tileAnchor(step.col, step.row, step.level);
+  var dsx = toAnchor.x - fromAnchor.x;
+  if (Math.abs(dsx) > 1) poke.flipped = (dsx < 0);
 
-  if(pokeMove.animFrame) cancelAnimationFrame(pokeMove.animFrame);
-  pokeMove.animFrame = requestAnimationFrame(tickPokeWalk);
+  poke.fromPx   = poke.px;
+  poke.fromPy   = poke.py;
+  poke.toPx     = toAnchor.x;
+  poke.toPy     = toAnchor.y;
+  poke.startTime = performance.now();
+
+  // Commit logical position immediately
+  poke.col   = step.col;
+  poke.row   = step.row;
+  poke.level = step.level;
+  state.pokePos = { col: poke.col, row: poke.row, level: poke.level };
+
+  if (poke.rafId) cancelAnimationFrame(poke.rafId);
+  poke.rafId = requestAnimationFrame(_tickWalk);
 }
 
-function tickPokeWalk(now) {
-  var elapsed = now - pokeMove.lastTime;
-  pokeMove.stepProgress = Math.min(1, elapsed / pokeMove.STEP_MS);
-  // Ease in-out
-  var t = pokeMove.stepProgress;
-  var ease = t<0.5 ? 2*t*t : -1+(4-2*t)*t;
-  pokeMove.px = pokeMove.fromPx + (pokeMove.toPx - pokeMove.fromPx) * ease;
-  pokeMove.py = pokeMove.fromPy + (pokeMove.toPy - pokeMove.fromPy) * ease;
+function _tickWalk(now) {
+  var elapsed = now - poke.startTime;
+  var t = Math.min(1, elapsed / poke.MS_PER_TILE);
+  // Ease-in-out
+  var e = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+  poke.px = poke.fromPx + (poke.toPx - poke.fromPx) * e;
+  poke.py = poke.fromPy + (poke.toPy - poke.fromPy) * e;
   render();
-  if(pokeMove.stepProgress < 1) {
-    pokeMove.animFrame = requestAnimationFrame(tickPokeWalk);
+  if (t < 1) {
+    poke.rafId = requestAnimationFrame(_tickWalk);
   } else {
-    pokeMove.px = pokeMove.toPx;
-    pokeMove.py = pokeMove.toPy;
-    if(pokeMove.path.length > 0) {
-      startPokeWalk();
-    } else {
-      pokeMove.walking = false;
-      render();
-    }
+    poke.px = poke.toPx;
+    poke.py = poke.toPy;
+    _nextStep();
   }
 }
 
-// Idle render — fires only when poke is not walking
-// setInterval avoids stacking calls that caused teleport glitch
-setInterval(function(){
-  if(ctx && state.room && !pokeMove.walking) render();
-}, 100);
+// ── Idle render (only when not walking — walking has its own RAF) ────────────
+setInterval(function() {
+  if (ctx && state.room && !poke.walking) render();
+}, 150);
+
+
 
 function drawPoke() {
   if(!pokeImg) return;
@@ -825,13 +836,13 @@ function drawPoke() {
   var size = 72;
   // anchor = front-bottom of poke's tile (same logic as furniture)
   // feet land at anchor.y, sprite draws upward from there
-  var anchorX = pokeMove.px;
-  var anchorY = pokeMove.py;
+  var anchorX = poke.px;
+  var anchorY = poke.py;
   var dx = anchorX - size / 2;
   var dy = anchorY - size;        // top of sprite = anchorY - full height
-  var bob = pokeMove.walking ? Math.sin(Date.now()/100)*2.5 : 0;
+  var bob = poke.walking ? Math.sin(Date.now()/100)*2.5 : 0;
   ctx.save();
-  if(pokeMove.flipped) {
+  if(poke.flipped) {
     ctx.translate(anchorX, anchorY);
     ctx.scale(-1, 1);
     ctx.translate(-anchorX, -anchorY);
@@ -936,7 +947,7 @@ function render() {
     });
 
     // Poke on this level
-    if(!state.editMode && pokeMove.level===z) drawPoke();
+    if(!state.editMode && poke.level===z) drawPoke();
   });
 
   document.getElementById('sMode').textContent = state.editMode ? 'edição' : 'explorar';
@@ -1031,7 +1042,7 @@ function adminSwitchRoom(targetRoom) {
   }
 
   state.pokePos = {col:1,row:1,level:0};
-  pokeMove.col=1; pokeMove.row=1; pokeMove.level=0;
+  poke.col=1; poke.row=1; poke.level=0;
   initPokePixelPos();
   state.selected = null;
   closeActions();
@@ -1794,9 +1805,9 @@ function enterRoom(room, savedData) {
   }
   if(!state.pokePos) state.pokePos = {col:1, row:1, level:0};
   // Init poke smooth movement
-  pokeMove.col = state.pokePos.col;
-  pokeMove.row = state.pokePos.row;
-  pokeMove.level = state.pokePos.level||0;
+  poke.col = state.pokePos.col;
+  poke.row = state.pokePos.row;
+  poke.level = state.pokePos.level||0;
   initPokePixelPos();
   // Load roomConfig if saved
   state.roomConfig = (state.room && state.room.roomConfig) ? state.room.roomConfig : null;
