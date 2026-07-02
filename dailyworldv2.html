@@ -1368,13 +1368,38 @@ function showRing(cx,cy){pr.style.display='block';pr.style.left=cx+'px';pr.style
 function hideRing(){pr.style.display='none';pr.style.animation='none';}
 function cancelLP(){if(lpTimer){clearTimeout(lpTimer);lpTimer=null;}hideRing();}
 
-function findFurnitureAt(iso) {
+function findFurnitureAt(iso, screenX, screenY) {
+  // First try: pixel-perfect hit on the sprite bounding box.
+  // This lets the user tap the visible sprite, not just the grid tile under it.
+  if(screenX !== undefined && screenY !== undefined) {
+    // Convert screen tap to canvas coords
+    var cv = canvasXY(screenX, screenY);
+    // Check each furniture sprite bounding box (back to front = highest depth first)
+    for(var i=state.placed.length-1;i>=0;i--) {
+      var p = state.placed[i];
+      var img = furnitureImgs[p.id]; if(!img) continue;
+      var cat = FURN_CATALOG.find(function(c){return c.id===p.id;}) || p;
+      var z = p.level||0;
+      var lv = getLevel(z);
+      var anchor = isoLevel(p.col+p.cols, p.row+p.rows, z);
+      var sc = (lv.tileW*p.cols/img.width)*1.8*cat.scale;
+      var dw = img.width*sc, dh = img.height*sc;
+      var dx = anchor.x - dw*(0.5+cat.offsetX);
+      var dy = anchor.y - dh*cat.offsetY;
+      // Hit test: is tap inside sprite bounding box?
+      if(cv.x >= dx && cv.x <= dx+dw && cv.y >= dy && cv.y <= dy+dh) return i;
+    }
+  }
+  // Fallback: grid tile match (original logic, also check tile below furniture)
   var z = iso.level||0;
   for(var i=state.placed.length-1;i>=0;i--) {
     var p=state.placed[i];
     if((p.level||0)!==z) continue;
-    for(var dc=0;dc<p.cols;dc++) for(var dr=0;dr<p.rows;dr++)
-      if(p.col+dc===iso.col&&p.row+dr===iso.row) return i;
+    // Check occupied tiles + 1 tile in front (where base visually appears)
+    for(var dc=-1;dc<=p.cols;dc++) for(var dr=-1;dr<=p.rows;dr++) {
+      if(dc===-1 && dr===-1) continue;
+      if(p.col+dc===iso.col && p.row+dr===iso.row) return i;
+    }
   }
   return null;
 }
@@ -1430,7 +1455,7 @@ function initCanvasEvents() {
       }
       render();
     } else if(state.editMode) {
-      var idx=findFurnitureAt(is);
+      var idx=findFurnitureAt(is,t.clientX,t.clientY);
       if(idx!==null) {
         showRing(t.clientX,t.clientY);
         lpTimer=setTimeout(function(){
@@ -1479,7 +1504,7 @@ function initCanvasEvents() {
       var t=e.changedTouches[0];
       var cv=canvasXY(t.clientX,t.clientY);
       var is=screenToIso(cv.x,cv.y);
-      var idx=findFurnitureAt(is);
+      var idx=findFurnitureAt(is,t.clientX,t.clientY);
       if(idx!==null) {
         state.selected=idx;
         showItemActions(t.clientX, t.clientY);
@@ -1495,7 +1520,7 @@ function initCanvasEvents() {
     var is=screenToIso(cv.x,cv.y);
     hoverTile=inGrid(is)?is:null;
     if(state.editMode) {
-      var idx=findFurnitureAt(is);
+      var idx=findFurnitureAt(is,e.clientX,e.clientY);
       if(idx!==null) {
         state.selected=idx;
         showRing(e.clientX,e.clientY);
