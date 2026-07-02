@@ -404,7 +404,7 @@ var pokeImg = null;
 
 var FURN_CATALOG = [
   {id:'monitor',  name:'Monitor', img:IMG_MONITOR,   cols:1,rows:1,scale:1.60,offsetY:0.89,offsetX:-0.01,flipped:false},
-  {id:'bed',      name:'Cama',    img:IMG_BED,        cols:2,rows:2,scale:1.15,offsetY:0.92,offsetX:-0.02,flipped:false},
+  {id:'bed',      name:'Cama',    img:IMG_BED,        cols:2,rows:2,scale:1.15,offsetY:0.92,offsetX:0.00,flipped:false},
   {id:'fireplace',name:'Lareira', img:IMG_FIREPLACE,  cols:2,rows:1,scale:0.9, offsetY:0.55,offsetX:0.0, flipped:false},
   {id:'stove',    name:'Fogão',   img:IMG_STOVE,      cols:1,rows:1,scale:2.10,offsetY:0.74,offsetX:-0.01,flipped:false}
 ];
@@ -1369,36 +1369,33 @@ function hideRing(){pr.style.display='none';pr.style.animation='none';}
 function cancelLP(){if(lpTimer){clearTimeout(lpTimer);lpTimer=null;}hideRing();}
 
 function findFurnitureAt(iso, screenX, screenY) {
-  // First try: pixel-perfect hit on the sprite bounding box.
-  // This lets the user tap the visible sprite, not just the grid tile under it.
-  if(screenX !== undefined && screenY !== undefined) {
-    // Convert screen tap to canvas coords
-    var cv = canvasXY(screenX, screenY);
-    // Check each furniture sprite bounding box (back to front = highest depth first)
-    for(var i=state.placed.length-1;i>=0;i--) {
-      var p = state.placed[i];
-      var img = furnitureImgs[p.id]; if(!img) continue;
-      var cat = FURN_CATALOG.find(function(c){return c.id===p.id;}) || p;
-      var z = p.level||0;
-      var lv = getLevel(z);
-      var anchor = isoLevel(p.col+p.cols, p.row+p.rows, z);
-      var sc = (lv.tileW*p.cols/img.width)*1.8*cat.scale;
-      var dw = img.width*sc, dh = img.height*sc;
-      var dx = anchor.x - dw*(0.5+cat.offsetX);
-      var dy = anchor.y - dh*cat.offsetY;
-      // Hit test: is tap inside sprite bounding box?
-      if(cv.x >= dx && cv.x <= dx+dw && cv.y >= dy && cv.y <= dy+dh) return i;
+  // Hit test based on the iso tile footprint of each furniture.
+  // The footprint is the cols×rows tiles it occupies PLUS the tile
+  // directly in front of the anchor (row+cols, the "shadow" tile) so
+  // tapping just below the sprite also selects it.
+  var z = iso ? (iso.level||0) : 0;
+
+  // Sort placed items back-to-front so topmost (visually) wins first
+  var order = [];
+  for(var i=0;i<state.placed.length;i++) order.push(i);
+  order.sort(function(a,b){
+    var pa=state.placed[a], pb=state.placed[b];
+    return (pb.col+pb.row) - (pa.col+pa.row);
+  });
+
+  for(var oi=0;oi<order.length;oi++) {
+    var i = order[oi];
+    var p = state.placed[i];
+    if((p.level||0) !== z) continue;
+    // Check all tiles in footprint + 1 extra row/col in front (visual base)
+    for(var dc=0; dc<p.cols; dc++) {
+      for(var dr=0; dr<p.rows+1; dr++) {  // +1 row in front
+        if(p.col+dc === iso.col && p.row+dr === iso.row) return i;
+      }
     }
-  }
-  // Fallback: grid tile match (original logic, also check tile below furniture)
-  var z = iso.level||0;
-  for(var i=state.placed.length-1;i>=0;i--) {
-    var p=state.placed[i];
-    if((p.level||0)!==z) continue;
-    // Check occupied tiles + 1 tile in front (where base visually appears)
-    for(var dc=-1;dc<=p.cols;dc++) for(var dr=-1;dr<=p.rows;dr++) {
-      if(dc===-1 && dr===-1) continue;
-      if(p.col+dc===iso.col && p.row+dr===iso.row) return i;
+    // Also check 1 extra col in front
+    for(var dr2=0; dr2<p.rows; dr2++) {
+      if(p.col+p.cols === iso.col && p.row+dr2 === iso.row) return i;
     }
   }
   return null;
