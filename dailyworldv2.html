@@ -491,19 +491,46 @@ function loadFurnitureImgs(cb) {
 var DEFAULT_LEVEL_HEIGHT = 80; // px between levels visually
 
 function getRoomConfig() {
-  // IMPORTANT: must return the SAME persistent object every time, otherwise
-  // admin sliders edit a throwaway copy that render() never sees.
   if(!state.roomConfig) {
     var g = state.room ? state.room.grid : {tileW:66,tileH:36,originX:393,originY:300,cols:8,rows:8};
     state.roomConfig = {
       levels: [
-        {z:0, tileW:g.tileW, tileH:g.tileH, originX:g.originX, originY:g.originY, cols:g.cols, rows:g.rows}
+        {z:0, tileW:g.tileW, tileH:g.tileH, originX:g.originX, originY:g.originY, cols:g.cols, rows:g.rows,
+         activeTiles: null}  // null = all tiles active (default). Set to {} for custom per-tile.
       ],
       stairs: [],
       levelHeight: DEFAULT_LEVEL_HEIGHT
     };
   }
   return state.roomConfig;
+}
+
+// Returns true if tile (col,row) on level z is walkable
+function isTileActive(col, row, z) {
+  var lv = getLevel(z);
+  if(!lv) return false;
+  if(col<0||col>=lv.cols||row<0||row>=lv.rows) return false;
+  if(!lv.activeTiles) return true;  // null = all active
+  var key = col+','+row;
+  return lv.activeTiles[key] !== false;  // undefined = active, false = blocked
+}
+
+// Toggle a tile active/inactive
+function toggleTile(col, row, z) {
+  var lv = getLevel(z);
+  if(!lv) return;
+  if(!lv.activeTiles) {
+    // First edit: initialize all tiles as active
+    lv.activeTiles = {};
+  }
+  var key = col+','+row;
+  lv.activeTiles[key] = (lv.activeTiles[key] === false) ? true : false;
+}
+
+// Initialize activeTiles for a level from saved config
+function ensureActiveTiles(lv) {
+  // activeTiles can be null (all walkable) or an object {col,row: bool}
+  if(lv.activeTiles === undefined) lv.activeTiles = null;
 }
 
 function getLevel(z) {
@@ -687,6 +714,7 @@ function buildPath(fc, fr, fl, tc, tr, tl) {
       var nlv = getLevel(n.level);
       if (!nlv) return;
       if (n.col < 0 || n.col >= nlv.cols || n.row < 0 || n.row >= nlv.rows) return;
+      if (!isTileActive(n.col, n.row, n.level)) return;
       visited[k] = true;
       queue.push({
         col: n.col, row: n.row, level: n.level,
@@ -703,6 +731,7 @@ function walkPokeTo(col, row, level) {
   var lv = getLevel(level);
   if (!lv) return;
   if (col < 0 || col >= lv.cols || row < 0 || row >= lv.rows) return;
+  if (!isTileActive(col, row, level)) return;
 
   var path = buildPath(poke.col, poke.row, poke.level, col, row, level);
   if (!path || path.length === 0) return;
@@ -811,8 +840,20 @@ function render() {
     var z = lv.z;
 
     // Grid (edit mode or admin)
-    if(state.editMode || state.showGrid) {
-      var alpha = z===state.activeEditLevel ? 0.5 : 0.15;
+    if(state.editMode || state.showGrid || adminEditor.open) {
+      var isActive = (z===state.activeEditLevel);
+      var alpha = isActive ? 0.5 : 0.15;
+
+      // Draw inactive tiles first (red fill)
+      if(isActive && lv.activeTiles) {
+        for(var c=0;c<lv.cols;c++) for(var r=0;r<lv.rows;r++) {
+          if(!isTileActive(c,r,z)) {
+            drawTile(c,r,'#cc2222',0.45,z);
+          }
+        }
+      }
+
+      // Grid lines
       ctx.save(); ctx.strokeStyle='rgba(100,200,255,'+alpha+')'; ctx.lineWidth=0.8;
       for(var c=0;c<=lv.cols;c++){
         var a=isoLevel(c,0,z), b=isoLevel(c,lv.rows,z);
@@ -823,8 +864,8 @@ function render() {
         ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
       }
       ctx.restore();
-      // Dot at each corner
-      ctx.fillStyle='rgba(255,220,50,'+(z===state.activeEditLevel?0.8:0.2)+')';
+      // Corner dots
+      ctx.fillStyle='rgba(255,220,50,'+(isActive?0.8:0.2)+')';
       for(var c=0;c<=lv.cols;c++) for(var r=0;r<=lv.rows;r++) {
         var pt=isoLevel(c,r,z);
         ctx.beginPath();ctx.arc(pt.x,pt.y,2,0,Math.PI*2);ctx.fill();
@@ -902,6 +943,7 @@ function blocked(col, row, cols, rows, z, excl) {
   for(var dc=0;dc<cols;dc++) for(var dr=0;dr<rows;dr++) {
     var c=col+dc, r=row+dr;
     if(c<0||r<0||c>=lv.cols||r>=lv.rows) return true;
+    if(!isTileActive(c,r,z)) return true;
     for(var i=0;i<state.placed.length;i++) {
       if(i===excl) continue;
       var p=state.placed[i];
@@ -934,7 +976,9 @@ function drawFurniture(item, idx) {
 var adminEditor = {
   open: false,
   activeLevel: 0,
-  stairFrom: null,  // {col,row,level} waiting for second click
+  stairFrom: null,
+  paintMode: false,   // when true, tapping canvas toggles tile active/inactive
+  paintValue: null,   // true=activate, false=deactivate, null=toggle (set on first tap)
 };
 
 function toggleAdminEditor() {
@@ -1141,6 +1185,59 @@ function buildAdminPanel() {
   panel.appendChild(furnSec);
 
   // Save config
+  // ── Tile paint section ──────────────────────────────────────────────────
+  var paintSec = mk('div','ap-section');
+  paintSec.appendChild(mk('div','ap-title','🎨 TILES CAMINHÁVEIS'));
+
+  var paintHint = mk('div','ap-label',
+    adminEditor.paintMode
+      ? '✏️ Modo pintura ATIVO — toque/arraste tiles no cenário para ativar/desativar. Toque aqui para sair.'
+      : 'Ative o modo pintura para definir onde o personagem pode andar.'
+  );
+  paintHint.style.lineHeight = '1.5';
+  paintSec.appendChild(paintHint);
+
+  var paintBtn = mk('div','ap-btn', adminEditor.paintMode ? '⏹ Parar pintura' : '✏️ Pintar tiles');
+  paintBtn.style.cssText += adminEditor.paintMode ? ';background:#e94560;border-color:#e94560;' : '';
+  paintBtn.onclick = function() {
+    adminEditor.paintMode = !adminEditor.paintMode;
+    adminEditor.paintValue = null;
+    buildAdminPanel(); render();
+  };
+  paintSec.appendChild(paintBtn);
+
+  var lv = getLevel(adminEditor.activeLevel);
+  if(lv) {
+    var totalTiles = lv.cols * lv.rows;
+    var activeCt = 0;
+    for(var c=0;c<lv.cols;c++) for(var r=0;r<lv.rows;r++)
+      if(isTileActive(c,r,adminEditor.activeLevel)) activeCt++;
+    var statsEl = mk('div','ap-label', activeCt+'/'+totalTiles+' tiles ativos');
+    statsEl.style.color = '#ffaa00';
+    paintSec.appendChild(statsEl);
+  }
+
+  var resetBtn = mk('div','ap-btn','↺ Ativar todos os tiles');
+  resetBtn.onclick = function() {
+    var lv2 = getLevel(adminEditor.activeLevel);
+    if(lv2) { lv2.activeTiles = null; buildAdminPanel(); render(); }
+  };
+  paintSec.appendChild(resetBtn);
+
+  var clearBtn = mk('div','ap-btn','✕ Desativar todos os tiles');
+  clearBtn.style.color = '#ff8888';
+  clearBtn.onclick = function() {
+    var lv2 = getLevel(adminEditor.activeLevel);
+    if(lv2) {
+      lv2.activeTiles = {};
+      for(var c=0;c<lv2.cols;c++) for(var r=0;r<lv2.rows;r++)
+        lv2.activeTiles[c+','+r] = false;
+      buildAdminPanel(); render();
+    }
+  };
+  paintSec.appendChild(clearBtn);
+  panel.appendChild(paintSec);
+
   var saveSec = mk('div','ap-section');
   saveSec.appendChild(mk('div','ap-title','SALVAR'));
   var saveBtn = mk('div','ap-btn','📋 Copiar Config');
@@ -1318,10 +1415,20 @@ function initCanvasEvents() {
         render();
       }
     } else {
-      // Stair capture mode — tap fills the stair form instead of walking
-    if(window._stairCapture && window._stairCapture.active && hoverTile) {
-      window._stairCapture.active(hoverTile.col, hoverTile.row);
-      window._stairCapture.active = null;
+      if(adminEditor.open && adminEditor.paintMode && hoverTile) {
+      // Paint mode: first tap sets paint value (activate or deactivate), hold to paint
+      var z = adminEditor.activeLevel;
+      if(adminEditor.paintValue === null) {
+        // First tile: toggle and set brush value for drag
+        var wasActive = isTileActive(hoverTile.col, hoverTile.row, z);
+        adminEditor.paintValue = !wasActive;
+      }
+      var lv = getLevel(z);
+      if(lv) {
+        if(!lv.activeTiles) lv.activeTiles = {};
+        lv.activeTiles[hoverTile.col+','+hoverTile.row] = adminEditor.paintValue;
+      }
+      render();
     } else if(hoverTile) {
       walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
     }
@@ -1335,11 +1442,20 @@ function initCanvasEvents() {
     var cv=canvasXY(t.clientX,t.clientY);
     var is=screenToIso(cv.x,cv.y);
     hoverTile = inGrid(is)?is:null;
-    if(dragState.mode==='canvas') { moveGhost(t.clientX,t.clientY); render(); }
+    if(adminEditor.open && adminEditor.paintMode && hoverTile && adminEditor.paintValue !== null) {
+      var z = adminEditor.activeLevel;
+      var lv = getLevel(z);
+      if(lv && hoverTile.level === z) {
+        if(!lv.activeTiles) lv.activeTiles = {};
+        lv.activeTiles[hoverTile.col+','+hoverTile.row] = adminEditor.paintValue;
+        render();
+      }
+    } else if(dragState.mode==='canvas') { moveGhost(t.clientX,t.clientY); render(); }
   },{passive:false});
 
   canvas.addEventListener('touchend', function(e) {
     e.preventDefault(); cancelLP();
+    adminEditor.paintValue = null; // reset brush on finger lift
     if(dragState.mode==='canvas') {
       finishDrop();
     } else if(e.changedTouches.length>0 && state.editMode) {
@@ -1373,10 +1489,20 @@ function initCanvasEvents() {
         },700);
       } else { state.selected=null; closeActions(); render(); }
     } else {
-      // Stair capture mode — tap fills the stair form instead of walking
-    if(window._stairCapture && window._stairCapture.active && hoverTile) {
-      window._stairCapture.active(hoverTile.col, hoverTile.row);
-      window._stairCapture.active = null;
+      if(adminEditor.open && adminEditor.paintMode && hoverTile) {
+      // Paint mode: first tap sets paint value (activate or deactivate), hold to paint
+      var z = adminEditor.activeLevel;
+      if(adminEditor.paintValue === null) {
+        // First tile: toggle and set brush value for drag
+        var wasActive = isTileActive(hoverTile.col, hoverTile.row, z);
+        adminEditor.paintValue = !wasActive;
+      }
+      var lv = getLevel(z);
+      if(lv) {
+        if(!lv.activeTiles) lv.activeTiles = {};
+        lv.activeTiles[hoverTile.col+','+hoverTile.row] = adminEditor.paintValue;
+      }
+      render();
     } else if(hoverTile) {
       walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
     }
