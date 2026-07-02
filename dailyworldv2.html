@@ -1397,7 +1397,20 @@ function initCanvasEvents() {
     var is=screenToIso(cv.x,cv.y);
     hoverTile = inGrid(is)?is:null;
 
-    if(state.editMode) {
+    // Paint mode takes priority over everything else
+    if(adminEditor.open && adminEditor.paintMode && hoverTile) {
+      var z = adminEditor.activeLevel;
+      if(adminEditor.paintValue === null) {
+        var wasActive = isTileActive(hoverTile.col, hoverTile.row, z);
+        adminEditor.paintValue = !wasActive;
+      }
+      var lv = getLevel(z);
+      if(lv) {
+        if(!lv.activeTiles) lv.activeTiles = {};
+        lv.activeTiles[hoverTile.col+','+hoverTile.row] = adminEditor.paintValue;
+      }
+      render();
+    } else if(state.editMode) {
       var idx=findFurnitureAt(is);
       if(idx!==null) {
         showRing(t.clientX,t.clientY);
@@ -1415,23 +1428,7 @@ function initCanvasEvents() {
         render();
       }
     } else {
-      if(adminEditor.open && adminEditor.paintMode && hoverTile) {
-      // Paint mode: first tap sets paint value (activate or deactivate), hold to paint
-      var z = adminEditor.activeLevel;
-      if(adminEditor.paintValue === null) {
-        // First tile: toggle and set brush value for drag
-        var wasActive = isTileActive(hoverTile.col, hoverTile.row, z);
-        adminEditor.paintValue = !wasActive;
-      }
-      var lv = getLevel(z);
-      if(lv) {
-        if(!lv.activeTiles) lv.activeTiles = {};
-        lv.activeTiles[hoverTile.col+','+hoverTile.row] = adminEditor.paintValue;
-      }
-      render();
-    } else if(hoverTile) {
-      walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
-    }
+      if(hoverTile) walkPokeTo(hoverTile.col, hoverTile.row, hoverTile.level||0);
     }
   },{passive:false});
 
@@ -1443,9 +1440,10 @@ function initCanvasEvents() {
     var is=screenToIso(cv.x,cv.y);
     hoverTile = inGrid(is)?is:null;
     if(adminEditor.open && adminEditor.paintMode && hoverTile && adminEditor.paintValue !== null) {
+      // Paint on the active admin level regardless of detected iso level
       var z = adminEditor.activeLevel;
       var lv = getLevel(z);
-      if(lv && hoverTile.level === z) {
+      if(lv) {
         if(!lv.activeTiles) lv.activeTiles = {};
         lv.activeTiles[hoverTile.col+','+hoverTile.row] = adminEditor.paintValue;
         render();
