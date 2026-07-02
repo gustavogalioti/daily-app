@@ -957,12 +957,15 @@ function blocked(col, row, cols, rows, z, excl) {
 
 function drawFurniture(item, idx) {
   var img = furnitureImgs[item.id]; if(!img) return;
+  // Always read scale/offset from FURN_CATALOG so admin slider changes
+  // reflect instantly without needing to re-place the furniture.
+  var cat = FURN_CATALOG.find(function(c){ return c.id===item.id; }) || item;
   var z = item.level||0;
   var lv = getLevel(z);
   var anchor = isoLevel(item.col+item.cols, item.row+item.rows, z);
-  var sc = (lv.tileW*item.cols/img.width)*1.8*item.scale;
+  var sc = (lv.tileW*item.cols/img.width)*1.8*cat.scale;
   var dw=img.width*sc, dh=img.height*sc;
-  var dx=anchor.x-dw*(0.5+item.offsetX), dy=anchor.y-dh*item.offsetY;
+  var dx=anchor.x-dw*(0.5+cat.offsetX), dy=anchor.y-dh*cat.offsetY;
   ctx.save();
   if(item.flipped){ctx.translate(dx+dw/2,dy+dh/2);ctx.scale(-1,1);ctx.translate(-(dx+dw/2),-(dy+dh/2));}
   if(idx===state.selected&&state.editMode){ctx.shadowColor='#e94560';ctx.shadowBlur=18;}
@@ -1151,36 +1154,52 @@ function buildAdminPanel() {
   furnSec.appendChild(furnHint);
 
   FURN_CATALOG.forEach(function(cat) {
-    var fSec = mk('div','');
-    fSec.style.cssText='border-top:1px solid #0f3460;padding-top:6px;margin-top:6px;';
-    fSec.appendChild(mk('div','ap-label', cat.name.toUpperCase()));
+    // Wrap in IIFE to properly capture `cat` reference for each closure
+    (function(c) {
+      var fSec = mk('div','');
+      fSec.style.cssText='border-top:1px solid #0f3460;padding-top:6px;margin-top:6px;';
 
-    fSec.appendChild(slider('Scale', cat.scale, 0.1, 5.0, 0.01, function(v){
-      cat.scale=v; render();
-    }));
-    fSec.appendChild(slider('OffsetY', cat.offsetY, 0.0, 2.0, 0.01, function(v){
-      cat.offsetY=v; render();
-    }));
-    fSec.appendChild(slider('OffsetX', cat.offsetX, -1.0, 1.0, 0.01, function(v){
-      cat.offsetX=v; render();
-    }));
+      var nameRow = mk('div','ap-row');
+      nameRow.appendChild(mk('div','ap-label', c.name.toUpperCase()));
+      // Show current values
+      var vals = mk('div','ap-label', 'sc:'+c.scale.toFixed(2)+' Y:'+c.offsetY.toFixed(2)+' X:'+c.offsetX.toFixed(2));
+      vals.id = 'fvals_'+c.id;
+      vals.style.cssText='color:#ffaa00;font-size:7px;';
+      nameRow.appendChild(vals);
+      fSec.appendChild(nameRow);
 
-    var saveBtn = mk('div','ap-btn','💾 Salvar '+cat.name);
-    saveBtn.style.marginTop='3px';
-    (function(c){ saveBtn.onclick = async function() {
-      saveBtn.textContent = 'Salvando...';
-      try {
-        var resp = await fetch(API+'/api/dailyworld/furniture-configs', {
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
-          body: JSON.stringify({furnitureId:c.id, scale:c.scale, offsetY:c.offsetY, offsetX:c.offsetX})
-        });
-        showToast(resp.ok ? '✓ '+c.name+' salvo!' : 'Erro: '+(await resp.json()).error);
-      } catch(e) { showToast('Erro: '+e.message); }
-      saveBtn.textContent = '💾 Salvar '+c.name;
-    }; })(cat);
-    fSec.appendChild(saveBtn);
-    furnSec.appendChild(fSec);
+      function updateVals() {
+        var el = document.getElementById('fvals_'+c.id);
+        if(el) el.textContent = 'sc:'+c.scale.toFixed(2)+' Y:'+c.offsetY.toFixed(2)+' X:'+c.offsetX.toFixed(2);
+      }
+
+      fSec.appendChild(slider('Scale', c.scale, 0.1, 5.0, 0.01, function(v){
+        c.scale = v; updateVals(); render();
+      }));
+      fSec.appendChild(slider('OffsetY', c.offsetY, 0.0, 2.0, 0.01, function(v){
+        c.offsetY = v; updateVals(); render();
+      }));
+      fSec.appendChild(slider('OffsetX', c.offsetX, -1.0, 1.0, 0.01, function(v){
+        c.offsetX = v; updateVals(); render();
+      }));
+
+      var saveBtn = mk('div','ap-btn','💾 Salvar '+c.name);
+      saveBtn.style.marginTop='3px';
+      saveBtn.onclick = async function() {
+        saveBtn.textContent = 'Salvando...';
+        try {
+          var resp = await fetch(API+'/api/dailyworld/furniture-configs', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
+            body: JSON.stringify({furnitureId:c.id, scale:c.scale, offsetY:c.offsetY, offsetX:c.offsetX})
+          });
+          showToast(resp.ok ? '✓ '+c.name+' salvo!' : 'Erro ao salvar');
+        } catch(e) { showToast('Erro: '+e.message); }
+        saveBtn.textContent = '💾 Salvar '+c.name;
+      };
+      fSec.appendChild(saveBtn);
+      furnSec.appendChild(fSec);
+    })(cat);
   });
   panel.appendChild(furnSec);
 
