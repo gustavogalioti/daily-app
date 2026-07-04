@@ -1985,7 +1985,7 @@ function applySave(data) {
     state.placed = data.placed.map(function(p) {
       var cat = FURN_CATALOG.find(function(c){return c.id===p.id;});
       if(!cat) return null;
-      return Object.assign({},cat,{col:p.col,row:p.row,flipped:p.flipped||false});
+      return Object.assign({},cat,{col:p.col,row:p.row,flipped:p.flipped||false,level:p.level||0});
     }).filter(Boolean);
   }
   if(data.pokePos) state.pokePos = data.pokePos;
@@ -2065,8 +2065,8 @@ async function checkAndEnter() {
     showToast('Erro ao checar Dailypoke, seguindo mesmo assim');
   }
 
-  // Check if room already chosen
-  var saved = loadSave();
+  // Check if room already chosen — always fetches from server
+  var saved = await loadSave();
   if(saved && saved.roomId) {
     var room = ROOMS.find(function(r){return r.id===saved.roomId;});
     if(room) {
