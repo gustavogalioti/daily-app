@@ -538,6 +538,55 @@ var FURN_CATALOG = [
   {id:'planta_neon', name:'Planta Neon', category:'plantas', img:IMG_PLANTA_NEON, cols:1, rows:1, scale:1.0, offsetY:0.9, offsetX:0.0, flipped:false}
 ];
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL VARIABLES
+// ═══════════════════════════════════════════════════════════════════════════
+var API = '';  // same origin — routes served from same Express server
+var TOKEN = '';
+var USER  = null;
+var POKE  = null;
+var pokeImg = null;
+var canvas, ctx;
+var CW = 800, CH = 533;
+var roomImg = new Image();
+var furnitureImgs = {};
+var DEFAULT_LEVEL_HEIGHT = 80;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL CONFIGS — load admin-defined room/furniture configs for ALL users
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadGlobalConfigs() {
+  try {
+    var fr = await fetch(API+'/api/dailyworld/furniture-configs');
+    if(fr.ok) {
+      var fd = await fr.json();
+      var fcfg = fd.configs || {};
+      FURN_CATALOG.forEach(function(cat) {
+        var saved = fcfg[cat.id];
+        if(saved) {
+          if(typeof saved.scale==='number')   cat.scale   = saved.scale;
+          if(typeof saved.offsetY==='number') cat.offsetY = saved.offsetY;
+          if(typeof saved.offsetX==='number') cat.offsetX = saved.offsetX;
+        }
+      });
+    }
+  } catch(e) { console.warn('furniture-configs load failed', e); }
+  try {
+    var rr = await fetch(API+'/api/dailyworld/room-configs');
+    if(rr.ok) {
+      var rd = await rr.json();
+      var rcfg = rd.configs || {};
+      ROOMS.forEach(function(room) {
+        var saved = rcfg[room.id];
+        if(saved) {
+          if(saved.roomConfig) room.roomConfig = saved.roomConfig;
+          if(saved.defaultFurniture) room.defaultFurniture = saved.defaultFurniture;
+        }
+      });
+    }
+  } catch(e) { console.warn('room-configs load failed', e); }
+}
+
 var state = {
   room: null,
   roomConfig: null, // multi-level grid config
