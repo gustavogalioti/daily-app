@@ -187,4 +187,55 @@ router.post('/furniture-configs', authMiddleware, loadFullUser, async (req, res)
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL GAME SETTINGS (poke size, etc) — admin write, public read
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function ensureGlobalSettings() {
+  const db = getDB();
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS dailyworld_global_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_by TEXT,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `).run();
+}
+
+// GET /api/dailyworld/settings — public
+router.get('/settings', async (req, res) => {
+  try {
+    await ensureTables();
+    await ensureGlobalSettings();
+    const db = getDB();
+    const rows = await db.prepare('SELECT key, value FROM dailyworld_global_settings').all();
+    const settings = {};
+    (rows || []).forEach(r => { settings[r.key] = JSON.parse(r.value); });
+    res.json({ settings });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/dailyworld/settings — admin only
+router.post('/settings', authMiddleware, loadFullUser, async (req, res) => {
+  try {
+    if(!req.user.is_admin) return res.status(403).json({ error: 'Apenas administradores.' });
+    await ensureTables();
+    await ensureGlobalSettings();
+    const db = getDB();
+    const { key, value } = req.body;
+    if(!key) return res.status(400).json({ error: 'key obrigatório' });
+    const existing = await db.prepare('SELECT key FROM dailyworld_global_settings WHERE key=$1').get(key);
+    if(existing) {
+      await db.prepare('UPDATE dailyworld_global_settings SET value=$1, updated_by=$2, updated_at=NOW() WHERE key=$3')
+        .run(JSON.stringify(value), req.user.id, key);
+    } else {
+      await db.prepare('INSERT INTO dailyworld_global_settings (key,value,updated_by) VALUES ($1,$2,$3)')
+        .run(key, JSON.stringify(value), req.user.id);
+    }
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
