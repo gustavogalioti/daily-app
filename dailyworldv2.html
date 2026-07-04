@@ -559,13 +559,22 @@ var roomImg = new Image();
 var furnitureImgs = {};
 
 function loadFurnitureImgs(cb) {
-  var keys = Object.keys({monitor:1,bed:1,fireplace:1,stove:1});
-  var srcs = {monitor:IMG_MONITOR, bed:IMG_BED, fireplace:IMG_FIREPLACE, stove:IMG_STOVE};
+  // Load all images from FURN_CATALOG dynamically
+  var total = FURN_CATALOG.length;
+  if(total === 0) { cb(); return; }
   var loaded = 0;
-  keys.forEach(function(k) {
+  FURN_CATALOG.forEach(function(cat) {
     var img = new Image();
-    img.onload = function() { furnitureImgs[k] = img; loaded++; if(loaded===keys.length) cb(); };
-    img.src = srcs[k];
+    img.onload = function() {
+      furnitureImgs[cat.id] = img;
+      loaded++;
+      if(loaded === total) cb();
+    };
+    img.onerror = function() {
+      loaded++;
+      if(loaded === total) cb();
+    };
+    img.src = cat.img;
   });
 }
 
