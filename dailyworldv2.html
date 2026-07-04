@@ -608,6 +608,13 @@ async function loadGlobalConfigs() {
       });
     }
   } catch(e) { console.warn('room-configs load failed', e); }
+  try {
+    var sr = await fetch(API+'/api/dailyworld/settings');
+    if(sr.ok) {
+      var sd = await sr.json();
+      if(typeof (sd.settings||{}).poke_size === 'number') pokeSize = sd.settings.poke_size;
+    }
+  } catch(e) {}
 }
 
 var state = {
@@ -1322,6 +1329,30 @@ function buildAdminPanel() {
   panel.appendChild(furnSec);
 
   // Save config
+
+  // Dailypoke size
+  var pokeSec = mk('div','ap-section');
+  pokeSec.appendChild(mk('div','ap-title','DAILYPOKE'));
+  pokeSec.appendChild(slider('Tamanho (px)', pokeSize, 20, 200, 2, function(v){
+    pokeSize = v; render();
+  }));
+  var pokeSaveBtn = mk('div','ap-btn','Salvar tamanho do Poke');
+  pokeSaveBtn.style.marginTop='4px';
+  (function(btn){ btn.onclick = async function() {
+    btn.textContent = 'Salvando...';
+    try {
+      var resp = await fetch(API+'/api/dailyworld/settings', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
+        body: JSON.stringify({key:'poke_size', value:pokeSize})
+      });
+      showToast(resp.ok ? 'Tamanho salvo!' : 'Erro ao salvar');
+    } catch(e) { showToast('Erro: '+e.message); }
+    btn.textContent = 'Salvar tamanho do Poke';
+  }; })(pokeSaveBtn);
+  pokeSec.appendChild(pokeSaveBtn);
+  panel.appendChild(pokeSec);
+
   // ── Tile paint section ──────────────────────────────────────────────────
   var paintSec = mk('div','ap-section');
   paintSec.appendChild(mk('div','ap-title','🎨 TILES CAMINHÁVEIS'));
