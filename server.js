@@ -46,7 +46,9 @@ process.on('uncaughtException', (err) => {
 });
 
 
-const dailyworldRoutes = require('./dailyworld_routes'); app.use('/api/dailyworld', dailyworldRoutes);(async () => {
+const dailyworldRoutes = require('./dailyworld_routes'); app.use('/api/dailyworld', dailyworldRoutes);
+const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
+(async () => {
   try {
     await initDB();
   try { require('./cloudinary'); } catch(e) { console.error('cloudinary:', e.message); }

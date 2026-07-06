@@ -649,6 +649,17 @@ async function initNewsDB(pool) {
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_news_created ON news(created_at DESC)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_news_category ON news(category)`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS tower_scores (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    game TEXT NOT NULL DEFAULT 'daily_tower',
+    floor_reached INTEGER NOT NULL DEFAULT 0,
+    kills INTEGER NOT NULL DEFAULT 0,
+    coins INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, game)
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tower_scores_game ON tower_scores(game, floor_reached DESC)`);
 }
 
 module.exports = { initDB, getDB, initNewsDB };

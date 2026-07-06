@@ -13827,12 +13827,20 @@ const DT_FLOOR_H = 160;
 const DT_LADDER_W = 24;
 
 async function initDailyTowerHome() {
-  // ── Carregar recorde salvo ──
+  // ── Carregar recorde salvo (localStorage primeiro, depois API) ──
   try {
     const saved = JSON.parse(localStorage.getItem('dt_save')||'{}');
     if ((saved.record||0) > DT.record) DT.record = saved.record;
     if ((saved.deaths||0) > 0) DT.deaths = saved.deaths;
     if ((saved.globalRecord||0) > DT.globalRecord) DT.globalRecord = saved.globalRecord;
+  } catch(e) {}
+  // Sync com API (pega o recorde real do servidor)
+  try {
+    const apiScore = await api('/api/tower/my-score?game=daily_tower').catch(()=>null);
+    if (apiScore && apiScore.floor_reached > DT.record) {
+      DT.record = apiScore.floor_reached;
+      DT.globalRecord = Math.max(DT.globalRecord, apiScore.floor_reached);
+    }
   } catch(e) {}
 
   // Load player poke config
@@ -14239,11 +14247,16 @@ function dtDie() {
   // ── Salvar recorde no localStorage ──
   try {
     localStorage.setItem('dt_save', JSON.stringify({
-      record: DT.record,
-      deaths: DT.deaths,
-      globalRecord: DT.globalRecord,
+      record: DT.record, deaths: DT.deaths, globalRecord: DT.globalRecord,
     }));
   } catch(e) {}
+  // ── Salvar score na API (só se for recorde) ──
+  if (DT.floor > 0) {
+    api('/api/tower/score', {
+      method: 'POST',
+      body: JSON.stringify({ floor: DT.floor, kills: DT.kills, coins: DT.coins, game: 'daily_tower' })
+    }).catch(()=>{});
+  }
   document.getElementById('dt-death-floor').textContent=DT.floor;
   document.getElementById('dt-d-floor').textContent=DT.floor;
   document.getElementById('dt-d-record').textContent=DT.record;
@@ -14887,36 +14900,45 @@ function dtShareChallenge() {
 
 function dtShowRanking() { dtShowPanel('ranking'); dtRenderRanking('global'); }
 
-const DT_RANK_DATA = {
-  global:[], amigos:[], cidade:[],
-};
-
 function dtRankTab(type,el) {
   document.querySelectorAll('#dt-rank-tabs > div').forEach(t=>{t.style.color='#8888aa';t.style.borderBottomColor='transparent';});
   el.style.color='#f5a623'; el.style.borderBottomColor='#f5a623';
   dtRenderRanking(type);
 }
 
-function dtRenderRanking(type) {
-  const data = [...(DT_RANK_DATA[type]||[])];
-  // Inject current user
-  const userName = (typeof currentUser!=='undefined'&&currentUser)?currentUser.name:'Você';
-  if(DT.record>0) data.push({name:userName,emoji:'🧑',floor:DT.record,city:'',isYou:true});
-  data.sort((a,b)=>b.floor-a.floor);
-  const medals=['🥇','🥈','🥉'];
-  const list=document.getElementById('dt-rank-list');
-  if(data.length===0){
-    list.innerHTML=`<div style="text-align:center;padding:40px 20px;color:#8888aa;"><div style="font-size:40px;margin-bottom:10px;">🏙️</div><div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">Ranking vazio</div><div style="font-size:12px;">Jogue para aparecer aqui!</div></div>`;
-    return;
+async function dtRenderRanking(type) {
+  const list = document.getElementById('dt-rank-list');
+  list.innerHTML = `<div style="text-align:center;padding:30px;color:#8888aa;font-size:13px;">⏳ Carregando...</div>`;
+  try {
+    const rows = await api(`/api/tower/ranking?game=daily_tower`);
+    const medals = ['🥇','🥈','🥉'];
+    const userName = (typeof currentUser!=='undefined'&&currentUser) ? currentUser.name : '';
+    if(!rows || rows.length===0) {
+      list.innerHTML=`<div style="text-align:center;padding:40px 20px;color:#8888aa;"><div style="font-size:40px;margin-bottom:10px;">🏙️</div><div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">Ranking vazio</div><div style="font-size:12px;">Seja o primeiro a jogar!</div></div>`;
+      return;
+    }
+    list.innerHTML = rows.map((r,i) => {
+      const isYou = r.name === userName || (typeof currentUser!=='undefined'&&currentUser&&r.user_id===currentUser.id);
+      const avatarHtml = r.avatar_url
+        ? `<img src="${r.avatar_url}" style="width:40px;height:40px;object-fit:cover;border-radius:10px;">`
+        : `<div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#2a2a3e,#1a1a2e);display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid rgba(255,255,255,.1);">🧑</div>`;
+      return `
+        <div style="display:flex;align-items:center;gap:10px;background:${i<3?'rgba(245,166,35,.07)':'rgba(255,255,255,.03)'};border:1px solid ${i<3?'rgba(245,166,35,.25)':'rgba(255,255,255,.06)'};border-radius:12px;padding:10px;${isYou?'box-shadow:0 0 0 2px rgba(245,166,35,.3);':''}">
+          <div style="font-size:17px;width:28px;text-align:center;font-weight:900;color:${i===0?'#f5a623':i===1?'#c0c0c0':i===2?'#cd7f32':'#8888aa'};">${medals[i]||i+1}</div>
+          ${avatarHtml}
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">${r.name}${isYou?' 👈':''}</div>
+            ${r.city?`<div style="font-size:11px;color:#8888aa;">📍 ${r.city}</div>`:''}
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:19px;font-weight:900;color:#f5a623;">${r.floor_reached.toLocaleString('pt-BR')}</div>
+            <div style="font-size:10px;color:#8888aa;">andares</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML=`<div style="text-align:center;padding:30px;color:#ef4444;font-size:12px;">Erro ao carregar ranking</div>`;
   }
-  list.innerHTML=data.map((r,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;background:${i<3?'rgba(245,166,35,.07)':'rgba(255,255,255,.03)'};border:1px solid ${i<3?'rgba(245,166,35,.25)':'rgba(255,255,255,.06)'};border-radius:12px;padding:10px;${r.isYou?'box-shadow:0 0 0 2px rgba(245,166,35,.3);':''}">
-      <div style="font-size:17px;width:28px;text-align:center;font-weight:900;color:${i===0?'#f5a623':i===1?'#c0c0c0':i===2?'#cd7f32':'#8888aa'};">${medals[i]||i+1}</div>
-      <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#2a2a3e,#1a1a2e);display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid rgba(255,255,255,.1);">${r.emoji}</div>
-      <div style="flex:1;"><div style="font-size:13px;font-weight:700;">${r.name}${r.isYou?' 👈':''}</div>${r.city?`<div style="font-size:11px;color:#8888aa;">📍 ${r.city}</div>`:''}</div>
-      <div style="text-align:right;"><div style="font-size:19px;font-weight:900;color:#f5a623;">${r.floor.toLocaleString('pt-BR')}</div><div style="font-size:10px;color:#8888aa;">andares</div></div>
-    </div>
-  `).join('');
 }
 
 // Keyboard support for Tower when tab is active
