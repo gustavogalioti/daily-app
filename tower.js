@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getDB } = require('./database');
-const authMiddleware = require('./authmiddleware');
+const { authMiddleware } = require('./authmiddleware');
 const { v4: uuidv4 } = require('uuid');
 
 // POST /api/tower/score — salva ou atualiza melhor score do usuário
