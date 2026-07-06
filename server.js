@@ -81,6 +81,7 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
     ['/api/turnos', './turnos'],
     ['/api/mural', './mural'],
     ['/api/birthdays', './birthdays'],
+    ['/api/trunfo', './trunfo'],
   ];
   for (const [path, file] of routeFiles) {
     try {
@@ -99,9 +100,19 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
     console.log('  ✓ turnos DB inicializado');
   } catch(e) { console.error('turnos DB erro:', e.message); }
 
+  // Inicializar tabelas do Daily Trunfo (cartas + seed inicial)
+  try {
+    const { initTrunfoDB } = require('./trunfo');
+    await initTrunfoDB();
+    console.log('  ✓ trunfo DB inicializado');
+  } catch(e) { console.error('trunfo DB erro:', e.message); }
+
   app.get('/api/health', (req, res) => res.json({ status:'ok', app:'DAILY', version:'3.0.0' }));
   app.get('/test', (req, res) => {
     res.sendFile(path.join(__dirname, 'test.html'));
+  });
+  app.get('/trunfo-admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'trunfo_admin.html'));
   });
 
   app.get('*', (req, res) => {

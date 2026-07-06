@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAILY TRUNFO — Admin de Fotos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{ --wood-1:#1b120c; --wood-2:#2e1f16; --wood-grain: rgba(0,0,0,.25); --paper:#f4ead9; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255,180,90,.06), transparent 55%),
+      repeating-linear-gradient(115deg, var(--wood-grain) 0px, transparent 2px, transparent 40px),
+      linear-gradient(160deg, var(--wood-2), var(--wood-1) 70%);
+    font-family:'VT323', monospace; color:var(--paper);
+    padding:16px 14px 50px;
+  }
+  .pf{ font-family:'Press Start 2P'; }
+  .hd{ text-align:center; margin-bottom:16px; }
+  .eyebrow{ font-size:8px; letter-spacing:2px; color:#ff9d4d; margin-bottom:10px; }
+  .h1{ font-size:15px; color:#fff3e6; text-shadow:0 3px 0 rgba(0,0,0,.5); }
+
+  #gate{ max-width:420px; margin:60px auto; text-align:center; }
+  #gate p{ font-size:17px; color:#d8c6ae; line-height:1.5; }
+  #app{ display:none; }
+
+  .tabs{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; max-width:520px; margin:0 auto 14px; }
+  .tab-btn{ font-size:9px; color:#d8c6ae; background:#2a231c; border:2px solid #59452f; padding:10px 12px; cursor:pointer; position:relative; }
+  .tab-btn.active{ background:#ff9d4d; color:#1b120c; border-color:#b5691f; }
+  .tab-btn .badge{ position:absolute; top:-8px; right:-6px; background:#2fae66; color:#fff; font-size:8px; border-radius:10px; padding:2px 5px; }
+  .tab-btn .badge.incomplete{ background:#d1352f; }
+
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:10px; max-width:560px; margin:0 auto; }
+  .tile{
+    aspect-ratio:63/92; border-radius:4px; position:relative; cursor:pointer;
+    background:#1a1512; border:3px solid var(--frame,#59452f); box-shadow:0 0 8px var(--glow,transparent) inset;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:4px;
+  }
+  .tile .art{ width:100%; height:60%; position:relative; }
+  .tile .art img{ width:100%; height:100%; object-fit:cover; border-radius:2px; }
+  .tile .art .ph{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; opacity:.4; }
+  .tile .nm{ font-size:8px; text-align:center; line-height:1.2; }
+  .tile .status{ position:absolute; top:2px; right:2px; font-size:12px; }
+
+  .r-incomum{ --frame:#9aa3ad; --glow:#c7ced4; }
+  .r-raro{ --frame:#2fae66; --glow:#7cf7b0; }
+  .r-epico{ --frame:#2f7bce; --glow:#7ec8ff; }
+  .r-lendario{ --frame:#8b4fd1; --glow:#cfa0ff; }
+  .r-mitico{ --frame:#d1a12f; --glow:#ffe28a; }
+  .r-cosmico{ --frame:#d1352f; --glow:#ff8f7e; }
+  .r-noturno{ --frame:#151515; --glow:#00f0ff; }
+
+  .overlay{ position:fixed; inset:0; background:rgba(10,7,5,.94); display:none; align-items:center; justify-content:center; z-index:50; padding:16px; }
+  .overlay.show{ display:flex; }
+  .modal{ width:100%; max-width:360px; display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .modal-title{ font-size:11px; color:#fff3e6; text-align:center; }
+
+  .crop-frame{
+    width:280px; height:373px; background:#000; border:3px solid #59452f; position:relative; overflow:hidden; touch-action:none;
+  }
+  .crop-frame img{ position:absolute; left:0; top:0; transform-origin:0 0; will-change:transform; user-select:none; pointer-events:none; }
+  .crop-empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:13px; color:#8d7c62; text-align:center; padding:20px; }
+
+  .zoom-row{ width:280px; display:flex; align-items:center; gap:10px; }
+  .zoom-row input[type="range"]{ flex:1; }
+
+  .file-btn{
+    font-family:'Press Start 2P'; font-size:9px; background:#2a231c; color:#f4ead9; border:2px solid #59452f;
+    padding:10px 14px; cursor:pointer; text-align:center;
+  }
+  .btn{
+    font-family:'Press Start 2P'; font-size:9px; letter-spacing:1px; background:#ff9d4d; color:#1b120c;
+    border:none; padding:12px 18px; cursor:pointer; box-shadow:0 4px 0 #b5691f;
+  }
+  .btn:active{ transform:translateY(3px); box-shadow:0 1px 0 #b5691f; }
+  .btn:disabled{ opacity:.4; cursor:default; }
+  .btn.ghost{ background:none; color:#f4ead9; border:2px solid #59452f; box-shadow:none; }
+  .modal-actions{ display:flex; gap:10px; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:#2a231c; border:2px solid #ff9d4d; color:#fff3e6; font-size:15px;
+    padding:10px 16px; border-radius:4px; z-index:60; opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+
+  <div class="hd">
+    <div class="eyebrow pf">DAILY · ADMIN</div>
+    <div class="h1 pf">FOTOS — DAILY TRUNFO</div>
+  </div>
+
+  <div id="gate">
+    <p id="gateMsg">Verificando sessão...</p>
+  </div>
+
+  <div id="app">
+    <div class="tabs" id="tabs"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="overlay" id="modal">
+    <div class="modal">
+      <div class="modal-title pf" id="modalTitle">CARTA</div>
+
+      <div class="crop-frame" id="cropFrame">
+        <div class="crop-empty" id="cropEmpty">Escolha uma foto pra começar</div>
+        <img id="cropImg" style="display:none">
+      </div>
+
+      <div class="zoom-row" id="zoomRow" style="display:none">
+        <span class="pf" style="font-size:8px;">🔍</span>
+        <input type="range" id="zoomSlider" min="50" max="300" value="100">
+      </div>
+
+      <label class="file-btn" for="fileInput">📷 ESCOLHER FOTO</label>
+      <input type="file" id="fileInput" accept="image/*" style="display:none">
+
+      <div class="modal-actions">
+        <button class="btn ghost" id="cancelBtn">CANCELAR</button>
+        <button class="btn" id="saveBtn" disabled>SALVAR</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+const API = ''; // mesmo domínio do Daily
+const token = localStorage.getItem('daily_token');
+
+let collections = [];
+let activeColl = null;
+let cardsCache = {};
+let currentCard = null;
+
+// crop state
+let img = new Image();
+let imgLoaded = false;
+let scale = 1, baseScale = 1, offsetX = 0, offsetY = 0;
+let dragging = false, dragStart = {x:0,y:0}, dragOffsetStart = {x:0,y:0};
+const FRAME_W = 280, FRAME_H = 373, OUT_W = 900, OUT_H = 1200;
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+async function api(path, opts={}){
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+      ...(opts.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(()=>({}));
+    throw new Error(body.error || ('Erro ' + res.status));
+  }
+  return res.json();
+}
+
+async function init(){
+  if (!token) {
+    document.getElementById('gateMsg').innerHTML =
+      'Você precisa estar logado no Daily neste mesmo navegador.<br><br>Abra o site principal, faça login como admin, e volte pra essa página.';
+    return;
+  }
+  try {
+    const data = await api('/api/trunfo/collections');
+    collections = data.collections;
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    activeColl = collections[0]?.key;
+    buildTabs();
+    await loadCards(activeColl);
+  } catch(e) {
+    document.getElementById('gateMsg').textContent = 'Erro ao carregar: ' + e.message + ' (confirme que está logado como admin)';
+  }
+}
+
+function buildTabs(){
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = collections.map(c => {
+    const missing = c.cardCount - c.withPhoto;
+    return `
+      <button class="tab-btn pf ${c.key===activeColl?'active':''}" data-key="${c.key}">
+        ${c.label}
+        <span class="badge ${missing>0?'incomplete':''}">${c.withPhoto}/${c.cardCount}</span>
+      </button>
+    `;
+  }).join('');
+  tabs.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.onclick = async () => {
+      activeColl = btn.dataset.key;
+      buildTabs();
+      await loadCards(activeColl);
+    };
+  });
+}
+
+async function loadCards(collKey){
+  if (!cardsCache[collKey]) {
+    const data = await api('/api/trunfo/cards?collection=' + collKey);
+    cardsCache[collKey] = data;
+  }
+  renderGrid();
+}
+
+function renderGrid(){
+  const data = cardsCache[activeColl];
+  const grid = document.getElementById('grid');
+  grid.innerHTML = data.cards.map(c => `
+    <div class="tile r-${c.rarity}" onclick='openModal(${JSON.stringify(JSON.stringify(c))})'>
+      <div class="art">
+        ${c.image_url
+          ? `<img src="${c.image_url}" alt="${c.name}">`
+          : `<div class="ph">🖼️</div>`}
+      </div>
+      <div class="nm">${c.name}</div>
+      <div class="status">${c.image_url ? '✅' : '❌'}</div>
+    </div>
+  `).join('');
+}
+
+function openModal(jsonStr){
+  currentCard = JSON.parse(jsonStr);
+  document.getElementById('modalTitle').textContent = currentCard.name;
+  resetCropState();
+  document.getElementById('modal').classList.add('show');
+}
+document.getElementById('cancelBtn').onclick = () => {
+  document.getElementById('modal').classList.remove('show');
+};
+
+function resetCropState(){
+  imgLoaded = false;
+  scale = 1; offsetX = 0; offsetY = 0;
+  document.getElementById('cropImg').style.display = 'none';
+  document.getElementById('cropEmpty').style.display = 'flex';
+  document.getElementById('zoomRow').style.display = 'none';
+  document.getElementById('saveBtn').disabled = true;
+  document.getElementById('fileInput').value = '';
+}
+
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    img = new Image();
+    img.onload = () => {
+      imgLoaded = true;
+      baseScale = Math.max(FRAME_W / img.width, FRAME_H / img.height);
+      scale = baseScale;
+      offsetX = (FRAME_W - img.width*scale)/2;
+      offsetY = (FRAME_H - img.height*scale)/2;
+      const cropImg = document.getElementById('cropImg');
+      cropImg.src = ev.target.result;
+      cropImg.style.display = 'block';
+      document.getElementById('cropEmpty').style.display = 'none';
+      document.getElementById('zoomRow').style.display = 'flex';
+      document.getElementById('zoomSlider').value = 100;
+      document.getElementById('saveBtn').disabled = false;
+      applyTransform();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+function applyTransform(){
+  const cropImg = document.getElementById('cropImg');
+  cropImg.style.width = img.width + 'px';
+  cropImg.style.height = img.height + 'px';
+  cropImg.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+}
+
+document.getElementById('zoomSlider').addEventListener('input', (e) => {
+  if (!imgLoaded) return;
+  const pct = parseFloat(e.target.value) / 100;
+  const newScale = baseScale * pct;
+  const cx = FRAME_W/2, cy = FRAME_H/2;
+  offsetX = cx - (cx - offsetX) * (newScale/scale);
+  offsetY = cy - (cy - offsetY) * (newScale/scale);
+  scale = newScale;
+  applyTransform();
+});
+
+const frameEl = document.getElementById('cropFrame');
+function pointerDown(x,y){
+  if (!imgLoaded) return;
+  dragging = true;
+  dragStart = {x,y};
+  dragOffsetStart = {x:offsetX, y:offsetY};
+}
+function pointerMove(x,y){
+  if (!dragging) return;
+  offsetX = dragOffsetStart.x + (x - dragStart.x);
+  offsetY = dragOffsetStart.y + (y - dragStart.y);
+  applyTransform();
+}
+function pointerUp(){ dragging = false; }
+
+frameEl.addEventListener('mousedown', e => pointerDown(e.clientX, e.clientY));
+window.addEventListener('mousemove', e => pointerMove(e.clientX, e.clientY));
+window.addEventListener('mouseup', pointerUp);
+frameEl.addEventListener('touchstart', e => { const t=e.touches[0]; pointerDown(t.clientX, t.clientY); }, {passive:true});
+window.addEventListener('touchmove', e => { if(dragging){ const t=e.touches[0]; pointerMove(t.clientX, t.clientY); } }, {passive:true});
+window.addEventListener('touchend', pointerUp);
+
+document.getElementById('saveBtn').onclick = async () => {
+  if (!imgLoaded || !currentCard) return;
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'SALVANDO...';
+
+  const outputScale = OUT_W / FRAME_W;
+  const canvas = document.createElement('canvas');
+  canvas.width = OUT_W;
+  canvas.height = OUT_H;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(
+    img,
+    offsetX * outputScale, offsetY * outputScale,
+    img.width * scale * outputScale, img.height * scale * outputScale
+  );
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+  try {
+    const result = await api(`/api/trunfo/cards/${currentCard.id}/photo`, {
+      method: 'POST',
+      body: JSON.stringify({ image: dataUrl }),
+    });
+    currentCard.image_url = result.image_url;
+    const data = cardsCache[activeColl];
+    const idx = data.cards.findIndex(c => c.id === currentCard.id);
+    if (idx >= 0) data.cards[idx].image_url = result.image_url;
+    renderGrid();
+
+    const withPhoto = data.cards.filter(c => c.image_url).length;
+    const collObj = collections.find(c => c.key === activeColl);
+    if (collObj) collObj.withPhoto = withPhoto;
+    buildTabs();
+
+    showToast('Foto salva!');
+    document.getElementById('modal').classList.remove('show');
+  } catch(e) {
+    showToast('Erro: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'SALVAR';
+  }
+};
+
+init();
+</script>
+
+</body>
+</html>
