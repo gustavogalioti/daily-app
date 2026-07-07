@@ -212,6 +212,11 @@ body{background:#1a1a2e;font-family:'Courier New',monospace;color:#fff;height:10
       <div class="ap-row"><div class="ap-label">Scale</div><input id="ieScale" type="range" min="0.1" max="5" step="0.01" style="flex:1;accent-color:#e94560;" oninput="ieUpdate()"><div id="ieScaleVal" class="ap-val"></div></div>
       <div class="ap-row"><div class="ap-label">OffsetY</div><input id="ieOffsetY" type="range" min="0" max="2" step="0.01" style="flex:1;accent-color:#e94560;" oninput="ieUpdate()"><div id="ieOffsetYVal" class="ap-val"></div></div>
       <div class="ap-row"><div class="ap-label">OffsetX</div><input id="ieOffsetX" type="range" min="-1" max="1" step="0.01" style="flex:1;accent-color:#e94560;" oninput="ieUpdate()"><div id="ieOffsetXVal" class="ap-val"></div></div>
+      <div style="font-size:7px;color:#888;margin-top:6px;">Sobreposição c/ outro item na mesma posição:</div>
+      <div style="display:flex;gap:4px;">
+        <div class="ia-btn" onclick="actionSendBack()" style="flex:1;text-align:center;font-size:8px;">⬇ Enviar p/ trás</div>
+        <div class="ia-btn" onclick="actionBringFront()" style="flex:1;text-align:center;font-size:8px;">⬆ Trazer p/ frente</div>
+      </div>
       <div style="display:flex;gap:4px;margin-top:4px;">
         <div class="ia-btn" onclick="actionFlip()" style="flex:1;text-align:center;">⟺</div>
         <div class="ia-btn danger" onclick="actionDelete()" style="flex:1;text-align:center;">🗑</div>
@@ -6408,29 +6413,38 @@ function render() {
       }
     }
 
-    // Furniture on this level (sorted by depth)
+    // Furniture on this level (sorted by depth) — the poke (player) is merged into
+    // this same sort so it correctly draws behind/in front of furniture based on
+    // position, instead of always drawing on top of everything.
     var TABLE_LIKE_CATS = {mesas:1, criados_mudos:1, escritorio:1};
     var lvFurn = state.placed.filter(function(it){ return (it.level||0)===z; });
-    var sorted = lvFurn.map(function(it,i){return{it:it,i:state.placed.indexOf(it)};})
-      .sort(function(a,b){
+    var drawList = lvFurn.map(function(it){return{kind:'furn',it:it,i:state.placed.indexOf(it)};});
+    var pokeOnThisLevel = !state.editMode && poke.level===z;
+    if(pokeOnThisLevel) drawList.push({kind:'poke', it:{col:poke.col,row:poke.row,depthBias:0}});
+    var sorted = drawList.sort(function(a,b){
         var da=(a.it.col+a.it.row), db=(b.it.col+b.it.row);
         if(da!==db) return da-db;
+        // Manual override: per-instance depth nudge set via "trazer p/ frente / enviar p/ trás"
+        var biasA=a.it.depthBias||0, biasB=b.it.depthBias||0;
+        if(biasA!==biasB) return biasA-biasB;
         // Tie-break: chairs always render behind tables/nightstands/desks sharing the same depth
         var aChair=a.it.category==='cadeiras', bChair=b.it.category==='cadeiras';
         var aTable=!!TABLE_LIKE_CATS[a.it.category], bTable=!!TABLE_LIKE_CATS[b.it.category];
         if(aChair && bTable) return -1;
         if(bChair && aTable) return 1;
+        // The poke defaults to drawing after furniture it ties with (a person standing
+        // in front of/on the same tile-depth as an object reads as being in front of it).
+        if(a.kind==='poke' && b.kind==='furn') return 1;
+        if(b.kind==='poke' && a.kind==='furn') return -1;
         return 0;
       });
     sorted.forEach(function(e){
+      if(e.kind==='poke') { drawPoke(); return; }
       if(e.i===state.selected && state.editMode)
         for(var dc=0;dc<e.it.cols;dc++) for(var dr=0;dr<e.it.rows;dr++)
           drawTile(e.it.col+dc,e.it.row+dr,'#e94560',0.2,z);
       drawFurniture(e.it,e.i);
     });
-
-    // Poke on this level
-    if(!state.editMode && poke.level===z) drawPoke();
   });
 
   document.getElementById('sMode').textContent = state.editMode ? 'edição' : 'explorar';
@@ -6506,7 +6520,7 @@ function adminSwitchRoom(targetRoom) {
   if(state.room) {
     state.adminRoomData[state.room.id] = {
       roomConfig: state.roomConfig ? JSON.parse(JSON.stringify(state.roomConfig)) : null,
-      placed: state.placed.map(function(p){return {id:p.id,col:p.col,row:p.row,cols:p.cols,rows:p.rows,flipped:p.flipped,level:p.level||0};}),
+      placed: state.placed.map(function(p){return {id:p.id,col:p.col,row:p.row,cols:p.cols,rows:p.rows,flipped:p.flipped,level:p.level||0,depthBias:p.depthBias||0};}),
     };
   }
 
@@ -6523,7 +6537,7 @@ function adminSwitchRoom(targetRoom) {
     state.placed = cached.placed.map(function(p){
       var cat = FURN_CATALOG.find(function(c){return c.id===p.id;});
       if(!cat) return null;
-      return Object.assign({},cat,{col:p.col,row:p.row,flipped:p.flipped||false,level:p.level||0});
+      return Object.assign({},cat,{col:p.col,row:p.row,flipped:p.flipped||false,level:p.level||0,depthBias:p.depthBias||0});
     }).filter(Boolean);
   } else {
     state.roomConfig = targetRoom.roomConfig ? JSON.parse(JSON.stringify(targetRoom.roomConfig)) : null;
@@ -7047,7 +7061,7 @@ function initCanvasEvents() {
     var col=Math.max(0,Math.min(lv.cols-cat.cols,hoverTile.col));
     var row=Math.max(0,Math.min(lv.rows-cat.rows,hoverTile.row));
     if(blocked(col,row,cat.cols,cat.rows,z)){showToast('Espaço ocupado!');dragState.catId=null;return;}
-    var newItem=Object.assign({},cat,{col:col,row:row,flipped:false,level:z});
+    var newItem=Object.assign({},cat,{col:col,row:row,flipped:false,level:z,depthBias:0});
     state.placed.push(newItem); state.selected=state.placed.length-1;
     dragState.catId=null; autoSave(); render();
   });
@@ -7133,6 +7147,18 @@ function actionFlip() {
   state.placed[state.selected].flipped = !state.placed[state.selected].flipped;
   closeActions(); autoSave(); render();
 }
+function actionSendBack() {
+  if(state.selected===null) return;
+  var item = state.placed[state.selected];
+  item.depthBias = (item.depthBias||0) - 1;
+  autoSave(); render();
+}
+function actionBringFront() {
+  if(state.selected===null) return;
+  var item = state.placed[state.selected];
+  item.depthBias = (item.depthBias||0) + 1;
+  autoSave(); render();
+}
 function actionDelete() {
   if(state.selected===null) return;
   state.placed.splice(state.selected,1);
@@ -7187,7 +7213,7 @@ function buildEditSidebar() {
         var lv = getLevel(z);
         for(var r=0;r<lv.rows;r++) for(var c=0;c<lv.cols;c++)
           if(!blocked(c,r,cat.cols,cat.rows,z,null)) {
-            state.placed.push(Object.assign({},cat,{col:c,row:r,flipped:false,level:z}));
+            state.placed.push(Object.assign({},cat,{col:c,row:r,flipped:false,level:z,depthBias:0}));
             state.selected=state.placed.length-1;
             autoSave(); render(); showToast(cat.name+' adicionado!'); return;
           }
@@ -7223,7 +7249,7 @@ function buildEditSidebar() {
             var col=Math.max(0,Math.min(lv.cols-cat2.cols,hoverTile.col));
             var row=Math.max(0,Math.min(lv.rows-cat2.rows,hoverTile.row));
             if(!blocked(col,row,cat2.cols,cat2.rows,z,null)){
-              state.placed.push(Object.assign({},cat2,{col:col,row:row,flipped:false,level:z}));
+              state.placed.push(Object.assign({},cat2,{col:col,row:row,flipped:false,level:z,depthBias:0}));
               state.selected=state.placed.length-1;
               autoSave(); showToast(cat2.name+' colocado!');
             } else showToast('Espaço ocupado!');
@@ -7281,7 +7307,7 @@ function showIntroStep() {
 function autoSave() {
   var saveData = {
     roomId: state.room.id,
-    placed: state.placed.map(function(p){ return {id:p.id,col:p.col,row:p.row,cols:p.cols,rows:p.rows,flipped:p.flipped,level:p.level||0}; }),
+    placed: state.placed.map(function(p){ return {id:p.id,col:p.col,row:p.row,cols:p.cols,rows:p.rows,flipped:p.flipped,level:p.level||0,depthBias:p.depthBias||0}; }),
     pokePos: state.pokePos,
     roomConfig: state.roomConfig||null,
   };
@@ -7315,7 +7341,7 @@ function applySave(data) {
     state.placed = data.placed.map(function(p) {
       var cat = FURN_CATALOG.find(function(c){return c.id===p.id;});
       if(!cat) return null;
-      return Object.assign({},cat,{col:p.col,row:p.row,flipped:p.flipped||false,level:p.level||0});
+      return Object.assign({},cat,{col:p.col,row:p.row,flipped:p.flipped||false,level:p.level||0,depthBias:p.depthBias||0});
     }).filter(Boolean);
   }
   if(data.pokePos) state.pokePos = data.pokePos;
