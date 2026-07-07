@@ -117,6 +117,9 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
   app.get('/trunfo-teste', (req, res) => {
     res.sendFile(path.join(__dirname, 'trunfo_test_player.html'));
   });
+  app.get('/trunfo-mesa', (req, res) => {
+    res.sendFile(path.join(__dirname, 'trunfo_test_mesa.html'));
+  });
 
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) return res.status(404).json({ error:'Not found' });
@@ -292,6 +295,7 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
     if (WebSocketServer) {
       const wssTruco = new WebSocketServer({ noServer: true });
       const wssCoop  = new WebSocketServer({ noServer: true });
+      const wssTrunfo = new WebSocketServer({ noServer: true });
 
       try {
         const { setupTrucoWS } = require('./truco');
@@ -305,18 +309,26 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
         console.log('  ✓ Coop WS pronto');
       } catch(e) { console.warn('Coop WS erro:', e.message); }
 
+      try {
+        const { setupTrunfoWS } = require('./trunfo_ws');
+        setupTrunfoWS(wssTrunfo);
+        console.log('  ✓ Trunfo WS pronto');
+      } catch(e) { console.warn('Trunfo WS erro:', e.message); }
+
       httpServer.on('upgrade', (req, socket, head) => {
         const path = req.url.split('?')[0];
         if (path === '/ws/truco') {
           wssTruco.handleUpgrade(req, socket, head, ws => wssTruco.emit('connection', ws, req));
         } else if (path === '/ws/coop') {
           wssCoop.handleUpgrade(req, socket, head, ws => wssCoop.emit('connection', ws, req));
+        } else if (path === '/ws/trunfo') {
+          wssTrunfo.handleUpgrade(req, socket, head, ws => wssTrunfo.emit('connection', ws, req));
         } else {
           socket.destroy();
         }
       });
 
-      console.log('  ✓ WebSocket ativo: /ws/truco + /ws/coop');
+      console.log('  ✓ WebSocket ativo: /ws/truco + /ws/coop + /ws/trunfo');
     }
   } catch(e) { console.warn('WS erro:', e.message); }
   httpServer.listen(PORT, '0.0.0.0', () => console.log(`\n🗓️  DAILY v3 rodando em http://localhost:${PORT}\n`));

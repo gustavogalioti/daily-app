@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAILY TRUNFO — Mesa Multiplayer (Real)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{ --wood-1:#1b120c; --wood-2:#2e1f16; --wood-grain: rgba(0,0,0,.25); --paper:#f4ead9; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255,180,90,.06), transparent 55%),
+      repeating-linear-gradient(115deg, var(--wood-grain) 0px, transparent 2px, transparent 40px),
+      linear-gradient(160deg, var(--wood-2), var(--wood-1) 70%);
+    font-family:'VT323', monospace; color:var(--paper);
+    padding:16px 14px 50px; display:flex; flex-direction:column; align-items:center;
+  }
+  .pf{ font-family:'Press Start 2P'; }
+  .hd{ text-align:center; margin-bottom:16px; }
+  .eyebrow{ font-size:8px; letter-spacing:2px; color:#ff9d4d; margin-bottom:10px; }
+  .h1{ font-size:14px; color:#fff3e6; }
+
+  .card{ background:rgba(0,0,0,.25); border:2px solid rgba(255,255,255,.08); border-radius:6px; padding:18px; max-width:380px; width:100%; }
+  .row{ display:flex; gap:8px; margin-bottom:10px; }
+  select, input{ font-family:'VT323'; font-size:16px; background:#2a231c; border:2px solid #59452f; color:#f4ead9; padding:8px 10px; flex:1; }
+  .btn{ font-family:'Press Start 2P'; font-size:9px; background:#ff9d4d; color:#1b120c; border:none; padding:11px 14px; cursor:pointer; box-shadow:0 4px 0 #b5691f; }
+  .btn:active{ transform:translateY(3px); box-shadow:none; }
+  .btn.ghost{ background:none; color:#f4ead9; border:2px solid #59452f; box-shadow:none; }
+  .btn:disabled{ opacity:.4; }
+  .code-display{ text-align:center; font-family:'Press Start 2P'; font-size:22px; color:#ff9d4d; letter-spacing:4px; margin:14px 0; }
+  .lobby-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .lobby-row{ background:#2a231c; border:2px solid #59452f; padding:8px 10px; font-size:15px; display:flex; justify-content:space-between; }
+  .hint{ font-size:13px; color:#8d7c62; text-align:center; }
+
+  .mesa-wrap{ display:none; width:100%; max-width:480px; flex-direction:column; align-items:center; gap:14px; }
+  .mesa-oval{ position:relative; width:100%; aspect-ratio:1/0.85; max-width:400px; border-radius:50%;
+    background: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.06), transparent 60%), linear-gradient(150deg,#3a2c1f,#241a12);
+    box-shadow: inset 0 0 0 6px #14100b, inset 0 0 30px rgba(0,0,0,.6);
+    display:flex; align-items:center; justify-content:center; }
+  .center-hint{ font-family:'Press Start 2P'; font-size:8px; color:#d8c6ae; text-align:center; max-width:180px; }
+  .seat{ position:absolute; transform:translate(-50%,-50%); text-align:center; width:74px; }
+  .avatar-ring{ width:44px; height:44px; border-radius:50%; margin:0 auto 4px; background:#2a231c; border:3px solid #59452f; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .seat.leader .avatar-ring{ border-color:#ff9d4d; box-shadow:0 0 12px 2px #ff9d4d; }
+  .seat-name{ font-size:11px; color:#f4ead9; }
+  .seat-count{ font-size:13px; color:#cbb98f; }
+
+  .your-panel{ width:100%; max-width:260px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .your-label{ font-family:'Press Start 2P'; font-size:8px; color:#d8c6ae; }
+  .tr-card{ --frame:#9aa3ad; --glow:#c7ced4; --accent:#e7ebee; width:170px; aspect-ratio:63/92; position:relative; }
+  .tr-card-inner{ position:relative; width:100%; height:100%; background:#12100e; }
+  .tr-frame{ position:absolute; inset:0; padding:7px; background:var(--frame);
+    box-shadow:0 0 0 3px #0d0b0a, inset 0 0 0 2px rgba(0,0,0,.35);
+    clip-path:polygon(0 6px,6px 6px,6px 0,calc(100% - 6px) 0,calc(100% - 6px) 6px,100% 6px,100% calc(100% - 6px),calc(100% - 6px) calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,6px calc(100% - 6px),0 calc(100% - 6px)); }
+  .tr-face{ position:relative; height:100%; background:#1a1512; display:flex; flex-direction:column; overflow:hidden; border:2px solid rgba(0,0,0,.5); }
+  .tr-art{ margin:6px 6px 0; flex:0 0 42%; border:2px solid rgba(0,0,0,.5); overflow:hidden; }
+  .tr-art img{ width:100%; height:100%; object-fit:cover; }
+  .tr-nameplate{ margin:5px 6px 0; text-align:center; padding:3px; background:linear-gradient(180deg,#2a231c,#171310); border:2px solid rgba(0,0,0,.5); }
+  .tr-name{ font-family:'Press Start 2P'; font-size:8px; color:var(--accent); }
+  .tr-attrs{ padding:4px 6px 6px; display:flex; flex-direction:column; gap:3px; }
+  .tr-attr{ display:grid; grid-template-columns:14px 1fr 22px; align-items:center; gap:4px; font-size:11px; }
+  .tr-attr button.attr-btn{ all:unset; display:grid; grid-template-columns:14px 1fr 22px; align-items:center; gap:4px; width:100%; cursor:pointer; padding:2px 3px; }
+  .tr-attr button.attr-btn:hover{ background:rgba(255,157,77,.25); }
+  .tr-attr-bar{ height:6px; background:#0d0b0a; border:1px solid rgba(0,0,0,.6); position:relative; overflow:hidden; }
+  .tr-attr-bar>span{ position:absolute; inset:0; width:var(--val,50%); background:linear-gradient(90deg,var(--frame),var(--accent)); }
+
+  .r-incomum{ --frame:#9aa3ad; --glow:#c7ced4; } .r-raro{ --frame:#2fae66; } .r-epico{ --frame:#2f7bce; }
+  .r-lendario{ --frame:#8b4fd1; } .r-mitico{ --frame:#d1a12f; } .r-cosmico{ --frame:#d1352f; } .r-noturno{ --frame:#151515; }
+
+  .timer-bar{ width:100%; max-width:260px; height:8px; background:#0d0b0a; border:1px solid rgba(0,0,0,.6); overflow:hidden; }
+  .timer-bar>span{ display:block; height:100%; background:linear-gradient(90deg,#ff9d4d,#ffcf94); }
+
+  .result{ min-height:44px; text-align:center; font-size:17px; background:rgba(0,0,0,.25); border:2px solid rgba(255,255,255,.08); border-radius:4px; padding:10px; max-width:340px; }
+  .result b{ color:#ff9d4d; }
+
+  .reveal-row{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:400px; }
+  .reveal-mini{ width:56px; text-align:center; font-size:10px; background:#1a1512; border:2px solid var(--frame,#59452f); border-radius:3px; padding:4px; }
+  .reveal-mini img{ width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:2px; }
+  .reveal-mini.winner{ box-shadow:0 0 10px 2px #7cf7b0; }
+
+  .overlay{ position:fixed; inset:0; background:rgba(10,7,5,.94); display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:20; padding:20px; text-align:center; }
+  .overlay.show{ display:flex; }
+</style>
+</head>
+<body>
+
+  <div class="hd">
+    <div class="eyebrow pf">DAILY · MULTIPLAYER REAL</div>
+    <div class="h1 pf">DAILY TRUNFO — MESA</div>
+  </div>
+
+  <div class="card" id="setupCard">
+    <div id="gateMsg" class="hint"></div>
+    <div id="setupInner" style="display:none">
+      <div class="row">
+        <select id="collSelect">
+          <option value="animais">🐾 Animais</option>
+          <option value="carros">🚗 Carros</option>
+          <option value="paises">🌎 Países</option>
+          <option value="filmes">🎬 Filmes</option>
+          <option value="bichos">🐕 Bichos</option>
+        </select>
+        <select id="maxSelect">
+          <option value="2">2 jogadores</option>
+          <option value="3">3 jogadores</option>
+          <option value="4">4 jogadores</option>
+          <option value="5" selected>5 jogadores</option>
+        </select>
+      </div>
+      <button class="btn" id="createBtn" style="width:100%; margin-bottom:14px;">CRIAR SALA →</button>
+      <div class="row">
+        <input type="text" id="codeInput" placeholder="CÓDIGO DA SALA" maxlength="5" style="text-transform:uppercase">
+        <button class="btn ghost" id="joinBtn">ENTRAR</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="lobbyCard" style="display:none; margin-top:14px;">
+    <div class="code-display" id="codeDisplay"></div>
+    <div class="lobby-list" id="lobbyList"></div>
+    <button class="btn" id="startBtn" style="width:100%; display:none;">INICIAR PARTIDA →</button>
+    <div class="hint" id="lobbyHint">Aguardando o dono da sala iniciar...</div>
+  </div>
+
+  <div class="mesa-wrap" id="mesaWrap">
+    <div class="mesa-oval" id="mesaOval">
+      <div class="center-hint" id="centerHint">CARREGANDO...</div>
+    </div>
+    <div class="your-panel">
+      <div class="your-label pf" id="yourLabel">SUA CARTA</div>
+      <div class="tr-card" id="yourCardHost"></div>
+    </div>
+    <div class="timer-bar"><span id="timerFill" style="width:100%"></span></div>
+    <div class="result" id="result">Aguardando...</div>
+    <div class="reveal-row" id="revealRow"></div>
+  </div>
+
+  <div class="overlay" id="gameoverOverlay">
+    <div class="h1 pf" id="gameoverTitle">FIM DE JOGO</div>
+    <div id="rankingList"></div>
+    <button class="btn" onclick="location.reload()">JOGAR DE NOVO</button>
+  </div>
+
+<script>
+const token = localStorage.getItem('daily_token');
+let ws = null;
+let me = null;
+let currentCode = null;
+let isHost = false;
+let timerInterval = null;
+
+async function api(path){
+  const res = await fetch(path, { headers: { 'Authorization': 'Bearer ' + token } });
+  if (!res.ok) throw new Error('Erro ' + res.status);
+  return res.json();
+}
+
+async function init(){
+  if (!token) {
+    document.getElementById('gateMsg').textContent = 'Faça login no Daily neste navegador primeiro.';
+    return;
+  }
+  try {
+    const { user } = await api('/api/auth/me');
+    me = user;
+    document.getElementById('gateMsg').textContent = `Logado como ${user.name}`;
+    document.getElementById('setupInner').style.display = 'block';
+    connectWS();
+  } catch(e) {
+    document.getElementById('gateMsg').textContent = 'Erro ao carregar sessão: ' + e.message;
+  }
+}
+
+function connectWS(){
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = `${proto}://${location.host}/ws/trunfo?userId=${encodeURIComponent(me.id)}&name=${encodeURIComponent(me.name)}&avatar=${encodeURIComponent(me.avatar_url||'')}`;
+  ws = new WebSocket(url);
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    handleMsg(msg);
+  };
+  ws.onclose = () => { console.warn('WS fechado'); };
+}
+
+function send(obj){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+
+document.getElementById('createBtn').onclick = () => {
+  send({ type:'create_room', collection: document.getElementById('collSelect').value, maxPlayers: parseInt(document.getElementById('maxSelect').value) });
+};
+document.getElementById('joinBtn').onclick = () => {
+  const code = document.getElementById('codeInput').value.trim().toUpperCase();
+  if (!code) return;
+  currentCode = code;
+  send({ type:'join_room', code });
+};
+document.getElementById('startBtn').onclick = () => {
+  send({ type:'start_game', code: currentCode });
+};
+
+function handleMsg(msg){
+  if (msg.type === 'room_created') {
+    currentCode = msg.code;
+    isHost = true;
+    showLobby();
+  }
+  else if (msg.type === 'lobby') {
+    currentCode = msg.code;
+    isHost = (msg.hostId === me.id);
+    showLobby();
+    document.getElementById('codeDisplay').textContent = msg.code;
+    document.getElementById('lobbyList').innerHTML = msg.players.map(p => `
+      <div class="lobby-row"><span>${p.name}${p.id===msg.hostId?' 👑':''}</span><span>${p.id===me.id?'(você)':''}</span></div>
+    `).join('');
+    document.getElementById('startBtn').style.display = isHost ? 'block' : 'none';
+    document.getElementById('lobbyHint').textContent = isHost ? `${msg.players.length} jogador(es) na sala.` : 'Aguardando o dono da sala iniciar...';
+  }
+  else if (msg.type === 'error') {
+    alert(msg.msg);
+  }
+  else if (msg.type === 'game_started') {
+    document.getElementById('setupCard').style.display = 'none';
+    document.getElementById('lobbyCard').style.display = 'none';
+    document.getElementById('mesaWrap').style.display = 'flex';
+  }
+  else if (msg.type === 'state') {
+    renderState(msg);
+  }
+  else if (msg.type === 'gameover') {
+    showGameover(msg);
+  }
+}
+
+function showLobby(){
+  document.getElementById('setupCard').style.display = 'none';
+  document.getElementById('lobbyCard').style.display = 'block';
+}
+
+function buildSeats(players){
+  const oval = document.getElementById('mesaOval');
+  oval.querySelectorAll('.seat').forEach(s => s.remove());
+  const n = players.length;
+  players.forEach((p, i) => {
+    const angle = 90 + i * (360 / n);
+    const rad = angle * Math.PI / 180;
+    const x = 50 + 42 * Math.cos(rad);
+    const y = 50 + 40 * Math.sin(rad);
+    const seat = document.createElement('div');
+    seat.className = 'seat';
+    seat.style.left = x + '%';
+    seat.style.top = y + '%';
+    seat.innerHTML = `
+      <div class="avatar-ring">${p.id === me.id ? '🧑' : '🎮'}</div>
+      <div class="seat-name">${p.id===me.id ? 'VOCÊ' : p.name}</div>
+      <div class="seat-count">${p.handCount}</div>
+    `;
+    oval.appendChild(seat);
+  });
+}
+
+function cardHTML(card, clickable){
+  const attrsHTML = Object.entries(card.stats).map(([key,val]) => {
+    const inner = `<span>▪</span><span class="tr-attr-bar"><span style="--val:${val}%"></span></span><span>${val}</span>`;
+    return clickable
+      ? `<div class="tr-attr"><button class="attr-btn" data-attr="${key}">${inner}</button></div>`
+      : `<div class="tr-attr">${inner}</div>`;
+  }).join('');
+  return `
+    <div class="tr-card-inner r-${card.rarity}">
+      <div class="tr-frame"></div>
+      <div class="tr-face">
+        <div class="tr-art">${card.image_url ? `<img src="${card.image_url}">` : ''}</div>
+        <div class="tr-nameplate"><div class="tr-name">${card.name}</div></div>
+        <div class="tr-attrs">${attrsHTML}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderState(state){
+  buildSeats(state.players);
+  document.getElementById('revealRow').innerHTML = '';
+
+  const isLeader = state.leaderId === me.id;
+  document.getElementById('yourLabel').textContent = isLeader ? 'SUA CARTA — ESCOLHA O ATRIBUTO' : 'SUA CARTA';
+
+  clearInterval(timerInterval);
+  if (state.phase === 'choosing') {
+    document.getElementById('centerHint').textContent = isLeader ? 'ESCOLHA UM ATRIBUTO' : 'AGUARDANDO O LÍDER...';
+    document.getElementById('result').textContent = '';
+    if (state.yourCard) {
+      document.getElementById('yourCardHost').innerHTML = cardHTML(state.yourCard, isLeader);
+      if (isLeader) {
+        document.querySelectorAll('#yourCardHost .attr-btn').forEach(btn => {
+          btn.onclick = () => send({ type:'choose_attr', code: currentCode, attr: btn.dataset.attr });
+        });
+      }
+    }
+    const fill = document.getElementById('timerFill');
+    const start = state.turnStartedAt, dur = state.turnDurationMs;
+    timerInterval = setInterval(() => {
+      const left = Math.max(0, dur - (Date.now() - start));
+      fill.style.width = (left / dur * 100) + '%';
+    }, 100);
+  }
+  else if (state.phase === 'revealed' && state.reveal) {
+    const r = state.reveal;
+    document.getElementById('centerHint').textContent = 'ATRIBUTO: ' + r.attr.toUpperCase();
+    document.getElementById('revealRow').innerHTML = r.results.map(res => `
+      <div class="reveal-mini r-${res.rarity} ${!r.tie && res.playerId===r.winnerId ? 'winner' : ''}">
+        ${res.image_url ? `<img src="${res.image_url}">` : ''}
+        <div>${res.name}</div>
+        <div>${res.value}</div>
+      </div>
+    `).join('');
+    if (r.tie) {
+      document.getElementById('result').innerHTML = `EMPATE! As cartas ficam na mesa.`;
+    } else {
+      const winnerName = r.results.find(x=>x.playerId===r.winnerId)?.playerId === me.id ? 'VOCÊ' : (r.results.find(x=>x.playerId===r.winnerId)?.name || '');
+      document.getElementById('result').innerHTML = `<b>${winnerName}</b> venceu essa rodada!`;
+    }
+  }
+}
+
+function showGameover(msg){
+  document.getElementById('gameoverTitle').textContent = msg.winnerId === me.id ? 'VOCÊ VENCEU!' : 'FIM DE JOGO';
+  document.getElementById('rankingList').innerHTML = msg.ranking.map(r => `
+    <div style="font-size:17px; margin:4px 0;">${r.position}º — ${r.id===me.id ? 'VOCÊ' : r.name}</div>
+  `).join('');
+  document.getElementById('gameoverOverlay').classList.add('show');
+}
+
+init();
+</script>
+
+</body>
+</html>
