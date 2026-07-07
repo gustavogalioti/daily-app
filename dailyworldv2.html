@@ -58,17 +58,21 @@ body{background:#1a1a2e;font-family:'Courier New',monospace;color:#fff;height:10
 .smenu-label{font-size:5px;color:#444;letter-spacing:1px;text-align:center;margin-top:-4px;}
 
 /* EDIT SIDEBAR */
-.edit-sidebar{position:absolute;left:44px;top:0;bottom:0;width:110px;background:rgba(22,33,62,0.97);border-right:1px solid #0f3460;display:none;flex-direction:column;z-index:40;overflow-y:scroll;padding:6px 5px;scrollbar-width:thin;scrollbar-color:#e94560 rgba(15,52,96,0.4);}
+.edit-sidebar{position:absolute;left:44px;top:0;bottom:0;width:124px;background:rgba(22,33,62,0.97);border-right:1px solid #0f3460;display:none;flex-direction:column;z-index:40;overflow-y:scroll;padding:6px 5px;scrollbar-width:auto;scrollbar-color:#e94560 rgba(15,52,96,0.4);}
 .edit-sidebar.open{display:flex;}
-.edit-sidebar::-webkit-scrollbar{width:8px;}
-.edit-sidebar::-webkit-scrollbar-track{background:rgba(15,52,96,0.4);border-radius:4px;}
-.edit-sidebar::-webkit-scrollbar-thumb{background:#e94560;border-radius:4px;}
-.edit-sidebar::-webkit-scrollbar-thumb:active{background:#ff6b81;}
+.edit-sidebar::-webkit-scrollbar{width:16px;}
+.edit-sidebar::-webkit-scrollbar-track{background:rgba(15,52,96,0.5);border-radius:8px;}
+.edit-sidebar::-webkit-scrollbar-thumb{background:#e94560;border-radius:8px;border:3px solid rgba(15,52,96,0.5);background-clip:padding-box;}
+.edit-sidebar::-webkit-scrollbar-thumb:active{background:#ff6b81;background-clip:padding-box;}
 .edit-title{font-size:7px;color:#e94560;letter-spacing:2px;text-align:center;margin-bottom:6px;}
 .furn-item{background:#0f3460;border:2px solid #1a4a8a;border-radius:6px;padding:4px 2px;cursor:pointer;text-align:center;margin-bottom:4px;user-select:none;}
 .furn-item:active{border-color:#e94560;}
 .furn-item img{width:100%;height:44px;object-fit:contain;pointer-events:none;}
 .furn-name{font-size:7px;color:#aac;margin-top:1px;}
+.cat-tabs{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #0f3460;}
+.cat-tab{font-size:7px;color:#aac;background:#0f3460;border:1px solid #1a4a8a;border-radius:10px;padding:3px 6px;cursor:pointer;user-select:none;white-space:nowrap;}
+.cat-tab.active{background:#e94560;border-color:#e94560;color:#fff;}
+.cat-tab:active{border-color:#e94560;}
 
 /* ITEM ACTIONS (popup when item selected) */
 .item-actions{position:absolute;display:none;background:rgba(22,33,62,0.97);border:1px solid #e94560;border-radius:10px;padding:8px;flex-direction:column;gap:6px;z-index:60;}
@@ -7182,19 +7186,41 @@ function buildEditSidebar() {
   var sb = document.getElementById('editSidebar');
   sb.innerHTML = '<div class="edit-title">ITENS</div>';
 
-  // Category tabs
+  // Group catalog by category
   var categories = {};
+  var catOrder = [];
   FURN_CATALOG.forEach(function(cat) {
     var c = cat.category || 'outros';
-    if(!categories[c]) categories[c] = [];
+    if(!categories[c]) { categories[c] = []; catOrder.push(c); }
     categories[c].push(cat);
   });
 
-  Object.keys(categories).forEach(function(catName) {
-    var tabLabel = mk('div','');
-    tabLabel.style.cssText='font-size:7px;color:#e94560;letter-spacing:2px;text-transform:uppercase;padding:4px 2px 2px;border-top:1px solid #0f3460;margin-top:4px;';
-    tabLabel.textContent = catName.toUpperCase();
-    sb.appendChild(tabLabel);
+  // Sub-tabs: "Tudo" + one per category, so the whole catalog doesn't have to be
+  // scrolled through at once — tapping a tab filters the list below it.
+  if(state.sidebarActiveCat===undefined) state.sidebarActiveCat = null; // null = "Tudo"
+  var tabsWrap = mk('div','cat-tabs');
+  var allTab = mk('div','cat-tab'+(state.sidebarActiveCat===null?' active':''));
+  allTab.textContent = 'Tudo';
+  allTab.addEventListener('click', function(){ state.sidebarActiveCat=null; buildEditSidebar(); });
+  tabsWrap.appendChild(allTab);
+  catOrder.forEach(function(catName){
+    var t = mk('div','cat-tab'+(state.sidebarActiveCat===catName?' active':''));
+    t.textContent = catName;
+    t.addEventListener('click', function(){ state.sidebarActiveCat=catName; buildEditSidebar(); });
+    tabsWrap.appendChild(t);
+  });
+  sb.appendChild(tabsWrap);
+
+  var catsToShow = state.sidebarActiveCat===null ? catOrder : [state.sidebarActiveCat];
+
+  catsToShow.forEach(function(catName) {
+    // Skip the header label when a single category is filtered — the tab already says it
+    if(state.sidebarActiveCat===null) {
+      var tabLabel = mk('div','');
+      tabLabel.style.cssText='font-size:7px;color:#e94560;letter-spacing:2px;text-transform:uppercase;padding:4px 2px 2px;border-top:1px solid #0f3460;margin-top:4px;';
+      tabLabel.textContent = catName.toUpperCase();
+      sb.appendChild(tabLabel);
+    }
 
     categories[catName].forEach(function(cat) {
       var d = document.createElement('div');
