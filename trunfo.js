@@ -407,4 +407,69 @@ router.get('/me/collection', authMiddleware, async (req, res) => {
   res.json({ collection, attrs: COLLECTIONS_META[collection].attrs, cards });
 });
 
+// ────────────────────────────────────────────────────────────────
+// Loja — abertura de pacotes
+// ────────────────────────────────────────────────────────────────
+const RARITY_ORDER = ['incomum','raro','epico','lendario','mitico','cosmico','noturno'];
+const RARITY_WEIGHTS = { incomum:35, raro:28, epico:18, lendario:10, mitico:5, cosmico:3, noturno:1 };
+const FRAGMENT_VALUE = { incomum:5, raro:10, epico:20, lendario:40, mitico:80, cosmico:150, noturno:300 };
+const PACKS = {
+  bronze:  { cost:100, count:3 },
+  dourado: { cost:300, count:5, guaranteeMin:'lendario' },
+};
+
+function rollRarity(guaranteeMin){
+  let pool = Object.entries(RARITY_WEIGHTS);
+  if (guaranteeMin) {
+    const minIdx = RARITY_ORDER.indexOf(guaranteeMin);
+    pool = pool.filter(([r]) => RARITY_ORDER.indexOf(r) >= minIdx);
+  }
+  const total = pool.reduce((s,[,w]) => s+w, 0);
+  let roll = Math.random() * total;
+  for (const [r,w] of pool) { if (roll < w) return r; roll -= w; }
+  return pool[0][0];
+}
+
+// POST /api/trunfo/packs/open  { type: 'bronze'|'dourado', collection: 'animais' }
+router.post('/packs/open', authMiddleware, async (req, res) => {
+  const { type, collection } = req.body;
+  const pack = PACKS[type];
+  if (!pack) return res.status(400).json({ error: 'Tipo de pacote inválido' });
+  if (!COLLECTIONS_META[collection]) return res.status(400).json({ error: 'Coleção inválida' });
+
+  const db = getDB();
+  const player = await ensurePlayer(req.user.id);
+  if (player.coins < pack.cost) return res.status(400).json({ error: 'Moedas insuficientes' });
+
+  await db.prepare('UPDATE trunfo_players SET coins=coins-$1, updated_at=NOW() WHERE user_id=$2').run(pack.cost, req.user.id);
+
+  const pulls = [];
+  let fragGained = 0;
+  for (let i = 0; i < pack.count; i++) {
+    const guarantee = (pack.guaranteeMin && i === 0) ? pack.guaranteeMin : null;
+    const rarity = rollRarity(guarantee);
+    const candidates = await db.prepare('SELECT * FROM trunfo_cards WHERE collection=$1 AND rarity=$2').all(collection, rarity);
+    if (!candidates.length) continue;
+    const card = candidates[Math.floor(Math.random() * candidates.length)];
+
+    const owned = await db.prepare('SELECT quantity FROM trunfo_player_cards WHERE user_id=$1 AND card_id=$2').get(req.user.id, card.id);
+    if (owned) {
+      const frag = FRAGMENT_VALUE[card.rarity] || 0;
+      fragGained += frag;
+      await db.prepare('UPDATE trunfo_player_cards SET quantity=quantity+1 WHERE user_id=$1 AND card_id=$2').run(req.user.id, card.id);
+      pulls.push({ id:card.id, name:card.name, rarity:card.rarity, image_url:card.image_url, isDup:true, fragGained:frag });
+    } else {
+      await db.prepare('INSERT INTO trunfo_player_cards (user_id, card_id, quantity) VALUES ($1,$2,1)').run(req.user.id, card.id);
+      pulls.push({ id:card.id, name:card.name, rarity:card.rarity, image_url:card.image_url, isDup:false });
+    }
+  }
+
+  if (fragGained > 0) {
+    await db.prepare('UPDATE trunfo_players SET fragments=fragments+$1, updated_at=NOW() WHERE user_id=$2').run(fragGained, req.user.id);
+  }
+
+  const updated = await db.prepare('SELECT coins, fragments FROM trunfo_players WHERE user_id=$1').get(req.user.id);
+  res.json({ pulls, coins: updated.coins, fragments: updated.fragments });
+});
+
 module.exports = { router, initTrunfoDB, ensurePlayer };

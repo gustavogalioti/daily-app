@@ -50,6 +50,25 @@
 
   #gate{ max-width:400px; margin:60px auto; text-align:center; font-size:16px; color:#d8c6ae; }
 
+  .pack-row{ display:flex; gap:10px; justify-content:center; margin-bottom:16px; flex-wrap:wrap; }
+  .pack-btn{
+    font-family:'Press Start 2P'; font-size:9px; background:#2a231c; color:#f4ead9; border:2px solid #59452f;
+    padding:12px 14px; cursor:pointer; box-shadow:0 4px 0 #1a140f;
+  }
+  .pack-btn.gold{ border-color:#d1a12f; color:#ffe28a; }
+  .pack-btn:active{ transform:translateY(3px); box-shadow:none; }
+  .pack-btn:disabled{ opacity:.4; cursor:default; }
+
+  .reveal-wrap{ display:none; flex-wrap:wrap; gap:10px; justify-content:center; max-width:520px; margin:0 auto 16px; }
+  .reveal-card{
+    width:70px; text-align:center; font-size:11px; background:#1a1512; border:2px solid var(--frame,#59452f);
+    border-radius:4px; padding:6px 4px;
+  }
+  .reveal-card img{ width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:2px; margin-bottom:4px; }
+  .reveal-tag{ font-size:9px; }
+  .reveal-tag.new{ color:#ffd35c; }
+  .reveal-tag.dup{ color:#7ec8ff; }
+
   /* ===== CARTA COMPLETA (pixel frame + atributos) ===== */
   .tr-card{ --accent:#e7ebee; width:100%; aspect-ratio:63/92; position:relative; }
   .r-raro .tr-card{ --accent:#c7ffdf; } .r-epico .tr-card{ --accent:#cfeaff; }
@@ -93,6 +112,11 @@
       <div class="coin-box frag">🔷 <b id="frags">0</b></div>
     </div>
     <div class="tabs" id="tabs"></div>
+    <div class="pack-row">
+      <button class="pack-btn" id="btnBronze">📦 BRONZE — 100 🪙</button>
+      <button class="pack-btn gold" id="btnDourado">🎁 DOURADO — 300 🪙</button>
+    </div>
+    <div class="reveal-wrap" id="revealWrap"></div>
     <div class="prog" id="prog"></div>
     <div class="grid" id="grid"></div>
   </div>
@@ -133,7 +157,12 @@ function buildTabs(){
     <button class="tab-btn pf ${k===activeColl?'active':''}" data-key="${k}">${COLL_LABELS[k]}</button>
   `).join('');
   document.querySelectorAll('.tab-btn').forEach(btn=>{
-    btn.onclick = async () => { activeColl = btn.dataset.key; buildTabs(); await loadCollection(activeColl); };
+    btn.onclick = async () => {
+      activeColl = btn.dataset.key;
+      buildTabs();
+      document.getElementById('revealWrap').style.display = 'none';
+      await loadCollection(activeColl);
+    };
   });
 }
 
@@ -171,6 +200,49 @@ async function loadCollection(collKey){
     `;
   }).join('');
 }
+
+async function apiPost(path, body){
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) throw new Error(data.error || ('Erro ' + res.status));
+  return data;
+}
+
+async function openPack(type){
+  const btn = type === 'dourado' ? document.getElementById('btnDourado') : document.getElementById('btnBronze');
+  btn.disabled = true;
+  try {
+    const result = await apiPost('/api/trunfo/packs/open', { type, collection: activeColl });
+    document.getElementById('coins').textContent = result.coins;
+    document.getElementById('frags').textContent = result.fragments;
+
+    const wrap = document.getElementById('revealWrap');
+    wrap.style.display = 'flex';
+    wrap.innerHTML = result.pulls.map(p => `
+      <div class="reveal-card" style="--frame:${rarityColor(p.rarity)}">
+        ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : ''}
+        <div>${p.name}</div>
+        <div class="reveal-tag ${p.isDup ? 'dup' : 'new'}">${p.isDup ? '+' + p.fragGained + ' 🔷' : 'NOVA!'}</div>
+      </div>
+    `).join('');
+
+    await loadCollection(activeColl);
+  } catch(e) {
+    alert('Erro: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+function rarityColor(rarity){
+  const map = { incomum:'#9aa3ad', raro:'#2fae66', epico:'#2f7bce', lendario:'#8b4fd1', mitico:'#d1a12f', cosmico:'#d1352f', noturno:'#00f0ff' };
+  return map[rarity] || '#59452f';
+}
+document.getElementById('btnBronze').onclick = () => openPack('bronze');
+document.getElementById('btnDourado').onclick = () => openPack('dourado');
 
 init();
 </script>
