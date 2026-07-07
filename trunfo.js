@@ -249,6 +249,31 @@ async function initTrunfoDB(){
     `).run();
   } catch(e){ console.error('trunfo_cards CREATE TABLE erro:', e.message); }
 
+  try {
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS trunfo_players (
+        user_id TEXT PRIMARY KEY,
+        coins INTEGER NOT NULL DEFAULT 500,
+        fragments INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `).run();
+  } catch(e){ console.error('trunfo_players CREATE TABLE erro:', e.message); }
+
+  try {
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS trunfo_player_cards (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        user_id TEXT NOT NULL,
+        card_id TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        acquired_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, card_id)
+      )
+    `).run();
+  } catch(e){ console.error('trunfo_player_cards CREATE TABLE erro:', e.message); }
+
   for (const [collection, cards] of Object.entries(SEED)) {
     for (const [slug, name, rarity, ...vals] of cards) {
       const attrs = COLLECTIONS_META[collection].attrs;
@@ -315,4 +340,68 @@ router.post('/cards/:id/photo', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
-module.exports = { router, initTrunfoDB };
+// ────────────────────────────────────────────────────────────────
+// Jogador — perfil, moedas/fragmentos, coleção
+// ────────────────────────────────────────────────────────────────
+const STARTER_COINS = 500;
+
+async function ensurePlayer(userId){
+  const db = getDB();
+  let player = await db.prepare('SELECT * FROM trunfo_players WHERE user_id=$1').get(userId);
+  if (player) return player;
+
+  await db.prepare(`
+    INSERT INTO trunfo_players (user_id, coins, fragments) VALUES ($1,$2,0)
+    ON CONFLICT (user_id) DO NOTHING
+  `).run(userId, STARTER_COINS);
+
+  // Kit inicial: 3 cartas Incomum + 1 Raro de cada coleção, pra não começar zerado
+  for (const collection of Object.keys(COLLECTIONS_META)) {
+    const incomuns = await db.prepare(
+      "SELECT id FROM trunfo_cards WHERE collection=$1 AND rarity='incomum' ORDER BY random() LIMIT 3"
+    ).all(collection);
+    const raros = await db.prepare(
+      "SELECT id FROM trunfo_cards WHERE collection=$1 AND rarity='raro' ORDER BY random() LIMIT 1"
+    ).all(collection);
+    for (const c of [...incomuns, ...raros]) {
+      try {
+        await db.prepare(`
+          INSERT INTO trunfo_player_cards (user_id, card_id, quantity) VALUES ($1,$2,1)
+          ON CONFLICT (user_id, card_id) DO NOTHING
+        `).run(userId, c.id);
+      } catch(e){ console.error('starter kit erro:', e.message); }
+    }
+  }
+
+  player = await db.prepare('SELECT * FROM trunfo_players WHERE user_id=$1').get(userId);
+  return player;
+}
+
+// GET /api/trunfo/me — saldo do jogador (cria registro + kit inicial na primeira vez)
+router.get('/me', authMiddleware, async (req, res) => {
+  const player = await ensurePlayer(req.user.id);
+  res.json({ coins: player.coins, fragments: player.fragments });
+});
+
+// GET /api/trunfo/me/collection?collection=animais — cartas que o jogador possui
+router.get('/me/collection', authMiddleware, async (req, res) => {
+  const { collection } = req.query;
+  if (!collection || !COLLECTIONS_META[collection]) return res.status(400).json({ error: 'Coleção inválida' });
+  await ensurePlayer(req.user.id);
+
+  const db = getDB();
+  const allCards = await db.prepare(
+    'SELECT id, slug, name, rarity, stats, image_url FROM trunfo_cards WHERE collection=$1 ORDER BY name ASC'
+  ).all(collection);
+  const owned = await db.prepare(
+    `SELECT card_id, quantity FROM trunfo_player_cards
+     WHERE user_id=$1 AND card_id IN (SELECT id FROM trunfo_cards WHERE collection=$2)`
+  ).all(req.user.id, collection);
+  const ownedMap = {};
+  owned.forEach(o => { ownedMap[o.card_id] = o.quantity; });
+
+  const cards = allCards.map(c => ({ ...c, owned: !!ownedMap[c.id], quantity: ownedMap[c.id] || 0 }));
+  res.json({ collection, attrs: COLLECTIONS_META[collection].attrs, cards });
+});
+
+module.exports = { router, initTrunfoDB, ensurePlayer };

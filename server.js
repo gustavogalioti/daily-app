@@ -114,6 +114,9 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
   app.get('/trunfo-admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'trunfo_admin.html'));
   });
+  app.get('/trunfo-teste', (req, res) => {
+    res.sendFile(path.join(__dirname, 'trunfo_test_player.html'));
+  });
 
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) return res.status(404).json({ error:'Not found' });
