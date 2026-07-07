@@ -274,6 +274,20 @@ async function initTrunfoDB(){
     `).run();
   } catch(e){ console.error('trunfo_player_cards CREATE TABLE erro:', e.message); }
 
+  try {
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS trunfo_decks (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        user_id TEXT NOT NULL,
+        collection TEXT NOT NULL,
+        name TEXT NOT NULL DEFAULT 'Meu Deck',
+        card_ids JSONB NOT NULL DEFAULT '[]',
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, collection)
+      )
+    `).run();
+  } catch(e){ console.error('trunfo_decks CREATE TABLE erro:', e.message); }
+
   for (const [collection, cards] of Object.entries(SEED)) {
     for (const [slug, name, rarity, ...vals] of cards) {
       const attrs = COLLECTIONS_META[collection].attrs;
@@ -470,6 +484,50 @@ router.post('/packs/open', authMiddleware, async (req, res) => {
 
   const updated = await db.prepare('SELECT coins, fragments FROM trunfo_players WHERE user_id=$1').get(req.user.id);
   res.json({ pulls, coins: updated.coins, fragments: updated.fragments });
+});
+
+// ────────────────────────────────────────────────────────────────
+// Deck Builder — salvar/ler o deck do jogador por coleção
+// ────────────────────────────────────────────────────────────────
+const DECK_MAX = 10;
+
+// GET /api/trunfo/me/deck?collection=animais
+router.get('/me/deck', authMiddleware, async (req, res) => {
+  const { collection } = req.query;
+  if (!COLLECTIONS_META[collection]) return res.status(400).json({ error: 'Coleção inválida' });
+  await ensurePlayer(req.user.id);
+
+  const db = getDB();
+  const deck = await db.prepare('SELECT name, card_ids FROM trunfo_decks WHERE user_id=$1 AND collection=$2').get(req.user.id, collection);
+  res.json({ collection, name: deck?.name || 'Meu Deck', cardIds: deck?.card_ids || [] });
+});
+
+// PUT /api/trunfo/me/deck  { collection, name, cardIds }
+router.put('/me/deck', authMiddleware, async (req, res) => {
+  const { collection, name, cardIds } = req.body;
+  if (!COLLECTIONS_META[collection]) return res.status(400).json({ error: 'Coleção inválida' });
+  if (!Array.isArray(cardIds)) return res.status(400).json({ error: 'cardIds precisa ser uma lista' });
+
+  const uniqueIds = [...new Set(cardIds)];
+  if (uniqueIds.length > DECK_MAX) return res.status(400).json({ error: `Deck limitado a ${DECK_MAX} cartas` });
+
+  const db = getDB();
+  if (uniqueIds.length > 0) {
+    const owned = await db.prepare(
+      `SELECT card_id FROM trunfo_player_cards WHERE user_id=$1 AND card_id = ANY($2::text[])`
+    ).all(req.user.id, uniqueIds);
+    const ownedSet = new Set(owned.map(o => o.card_id));
+    const notOwned = uniqueIds.filter(id => !ownedSet.has(id));
+    if (notOwned.length) return res.status(400).json({ error: 'Você não possui todas essas cartas', notOwned });
+  }
+
+  await db.prepare(`
+    INSERT INTO trunfo_decks (user_id, collection, name, card_ids)
+    VALUES ($1,$2,$3,$4)
+    ON CONFLICT (user_id, collection) DO UPDATE SET name=$3, card_ids=$4, updated_at=NOW()
+  `).run(req.user.id, collection, name || 'Meu Deck', JSON.stringify(uniqueIds));
+
+  res.json({ collection, name: name || 'Meu Deck', cardIds: uniqueIds });
 });
 
 module.exports = { router, initTrunfoDB, ensurePlayer };

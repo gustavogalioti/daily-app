@@ -69,6 +69,16 @@
   .reveal-tag.new{ color:#ffd35c; }
   .reveal-tag.dup{ color:#7ec8ff; }
 
+  .deck-section{ max-width:560px; margin:0 auto 16px; }
+  .deck-strip{ display:flex; gap:6px; overflow-x:auto; padding:6px 2px 10px; margin-bottom:8px; border-bottom:2px solid #3a2c1f; }
+  .deck-slot{ flex:0 0 auto; width:40px; aspect-ratio:63/92; border:2px dashed #59452f; border-radius:3px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:rgba(0,0,0,.2); }
+  .deck-slot img{ width:100%; height:100%; object-fit:cover; }
+  .deck-name-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .deck-name-row input{ flex:1; font-family:'VT323'; font-size:16px; background:#2a231c; border:2px solid #59452f; color:#f4ead9; padding:7px 9px; }
+  .tile.in-deck{ outline:3px solid #ff9d4d; }
+  .tile-wrap{ position:relative; }
+  .deck-mark{ position:absolute; top:2px; left:2px; background:#ff9d4d; color:#1b120c; font-size:10px; border-radius:8px; padding:1px 5px; z-index:3; }
+
   /* ===== CARTA COMPLETA (pixel frame + atributos) ===== */
   .tr-card{ --accent:#e7ebee; width:100%; aspect-ratio:63/92; position:relative; }
   .r-raro .tr-card{ --accent:#c7ffdf; } .r-epico .tr-card{ --accent:#cfeaff; }
@@ -117,6 +127,16 @@
       <button class="pack-btn gold" id="btnDourado">🎁 DOURADO — 300 🪙</button>
     </div>
     <div class="reveal-wrap" id="revealWrap"></div>
+
+    <div class="deck-section">
+      <div class="deck-name-row">
+        <input type="text" id="deckNameInput" value="Meu Deck">
+        <button class="pack-btn" id="saveDeckBtn">SALVAR DECK</button>
+      </div>
+      <div class="deck-strip" id="deckStrip"></div>
+      <div class="prog" id="deckCount">0/10 no deck — toque numa carta pra add/remover</div>
+    </div>
+
     <div class="prog" id="prog"></div>
     <div class="grid" id="grid"></div>
   </div>
@@ -126,10 +146,18 @@ const token = localStorage.getItem('daily_token');
 const COLL_KEYS = ['animais','carros','paises','filmes','bichos'];
 const COLL_LABELS = { animais:'🐾 Animais', carros:'🚗 Carros', paises:'🌎 Países', filmes:'🎬 Filmes', bichos:'🐕 Bichos' };
 let activeColl = 'animais';
+let cardsCache = {};
 
-async function api(path){
-  const res = await fetch(path, { headers: { 'Authorization': 'Bearer ' + token } });
-  if (!res.ok) throw new Error('Erro ' + res.status);
+async function api(path, opts={}){
+  const res = await fetch(path, {
+    method: opts.method || 'GET',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', ...(opts.headers||{}) },
+    body: opts.body,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(()=>({}));
+    throw new Error(body.error || ('Erro ' + res.status));
+  }
   return res.json();
 }
 
@@ -168,12 +196,22 @@ function buildTabs(){
 
 async function loadCollection(collKey){
   const data = await api('/api/trunfo/me/collection?collection=' + collKey);
+  cardsCache[collKey] = data;
+  await loadDeck(collKey);
+  renderGrid();
+  renderDeckStrip();
+}
+
+function renderGrid(){
+  const data = cardsCache[activeColl];
   const ownedCount = data.cards.filter(c => c.owned).length;
   document.getElementById('prog').textContent = `${ownedCount}/${data.cards.length} cartas obtidas`;
+
   document.getElementById('grid').innerHTML = data.cards.map(c => {
     if (!c.owned) {
       return `<div class="tile locked"><div class="tr-lockmark">🔒</div></div>`;
     }
+    const inDeck = currentDeck.cardIds.includes(c.id);
     const attrsHTML = data.attrs.map(a => `
       <div class="tr-attr">
         <span>${a.icon}</span>
@@ -182,17 +220,20 @@ async function loadCollection(collKey){
       </div>
     `).join('');
     return `
-      <div class="tile r-${c.rarity}">
+      <div class="tile-wrap">
+        ${inDeck ? `<div class="deck-mark">NO DECK</div>` : ''}
         ${c.quantity > 1 ? `<div class="qty">x${c.quantity}</div>` : ''}
-        <div class="tr-card">
-          <div class="tr-card-inner">
-            <div class="tr-frame"></div>
-            <div class="tr-face">
-              <div class="tr-topbar"><span class="tr-code">${c.slug}</span><span class="tr-gem"></span></div>
-              <div class="tr-art">${c.image_url ? `<img src="${c.image_url}" alt="${c.name}">` : ''}</div>
-              <div class="tr-nameplate"><div class="tr-name">${c.name}</div></div>
-              <div class="tr-rarity">${c.rarity.toUpperCase()}</div>
-              <div class="tr-attrs">${attrsHTML}</div>
+        <div class="tile r-${c.rarity} ${inDeck ? 'in-deck' : ''}" onclick="toggleDeckCard('${c.id}')">
+          <div class="tr-card">
+            <div class="tr-card-inner">
+              <div class="tr-frame"></div>
+              <div class="tr-face">
+                <div class="tr-topbar"><span class="tr-code">${c.slug}</span><span class="tr-gem"></span></div>
+                <div class="tr-art">${c.image_url ? `<img src="${c.image_url}" alt="${c.name}">` : ''}</div>
+                <div class="tr-nameplate"><div class="tr-name">${c.name}</div></div>
+                <div class="tr-rarity">${c.rarity.toUpperCase()}</div>
+                <div class="tr-attrs">${attrsHTML}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -243,6 +284,55 @@ function rarityColor(rarity){
 }
 document.getElementById('btnBronze').onclick = () => openPack('bronze');
 document.getElementById('btnDourado').onclick = () => openPack('dourado');
+
+let currentDeck = { name: 'Meu Deck', cardIds: [] };
+const DECK_MAX = 10;
+
+async function loadDeck(collKey){
+  const data = await api('/api/trunfo/me/deck?collection=' + collKey);
+  currentDeck = { name: data.name, cardIds: data.cardIds || [] };
+  document.getElementById('deckNameInput').value = currentDeck.name;
+}
+
+function renderDeckStrip(){
+  const cache = cardsCache[activeColl];
+  const strip = document.getElementById('deckStrip');
+  let html = '';
+  for (let i = 0; i < DECK_MAX; i++) {
+    const id = currentDeck.cardIds[i];
+    const card = id && cache ? cache.cards.find(c => c.id === id) : null;
+    html += `<div class="deck-slot">${card && card.image_url ? `<img src="${card.image_url}">` : (card ? '🃏' : '')}</div>`;
+  }
+  strip.innerHTML = html;
+  document.getElementById('deckCount').textContent = `${currentDeck.cardIds.length}/${DECK_MAX} no deck — toque numa carta pra add/remover`;
+}
+
+function toggleDeckCard(cardId){
+  const idx = currentDeck.cardIds.indexOf(cardId);
+  if (idx >= 0) {
+    currentDeck.cardIds.splice(idx, 1);
+  } else {
+    if (currentDeck.cardIds.length >= DECK_MAX) { alert('Deck cheio! Remova uma carta primeiro.'); return; }
+    currentDeck.cardIds.push(cardId);
+  }
+  renderDeckStrip();
+  renderGrid();
+}
+
+document.getElementById('saveDeckBtn').onclick = async () => {
+  const name = document.getElementById('deckNameInput').value || 'Meu Deck';
+  try {
+    const result = await api('/api/trunfo/me/deck', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ collection: activeColl, name, cardIds: currentDeck.cardIds }),
+    });
+    currentDeck = result;
+    alert(`Deck "${result.name}" salvo com ${result.cardIds.length} carta(s)!`);
+  } catch(e) {
+    alert('Erro ao salvar: ' + e.message);
+  }
+};
 
 init();
 </script>
