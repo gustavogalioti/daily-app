@@ -35,7 +35,7 @@
 
   .prog{ text-align:center; font-size:14px; color:#a99575; margin-bottom:12px; }
 
-  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:12px; max-width:560px; margin:0 auto; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; max-width:560px; margin:0 auto; }
   .tile{ aspect-ratio:63/92; position:relative; }
   .tile.locked{ background:#1a1512; border:3px solid #3a2c1f; border-radius:4px; }
   .tile .qty{ position:absolute; top:2px; right:2px; font-size:9px; background:#ff9d4d; color:#1b120c; border-radius:8px; padding:1px 5px; z-index:3; }
@@ -64,13 +64,13 @@
   .tr-topbar{ display:flex; align-items:center; justify-content:space-between; padding:4px 6px 2px; }
   .tr-code{ font-size:10px; color:#cbb98f; }
   .tr-gem{ width:11px; height:11px; background:var(--accent); clip-path:polygon(50% 0,100% 35%,82% 100%,18% 100%,0 35%); box-shadow:0 0 6px 1px var(--glow); }
-  .tr-art{ margin:0 6px; flex:1 1 auto; border:2px solid rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; font-size:26px; overflow:hidden; }
+  .tr-art{ margin:0 6px; flex:0 0 42%; border:2px solid rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; font-size:26px; overflow:hidden; }
   .tr-art img{ width:100%; height:100%; object-fit:cover; }
   .tr-nameplate{ margin:5px 6px 0; text-align:center; padding:3px; background:linear-gradient(180deg,#2a231c,#171310); border:2px solid rgba(0,0,0,.5); }
-  .tr-name{ font-family:'Press Start 2P'; font-size:7px; color:var(--accent); line-height:1.4; }
-  .tr-rarity{ text-align:center; font-family:'Press Start 2P'; font-size:5px; color:var(--frame); margin-top:4px; letter-spacing:1px; }
+  .tr-name{ font-family:'Press Start 2P'; font-size:8px; color:var(--accent); line-height:1.4; }
+  .tr-rarity{ text-align:center; font-family:'Press Start 2P'; font-size:6px; color:var(--frame); margin-top:4px; letter-spacing:1px; }
   .tr-attrs{ padding:4px 6px 6px; display:flex; flex-direction:column; gap:3px; }
-  .tr-attr{ display:grid; grid-template-columns:12px 1fr 20px; align-items:center; gap:4px; font-size:10px; }
+  .tr-attr{ display:grid; grid-template-columns:14px 1fr 22px; align-items:center; gap:4px; font-size:11px; }
   .tr-attr-bar{ height:6px; background:#0d0b0a; border:1px solid rgba(0,0,0,.6); position:relative; overflow:hidden; }
   .tr-attr-bar>span{ position:absolute; inset:0; width:var(--val,50%); background:linear-gradient(90deg,var(--frame),var(--accent)); }
   .tr-attr-val{ text-align:right; }
