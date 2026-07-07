@@ -355,15 +355,18 @@ async function ensurePlayer(userId){
     ON CONFLICT (user_id) DO NOTHING
   `).run(userId, STARTER_COINS);
 
-  // Kit inicial: 3 cartas Incomum + 1 Raro de cada coleção, pra não começar zerado
+  // Kit inicial: as 4 cartas de raridade mais baixa disponíveis em cada coleção
+  // (adaptável — não assume quantas Incomuns/Raras cada coleção tem)
   for (const collection of Object.keys(COLLECTIONS_META)) {
-    const incomuns = await db.prepare(
-      "SELECT id FROM trunfo_cards WHERE collection=$1 AND rarity='incomum' ORDER BY random() LIMIT 3"
-    ).all(collection);
-    const raros = await db.prepare(
-      "SELECT id FROM trunfo_cards WHERE collection=$1 AND rarity='raro' ORDER BY random() LIMIT 1"
-    ).all(collection);
-    for (const c of [...incomuns, ...raros]) {
+    const starterCards = await db.prepare(`
+      SELECT id FROM trunfo_cards WHERE collection=$1
+      ORDER BY CASE rarity
+        WHEN 'incomum' THEN 1 WHEN 'raro' THEN 2 WHEN 'epico' THEN 3
+        WHEN 'lendario' THEN 4 WHEN 'mitico' THEN 5 WHEN 'cosmico' THEN 6 ELSE 7 END,
+        random()
+      LIMIT 4
+    `).all(collection);
+    for (const c of starterCards) {
       try {
         await db.prepare(`
           INSERT INTO trunfo_player_cards (user_id, card_id, quantity) VALUES ($1,$2,1)
