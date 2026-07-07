@@ -912,25 +912,157 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
     <!-- ─── CONQUISTAS ─── -->
     <div id="tab-achievements" class="tab-content">
-      <div class="page-header">
-        <div class="page-header-left"><span class="page-icon">🏆</span><div class="section-title">Conquistas & Ranking</div></div>
-        <button class="btn btn-primary btn-sm hidden" id="btn-manage-ach" onclick="showAchSection('gerenciar', this)">⚙️ Gerenciar</button>
+
+      <style>
+        #ach-layout {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 14px;
+          align-items: start;
+          min-height: 75vh;
+        }
+        @media (min-width: 760px) {
+          #ach-layout { grid-template-columns: 200px 1fr 240px; }
+          #ach-col-left, #ach-col-right { position: sticky; top: 70px; }
+        }
+        .ach-mini-card {
+          display: flex; align-items: center; gap: 10px;
+          background: var(--surface2); border-radius: 10px; padding: 9px 12px;
+        }
+        .ach-mini-icon { font-size: 22px; flex-shrink: 0; }
+        .ach-mini-name { font-size: 12px; font-weight: 700; color: var(--text1); line-height: 1.3; }
+        .ach-mini-pts  { font-size: 10px; color: var(--muted); }
+        .ach-cat-pill  {
+          display: inline-flex; align-items: center; gap: 5px;
+          background: var(--surface2); border: 1.5px solid var(--border);
+          border-radius: 20px; padding: 5px 12px; cursor: pointer;
+          font-size: 12px; font-weight: 700; color: var(--text2);
+          transition: all .15s; white-space: nowrap;
+        }
+        .ach-cat-pill.active {
+          background: var(--accent); border-color: var(--accent); color: #fff;
+        }
+        .ach-all-card {
+          display: flex; align-items: center; gap: 10px;
+          background: var(--surface2); border-radius: 10px; padding: 9px 12px;
+          opacity: 0.5;
+        }
+        .ach-all-card.earned { opacity: 1; border-left: 3px solid var(--accent); }
+      </style>
+
+      <div class="page-header" style="margin-bottom:14px;">
+        <div class="page-header-left"><span class="page-icon">🏆</span><div class="section-title">Conquistas</div></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-ghost btn-sm" onclick="showAchSection('ranking',null)">🏅 Ranking</button>
+          <button class="btn btn-primary btn-sm hidden" id="btn-manage-ach" onclick="showAchSection('gerenciar',null)">⚙️ Gerenciar</button>
+        </div>
       </div>
-      <div class="filter-pills" id="ach-filter-pills">
-        <span class="pill active" onclick="showAchSection('earned',this)">Minhas</span>
-        <span class="pill" onclick="showAchSection('all',this)">Todas</span>
-        <span class="pill" onclick="showAchSection('ranking',this)">🏅 Ranking</span>
+
+      <!-- Ranking e Gerenciar (ocultos por padrão) -->
+      <div id="as-ranking" class="hidden" style="margin-bottom:14px;">
+        <button onclick="showAchSection('main',null)" class="btn btn-ghost btn-sm" style="margin-bottom:10px;">‹ Voltar</button>
+        <div class="ranking-list" id="ranking-list"></div>
       </div>
-      <div id="as-earned"><div class="ach-grid" id="ach-earned-grid"><div class="page-loader"><div class="loader"></div></div></div></div>
-      <div id="as-all" class="hidden"><div class="ach-grid" id="ach-all-grid"></div></div>
-      <div id="as-ranking" class="hidden"><div class="ranking-list" id="ranking-list"></div></div>
-      <div id="as-gerenciar" class="hidden">
+      <div id="as-gerenciar" class="hidden" style="margin-bottom:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div style="font-weight:700;font-size:15px;">Conquistas cadastradas</div>
+          <button onclick="showAchSection('main',null)" class="btn btn-ghost btn-sm">‹ Voltar</button>
           <button class="btn btn-primary btn-sm" onclick="openCreateAchievement()">+ Nova</button>
         </div>
         <div id="admin-achievements" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;"></div>
       </div>
+
+      <!-- Layout principal 3 colunas -->
+      <div id="ach-layout" id="as-main">
+
+        <!-- ── COL 1: Pontuação geral ── -->
+        <div id="ach-col-left" style="display:flex;flex-direction:column;gap:10px;">
+
+          <!-- Pontos totais -->
+          <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:16px;padding:20px;color:#fff;text-align:center;">
+            <div style="font-size:36px;margin-bottom:4px;">🏆</div>
+            <div id="ach-total-pts" style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;line-height:1;">—</div>
+            <div style="font-size:12px;opacity:.85;margin-top:4px;">pontos acumulados</div>
+          </div>
+
+          <!-- Stats resumo -->
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--muted);">Conquistas</span>
+              <span id="ach-stat-earned" style="font-size:14px;font-weight:800;color:var(--accent);">—</span>
+            </div>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--muted);">Disponíveis</span>
+              <span id="ach-stat-total" style="font-size:14px;font-weight:800;color:var(--text2);">—</span>
+            </div>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--muted);">Progresso</span>
+              <span id="ach-stat-pct" style="font-size:14px;font-weight:800;color:var(--text2);">—</span>
+            </div>
+            <!-- Barra de progresso -->
+            <div style="background:var(--surface2);border-radius:99px;height:8px;overflow:hidden;margin-top:2px;">
+              <div id="ach-progress-bar" style="height:100%;background:linear-gradient(90deg,var(--accent),#ff9a6c);border-radius:99px;width:0%;transition:width .6s;"></div>
+            </div>
+          </div>
+
+          <!-- Botão ranking (mobile) -->
+          <button class="btn btn-ghost btn-sm" onclick="showAchSection('ranking',null)" style="width:100%;">🏅 Ver Ranking</button>
+        </div>
+
+        <!-- ── COL 2: Minhas conquistas ── -->
+        <div id="ach-col-mid" style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--text1);">✅ Minhas Conquistas</div>
+          <div id="ach-earned-grid" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="page-loader"><div class="loader"></div></div>
+          </div>
+        </div>
+
+        <!-- ── COL 3: Todas as conquistas por categoria ── -->
+        <div id="ach-col-right" style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--text1);">🔓 Disponíveis</div>
+          <!-- Pills de categoria -->
+          <div id="ach-cat-pills" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+          <!-- Lista filtrada por categoria -->
+          <div id="ach-all-grid" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+      </div>
+
+      <!-- ── CONQUISTAS PELO MUNDO (placeholder) ── -->
+      <div style="margin-top:28px;border-radius:20px;overflow:hidden;border:1.5px solid var(--border);box-shadow:var(--shadow-md);">
+        <!-- Banner visual -->
+        <div style="background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);padding:32px 20px;text-align:center;position:relative;overflow:hidden;">
+          <!-- Elementos decorativos -->
+          <div style="position:absolute;top:-10px;left:-10px;font-size:60px;opacity:.12;transform:rotate(-15deg);">✈️</div>
+          <div style="position:absolute;bottom:-10px;right:-10px;font-size:70px;opacity:.12;transform:rotate(10deg);">🚢</div>
+          <div style="position:absolute;top:10px;right:20px;font-size:40px;opacity:.1;">🏔️</div>
+          <div style="position:absolute;bottom:10px;left:20px;font-size:40px;opacity:.1;">🚗</div>
+
+          <!-- Logo e ícones centrais -->
+          <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:10px;font-size:28px;">
+            🗼 🏛️ 🗽 ✈️ 🌏 🏜️ 🗿
+          </div>
+          <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:22px;color:#fff;letter-spacing:1px;margin-bottom:4px;">
+            CONQUISTAS <span style="color:#f97316;">PELO MUNDO</span>
+          </div>
+          <div style="font-size:12px;color:rgba(255,255,255,.6);letter-spacing:2px;text-transform:uppercase;">Em breve</div>
+
+          <!-- Sub-icons das 7 maravilhas estilizadas -->
+          <div style="display:flex;justify-content:center;gap:14px;margin-top:16px;flex-wrap:wrap;">
+            ${['🏯','🗿','🏛️','🕌','🗼','🏔️','🌊'].map(e =>
+              `<div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:8px 12px;font-size:20px;">${e}</div>`
+            ).join('')}
+          </div>
+        </div>
+
+        <div style="background:var(--surface);padding:16px 20px;text-align:center;">
+          <div style="font-size:13px;color:var(--muted);line-height:1.6;">
+            Visite lugares, complete desafios geográficos e desbloqueie conquistas únicas pelo mundo inteiro. Em breve disponível no DAILY.
+          </div>
+        </div>
+      </div>
+
     </div>
 
 
@@ -3444,23 +3576,105 @@ async function createCommunity(){
 // ═══════════════════════════════════
 // ACHIEVEMENTS
 // ═══════════════════════════════════
+let achAllData    = [];
+let achEarnedData = [];
+let achActiveCat  = 'todas';
+
 async function loadAchievements(){
   if(currentUser?.is_admin) document.getElementById('btn-manage-ach')?.classList.remove('hidden');
-  const g=document.getElementById('ach-earned-grid');
-  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+
+  const earnedGrid = document.getElementById('ach-earned-grid');
+  const allGrid    = document.getElementById('ach-all-grid');
+  if(earnedGrid) earnedGrid.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+
   try{
-    const{earned,locked}=await api('/api/achievements/me');
-    document.getElementById('ach-earned-grid').innerHTML=earned.length?earned.map(a=>`<div class="ach-card earned">
-      <div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div>
-      <div class="ach-desc">${a.description}</div>
-      <div class="ach-pts">✅ +${a.points} pts · ${timeAgo(a.earned_at)}</div>
-    </div>`).join(''):`<p class="text-muted" style="grid-column:1/-1;padding:40px;text-align:center;">Nenhuma conquista ainda. Comece a usar o Daily!</p>`;
-    document.getElementById('ach-all-grid').innerHTML=[...earned.map(a=>({...a,_e:true})),...locked.map(a=>({...a,_e:false}))].map(a=>`<div class="ach-card ${a._e?'earned':'locked'}">
-      <div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div>
-      <div class="ach-desc">${a.description}</div>
-      <div class="ach-pts">${a._e?`✅ +${a.points} pts`:`🔒 ${a.points} pts`}</div>
-    </div>`).join('');
-  }catch(e){}
+    const { earned, locked } = await api('/api/achievements/me');
+    achEarnedData = earned;
+    achAllData    = [...earned.map(a=>({...a,_e:true})), ...locked.map(a=>({...a,_e:false}))];
+
+    // ── COL 1: stats ──
+    const totalPts  = earned.reduce((s,a) => s + (a.points||0), 0);
+    const totalAvail = achAllData.length;
+    const pct = totalAvail ? Math.round((earned.length/totalAvail)*100) : 0;
+    const elPts  = document.getElementById('ach-total-pts');
+    const elEarn = document.getElementById('ach-stat-earned');
+    const elTot  = document.getElementById('ach-stat-total');
+    const elPct  = document.getElementById('ach-stat-pct');
+    const elBar  = document.getElementById('ach-progress-bar');
+    if(elPts)  elPts.textContent  = totalPts.toLocaleString('pt-BR');
+    if(elEarn) elEarn.textContent = earned.length;
+    if(elTot)  elTot.textContent  = totalAvail;
+    if(elPct)  elPct.textContent  = pct + '%';
+    if(elBar)  setTimeout(() => elBar.style.width = pct + '%', 100);
+
+    // ── COL 2: minhas conquistas ──
+    if(earnedGrid) {
+      earnedGrid.innerHTML = earned.length
+        ? earned.map(a => `
+          <div class="ach-mini-card" style="border-left:3px solid var(--accent);">
+            <div class="ach-mini-icon">${a.icon}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="ach-mini-name">${a.name}</div>
+              <div class="ach-mini-pts">+${a.points} pts · ${timeAgo(a.earned_at)}</div>
+            </div>
+            <div style="font-size:10px;background:var(--accent-light,#fff3e0);color:var(--accent);border-radius:99px;padding:2px 7px;font-weight:700;white-space:nowrap;">${a.category||'Geral'}</div>
+          </div>`).join('')
+        : '<p class="text-muted" style="text-align:center;padding:24px;">Nenhuma conquista ainda.<br>Comece a usar o Daily! 🚀</p>';
+    }
+
+    // ── COL 3: categorias + todas ──
+    const cats = ['todas', ...new Set(achAllData.map(a => a.category||'Geral').filter(Boolean))];
+    const catCounts = {};
+    cats.forEach(c => {
+      if(c==='todas') return;
+      const total   = achAllData.filter(a=>(a.category||'Geral')===c).length;
+      const myCount = earned.filter(a=>(a.category||'Geral')===c).length;
+      catCounts[c]  = { total, mine: myCount };
+    });
+
+    const pillsEl = document.getElementById('ach-cat-pills');
+    if(pillsEl) {
+      pillsEl.innerHTML = cats.map(c => {
+        const count = c==='todas'
+          ? `${earned.length}/${achAllData.length}`
+          : `${catCounts[c].mine}/${catCounts[c].total}`;
+        return `<span class="ach-cat-pill ${c===achActiveCat?'active':''}" onclick="filterAchCat('${c}',this)">
+          ${c==='todas'?'🔓 Todas':c}
+          <span style="opacity:.7;">${count}</span>
+        </span>`;
+      }).join('');
+    }
+
+    renderAchAll();
+  }catch(e){ console.error(e); }
+}
+
+function filterAchCat(cat, el) {
+  achActiveCat = cat;
+  document.querySelectorAll('.ach-cat-pill').forEach(p => p.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderAchAll();
+}
+
+function renderAchAll() {
+  const grid = document.getElementById('ach-all-grid');
+  if(!grid) return;
+  const list = achActiveCat==='todas'
+    ? achAllData
+    : achAllData.filter(a => (a.category||'Geral') === achActiveCat);
+  grid.innerHTML = list.length
+    ? list.map(a => `
+      <div class="ach-all-card ${a._e?'earned':''}">
+        <div style="font-size:20px;flex-shrink:0;">${a.icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:var(--text1);line-height:1.3;">${a.name}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px;">${a.description}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11px;font-weight:700;color:${a._e?'var(--accent)':'var(--muted)'};">${a._e?'✅':'🔒'} ${a.points}pts</div>
+        </div>
+      </div>`).join('')
+    : '<p class="text-muted" style="text-align:center;padding:20px;font-size:12px;">Nenhuma nesta categoria.</p>';
 }
 
 async function loadRanking(){
@@ -3478,10 +3692,13 @@ async function loadRanking(){
 }
 
 function showAchSection(sec,btn){
-  ['earned','all','ranking','gerenciar'].forEach(s=>document.getElementById('as-'+s)?.classList.toggle('hidden',s!==sec));
-  document.querySelectorAll('#ach-filter-pills .pill').forEach(p=>p.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  if(sec==='ranking') loadRanking();
+  const main     = document.getElementById('ach-layout');
+  const ranking  = document.getElementById('as-ranking');
+  const gerenciar= document.getElementById('as-gerenciar');
+  if(main)      main.style.display      = sec==='main'      ? 'grid' : 'none';
+  if(ranking)   ranking.classList.toggle('hidden', sec!=='ranking');
+  if(gerenciar) gerenciar.classList.toggle('hidden', sec!=='gerenciar');
+  if(sec==='ranking')   loadRanking();
   if(sec==='gerenciar') loadAdminAchievements();
 }
 
