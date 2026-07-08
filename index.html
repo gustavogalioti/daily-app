@@ -921,6 +921,12 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           #ach-layout { grid-template-columns: 200px 1fr 240px; }
           #ach-col-left, #ach-col-right { position: sticky; top: 70px; }
         }
+        @media (min-width: 760px) {
+          #ach-globe-inner { flex-direction: row !important; }
+          #achGlobeCanvas { height: 100% !important; }
+          #ach-globe-canvas-wrap { height: auto !important; flex: 1; }
+          #ach-country-panel { width: 220px !important; flex-shrink: 0 !important; border-top: none !important; border-left: 1px solid rgba(255,255,255,.08) !important; overflow-y: auto; max-height: 480px; }
+        }
         .ach-mini-card {
           display: flex; align-items: center; gap: 10px;
           background: var(--surface2); border-radius: 10px; padding: 9px 12px;
@@ -1016,19 +1022,19 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
             <div style="display:flex;gap:8px;font-size:20px;">✈️ 🚢 🚗</div>
           </div>
 
-          <!-- Layout globo + painel lado a lado -->
-          <div style="display:flex;flex:1;min-height:420px;position:relative;">
+          <!-- Layout globo + painel: coluna no mobile, linha no desktop -->
+          <div id="ach-globe-inner" style="display:flex;flex-direction:column;flex:1;min-height:420px;position:relative;">
 
             <!-- Canvas do globo -->
-            <div style="flex:1;position:relative;min-height:380px;">
+            <div id="ach-globe-canvas-wrap" style="position:relative;height:320px;flex-shrink:0;">
               <canvas id="achGlobeCanvas" style="width:100%;height:100%;display:block;cursor:grab;border-radius:0;"></canvas>
               <div id="achGlobeLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-size:13px;background:#0a0e1a;border-radius:0;">Carregando globo... 🌍</div>
               <div id="achGlobeTooltip" style="display:none;position:fixed;background:rgba(10,14,26,.92);border:1px solid rgba(79,209,255,.3);border-radius:8px;padding:8px 12px;font-size:12px;color:#e0f0ff;pointer-events:none;z-index:999;max-width:220px;"></div>
             </div>
 
-            <!-- Painel lateral: conquistas do país selecionado -->
-            <div id="ach-country-panel" style="width:220px;flex-shrink:0;background:rgba(255,255,255,.04);border-left:1px solid rgba(255,255,255,.08);padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
-              <div style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;padding:40px 10px;">
+            <!-- Painel de conquistas: abaixo do globo no mobile -->
+            <div id="ach-country-panel" style="border-top:1px solid rgba(255,255,255,.08);padding:16px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:10px;">
+              <div style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;padding:20px 10px;">
                 🌍<br><br>Clique em um país no globo para ver as conquistas disponíveis
               </div>
             </div>
