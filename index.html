@@ -601,16 +601,12 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div><label>País</label>
         <select id="reg-country" onchange="onCountryChange()">
           <option value="">Selecione</option>
-          <option value="BR">🇧🇷 Brasil</option>
-          <option value="US">🇺🇸 EUA</option>
-          <option value="PT">🇵🇹 Portugal</option>
-          <option value="AR">🇦🇷 Argentina</option>
         </select>
       </div>
       <div id="br-fields" class="hidden">
         <div class="form-row" style="margin-bottom:10px;">
-          <div><label>Estado</label><select id="reg-state" onchange="onStateChange()"><option value="">Selecione</option></select></div>
-          <div><label>Cidade</label><select id="reg-city"><option value="">Selecione</option></select></div>
+          <div><label>Estado</label><select id="reg-state" onchange="onStateChange()"><option value="">Selecione o país</option></select></div>
+          <div><label>Cidade</label><select id="reg-city"><option value="">Selecione o estado</option></select></div>
         </div>
         <div><label>Bairro</label><input type="text" id="reg-neighborhood" placeholder="Seu bairro"></div>
       </div>
@@ -912,26 +908,172 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
     <!-- ─── CONQUISTAS ─── -->
     <div id="tab-achievements" class="tab-content">
-      <div class="page-header">
-        <div class="page-header-left"><span class="page-icon">🏆</span><div class="section-title">Conquistas & Ranking</div></div>
-        <button class="btn btn-primary btn-sm hidden" id="btn-manage-ach" onclick="showAchSection('gerenciar', this)">⚙️ Gerenciar</button>
+
+      <style>
+        #ach-layout {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 14px;
+          align-items: start;
+          min-height: 75vh;
+        }
+        @media (min-width: 760px) {
+          #ach-layout { grid-template-columns: 200px 1fr 240px; }
+          #ach-col-left, #ach-col-right { position: sticky; top: 70px; }
+        }
+        @media (min-width: 760px) {
+          #ach-globe-inner { flex-direction: row !important; }
+          #achGlobeCanvas { height: 100% !important; }
+          #ach-globe-canvas-wrap { height: auto !important; flex: 1; }
+          #ach-country-panel { width: 220px !important; flex-shrink: 0 !important; border-top: none !important; border-left: 1px solid rgba(255,255,255,.08) !important; overflow-y: auto; max-height: 480px; }
+        }
+        .ach-mini-card {
+          display: flex; align-items: center; gap: 10px;
+          background: var(--surface2); border-radius: 10px; padding: 9px 12px;
+        }
+        .ach-mini-icon { font-size: 22px; flex-shrink: 0; }
+        .ach-mini-name { font-size: 12px; font-weight: 700; color: var(--text1); line-height: 1.3; }
+        .ach-mini-pts  { font-size: 10px; color: var(--muted); }
+        .ach-cat-pill  {
+          display: inline-flex; align-items: center; gap: 5px;
+          background: var(--surface2); border: 1.5px solid var(--border);
+          border-radius: 20px; padding: 5px 12px; cursor: pointer;
+          font-size: 12px; font-weight: 700; color: var(--text2);
+          transition: all .15s; white-space: nowrap;
+        }
+        .ach-cat-pill.active {
+          background: var(--accent); border-color: var(--accent); color: #fff;
+        }
+        .ach-all-card {
+          display: flex; align-items: center; gap: 10px;
+          background: var(--surface2); border-radius: 10px; padding: 9px 12px;
+          opacity: 0.5;
+        }
+        .ach-all-card.earned { opacity: 1; border-left: 3px solid var(--accent); }
+      </style>
+
+      <div class="page-header" style="margin-bottom:14px;">
+        <div class="page-header-left"><span class="page-icon">🏆</span><div class="section-title">Conquistas</div></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-ghost btn-sm" onclick="showAchSection('ranking',null)">🏅 Ranking</button>
+          <button class="btn btn-primary btn-sm hidden" id="btn-manage-ach" onclick="showAchSection('gerenciar',null)">⚙️ Gerenciar</button>
+        </div>
       </div>
-      <div class="filter-pills" id="ach-filter-pills">
-        <span class="pill active" onclick="showAchSection('earned',this)">Minhas</span>
-        <span class="pill" onclick="showAchSection('all',this)">Todas</span>
-        <span class="pill" onclick="showAchSection('ranking',this)">🏅 Ranking</span>
+
+      <!-- Ranking e Gerenciar (ocultos por padrão) -->
+      <div id="as-ranking" class="hidden" style="margin-bottom:14px;">
+        <button onclick="showAchSection('main',null)" class="btn btn-ghost btn-sm" style="margin-bottom:10px;">‹ Voltar</button>
+        <div class="ranking-list" id="ranking-list"></div>
       </div>
-      <div id="as-earned"><div class="ach-grid" id="ach-earned-grid"><div class="page-loader"><div class="loader"></div></div></div></div>
-      <div id="as-all" class="hidden"><div class="ach-grid" id="ach-all-grid"></div></div>
-      <div id="as-ranking" class="hidden"><div class="ranking-list" id="ranking-list"></div></div>
-      <div id="as-gerenciar" class="hidden">
+      <div id="as-gerenciar" class="hidden" style="margin-bottom:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div style="font-weight:700;font-size:15px;">Conquistas cadastradas</div>
+          <button onclick="showAchSection('main',null)" class="btn btn-ghost btn-sm">‹ Voltar</button>
           <button class="btn btn-primary btn-sm" onclick="openCreateAchievement()">+ Nova</button>
         </div>
         <div id="admin-achievements" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;"></div>
       </div>
-    </div>
+
+      <!-- Layout principal 3 colunas -->
+      <div id="ach-layout" id="as-main">
+
+        <!-- ── COL 1: Pontuação + botões ── -->
+        <div id="ach-col-left" style="display:flex;flex-direction:column;gap:10px;">
+
+          <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:16px;padding:20px;color:#fff;text-align:center;">
+            <div style="font-size:36px;margin-bottom:4px;">🏆</div>
+            <div id="ach-total-pts" style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;line-height:1;">—</div>
+            <div style="font-size:12px;opacity:.85;margin-top:4px;">pontos acumulados</div>
+          </div>
+
+          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--muted);">Conquistas</span>
+              <span id="ach-stat-earned" style="font-size:14px;font-weight:800;color:var(--accent);">—</span>
+            </div>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--muted);">Disponíveis</span>
+              <span id="ach-stat-total" style="font-size:14px;font-weight:800;color:var(--text2);">—</span>
+            </div>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--muted);">Progresso</span>
+              <span id="ach-stat-pct" style="font-size:14px;font-weight:800;color:var(--text2);">—</span>
+            </div>
+            <div style="background:var(--surface2);border-radius:99px;height:8px;overflow:hidden;margin-top:2px;">
+              <div id="ach-progress-bar" style="height:100%;background:linear-gradient(90deg,var(--accent),#ff9a6c);border-radius:99px;width:0%;transition:width .6s;"></div>
+            </div>
+          </div>
+
+          <button class="btn btn-ghost btn-sm" onclick="showAchSection('ranking',null)" style="width:100%;">🏅 Ver Ranking</button>
+          <button class="btn btn-ghost btn-sm" onclick="showAchSection('earned',null)" style="width:100%;">✅ Minhas Conquistas</button>
+          <button class="btn btn-ghost btn-sm" onclick="showAchSection('all',null)" style="width:100%;">🔓 Conquistas Disponíveis</button>
+        </div>
+
+        <!-- ── COL 2+3: Globo + Conquistas pelo Mundo ── -->
+        <div id="ach-mundo-banner" style="grid-column:span 2;border-radius:20px;overflow:hidden;border:1.5px solid var(--border);box-shadow:var(--shadow-md);background:#0a0e1a;display:flex;flex-direction:column;">
+
+          <!-- Cabeçalho -->
+          <div style="padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);">
+            <div>
+              <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;">CONQUISTAS <span style="color:#f97316;">PELO MUNDO</span></div>
+              <div style="font-size:10px;color:rgba(255,255,255,.4);letter-spacing:2px;text-transform:uppercase;margin-top:1px;">Em breve · Clique num país para ver conquistas</div>
+            </div>
+            <div style="display:flex;gap:8px;font-size:20px;">✈️ 🚢 🚗</div>
+          </div>
+
+          <!-- Layout globo + painel: coluna no mobile, linha no desktop -->
+          <div id="ach-globe-inner" style="display:flex;flex-direction:column;flex:1;min-height:420px;position:relative;">
+
+            <!-- Canvas do globo -->
+            <div id="ach-globe-canvas-wrap" style="position:relative;height:320px;flex-shrink:0;">
+              <canvas id="achGlobeCanvas" style="width:100%;height:100%;display:block;cursor:grab;border-radius:0;"></canvas>
+              <div id="achGlobeLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-size:13px;background:#0a0e1a;border-radius:0;">Carregando globo... 🌍</div>
+              <div id="achGlobeTooltip" style="display:none;position:fixed;background:rgba(10,14,26,.92);border:1px solid rgba(79,209,255,.3);border-radius:8px;padding:8px 12px;font-size:12px;color:#e0f0ff;pointer-events:none;z-index:999;max-width:220px;"></div>
+            </div>
+
+            <!-- Painel de conquistas: abaixo do globo no mobile -->
+            <div id="ach-country-panel" style="border-top:1px solid rgba(255,255,255,.08);padding:16px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:10px;">
+              <div style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;padding:20px 10px;">
+                🌍<br><br>Clique em um país no globo para ver as conquistas disponíveis
+              </div>
+            </div>
+          </div>
+
+          <!-- Rodapé: 7 maravilhas pills -->
+          <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:4px 10px;display:flex;align-items:center;gap:5px;cursor:pointer;" onclick="achSelectCountry('FR')"><span>🗼</span><span style="font-size:10px;color:rgba(255,255,255,.6);">Torre Eiffel</span></div>
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:4px 10px;display:flex;align-items:center;gap:5px;cursor:pointer;" onclick="achSelectCountry('IT')"><span>🏛️</span><span style="font-size:10px;color:rgba(255,255,255,.6);">Coliseu</span></div>
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:4px 10px;display:flex;align-items:center;gap:5px;cursor:pointer;" onclick="achSelectCountry('US')"><span>🗽</span><span style="font-size:10px;color:rgba(255,255,255,.6);">Est. Liberdade</span></div>
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:4px 10px;display:flex;align-items:center;gap:5px;cursor:pointer;" onclick="achSelectCountry('IN')"><span>🕌</span><span style="font-size:10px;color:rgba(255,255,255,.6);">Taj Mahal</span></div>
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:4px 10px;display:flex;align-items:center;gap:5px;cursor:pointer;" onclick="achSelectCountry('CN')"><span>🏯</span><span style="font-size:10px;color:rgba(255,255,255,.6);">Grande Muralha</span></div>
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:4px 10px;display:flex;align-items:center;gap:5px;cursor:pointer;" onclick="achSelectCountry('CL')"><span>🗿</span><span style="font-size:10px;color:rgba(255,255,255,.6);">Ilha de Páscoa</span></div>
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:4px 10px;display:flex;align-items:center;gap:5px;cursor:pointer;" onclick="achSelectCountry('BR')"><span>🌊</span><span style="font-size:10px;color:rgba(255,255,255,.6);">Cristo Redentor</span></div>
+          </div>
+        </div>
+
+        <!-- Painel Minhas Conquistas (oculto) -->
+        <div id="ach-earned-panel" class="hidden" style="grid-column:span 2;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button onclick="showAchSection('main',null)" class="btn btn-ghost btn-sm">‹ Voltar</button>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">✅ Minhas Conquistas</div>
+          </div>
+          <div id="ach-earned-grid" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="page-loader"><div class="loader"></div></div>
+          </div>
+        </div>
+
+        <!-- Painel Conquistas Disponíveis (oculto) -->
+        <div id="ach-all-panel" class="hidden" style="grid-column:span 2;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button onclick="showAchSection('main',null)" class="btn btn-ghost btn-sm">‹ Voltar</button>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">🔓 Conquistas Disponíveis</div>
+          </div>
+          <div id="ach-cat-pills" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+          <div id="ach-all-grid" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+      </div>
 
 
     <!-- ─── EVENTOS ─── -->
@@ -2500,6 +2642,302 @@ let pendingFriendName = '';
 let globalFilter = 'todos';
 let notifIntervalId = null;
 
+const COUNTRIES_ALL = [
+  {code:'AF',name:'Afeganistão',en:'Afghanistan'},
+  {code:'AL',name:'Albânia',en:'Albania'},
+  {code:'DE',name:'Alemanha',en:'Germany'},
+  {code:'AD',name:'Andorra',en:'Andorra'},
+  {code:'AO',name:'Angola',en:'Angola'},
+  {code:'AI',name:'Anguila',en:'Anguilla'},
+  {code:'AQ',name:'Antártida',en:'Antarctica'},
+  {code:'AG',name:'Antígua e Barbuda',en:'Antigua and Barbuda'},
+  {code:'AR',name:'Argentina',en:'Argentina'},
+  {code:'DZ',name:'Argélia',en:'Algeria'},
+  {code:'AM',name:'Armênia',en:'Armenia'},
+  {code:'AW',name:'Aruba',en:'Aruba'},
+  {code:'SA',name:'Arábia Saudita',en:'Saudi Arabia'},
+  {code:'AU',name:'Austrália',en:'Australia'},
+  {code:'AZ',name:'Azerbaijão',en:'Azerbaijan'},
+  {code:'BS',name:'Bahamas',en:'Bahamas'},
+  {code:'BH',name:'Bahrein',en:'Bahrain'},
+  {code:'BD',name:'Bangladesh',en:'Bangladesh'},
+  {code:'BB',name:'Barbados',en:'Barbados'},
+  {code:'BZ',name:'Belize',en:'Belize'},
+  {code:'BJ',name:'Benin',en:'Benin'},
+  {code:'BM',name:'Bermudas',en:'Bermuda'},
+  {code:'BY',name:'Bielorrússia',en:'Belarus'},
+  {code:'BO',name:'Bolívia',en:'Bolivia'},
+  {code:'BW',name:'Botsuana',en:'Botswana'},
+  {code:'BR',name:'Brasil',en:'Brazil'},
+  {code:'BN',name:'Brunei',en:'Brunei Darussalam'},
+  {code:'BG',name:'Bulgária',en:'Bulgaria'},
+  {code:'BF',name:'Burquina Faso',en:'Burkina Faso'},
+  {code:'BI',name:'Burundi',en:'Burundi'},
+  {code:'BT',name:'Butão',en:'Bhutan'},
+  {code:'BE',name:'Bélgica',en:'Belgium'},
+  {code:'BA',name:'Bósnia e Herzegovina',en:'Bosnia and Herzegovina'},
+  {code:'CV',name:'Cabo Verde',en:'Cabo Verde'},
+  {code:'CM',name:'Camarões',en:'Cameroon'},
+  {code:'KH',name:'Camboja',en:'Cambodia'},
+  {code:'CA',name:'Canadá',en:'Canada'},
+  {code:'QA',name:'Catar',en:'Qatar'},
+  {code:'KZ',name:'Cazaquistão',en:'Kazakhstan'},
+  {code:'TD',name:'Chade',en:'Chad'},
+  {code:'CL',name:'Chile',en:'Chile'},
+  {code:'CN',name:'China',en:'China'},
+  {code:'CY',name:'Chipre',en:'Cyprus'},
+  {code:'VA',name:'Cidade do Vaticano',en:'Holy See (Vatican City State)'},
+  {code:'CO',name:'Colômbia',en:'Colombia'},
+  {code:'KM',name:'Comores',en:'Comoros'},
+  {code:'CD',name:'Congo - Kinshasa',en:'Congo, The Democratic Republic of the'},
+  {code:'KP',name:'Coreia do Norte',en:'North Korea'},
+  {code:'KR',name:'Coreia do Sul',en:'South Korea'},
+  {code:'CR',name:'Costa Rica',en:'Costa Rica'},
+  {code:'CI',name:'Costa do Marfim',en:'Côte d\'Ivoire'},
+  {code:'HR',name:'Croácia',en:'Croatia'},
+  {code:'CU',name:'Cuba',en:'Cuba'},
+  {code:'CW',name:'Curaçao',en:'Curaçao'},
+  {code:'DK',name:'Dinamarca',en:'Denmark'},
+  {code:'DJ',name:'Djibuti',en:'Djibouti'},
+  {code:'DM',name:'Dominica',en:'Dominica'},
+  {code:'EG',name:'Egito',en:'Egypt'},
+  {code:'SV',name:'El Salvador',en:'El Salvador'},
+  {code:'AE',name:'Emirados Árabes Unidos',en:'United Arab Emirates'},
+  {code:'EC',name:'Equador',en:'Ecuador'},
+  {code:'ER',name:'Eritreia',en:'Eritrea'},
+  {code:'SK',name:'Eslováquia',en:'Slovakia'},
+  {code:'SI',name:'Eslovênia',en:'Slovenia'},
+  {code:'ES',name:'Espanha',en:'Spain'},
+  {code:'SZ',name:'Essuatíni',en:'Eswatini'},
+  {code:'US',name:'Estados Unidos',en:'United States'},
+  {code:'EE',name:'Estônia',en:'Estonia'},
+  {code:'ET',name:'Etiópia',en:'Ethiopia'},
+  {code:'FJ',name:'Fiji',en:'Fiji'},
+  {code:'PH',name:'Filipinas',en:'Philippines'},
+  {code:'FI',name:'Finlândia',en:'Finland'},
+  {code:'FR',name:'França',en:'France'},
+  {code:'GA',name:'Gabão',en:'Gabon'},
+  {code:'GH',name:'Gana',en:'Ghana'},
+  {code:'GE',name:'Geórgia',en:'Georgia'},
+  {code:'GI',name:'Gibraltar',en:'Gibraltar'},
+  {code:'GD',name:'Granada',en:'Grenada'},
+  {code:'GL',name:'Groenlândia',en:'Greenland'},
+  {code:'GR',name:'Grécia',en:'Greece'},
+  {code:'GP',name:'Guadalupe',en:'Guadeloupe'},
+  {code:'GU',name:'Guam',en:'Guam'},
+  {code:'GT',name:'Guatemala',en:'Guatemala'},
+  {code:'GG',name:'Guernsey',en:'Guernsey'},
+  {code:'GY',name:'Guiana',en:'Guyana'},
+  {code:'GF',name:'Guiana Francesa',en:'French Guiana'},
+  {code:'GN',name:'Guiné',en:'Guinea'},
+  {code:'GQ',name:'Guiné Equatorial',en:'Equatorial Guinea'},
+  {code:'GW',name:'Guiné-Bissau',en:'Guinea-Bissau'},
+  {code:'GM',name:'Gâmbia',en:'Gambia'},
+  {code:'HT',name:'Haiti',en:'Haiti'},
+  {code:'HN',name:'Honduras',en:'Honduras'},
+  {code:'HK',name:'Hong Kong, RAE da China',en:'Hong Kong'},
+  {code:'HU',name:'Hungria',en:'Hungary'},
+  {code:'BV',name:'Ilha Bouvet',en:'Bouvet Island'},
+  {code:'CX',name:'Ilha Christmas',en:'Christmas Island'},
+  {code:'NF',name:'Ilha Norfolk',en:'Norfolk Island'},
+  {code:'IM',name:'Ilha de Man',en:'Isle of Man'},
+  {code:'AX',name:'Ilhas Aland',en:'Åland Islands'},
+  {code:'KY',name:'Ilhas Cayman',en:'Cayman Islands'},
+  {code:'CC',name:'Ilhas Cocos (Keeling)',en:'Cocos (Keeling) Islands'},
+  {code:'CK',name:'Ilhas Cook',en:'Cook Islands'},
+  {code:'FO',name:'Ilhas Faroe',en:'Faroe Islands'},
+  {code:'GS',name:'Ilhas Geórgia do Sul e Sandwich do Sul',en:'South Georgia and the South Sandwich Islands'},
+  {code:'HM',name:'Ilhas Heard e McDonald',en:'Heard Island and McDonald Islands'},
+  {code:'FK',name:'Ilhas Malvinas',en:'Falkland Islands (Malvinas)'},
+  {code:'MP',name:'Ilhas Marianas do Norte',en:'Northern Mariana Islands'},
+  {code:'MH',name:'Ilhas Marshall',en:'Marshall Islands'},
+  {code:'UM',name:'Ilhas Menores Distantes dos EUA',en:'United States Minor Outlying Islands'},
+  {code:'PN',name:'Ilhas Pitcairn',en:'Pitcairn'},
+  {code:'SB',name:'Ilhas Salomão',en:'Solomon Islands'},
+  {code:'TC',name:'Ilhas Turcas e Caicos',en:'Turks and Caicos Islands'},
+  {code:'VI',name:'Ilhas Virgens Americanas',en:'Virgin Islands, U.S.'},
+  {code:'VG',name:'Ilhas Virgens Britânicas',en:'Virgin Islands, British'},
+  {code:'ID',name:'Indonésia',en:'Indonesia'},
+  {code:'IQ',name:'Iraque',en:'Iraq'},
+  {code:'IE',name:'Irlanda',en:'Ireland'},
+  {code:'IR',name:'Irã',en:'Iran'},
+  {code:'IS',name:'Islândia',en:'Iceland'},
+  {code:'IL',name:'Israel',en:'Israel'},
+  {code:'IT',name:'Itália',en:'Italy'},
+  {code:'YE',name:'Iêmen',en:'Yemen'},
+  {code:'JM',name:'Jamaica',en:'Jamaica'},
+  {code:'JP',name:'Japão',en:'Japan'},
+  {code:'JE',name:'Jersey',en:'Jersey'},
+  {code:'JO',name:'Jordânia',en:'Jordan'},
+  {code:'KW',name:'Kuwait',en:'Kuwait'},
+  {code:'LA',name:'Laos',en:'Laos'},
+  {code:'LS',name:'Lesoto',en:'Lesotho'},
+  {code:'LV',name:'Letônia',en:'Latvia'},
+  {code:'LR',name:'Libéria',en:'Liberia'},
+  {code:'LI',name:'Liechtenstein',en:'Liechtenstein'},
+  {code:'LT',name:'Lituânia',en:'Lithuania'},
+  {code:'LU',name:'Luxemburgo',en:'Luxembourg'},
+  {code:'LB',name:'Líbano',en:'Lebanon'},
+  {code:'LY',name:'Líbia',en:'Libya'},
+  {code:'MO',name:'Macau, RAE da China',en:'Macao'},
+  {code:'MK',name:'Macedônia do Norte',en:'North Macedonia'},
+  {code:'MG',name:'Madagascar',en:'Madagascar'},
+  {code:'MW',name:'Malaui',en:'Malawi'},
+  {code:'MV',name:'Maldivas',en:'Maldives'},
+  {code:'ML',name:'Mali',en:'Mali'},
+  {code:'MT',name:'Malta',en:'Malta'},
+  {code:'MY',name:'Malásia',en:'Malaysia'},
+  {code:'MA',name:'Marrocos',en:'Morocco'},
+  {code:'MQ',name:'Martinica',en:'Martinique'},
+  {code:'MR',name:'Mauritânia',en:'Mauritania'},
+  {code:'MU',name:'Maurício',en:'Mauritius'},
+  {code:'YT',name:'Mayotte',en:'Mayotte'},
+  {code:'MM',name:'Mianmar (Birmânia)',en:'Myanmar'},
+  {code:'FM',name:'Micronésia',en:'Micronesia, Federated States of'},
+  {code:'MD',name:'Moldova',en:'Moldova'},
+  {code:'MN',name:'Mongólia',en:'Mongolia'},
+  {code:'ME',name:'Montenegro',en:'Montenegro'},
+  {code:'MS',name:'Montserrat',en:'Montserrat'},
+  {code:'MZ',name:'Moçambique',en:'Mozambique'},
+  {code:'MX',name:'México',en:'Mexico'},
+  {code:'MC',name:'Mônaco',en:'Monaco'},
+  {code:'NA',name:'Namíbia',en:'Namibia'},
+  {code:'NR',name:'Nauru',en:'Nauru'},
+  {code:'NP',name:'Nepal',en:'Nepal'},
+  {code:'NI',name:'Nicarágua',en:'Nicaragua'},
+  {code:'NG',name:'Nigéria',en:'Nigeria'},
+  {code:'NU',name:'Niue',en:'Niue'},
+  {code:'NO',name:'Noruega',en:'Norway'},
+  {code:'NC',name:'Nova Caledônia',en:'New Caledonia'},
+  {code:'NZ',name:'Nova Zelândia',en:'New Zealand'},
+  {code:'NE',name:'Níger',en:'Niger'},
+  {code:'OM',name:'Omã',en:'Oman'},
+  {code:'PW',name:'Palau',en:'Palau'},
+  {code:'PA',name:'Panamá',en:'Panama'},
+  {code:'PG',name:'Papua-Nova Guiné',en:'Papua New Guinea'},
+  {code:'PK',name:'Paquistão',en:'Pakistan'},
+  {code:'PY',name:'Paraguai',en:'Paraguay'},
+  {code:'NL',name:'Países Baixos',en:'Netherlands'},
+  {code:'BQ',name:'Países Baixos Caribenhos',en:'Bonaire, Sint Eustatius and Saba'},
+  {code:'PE',name:'Peru',en:'Peru'},
+  {code:'PF',name:'Polinésia Francesa',en:'French Polynesia'},
+  {code:'PL',name:'Polônia',en:'Poland'},
+  {code:'PR',name:'Porto Rico',en:'Puerto Rico'},
+  {code:'PT',name:'Portugal',en:'Portugal'},
+  {code:'KG',name:'Quirguistão',en:'Kyrgyzstan'},
+  {code:'KI',name:'Quiribati',en:'Kiribati'},
+  {code:'KE',name:'Quênia',en:'Kenya'},
+  {code:'GB',name:'Reino Unido',en:'United Kingdom'},
+  {code:'CF',name:'República Centro-Africana',en:'Central African Republic'},
+  {code:'DO',name:'República Dominicana',en:'Dominican Republic'},
+  {code:'CG',name:'República do Congo',en:'Congo'},
+  {code:'RE',name:'Reunião',en:'Réunion'},
+  {code:'RO',name:'Romênia',en:'Romania'},
+  {code:'RW',name:'Ruanda',en:'Rwanda'},
+  {code:'RU',name:'Rússia',en:'Russian Federation'},
+  {code:'EH',name:'Saara Ocidental',en:'Western Sahara'},
+  {code:'WS',name:'Samoa',en:'Samoa'},
+  {code:'AS',name:'Samoa Americana',en:'American Samoa'},
+  {code:'SM',name:'San Marino',en:'San Marino'},
+  {code:'SH',name:'Santa Helena',en:'Saint Helena, Ascension and Tristan da Cunha'},
+  {code:'LC',name:'Santa Lúcia',en:'Saint Lucia'},
+  {code:'SC',name:'Seicheles',en:'Seychelles'},
+  {code:'SN',name:'Senegal',en:'Senegal'},
+  {code:'SL',name:'Serra Leoa',en:'Sierra Leone'},
+  {code:'SG',name:'Singapura',en:'Singapore'},
+  {code:'SX',name:'Sint Maarten',en:'Sint Maarten (Dutch part)'},
+  {code:'SO',name:'Somália',en:'Somalia'},
+  {code:'LK',name:'Sri Lanka',en:'Sri Lanka'},
+  {code:'SD',name:'Sudão',en:'Sudan'},
+  {code:'SS',name:'Sudão do Sul',en:'South Sudan'},
+  {code:'SR',name:'Suriname',en:'Suriname'},
+  {code:'SE',name:'Suécia',en:'Sweden'},
+  {code:'CH',name:'Suíça',en:'Switzerland'},
+  {code:'SJ',name:'Svalbard e Jan Mayen',en:'Svalbard and Jan Mayen'},
+  {code:'BL',name:'São Bartolomeu',en:'Saint Barthélemy'},
+  {code:'KN',name:'São Cristóvão e Névis',en:'Saint Kitts and Nevis'},
+  {code:'MF',name:'São Martinho',en:'Saint Martin (French part)'},
+  {code:'PM',name:'São Pedro e Miquelão',en:'Saint Pierre and Miquelon'},
+  {code:'ST',name:'São Tomé e Príncipe',en:'Sao Tome and Principe'},
+  {code:'VC',name:'São Vicente e Granadinas',en:'Saint Vincent and the Grenadines'},
+  {code:'RS',name:'Sérvia',en:'Serbia'},
+  {code:'SY',name:'Síria',en:'Syria'},
+  {code:'TJ',name:'Tadjiquistão',en:'Tajikistan'},
+  {code:'TH',name:'Tailândia',en:'Thailand'},
+  {code:'TW',name:'Taiwan',en:'Taiwan'},
+  {code:'TZ',name:'Tanzânia',en:'Tanzania'},
+  {code:'CZ',name:'Tchéquia',en:'Czechia'},
+  {code:'IO',name:'Território Britânico do Oceano Índico',en:'British Indian Ocean Territory'},
+  {code:'TF',name:'Territórios Franceses do Sul',en:'French Southern Territories'},
+  {code:'PS',name:'Territórios palestinos',en:'Palestine, State of'},
+  {code:'TL',name:'Timor-Leste',en:'Timor-Leste'},
+  {code:'TG',name:'Togo',en:'Togo'},
+  {code:'TK',name:'Tokelau',en:'Tokelau'},
+  {code:'TO',name:'Tonga',en:'Tonga'},
+  {code:'TT',name:'Trinidad e Tobago',en:'Trinidad and Tobago'},
+  {code:'TN',name:'Tunísia',en:'Tunisia'},
+  {code:'TM',name:'Turcomenistão',en:'Turkmenistan'},
+  {code:'TR',name:'Turquia',en:'Türkiye'},
+  {code:'TV',name:'Tuvalu',en:'Tuvalu'},
+  {code:'UA',name:'Ucrânia',en:'Ukraine'},
+  {code:'UG',name:'Uganda',en:'Uganda'},
+  {code:'UY',name:'Uruguai',en:'Uruguay'},
+  {code:'UZ',name:'Uzbequistão',en:'Uzbekistan'},
+  {code:'VU',name:'Vanuatu',en:'Vanuatu'},
+  {code:'VE',name:'Venezuela',en:'Venezuela'},
+  {code:'VN',name:'Vietnã',en:'Vietnam'},
+  {code:'WF',name:'Wallis e Futuna',en:'Wallis and Futuna'},
+  {code:'ZW',name:'Zimbábue',en:'Zimbabwe'},
+  {code:'ZM',name:'Zâmbia',en:'Zambia'},
+  {code:'ZA',name:'África do Sul',en:'South Africa'},
+  {code:'AT',name:'Áustria',en:'Austria'},
+  {code:'IN',name:'Índia',en:'India'}
+];
+function ctryFlag(code){
+  if(!code || code.length!==2) return '🌐';
+  return code.toUpperCase().replace(/./g, c=>String.fromCodePoint(127397+c.charCodeAt(0)));
+}
+// cache de estados/cidades já buscados na API, pra não repetir requisições
+const _geoCache = { states:{}, cities:{} };
+async function fetchCountryStates(countryEn){
+  if(_geoCache.states[countryEn]) return _geoCache.states[countryEn];
+  const resp = await fetch('https://countriesnow.space/api/v0.1/countries/states', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({country: countryEn})
+  });
+  const data = await resp.json();
+  const states = (data && data.data && data.data.states) || [];
+  _geoCache.states[countryEn] = states;
+  return states;
+}
+async function fetchStateCities(countryEn, stateName){
+  const key = countryEn+'|'+stateName;
+  if(_geoCache.cities[key]) return _geoCache.cities[key];
+  const resp = await fetch('https://countriesnow.space/api/v0.1/countries/state/cities', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({country: countryEn, state: stateName})
+  });
+  const data = await resp.json();
+  const cities = (data && Array.isArray(data.data)) ? data.data : [];
+  _geoCache.cities[key] = cities;
+  return cities;
+}
+function locFieldAsSelect(id, onchangeAttr, placeholder){
+  const old=document.getElementById(id);
+  if(old && old.tagName==='SELECT'){ old.innerHTML=`<option value="">${placeholder||'Selecione'}</option>`; return old; }
+  const el=document.createElement('select'); el.id=id;
+  if(onchangeAttr) el.setAttribute('onchange', onchangeAttr);
+  el.innerHTML=`<option value="">${placeholder||'Selecione'}</option>`;
+  if(old) old.parentNode.replaceChild(el, old);
+  return el;
+}
+function locFieldAsInput(id, placeholder){
+  const old=document.getElementById(id);
+  if(old && old.tagName==='INPUT'){ old.placeholder=placeholder||''; old.value=''; return old; }
+  const el=document.createElement('input'); el.type='text'; el.id=id; el.placeholder=placeholder||'';
+  if(old) old.parentNode.replaceChild(el, old);
+  return el;
+}
 const BRASIL_STATES = {
   'AC':'Acre','AL':'Alagoas','AP':'Amapá','AM':'Amazonas','BA':'Bahia','CE':'Ceará','DF':'Distrito Federal',
   'ES':'Espírito Santo','GO':'Goiás','MA':'Maranhão','MT':'Mato Grosso','MS':'Mato Grosso do Sul',
@@ -2575,10 +3013,10 @@ document.addEventListener('click',e=>{
 // BOOT
 // ═══════════════════════════════════
 window.addEventListener('DOMContentLoaded',async()=>{
-  // Populate state select - protegido contra null
-  const stSel=document.getElementById('reg-state');
-  if(stSel) Object.entries(BRASIL_STATES).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([uf,nome])=>{
-    stSel.insertAdjacentHTML('beforeend',`<option value="${uf}">${nome}</option>`);
+  // Populate country select com todos os países
+  const ctrySel=document.getElementById('reg-country');
+  if(ctrySel) COUNTRIES_ALL.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).forEach(c=>{
+    ctrySel.insertAdjacentHTML('beforeend',`<option value="${c.code}">${ctryFlag(c.code)} ${c.name}</option>`);
   });
   // Regional filter states - carregado sob demanda
   function populateRegStateFilter(){
@@ -2783,15 +3221,63 @@ async function doRegister(e){
 
 function doLogout(){clearTok();currentUser=null;showScreen('landing');}
 
-function onCountryChange(){
-  const c=document.getElementById('reg-country').value;
-  document.getElementById('br-fields').classList.toggle('hidden',c!=='BR');
+async function onCountryChange(){
+  const code=document.getElementById('reg-country').value;
+  document.getElementById('br-fields').classList.toggle('hidden',!code);
+  if(!code) return;
+
+  if(code==='BR'){
+    const stSel=locFieldAsSelect('reg-state','onStateChange()','Selecione');
+    Object.entries(BRASIL_STATES).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([uf,nome])=>{
+      stSel.insertAdjacentHTML('beforeend',`<option value="${uf}">${nome}</option>`);
+    });
+    locFieldAsSelect('reg-city',null,'Selecione o estado');
+    return;
+  }
+
+  // Qualquer outro país: busca estados via API
+  const stSel=locFieldAsSelect('reg-state','onStateChange()','Carregando...');
+  locFieldAsSelect('reg-city',null,'Selecione o estado');
+  try{
+    const country=COUNTRIES_ALL.find(c=>c.code===code);
+    const states=await fetchCountryStates(country?country.en:code);
+    if(states.length){
+      stSel.innerHTML='<option value="">Selecione</option>';
+      states.forEach(s=>stSel.insertAdjacentHTML('beforeend',`<option value="${(s.name||'').replace(/"/g,'&quot;')}">${s.name}</option>`));
+    } else {
+      // País sem estados cadastrados na API -> digitação livre
+      locFieldAsInput('reg-state','Estado/Região');
+      locFieldAsInput('reg-city','Sua cidade');
+    }
+  }catch(e){
+    locFieldAsInput('reg-state','Estado/Região');
+    locFieldAsInput('reg-city','Sua cidade');
+  }
 }
-function onStateChange(){
+
+async function onStateChange(){
+  const code=document.getElementById('reg-country').value;
   const uf=document.getElementById('reg-state').value;
-  const citySel=document.getElementById('reg-city');
-  citySel.innerHTML='<option value="">Selecione a cidade</option>';
-  (BR_CITIES[uf]||[]).sort().forEach(c=>citySel.insertAdjacentHTML('beforeend',`<option value="${c}">${c}</option>`));
+
+  if(code==='BR'){
+    const citySel=locFieldAsSelect('reg-city',null,'Selecione a cidade');
+    (BR_CITIES[uf]||[]).sort().forEach(c=>citySel.insertAdjacentHTML('beforeend',`<option value="${c}">${c}</option>`));
+    return;
+  }
+
+  const citySel=locFieldAsSelect('reg-city',null,'Carregando...');
+  try{
+    const country=COUNTRIES_ALL.find(c=>c.code===code);
+    const cities=await fetchStateCities(country?country.en:code, uf);
+    if(cities.length){
+      citySel.innerHTML='<option value="">Selecione</option>';
+      cities.forEach(c=>citySel.insertAdjacentHTML('beforeend',`<option value="${String(c).replace(/"/g,'&quot;')}">${c}</option>`));
+    } else {
+      locFieldAsInput('reg-city','Sua cidade');
+    }
+  }catch(e){
+    locFieldAsInput('reg-city','Sua cidade');
+  }
 }
 
 // ═══════════════════════════════════
@@ -3444,23 +3930,105 @@ async function createCommunity(){
 // ═══════════════════════════════════
 // ACHIEVEMENTS
 // ═══════════════════════════════════
+let achAllData    = [];
+let achEarnedData = [];
+let achActiveCat  = 'todas';
+
 async function loadAchievements(){
   if(currentUser?.is_admin) document.getElementById('btn-manage-ach')?.classList.remove('hidden');
-  const g=document.getElementById('ach-earned-grid');
-  g.innerHTML='<div class="page-loader"><div class="loader"></div></div>';
+
+  const earnedGrid = document.getElementById('ach-earned-grid');
+  const allGrid    = document.getElementById('ach-all-grid');
+  if(earnedGrid) earnedGrid.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+
   try{
-    const{earned,locked}=await api('/api/achievements/me');
-    document.getElementById('ach-earned-grid').innerHTML=earned.length?earned.map(a=>`<div class="ach-card earned">
-      <div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div>
-      <div class="ach-desc">${a.description}</div>
-      <div class="ach-pts">✅ +${a.points} pts · ${timeAgo(a.earned_at)}</div>
-    </div>`).join(''):`<p class="text-muted" style="grid-column:1/-1;padding:40px;text-align:center;">Nenhuma conquista ainda. Comece a usar o Daily!</p>`;
-    document.getElementById('ach-all-grid').innerHTML=[...earned.map(a=>({...a,_e:true})),...locked.map(a=>({...a,_e:false}))].map(a=>`<div class="ach-card ${a._e?'earned':'locked'}">
-      <div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div>
-      <div class="ach-desc">${a.description}</div>
-      <div class="ach-pts">${a._e?`✅ +${a.points} pts`:`🔒 ${a.points} pts`}</div>
-    </div>`).join('');
-  }catch(e){}
+    const { earned, locked } = await api('/api/achievements/me');
+    achEarnedData = earned;
+    achAllData    = [...earned.map(a=>({...a,_e:true})), ...locked.map(a=>({...a,_e:false}))];
+
+    // ── COL 1: stats ──
+    const totalPts  = earned.reduce((s,a) => s + (a.points||0), 0);
+    const totalAvail = achAllData.length;
+    const pct = totalAvail ? Math.round((earned.length/totalAvail)*100) : 0;
+    const elPts  = document.getElementById('ach-total-pts');
+    const elEarn = document.getElementById('ach-stat-earned');
+    const elTot  = document.getElementById('ach-stat-total');
+    const elPct  = document.getElementById('ach-stat-pct');
+    const elBar  = document.getElementById('ach-progress-bar');
+    if(elPts)  elPts.textContent  = totalPts.toLocaleString('pt-BR');
+    if(elEarn) elEarn.textContent = earned.length;
+    if(elTot)  elTot.textContent  = totalAvail;
+    if(elPct)  elPct.textContent  = pct + '%';
+    if(elBar)  setTimeout(() => elBar.style.width = pct + '%', 100);
+
+    // ── COL 2: minhas conquistas ──
+    if(earnedGrid) {
+      earnedGrid.innerHTML = earned.length
+        ? earned.map(a => `
+          <div class="ach-mini-card" style="border-left:3px solid var(--accent);">
+            <div class="ach-mini-icon">${a.icon}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="ach-mini-name">${a.name}</div>
+              <div class="ach-mini-pts">+${a.points} pts · ${timeAgo(a.earned_at)}</div>
+            </div>
+            <div style="font-size:10px;background:var(--accent-light,#fff3e0);color:var(--accent);border-radius:99px;padding:2px 7px;font-weight:700;white-space:nowrap;">${a.category||'Geral'}</div>
+          </div>`).join('')
+        : '<p class="text-muted" style="text-align:center;padding:24px;">Nenhuma conquista ainda.<br>Comece a usar o Daily! 🚀</p>';
+    }
+
+    // ── COL 3: categorias + todas ──
+    const cats = ['todas', ...new Set(achAllData.map(a => a.category||'Geral').filter(Boolean))];
+    const catCounts = {};
+    cats.forEach(c => {
+      if(c==='todas') return;
+      const total   = achAllData.filter(a=>(a.category||'Geral')===c).length;
+      const myCount = earned.filter(a=>(a.category||'Geral')===c).length;
+      catCounts[c]  = { total, mine: myCount };
+    });
+
+    const pillsEl = document.getElementById('ach-cat-pills');
+    if(pillsEl) {
+      pillsEl.innerHTML = cats.map(c => {
+        const count = c==='todas'
+          ? `${earned.length}/${achAllData.length}`
+          : `${catCounts[c].mine}/${catCounts[c].total}`;
+        return `<span class="ach-cat-pill ${c===achActiveCat?'active':''}" onclick="filterAchCat('${c}',this)">
+          ${c==='todas'?'🔓 Todas':c}
+          <span style="opacity:.7;">${count}</span>
+        </span>`;
+      }).join('');
+    }
+
+    renderAchAll();
+  }catch(e){ console.error(e); }
+}
+
+function filterAchCat(cat, el) {
+  achActiveCat = cat;
+  document.querySelectorAll('.ach-cat-pill').forEach(p => p.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderAchAll();
+}
+
+function renderAchAll() {
+  const grid = document.getElementById('ach-all-grid');
+  if(!grid) return;
+  const list = achActiveCat==='todas'
+    ? achAllData
+    : achAllData.filter(a => (a.category||'Geral') === achActiveCat);
+  grid.innerHTML = list.length
+    ? list.map(a => `
+      <div class="ach-all-card ${a._e?'earned':''}">
+        <div style="font-size:20px;flex-shrink:0;">${a.icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:var(--text1);line-height:1.3;">${a.name}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px;">${a.description}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11px;font-weight:700;color:${a._e?'var(--accent)':'var(--muted)'};">${a._e?'✅':'🔒'} ${a.points}pts</div>
+        </div>
+      </div>`).join('')
+    : '<p class="text-muted" style="text-align:center;padding:20px;font-size:12px;">Nenhuma nesta categoria.</p>';
 }
 
 async function loadRanking(){
@@ -3478,11 +4046,32 @@ async function loadRanking(){
 }
 
 function showAchSection(sec,btn){
-  ['earned','all','ranking','gerenciar'].forEach(s=>document.getElementById('as-'+s)?.classList.toggle('hidden',s!==sec));
-  document.querySelectorAll('#ach-filter-pills .pill').forEach(p=>p.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  if(sec==='ranking') loadRanking();
-  if(sec==='gerenciar') loadAdminAchievements();
+  const ranking   = document.getElementById('as-ranking');
+  const gerenciar = document.getElementById('as-gerenciar');
+  const banner    = document.getElementById('ach-mundo-banner');
+  const earned    = document.getElementById('ach-earned-panel');
+  const all       = document.getElementById('ach-all-panel');
+
+  // Tudo oculto por padrão
+  if(ranking)   ranking.classList.add('hidden');
+  if(gerenciar) gerenciar.classList.add('hidden');
+  if(banner)    banner.style.display = 'none';
+  if(earned)    earned.classList.add('hidden');
+  if(all)       all.classList.add('hidden');
+
+  if(sec==='main') {
+    if(banner) banner.style.display = '';
+  } else if(sec==='ranking') {
+    if(ranking) ranking.classList.remove('hidden');
+    loadRanking();
+  } else if(sec==='gerenciar') {
+    if(gerenciar) gerenciar.classList.remove('hidden');
+    loadAdminAchievements();
+  } else if(sec==='earned') {
+    if(earned) earned.classList.remove('hidden');
+  } else if(sec==='all') {
+    if(all) all.classList.remove('hidden');
+  }
 }
 
 // ═══════════════════════════════════
@@ -12997,6 +13586,316 @@ document.addEventListener('keyup',e=>{
 
 
 
+</script>
+<!-- ═══ GLOBO CONQUISTAS PELO MUNDO ═══ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function() {
+  var achGlobeInited = false;
+
+  // Conquistas por país (preview — será expandido com o sistema real)
+  var COUNTRY_ACHIEVEMENTS = {
+    BR: [ {icon:'🌊',name:'Cristo Redentor',pts:500,cat:'Maravilhas'}, {icon:'🏖️',name:'Praias do Brasil',pts:200,cat:'Natureza'}, {icon:'🎭',name:'Carnaval',pts:300,cat:'Cultura'}, {icon:'⚽',name:'País do Futebol',pts:400,cat:'Esporte'}, {icon:'🌿',name:'Amazônia',pts:600,cat:'Natureza'} ],
+    FR: [ {icon:'🗼',name:'Torre Eiffel',pts:500,cat:'Maravilhas'}, {icon:'🎨',name:'Louvre',pts:400,cat:'Arte'}, {icon:'🍷',name:'Vinhos da França',pts:200,cat:'Gastronomia'}, {icon:'🏰',name:'Versalhes',pts:350,cat:'História'} ],
+    IT: [ {icon:'🏛️',name:'Coliseu de Roma',pts:500,cat:'Maravilhas'}, {icon:'🎨',name:'Renascimento',pts:400,cat:'Arte'}, {icon:'🍕',name:'Pizza Original',pts:150,cat:'Gastronomia'}, {icon:'🛶',name:'Veneza',pts:450,cat:'Cultura'} ],
+    US: [ {icon:'🗽',name:'Estátua da Liberdade',pts:500,cat:'Maravilhas'}, {icon:'🏜️',name:'Grand Canyon',pts:450,cat:'Natureza'}, {icon:'🎬',name:'Hollywood',pts:300,cat:'Cultura'}, {icon:'🚀',name:'NASA',pts:400,cat:'Ciência'} ],
+    CN: [ {icon:'🏯',name:'Grande Muralha',pts:600,cat:'Maravilhas'}, {icon:'🐼',name:'Panda Gigante',pts:300,cat:'Natureza'}, {icon:'🏮',name:'Ano Novo Chinês',pts:250,cat:'Cultura'}, {icon:'🌆',name:'Xangai',pts:350,cat:'Cidade'} ],
+    JP: [ {icon:'⛩️',name:'Templo de Kyoto',pts:500,cat:'Cultura'}, {icon:'🗻',name:'Monte Fuji',pts:550,cat:'Natureza'}, {icon:'🌸',name:'Sakura',pts:200,cat:'Natureza'}, {icon:'🤖',name:'Tecnologia Japonesa',pts:400,cat:'Ciência'} ],
+    IN: [ {icon:'🕌',name:'Taj Mahal',pts:600,cat:'Maravilhas'}, {icon:'🧘',name:'Yoga',pts:200,cat:'Cultura'}, {icon:'🐘',name:'Elefantes Sagrados',pts:350,cat:'Natureza'}, {icon:'🎆',name:'Diwali',pts:300,cat:'Cultura'} ],
+    EG: [ {icon:'🔺',name:'Pirâmides de Gizé',pts:700,cat:'Maravilhas'}, {icon:'🦁',name:'Esfinge',pts:500,cat:'História'}, {icon:'🛥️',name:'Rio Nilo',pts:400,cat:'Natureza'} ],
+    AU: [ {icon:'🦘',name:'Canguru',pts:250,cat:'Natureza'}, {icon:'🎭',name:'Ópera de Sydney',pts:500,cat:'Cultura'}, {icon:'🐠',name:'Grande Barreira de Coral',pts:600,cat:'Natureza'} ],
+    DE: [ {icon:'🏰',name:'Neuschwanstein',pts:400,cat:'História'}, {icon:'🍺',name:'Oktoberfest',pts:200,cat:'Cultura'}, {icon:'🎼',name:'Beethoven',pts:350,cat:'Arte'} ],
+    GR: [ {icon:'🏛️',name:'Acrópole',pts:500,cat:'Maravilhas'}, {icon:'🌊',name:'Santorini',pts:400,cat:'Natureza'} ],
+    PE: [ {icon:'🏔️',name:'Machu Picchu',pts:700,cat:'Maravilhas'}, {icon:'🦙',name:'Lhama',pts:200,cat:'Natureza'} ],
+    MX: [ {icon:'🌮',name:'Culinária Mexicana',pts:200,cat:'Gastronomia'}, {icon:'🏛️',name:'Chichén Itzá',pts:600,cat:'Maravilhas'} ],
+    ZA: [ {icon:'🦁',name:'Safari',pts:500,cat:'Natureza'}, {icon:'🌅',name:'Cabo da Boa Esperança',pts:400,cat:'Natureza'} ],
+    RU: [ {icon:'🏰',name:'Kremlin',pts:500,cat:'História'}, {icon:'🎠',name:'Praça Vermelha',pts:400,cat:'Cultura'}, {icon:'⛪',name:'Catedral São Basílio',pts:350,cat:'Arte'} ],
+    CL: [ {icon:'🗿',name:'Ilha de Páscoa',pts:700,cat:'Maravilhas'}, {icon:'🏔️',name:'Atacama',pts:500,cat:'Natureza'} ],
+    GB: [ {icon:'👑',name:'Buckingham Palace',pts:400,cat:'História'}, {icon:'🎡',name:'Big Ben',pts:350,cat:'Cultura'}, {icon:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',name:'Escócia',pts:300,cat:'Natureza'} ],
+    ES: [ {icon:'🏟️',name:'Sagrada Família',pts:500,cat:'Arte'}, {icon:'💃',name:'Flamenco',pts:250,cat:'Cultura'} ],
+    PT: [ {icon:'🏰',name:'Torre de Belém',pts:400,cat:'História'}, {icon:'🌊',name:'Algarve',pts:350,cat:'Natureza'} ],
+    AE: [ {icon:'🏙️',name:'Burj Khalifa',pts:500,cat:'Cidade'}, {icon:'🏜️',name:'Deserto de Dubai',pts:400,cat:'Natureza'} ],
+    SA: [ {icon:'🕌',name:'Meca',pts:700,cat:'Cultura'}, {icon:'🏜️',name:'Hegra',pts:500,cat:'História'} ],
+    KR: [ {icon:'🏯',name:'Palácio Gyeongbokgung',pts:400,cat:'História'}, {icon:'🌸',name:'Festival de Cerejeiras',pts:250,cat:'Cultura'} ],
+    TH: [ {icon:'🛕',name:'Templos de Bangkok',pts:400,cat:'Cultura'}, {icon:'🏖️',name:'Ilhas Tailandesas',pts:350,cat:'Natureza'} ],
+    SG: [ {icon:'🌳',name:'Gardens by the Bay',pts:350,cat:'Cidade'}, {icon:'🦁',name:'Lion City',pts:300,cat:'Cultura'} ],
+    NZ: [ {icon:'🧙',name:'Terra do Senhor dos Anéis',pts:400,cat:'Cultura'}, {icon:'🌋',name:'Vulcões',pts:450,cat:'Natureza'} ],
+  };
+
+  var DEFAULT_ACHIEVEMENTS = [
+    {icon:'✈️',name:'Viajante Iniciante',pts:100,cat:'Viagem'},
+    {icon:'🌍',name:'Explorador Global',pts:300,cat:'Viagem'},
+    {icon:'📸',name:'Turista Digital',pts:150,cat:'Viagem'},
+  ];
+
+  function flagEmoji(code) {
+    return code.toUpperCase().replace(/./g, function(c) {
+      return String.fromCodePoint(127397 + c.charCodeAt(0));
+    });
+  }
+
+  function formatLocalTime(tz) {
+    try { return new Date().toLocaleTimeString('pt-BR', { timeZone: tz, hour: '2-digit', minute: '2-digit' }); }
+    catch(e) { return '—'; }
+  }
+
+  var COUNTRIES = [
+    { code:"US", name:"Estados Unidos", capital:"Washington D.C.", lat:38.9, lon:-77.0, pop:"335M", tz:"America/New_York" },
+    { code:"CA", name:"Canadá", capital:"Ottawa", lat:45.4, lon:-75.7, pop:"39M", tz:"America/Toronto" },
+    { code:"MX", name:"México", capital:"Cidade do México", lat:19.4, lon:-99.1, pop:"128M", tz:"America/Mexico_City" },
+    { code:"BR", name:"Brasil", capital:"Brasília", lat:-15.8, lon:-47.9, pop:"216M", tz:"America/Sao_Paulo" },
+    { code:"AR", name:"Argentina", capital:"Buenos Aires", lat:-34.6, lon:-58.4, pop:"46M", tz:"America/Argentina/Buenos_Aires" },
+    { code:"CL", name:"Chile", capital:"Santiago", lat:-33.5, lon:-70.7, pop:"19M", tz:"America/Santiago" },
+    { code:"CO", name:"Colômbia", capital:"Bogotá", lat:4.7, lon:-74.1, pop:"52M", tz:"America/Bogota" },
+    { code:"PE", name:"Peru", capital:"Lima", lat:-12.0, lon:-77.0, pop:"34M", tz:"America/Lima" },
+    { code:"GB", name:"Reino Unido", capital:"Londres", lat:51.5, lon:-0.1, pop:"68M", tz:"Europe/London" },
+    { code:"FR", name:"França", capital:"Paris", lat:48.9, lon:2.3, pop:"68M", tz:"Europe/Paris" },
+    { code:"DE", name:"Alemanha", capital:"Berlim", lat:52.5, lon:13.4, pop:"84M", tz:"Europe/Berlin" },
+    { code:"IT", name:"Itália", capital:"Roma", lat:41.9, lon:12.5, pop:"59M", tz:"Europe/Rome" },
+    { code:"ES", name:"Espanha", capital:"Madri", lat:40.4, lon:-3.7, pop:"48M", tz:"Europe/Madrid" },
+    { code:"PT", name:"Portugal", capital:"Lisboa", lat:38.7, lon:-9.1, pop:"10M", tz:"Europe/Lisbon" },
+    { code:"NL", name:"Países Baixos", capital:"Amsterdã", lat:52.4, lon:4.9, pop:"18M", tz:"Europe/Amsterdam" },
+    { code:"SE", name:"Suécia", capital:"Estocolmo", lat:59.3, lon:18.1, pop:"10.5M", tz:"Europe/Stockholm" },
+    { code:"NO", name:"Noruega", capital:"Oslo", lat:59.9, lon:10.7, pop:"5.5M", tz:"Europe/Oslo" },
+    { code:"RU", name:"Rússia", capital:"Moscou", lat:55.8, lon:37.6, pop:"144M", tz:"Europe/Moscow" },
+    { code:"TR", name:"Turquia", capital:"Ancara", lat:39.9, lon:32.9, pop:"85M", tz:"Europe/Istanbul" },
+    { code:"SA", name:"Arábia Saudita", capital:"Riade", lat:24.7, lon:46.7, pop:"36M", tz:"Asia/Riyadh" },
+    { code:"AE", name:"Emirados Árabes", capital:"Abu Dhabi", lat:24.5, lon:54.4, pop:"10M", tz:"Asia/Dubai" },
+    { code:"EG", name:"Egito", capital:"Cairo", lat:30.0, lon:31.2, pop:"112M", tz:"Africa/Cairo" },
+    { code:"ZA", name:"África do Sul", capital:"Pretória", lat:-25.7, lon:28.2, pop:"60M", tz:"Africa/Johannesburg" },
+    { code:"IN", name:"Índia", capital:"Nova Délhi", lat:28.6, lon:77.2, pop:"1.44B", tz:"Asia/Kolkata" },
+    { code:"CN", name:"China", capital:"Pequim", lat:39.9, lon:116.4, pop:"1.41B", tz:"Asia/Shanghai" },
+    { code:"JP", name:"Japão", capital:"Tóquio", lat:35.7, lon:139.7, pop:"124M", tz:"Asia/Tokyo" },
+    { code:"KR", name:"Coreia do Sul", capital:"Seul", lat:37.6, lon:127.0, pop:"51M", tz:"Asia/Seoul" },
+    { code:"TH", name:"Tailândia", capital:"Bangcoc", lat:13.8, lon:100.5, pop:"72M", tz:"Asia/Bangkok" },
+    { code:"SG", name:"Singapura", capital:"Singapura", lat:1.35, lon:103.8, pop:"5.9M", tz:"Asia/Singapore" },
+    { code:"AU", name:"Austrália", capital:"Camberra", lat:-35.3, lon:149.1, pop:"27M", tz:"Australia/Sydney" },
+    { code:"NZ", name:"Nova Zelândia", capital:"Wellington", lat:-41.3, lon:174.8, pop:"5.2M", tz:"Pacific/Auckland" },
+    { code:"GR", name:"Grécia", capital:"Atenas", lat:37.9, lon:23.7, pop:"10.7M", tz:"Europe/Athens" },
+    { code:"CL", name:"Chile", capital:"Santiago", lat:-33.5, lon:-70.7, pop:"19M", tz:"America/Santiago" },
+    { code:"MX", name:"México", capital:"Cidade do México", lat:19.4, lon:-99.1, pop:"128M", tz:"America/Mexico_City" },
+  ];
+
+  window.achSelectCountry = function(code) {
+    var country = COUNTRIES.find(function(c){ return c.code === code; });
+    if (country) renderCountryPanel(country);
+  };
+
+  function renderCountryPanel(country) {
+    var panel = document.getElementById('ach-country-panel');
+    if (!panel) return;
+    var achs = COUNTRY_ACHIEVEMENTS[country.code] || DEFAULT_ACHIEVEMENTS;
+    var time = formatLocalTime(country.tz);
+    panel.innerHTML =
+      '<div style="text-align:center;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:10px;">' +
+        '<div style="font-size:28px;">' + flagEmoji(country.code) + '</div>' +
+        '<div style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:13px;color:#fff;margin-top:4px;">' + country.name + '</div>' +
+        '<div style="font-size:10px;color:rgba(255,255,255,.5);">📍 ' + country.capital + ' · 👥 ' + country.pop + '</div>' +
+        '<div style="font-size:11px;color:#4fd1ff;margin-top:3px;font-weight:700;">🕐 ' + time + '</div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🏆 Conquistas disponíveis</div>' +
+      achs.map(function(a) {
+        return '<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+          '<div style="font-size:18px;flex-shrink:0;">' + a.icon + '</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:11px;font-weight:700;color:#e0f0ff;line-height:1.3;">' + a.name + '</div>' +
+            '<div style="font-size:9px;color:rgba(255,255,255,.4);">' + a.cat + '</div>' +
+          '</div>' +
+          '<div style="font-size:10px;font-weight:700;color:#f97316;white-space:nowrap;">+' + a.pts + 'pts</div>' +
+        '</div>';
+      }).join('') +
+      '<div style="margin-top:8px;padding:8px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;text-align:center;font-size:10px;color:rgba(255,255,255,.5);">Visite este país para desbloquear 🔓</div>';
+  }
+
+  function initAchGlobe() {
+    if (achGlobeInited) return;
+    var canvas = document.getElementById('achGlobeCanvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+    achGlobeInited = true;
+
+    var loadingEl = document.getElementById('achGlobeLoading');
+    var tooltipEl = document.getElementById('achGlobeTooltip');
+    var container = canvas.parentElement;
+    var W = container.clientWidth || 400;
+    var H = container.clientHeight || 380;
+
+    var scene    = new THREE.Scene();
+    var camera   = new THREE.PerspectiveCamera(45, W/H, 0.1, 2000);
+    camera.position.set(0, 0, 4.2);
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(W, H);
+
+    // Estrelas
+    var starGeo = new THREE.BufferGeometry();
+    var starPos = new Float32Array(2000*3);
+    for (var i=0;i<2000;i++) {
+      var r=80+Math.random()*150, t=Math.random()*Math.PI*2, p=Math.acos(2*Math.random()-1);
+      starPos[i*3]=r*Math.sin(p)*Math.cos(t); starPos[i*3+1]=r*Math.sin(p)*Math.sin(t); starPos[i*3+2]=r*Math.cos(p);
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos,3));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xbfe0ff,size:0.4,transparent:true,opacity:0.6})));
+
+    var RADIUS = 1.5;
+    var earthGroup = new THREE.Group();
+    earthGroup.rotation.z = THREE.MathUtils.degToRad(23.4);
+    scene.add(earthGroup);
+
+    var loader = new THREE.TextureLoader(); loader.crossOrigin='anonymous';
+    var earthGeo = new THREE.SphereGeometry(RADIUS,64,64);
+    var earthMat = new THREE.MeshPhongMaterial({color:0x223355,shininess:12});
+    var earthMesh = new THREE.Mesh(earthGeo, earthMat);
+    earthGroup.add(earthMesh);
+
+    var revealed=false;
+    function reveal(){ if(!revealed){revealed=true;if(loadingEl)loadingEl.style.display='none';} }
+    loader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/planets/earth_atmos_2048.jpg',
+      function(t){earthMat.map=t;earthMat.color.set(0xffffff);earthMat.needsUpdate=true;reveal();},undefined,reveal);
+    loader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/planets/earth_normal_2048.jpg',
+      function(t){earthMat.normalMap=t;earthMat.needsUpdate=true;});
+    loader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/planets/earth_specular_2048.jpg',
+      function(t){earthMat.specularMap=t;earthMat.specular=new THREE.Color(0x333333);earthMat.needsUpdate=true;});
+
+    var cloudMat=new THREE.MeshPhongMaterial({transparent:true,opacity:0.3,depthWrite:false});
+    earthGroup.add(new THREE.Mesh(new THREE.SphereGeometry(RADIUS*1.01,64,64),cloudMat));
+    loader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/planets/earth_clouds_1024.png',
+      function(t){cloudMat.alphaMap=t;cloudMat.map=t;cloudMat.needsUpdate=true;});
+
+    var atmMat=new THREE.ShaderMaterial({
+      vertexShader:'varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:'varying vec3 vN;void main(){float i=pow(.65-dot(vN,vec3(0,0,1)),3.);gl_FragColor=vec4(.35,.65,1,1)*i;}',
+      side:THREE.BackSide,blending:THREE.AdditiveBlending,transparent:true});
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(RADIUS*1.08,64,64),atmMat));
+
+    scene.add(new THREE.AmbientLight(0x8899bb,0.35));
+    var sun=new THREE.DirectionalLight(0xffffff,1.3);sun.position.set(5,2,4);scene.add(sun);
+
+    function latLonToV3(lat,lon,r){
+      var phi=THREE.MathUtils.degToRad(90-lat),theta=THREE.MathUtils.degToRad(lon+180);
+      return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
+    }
+
+    function makePinTex(emoji){
+      var c=document.createElement('canvas');c.width=c.height=128;
+      var ctx=c.getContext('2d');
+      ctx.beginPath();ctx.arc(64,48,36,0,Math.PI*2);ctx.fillStyle='#0c1826';ctx.fill();
+      ctx.lineWidth=5;ctx.strokeStyle='#4fd1ff';ctx.stroke();
+      ctx.beginPath();ctx.moveTo(50,78);ctx.lineTo(78,78);ctx.lineTo(64,110);ctx.closePath();
+      ctx.fillStyle='#4fd1ff';ctx.fill();
+      ctx.font='36px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(emoji,64,48);
+      return new THREE.CanvasTexture(c);
+    }
+
+    var countryGroup=new THREE.Group();earthGroup.add(countryGroup);
+    var countryByCode={};
+    COUNTRIES.forEach(function(c){
+      countryByCode[c.code]=c;
+      var pos=latLonToV3(c.lat,c.lon,RADIUS*1.03);
+      var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:makePinTex(flagEmoji(c.code)),transparent:true}));
+      sp.position.copy(pos);sp.scale.set(0.22,0.22,0.22);
+      sp.userData={data:c};countryGroup.add(sp);
+    });
+
+    // Interação
+    var vel={x:0,y:0.0011},isDrag=false,prev={x:0,y:0},dragStart={x:0,y:0,t:0};
+    var targetZoom=4.2,minZ=1.9,maxZ=8;
+    var ray=new THREE.Raycaster(),pv=new THREE.Vector2();
+
+    function pick(cx,cy){
+      var rect=canvas.getBoundingClientRect();
+      pv.x=((cx-rect.left)/rect.width)*2-1;pv.y=-((cy-rect.top)/rect.height)*2+1;
+      ray.setFromCamera(pv,camera);
+      var h=ray.intersectObjects(countryGroup.children);
+      return h.length?h[0].object:null;
+    }
+
+    canvas.addEventListener('mousedown',function(e){isDrag=true;prev={x:e.clientX,y:e.clientY};dragStart={x:e.clientX,y:e.clientY,t:Date.now()};});
+    window.addEventListener('mousemove',function(e){
+      if(isDrag){
+        vel.x=(e.clientY-prev.y)*0.005*0.4;vel.y=(e.clientX-prev.x)*0.005;
+        earthGroup.rotation.y+=vel.y;earthGroup.rotation.x=THREE.MathUtils.clamp(earthGroup.rotation.x+vel.x,-1.3,1.3);
+        prev={x:e.clientX,y:e.clientY};
+      } else {
+        var h=pick(e.clientX,e.clientY);
+        if(h){canvas.style.cursor='pointer';
+          tooltipEl.style.display='block';
+          tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';
+          var d=h.userData.data;
+          tooltipEl.innerHTML='<b>'+flagEmoji(d.code)+' '+d.name+'</b><br>'+d.capital+' · '+d.pop+' · '+formatLocalTime(d.tz);
+        } else {canvas.style.cursor='grab';tooltipEl.style.display='none';}
+      }
+    });
+    window.addEventListener('mouseup',function(e){
+      isDrag=false;
+      if(Math.hypot(e.clientX-dragStart.x,e.clientY-dragStart.y)<6&&Date.now()-dragStart.t<400){
+        var h=pick(e.clientX,e.clientY);
+        if(h) renderCountryPanel(h.userData.data);
+      }
+    });
+    canvas.addEventListener('wheel',function(e){e.preventDefault();targetZoom=THREE.MathUtils.clamp(targetZoom+e.deltaY*0.003,minZ,maxZ);},{passive:false});
+
+    // Touch
+    var lastPinch=null;
+    canvas.style.touchAction='none';
+    canvas.addEventListener('touchstart',function(e){isDrag=true;prev={x:e.touches[0].clientX,y:e.touches[0].clientY};dragStart={x:prev.x,y:prev.y,t:Date.now()};if(e.touches.length===2)lastPinch=null;});
+    canvas.addEventListener('touchmove',function(e){
+      if(e.touches.length===2){
+        var dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,d=Math.sqrt(dx*dx+dy*dy);
+        if(lastPinch!=null)targetZoom=THREE.MathUtils.clamp(targetZoom-(d-lastPinch)*0.01,minZ,maxZ);
+        lastPinch=d;
+      } else if(isDrag){
+        vel.x=(e.touches[0].clientY-prev.y)*0.005*0.4;vel.y=(e.touches[0].clientX-prev.x)*0.005;
+        earthGroup.rotation.y+=vel.y;earthGroup.rotation.x=THREE.MathUtils.clamp(earthGroup.rotation.x+vel.x,-1.3,1.3);
+        prev={x:e.touches[0].clientX,y:e.touches[0].clientY};
+      }
+    });
+    canvas.addEventListener('touchend',function(e){
+      isDrag=false;lastPinch=null;
+      var t=e.changedTouches[0];
+      if(Math.hypot(t.clientX-dragStart.x,t.clientY-dragStart.y)<8&&Date.now()-dragStart.t<400){
+        var h=pick(t.clientX,t.clientY);
+        if(h) renderCountryPanel(h.userData.data);
+      }
+    });
+
+    // Resize
+    window.addEventListener('resize',function(){
+      var w=container.clientWidth,h=container.clientHeight;
+      camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);
+    });
+
+    // Animate
+    function animate(){
+      requestAnimationFrame(animate);
+      if(!isDrag){vel.x*=0.94;vel.y*=0.94;vel.y+=0.0002;
+        earthGroup.rotation.y+=vel.y;earthGroup.rotation.x=THREE.MathUtils.clamp(earthGroup.rotation.x+vel.x,-1.3,1.3);}
+      camera.position.z+=(targetZoom-camera.position.z)*0.08;
+      renderer.render(scene,camera);
+    }
+    animate();
+
+    // Destacar Brasil por padrão
+    renderCountryPanel(countryByCode['BR']);
+  }
+
+  // Inicializar quando a aba Conquistas for aberta
+  var _origLoadAch = window.loadAchievements;
+  window.loadAchievements = function() {
+    var r = _origLoadAch ? _origLoadAch.apply(this, arguments) : undefined;
+    setTimeout(function() {
+      if (typeof THREE !== 'undefined') initAchGlobe();
+      else {
+        var s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+        s.onload = initAchGlobe;
+        document.head.appendChild(s);
+      }
+    }, 300);
+    return r;
+  };
+
+})();
 </script>
 </body>
 </html>
