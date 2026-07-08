@@ -601,16 +601,12 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div><label>País</label>
         <select id="reg-country" onchange="onCountryChange()">
           <option value="">Selecione</option>
-          <option value="BR">🇧🇷 Brasil</option>
-          <option value="US">🇺🇸 EUA</option>
-          <option value="PT">🇵🇹 Portugal</option>
-          <option value="AR">🇦🇷 Argentina</option>
         </select>
       </div>
       <div id="br-fields" class="hidden">
         <div class="form-row" style="margin-bottom:10px;">
-          <div><label>Estado</label><select id="reg-state" onchange="onStateChange()"><option value="">Selecione</option></select></div>
-          <div><label>Cidade</label><select id="reg-city"><option value="">Selecione</option></select></div>
+          <div><label>Estado</label><select id="reg-state" onchange="onStateChange()"><option value="">Selecione o país</option></select></div>
+          <div><label>Cidade</label><select id="reg-city"><option value="">Selecione o estado</option></select></div>
         </div>
         <div><label>Bairro</label><input type="text" id="reg-neighborhood" placeholder="Seu bairro"></div>
       </div>
@@ -2640,6 +2636,302 @@ let pendingFriendName = '';
 let globalFilter = 'todos';
 let notifIntervalId = null;
 
+const COUNTRIES_ALL = [
+  {code:'AF',name:'Afeganistão',en:'Afghanistan'},
+  {code:'AL',name:'Albânia',en:'Albania'},
+  {code:'DE',name:'Alemanha',en:'Germany'},
+  {code:'AD',name:'Andorra',en:'Andorra'},
+  {code:'AO',name:'Angola',en:'Angola'},
+  {code:'AI',name:'Anguila',en:'Anguilla'},
+  {code:'AQ',name:'Antártida',en:'Antarctica'},
+  {code:'AG',name:'Antígua e Barbuda',en:'Antigua and Barbuda'},
+  {code:'AR',name:'Argentina',en:'Argentina'},
+  {code:'DZ',name:'Argélia',en:'Algeria'},
+  {code:'AM',name:'Armênia',en:'Armenia'},
+  {code:'AW',name:'Aruba',en:'Aruba'},
+  {code:'SA',name:'Arábia Saudita',en:'Saudi Arabia'},
+  {code:'AU',name:'Austrália',en:'Australia'},
+  {code:'AZ',name:'Azerbaijão',en:'Azerbaijan'},
+  {code:'BS',name:'Bahamas',en:'Bahamas'},
+  {code:'BH',name:'Bahrein',en:'Bahrain'},
+  {code:'BD',name:'Bangladesh',en:'Bangladesh'},
+  {code:'BB',name:'Barbados',en:'Barbados'},
+  {code:'BZ',name:'Belize',en:'Belize'},
+  {code:'BJ',name:'Benin',en:'Benin'},
+  {code:'BM',name:'Bermudas',en:'Bermuda'},
+  {code:'BY',name:'Bielorrússia',en:'Belarus'},
+  {code:'BO',name:'Bolívia',en:'Bolivia'},
+  {code:'BW',name:'Botsuana',en:'Botswana'},
+  {code:'BR',name:'Brasil',en:'Brazil'},
+  {code:'BN',name:'Brunei',en:'Brunei Darussalam'},
+  {code:'BG',name:'Bulgária',en:'Bulgaria'},
+  {code:'BF',name:'Burquina Faso',en:'Burkina Faso'},
+  {code:'BI',name:'Burundi',en:'Burundi'},
+  {code:'BT',name:'Butão',en:'Bhutan'},
+  {code:'BE',name:'Bélgica',en:'Belgium'},
+  {code:'BA',name:'Bósnia e Herzegovina',en:'Bosnia and Herzegovina'},
+  {code:'CV',name:'Cabo Verde',en:'Cabo Verde'},
+  {code:'CM',name:'Camarões',en:'Cameroon'},
+  {code:'KH',name:'Camboja',en:'Cambodia'},
+  {code:'CA',name:'Canadá',en:'Canada'},
+  {code:'QA',name:'Catar',en:'Qatar'},
+  {code:'KZ',name:'Cazaquistão',en:'Kazakhstan'},
+  {code:'TD',name:'Chade',en:'Chad'},
+  {code:'CL',name:'Chile',en:'Chile'},
+  {code:'CN',name:'China',en:'China'},
+  {code:'CY',name:'Chipre',en:'Cyprus'},
+  {code:'VA',name:'Cidade do Vaticano',en:'Holy See (Vatican City State)'},
+  {code:'CO',name:'Colômbia',en:'Colombia'},
+  {code:'KM',name:'Comores',en:'Comoros'},
+  {code:'CD',name:'Congo - Kinshasa',en:'Congo, The Democratic Republic of the'},
+  {code:'KP',name:'Coreia do Norte',en:'North Korea'},
+  {code:'KR',name:'Coreia do Sul',en:'South Korea'},
+  {code:'CR',name:'Costa Rica',en:'Costa Rica'},
+  {code:'CI',name:'Costa do Marfim',en:'Côte d\'Ivoire'},
+  {code:'HR',name:'Croácia',en:'Croatia'},
+  {code:'CU',name:'Cuba',en:'Cuba'},
+  {code:'CW',name:'Curaçao',en:'Curaçao'},
+  {code:'DK',name:'Dinamarca',en:'Denmark'},
+  {code:'DJ',name:'Djibuti',en:'Djibouti'},
+  {code:'DM',name:'Dominica',en:'Dominica'},
+  {code:'EG',name:'Egito',en:'Egypt'},
+  {code:'SV',name:'El Salvador',en:'El Salvador'},
+  {code:'AE',name:'Emirados Árabes Unidos',en:'United Arab Emirates'},
+  {code:'EC',name:'Equador',en:'Ecuador'},
+  {code:'ER',name:'Eritreia',en:'Eritrea'},
+  {code:'SK',name:'Eslováquia',en:'Slovakia'},
+  {code:'SI',name:'Eslovênia',en:'Slovenia'},
+  {code:'ES',name:'Espanha',en:'Spain'},
+  {code:'SZ',name:'Essuatíni',en:'Eswatini'},
+  {code:'US',name:'Estados Unidos',en:'United States'},
+  {code:'EE',name:'Estônia',en:'Estonia'},
+  {code:'ET',name:'Etiópia',en:'Ethiopia'},
+  {code:'FJ',name:'Fiji',en:'Fiji'},
+  {code:'PH',name:'Filipinas',en:'Philippines'},
+  {code:'FI',name:'Finlândia',en:'Finland'},
+  {code:'FR',name:'França',en:'France'},
+  {code:'GA',name:'Gabão',en:'Gabon'},
+  {code:'GH',name:'Gana',en:'Ghana'},
+  {code:'GE',name:'Geórgia',en:'Georgia'},
+  {code:'GI',name:'Gibraltar',en:'Gibraltar'},
+  {code:'GD',name:'Granada',en:'Grenada'},
+  {code:'GL',name:'Groenlândia',en:'Greenland'},
+  {code:'GR',name:'Grécia',en:'Greece'},
+  {code:'GP',name:'Guadalupe',en:'Guadeloupe'},
+  {code:'GU',name:'Guam',en:'Guam'},
+  {code:'GT',name:'Guatemala',en:'Guatemala'},
+  {code:'GG',name:'Guernsey',en:'Guernsey'},
+  {code:'GY',name:'Guiana',en:'Guyana'},
+  {code:'GF',name:'Guiana Francesa',en:'French Guiana'},
+  {code:'GN',name:'Guiné',en:'Guinea'},
+  {code:'GQ',name:'Guiné Equatorial',en:'Equatorial Guinea'},
+  {code:'GW',name:'Guiné-Bissau',en:'Guinea-Bissau'},
+  {code:'GM',name:'Gâmbia',en:'Gambia'},
+  {code:'HT',name:'Haiti',en:'Haiti'},
+  {code:'HN',name:'Honduras',en:'Honduras'},
+  {code:'HK',name:'Hong Kong, RAE da China',en:'Hong Kong'},
+  {code:'HU',name:'Hungria',en:'Hungary'},
+  {code:'BV',name:'Ilha Bouvet',en:'Bouvet Island'},
+  {code:'CX',name:'Ilha Christmas',en:'Christmas Island'},
+  {code:'NF',name:'Ilha Norfolk',en:'Norfolk Island'},
+  {code:'IM',name:'Ilha de Man',en:'Isle of Man'},
+  {code:'AX',name:'Ilhas Aland',en:'Åland Islands'},
+  {code:'KY',name:'Ilhas Cayman',en:'Cayman Islands'},
+  {code:'CC',name:'Ilhas Cocos (Keeling)',en:'Cocos (Keeling) Islands'},
+  {code:'CK',name:'Ilhas Cook',en:'Cook Islands'},
+  {code:'FO',name:'Ilhas Faroe',en:'Faroe Islands'},
+  {code:'GS',name:'Ilhas Geórgia do Sul e Sandwich do Sul',en:'South Georgia and the South Sandwich Islands'},
+  {code:'HM',name:'Ilhas Heard e McDonald',en:'Heard Island and McDonald Islands'},
+  {code:'FK',name:'Ilhas Malvinas',en:'Falkland Islands (Malvinas)'},
+  {code:'MP',name:'Ilhas Marianas do Norte',en:'Northern Mariana Islands'},
+  {code:'MH',name:'Ilhas Marshall',en:'Marshall Islands'},
+  {code:'UM',name:'Ilhas Menores Distantes dos EUA',en:'United States Minor Outlying Islands'},
+  {code:'PN',name:'Ilhas Pitcairn',en:'Pitcairn'},
+  {code:'SB',name:'Ilhas Salomão',en:'Solomon Islands'},
+  {code:'TC',name:'Ilhas Turcas e Caicos',en:'Turks and Caicos Islands'},
+  {code:'VI',name:'Ilhas Virgens Americanas',en:'Virgin Islands, U.S.'},
+  {code:'VG',name:'Ilhas Virgens Britânicas',en:'Virgin Islands, British'},
+  {code:'ID',name:'Indonésia',en:'Indonesia'},
+  {code:'IQ',name:'Iraque',en:'Iraq'},
+  {code:'IE',name:'Irlanda',en:'Ireland'},
+  {code:'IR',name:'Irã',en:'Iran'},
+  {code:'IS',name:'Islândia',en:'Iceland'},
+  {code:'IL',name:'Israel',en:'Israel'},
+  {code:'IT',name:'Itália',en:'Italy'},
+  {code:'YE',name:'Iêmen',en:'Yemen'},
+  {code:'JM',name:'Jamaica',en:'Jamaica'},
+  {code:'JP',name:'Japão',en:'Japan'},
+  {code:'JE',name:'Jersey',en:'Jersey'},
+  {code:'JO',name:'Jordânia',en:'Jordan'},
+  {code:'KW',name:'Kuwait',en:'Kuwait'},
+  {code:'LA',name:'Laos',en:'Laos'},
+  {code:'LS',name:'Lesoto',en:'Lesotho'},
+  {code:'LV',name:'Letônia',en:'Latvia'},
+  {code:'LR',name:'Libéria',en:'Liberia'},
+  {code:'LI',name:'Liechtenstein',en:'Liechtenstein'},
+  {code:'LT',name:'Lituânia',en:'Lithuania'},
+  {code:'LU',name:'Luxemburgo',en:'Luxembourg'},
+  {code:'LB',name:'Líbano',en:'Lebanon'},
+  {code:'LY',name:'Líbia',en:'Libya'},
+  {code:'MO',name:'Macau, RAE da China',en:'Macao'},
+  {code:'MK',name:'Macedônia do Norte',en:'North Macedonia'},
+  {code:'MG',name:'Madagascar',en:'Madagascar'},
+  {code:'MW',name:'Malaui',en:'Malawi'},
+  {code:'MV',name:'Maldivas',en:'Maldives'},
+  {code:'ML',name:'Mali',en:'Mali'},
+  {code:'MT',name:'Malta',en:'Malta'},
+  {code:'MY',name:'Malásia',en:'Malaysia'},
+  {code:'MA',name:'Marrocos',en:'Morocco'},
+  {code:'MQ',name:'Martinica',en:'Martinique'},
+  {code:'MR',name:'Mauritânia',en:'Mauritania'},
+  {code:'MU',name:'Maurício',en:'Mauritius'},
+  {code:'YT',name:'Mayotte',en:'Mayotte'},
+  {code:'MM',name:'Mianmar (Birmânia)',en:'Myanmar'},
+  {code:'FM',name:'Micronésia',en:'Micronesia, Federated States of'},
+  {code:'MD',name:'Moldova',en:'Moldova'},
+  {code:'MN',name:'Mongólia',en:'Mongolia'},
+  {code:'ME',name:'Montenegro',en:'Montenegro'},
+  {code:'MS',name:'Montserrat',en:'Montserrat'},
+  {code:'MZ',name:'Moçambique',en:'Mozambique'},
+  {code:'MX',name:'México',en:'Mexico'},
+  {code:'MC',name:'Mônaco',en:'Monaco'},
+  {code:'NA',name:'Namíbia',en:'Namibia'},
+  {code:'NR',name:'Nauru',en:'Nauru'},
+  {code:'NP',name:'Nepal',en:'Nepal'},
+  {code:'NI',name:'Nicarágua',en:'Nicaragua'},
+  {code:'NG',name:'Nigéria',en:'Nigeria'},
+  {code:'NU',name:'Niue',en:'Niue'},
+  {code:'NO',name:'Noruega',en:'Norway'},
+  {code:'NC',name:'Nova Caledônia',en:'New Caledonia'},
+  {code:'NZ',name:'Nova Zelândia',en:'New Zealand'},
+  {code:'NE',name:'Níger',en:'Niger'},
+  {code:'OM',name:'Omã',en:'Oman'},
+  {code:'PW',name:'Palau',en:'Palau'},
+  {code:'PA',name:'Panamá',en:'Panama'},
+  {code:'PG',name:'Papua-Nova Guiné',en:'Papua New Guinea'},
+  {code:'PK',name:'Paquistão',en:'Pakistan'},
+  {code:'PY',name:'Paraguai',en:'Paraguay'},
+  {code:'NL',name:'Países Baixos',en:'Netherlands'},
+  {code:'BQ',name:'Países Baixos Caribenhos',en:'Bonaire, Sint Eustatius and Saba'},
+  {code:'PE',name:'Peru',en:'Peru'},
+  {code:'PF',name:'Polinésia Francesa',en:'French Polynesia'},
+  {code:'PL',name:'Polônia',en:'Poland'},
+  {code:'PR',name:'Porto Rico',en:'Puerto Rico'},
+  {code:'PT',name:'Portugal',en:'Portugal'},
+  {code:'KG',name:'Quirguistão',en:'Kyrgyzstan'},
+  {code:'KI',name:'Quiribati',en:'Kiribati'},
+  {code:'KE',name:'Quênia',en:'Kenya'},
+  {code:'GB',name:'Reino Unido',en:'United Kingdom'},
+  {code:'CF',name:'República Centro-Africana',en:'Central African Republic'},
+  {code:'DO',name:'República Dominicana',en:'Dominican Republic'},
+  {code:'CG',name:'República do Congo',en:'Congo'},
+  {code:'RE',name:'Reunião',en:'Réunion'},
+  {code:'RO',name:'Romênia',en:'Romania'},
+  {code:'RW',name:'Ruanda',en:'Rwanda'},
+  {code:'RU',name:'Rússia',en:'Russian Federation'},
+  {code:'EH',name:'Saara Ocidental',en:'Western Sahara'},
+  {code:'WS',name:'Samoa',en:'Samoa'},
+  {code:'AS',name:'Samoa Americana',en:'American Samoa'},
+  {code:'SM',name:'San Marino',en:'San Marino'},
+  {code:'SH',name:'Santa Helena',en:'Saint Helena, Ascension and Tristan da Cunha'},
+  {code:'LC',name:'Santa Lúcia',en:'Saint Lucia'},
+  {code:'SC',name:'Seicheles',en:'Seychelles'},
+  {code:'SN',name:'Senegal',en:'Senegal'},
+  {code:'SL',name:'Serra Leoa',en:'Sierra Leone'},
+  {code:'SG',name:'Singapura',en:'Singapore'},
+  {code:'SX',name:'Sint Maarten',en:'Sint Maarten (Dutch part)'},
+  {code:'SO',name:'Somália',en:'Somalia'},
+  {code:'LK',name:'Sri Lanka',en:'Sri Lanka'},
+  {code:'SD',name:'Sudão',en:'Sudan'},
+  {code:'SS',name:'Sudão do Sul',en:'South Sudan'},
+  {code:'SR',name:'Suriname',en:'Suriname'},
+  {code:'SE',name:'Suécia',en:'Sweden'},
+  {code:'CH',name:'Suíça',en:'Switzerland'},
+  {code:'SJ',name:'Svalbard e Jan Mayen',en:'Svalbard and Jan Mayen'},
+  {code:'BL',name:'São Bartolomeu',en:'Saint Barthélemy'},
+  {code:'KN',name:'São Cristóvão e Névis',en:'Saint Kitts and Nevis'},
+  {code:'MF',name:'São Martinho',en:'Saint Martin (French part)'},
+  {code:'PM',name:'São Pedro e Miquelão',en:'Saint Pierre and Miquelon'},
+  {code:'ST',name:'São Tomé e Príncipe',en:'Sao Tome and Principe'},
+  {code:'VC',name:'São Vicente e Granadinas',en:'Saint Vincent and the Grenadines'},
+  {code:'RS',name:'Sérvia',en:'Serbia'},
+  {code:'SY',name:'Síria',en:'Syria'},
+  {code:'TJ',name:'Tadjiquistão',en:'Tajikistan'},
+  {code:'TH',name:'Tailândia',en:'Thailand'},
+  {code:'TW',name:'Taiwan',en:'Taiwan'},
+  {code:'TZ',name:'Tanzânia',en:'Tanzania'},
+  {code:'CZ',name:'Tchéquia',en:'Czechia'},
+  {code:'IO',name:'Território Britânico do Oceano Índico',en:'British Indian Ocean Territory'},
+  {code:'TF',name:'Territórios Franceses do Sul',en:'French Southern Territories'},
+  {code:'PS',name:'Territórios palestinos',en:'Palestine, State of'},
+  {code:'TL',name:'Timor-Leste',en:'Timor-Leste'},
+  {code:'TG',name:'Togo',en:'Togo'},
+  {code:'TK',name:'Tokelau',en:'Tokelau'},
+  {code:'TO',name:'Tonga',en:'Tonga'},
+  {code:'TT',name:'Trinidad e Tobago',en:'Trinidad and Tobago'},
+  {code:'TN',name:'Tunísia',en:'Tunisia'},
+  {code:'TM',name:'Turcomenistão',en:'Turkmenistan'},
+  {code:'TR',name:'Turquia',en:'Türkiye'},
+  {code:'TV',name:'Tuvalu',en:'Tuvalu'},
+  {code:'UA',name:'Ucrânia',en:'Ukraine'},
+  {code:'UG',name:'Uganda',en:'Uganda'},
+  {code:'UY',name:'Uruguai',en:'Uruguay'},
+  {code:'UZ',name:'Uzbequistão',en:'Uzbekistan'},
+  {code:'VU',name:'Vanuatu',en:'Vanuatu'},
+  {code:'VE',name:'Venezuela',en:'Venezuela'},
+  {code:'VN',name:'Vietnã',en:'Vietnam'},
+  {code:'WF',name:'Wallis e Futuna',en:'Wallis and Futuna'},
+  {code:'ZW',name:'Zimbábue',en:'Zimbabwe'},
+  {code:'ZM',name:'Zâmbia',en:'Zambia'},
+  {code:'ZA',name:'África do Sul',en:'South Africa'},
+  {code:'AT',name:'Áustria',en:'Austria'},
+  {code:'IN',name:'Índia',en:'India'}
+];
+function ctryFlag(code){
+  if(!code || code.length!==2) return '🌐';
+  return code.toUpperCase().replace(/./g, c=>String.fromCodePoint(127397+c.charCodeAt(0)));
+}
+// cache de estados/cidades já buscados na API, pra não repetir requisições
+const _geoCache = { states:{}, cities:{} };
+async function fetchCountryStates(countryEn){
+  if(_geoCache.states[countryEn]) return _geoCache.states[countryEn];
+  const resp = await fetch('https://countriesnow.space/api/v0.1/countries/states', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({country: countryEn})
+  });
+  const data = await resp.json();
+  const states = (data && data.data && data.data.states) || [];
+  _geoCache.states[countryEn] = states;
+  return states;
+}
+async function fetchStateCities(countryEn, stateName){
+  const key = countryEn+'|'+stateName;
+  if(_geoCache.cities[key]) return _geoCache.cities[key];
+  const resp = await fetch('https://countriesnow.space/api/v0.1/countries/state/cities', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({country: countryEn, state: stateName})
+  });
+  const data = await resp.json();
+  const cities = (data && Array.isArray(data.data)) ? data.data : [];
+  _geoCache.cities[key] = cities;
+  return cities;
+}
+function locFieldAsSelect(id, onchangeAttr, placeholder){
+  const old=document.getElementById(id);
+  if(old && old.tagName==='SELECT'){ old.innerHTML=`<option value="">${placeholder||'Selecione'}</option>`; return old; }
+  const el=document.createElement('select'); el.id=id;
+  if(onchangeAttr) el.setAttribute('onchange', onchangeAttr);
+  el.innerHTML=`<option value="">${placeholder||'Selecione'}</option>`;
+  if(old) old.parentNode.replaceChild(el, old);
+  return el;
+}
+function locFieldAsInput(id, placeholder){
+  const old=document.getElementById(id);
+  if(old && old.tagName==='INPUT'){ old.placeholder=placeholder||''; old.value=''; return old; }
+  const el=document.createElement('input'); el.type='text'; el.id=id; el.placeholder=placeholder||'';
+  if(old) old.parentNode.replaceChild(el, old);
+  return el;
+}
 const BRASIL_STATES = {
   'AC':'Acre','AL':'Alagoas','AP':'Amapá','AM':'Amazonas','BA':'Bahia','CE':'Ceará','DF':'Distrito Federal',
   'ES':'Espírito Santo','GO':'Goiás','MA':'Maranhão','MT':'Mato Grosso','MS':'Mato Grosso do Sul',
@@ -2715,10 +3007,10 @@ document.addEventListener('click',e=>{
 // BOOT
 // ═══════════════════════════════════
 window.addEventListener('DOMContentLoaded',async()=>{
-  // Populate state select - protegido contra null
-  const stSel=document.getElementById('reg-state');
-  if(stSel) Object.entries(BRASIL_STATES).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([uf,nome])=>{
-    stSel.insertAdjacentHTML('beforeend',`<option value="${uf}">${nome}</option>`);
+  // Populate country select com todos os países
+  const ctrySel=document.getElementById('reg-country');
+  if(ctrySel) COUNTRIES_ALL.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).forEach(c=>{
+    ctrySel.insertAdjacentHTML('beforeend',`<option value="${c.code}">${ctryFlag(c.code)} ${c.name}</option>`);
   });
   // Regional filter states - carregado sob demanda
   function populateRegStateFilter(){
@@ -2923,15 +3215,63 @@ async function doRegister(e){
 
 function doLogout(){clearTok();currentUser=null;showScreen('landing');}
 
-function onCountryChange(){
-  const c=document.getElementById('reg-country').value;
-  document.getElementById('br-fields').classList.toggle('hidden',c!=='BR');
+async function onCountryChange(){
+  const code=document.getElementById('reg-country').value;
+  document.getElementById('br-fields').classList.toggle('hidden',!code);
+  if(!code) return;
+
+  if(code==='BR'){
+    const stSel=locFieldAsSelect('reg-state','onStateChange()','Selecione');
+    Object.entries(BRASIL_STATES).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([uf,nome])=>{
+      stSel.insertAdjacentHTML('beforeend',`<option value="${uf}">${nome}</option>`);
+    });
+    locFieldAsSelect('reg-city',null,'Selecione o estado');
+    return;
+  }
+
+  // Qualquer outro país: busca estados via API
+  const stSel=locFieldAsSelect('reg-state','onStateChange()','Carregando...');
+  locFieldAsSelect('reg-city',null,'Selecione o estado');
+  try{
+    const country=COUNTRIES_ALL.find(c=>c.code===code);
+    const states=await fetchCountryStates(country?country.en:code);
+    if(states.length){
+      stSel.innerHTML='<option value="">Selecione</option>';
+      states.forEach(s=>stSel.insertAdjacentHTML('beforeend',`<option value="${(s.name||'').replace(/"/g,'&quot;')}">${s.name}</option>`));
+    } else {
+      // País sem estados cadastrados na API -> digitação livre
+      locFieldAsInput('reg-state','Estado/Região');
+      locFieldAsInput('reg-city','Sua cidade');
+    }
+  }catch(e){
+    locFieldAsInput('reg-state','Estado/Região');
+    locFieldAsInput('reg-city','Sua cidade');
+  }
 }
-function onStateChange(){
+
+async function onStateChange(){
+  const code=document.getElementById('reg-country').value;
   const uf=document.getElementById('reg-state').value;
-  const citySel=document.getElementById('reg-city');
-  citySel.innerHTML='<option value="">Selecione a cidade</option>';
-  (BR_CITIES[uf]||[]).sort().forEach(c=>citySel.insertAdjacentHTML('beforeend',`<option value="${c}">${c}</option>`));
+
+  if(code==='BR'){
+    const citySel=locFieldAsSelect('reg-city',null,'Selecione a cidade');
+    (BR_CITIES[uf]||[]).sort().forEach(c=>citySel.insertAdjacentHTML('beforeend',`<option value="${c}">${c}</option>`));
+    return;
+  }
+
+  const citySel=locFieldAsSelect('reg-city',null,'Carregando...');
+  try{
+    const country=COUNTRIES_ALL.find(c=>c.code===code);
+    const cities=await fetchStateCities(country?country.en:code, uf);
+    if(cities.length){
+      citySel.innerHTML='<option value="">Selecione</option>';
+      cities.forEach(c=>citySel.insertAdjacentHTML('beforeend',`<option value="${String(c).replace(/"/g,'&quot;')}">${c}</option>`));
+    } else {
+      locFieldAsInput('reg-city','Sua cidade');
+    }
+  }catch(e){
+    locFieldAsInput('reg-city','Sua cidade');
+  }
 }
 
 // ═══════════════════════════════════
