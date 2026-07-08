@@ -974,17 +974,15 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <!-- Layout principal 3 colunas -->
       <div id="ach-layout" id="as-main">
 
-        <!-- ── COL 1: Pontuação geral ── -->
+        <!-- ── COL 1: Pontuação + botões ── -->
         <div id="ach-col-left" style="display:flex;flex-direction:column;gap:10px;">
 
-          <!-- Pontos totais -->
           <div style="background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:16px;padding:20px;color:#fff;text-align:center;">
             <div style="font-size:36px;margin-bottom:4px;">🏆</div>
             <div id="ach-total-pts" style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;line-height:1;">—</div>
             <div style="font-size:12px;opacity:.85;margin-top:4px;">pontos acumulados</div>
           </div>
 
-          <!-- Stats resumo -->
           <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;display:flex;flex-direction:column;gap:10px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-size:12px;color:var(--muted);">Conquistas</span>
@@ -1000,70 +998,79 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
               <span style="font-size:12px;color:var(--muted);">Progresso</span>
               <span id="ach-stat-pct" style="font-size:14px;font-weight:800;color:var(--text2);">—</span>
             </div>
-            <!-- Barra de progresso -->
             <div style="background:var(--surface2);border-radius:99px;height:8px;overflow:hidden;margin-top:2px;">
               <div id="ach-progress-bar" style="height:100%;background:linear-gradient(90deg,var(--accent),#ff9a6c);border-radius:99px;width:0%;transition:width .6s;"></div>
             </div>
           </div>
 
-          <!-- Botão ranking (mobile) -->
           <button class="btn btn-ghost btn-sm" onclick="showAchSection('ranking',null)" style="width:100%;">🏅 Ver Ranking</button>
+          <button class="btn btn-ghost btn-sm" onclick="showAchSection('earned',null)" style="width:100%;">✅ Minhas Conquistas</button>
+          <button class="btn btn-ghost btn-sm" onclick="showAchSection('all',null)" style="width:100%;">🔓 Conquistas Disponíveis</button>
         </div>
 
-        <!-- ── COL 2: Minhas conquistas ── -->
-        <div id="ach-col-mid" style="display:flex;flex-direction:column;gap:10px;">
-          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--text1);">✅ Minhas Conquistas</div>
+        <!-- ── COL 2+3: Banner Conquistas pelo Mundo ── -->
+        <div id="ach-mundo-banner" style="grid-column:span 2;border-radius:20px;overflow:hidden;border:1.5px solid var(--border);box-shadow:var(--shadow-md);display:flex;flex-direction:column;">
+          <div style="background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);flex:1;padding:48px 28px;text-align:center;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+            <div style="position:absolute;top:-10px;left:-10px;font-size:80px;opacity:.1;transform:rotate(-20deg);">✈️</div>
+            <div style="position:absolute;bottom:-10px;right:-10px;font-size:90px;opacity:.1;transform:rotate(15deg);">🚢</div>
+            <div style="position:absolute;top:20px;right:30px;font-size:50px;opacity:.08;">🏔️</div>
+            <div style="position:absolute;bottom:20px;left:30px;font-size:50px;opacity:.08;">🚗</div>
+            <div style="position:absolute;top:50%;left:10px;font-size:40px;opacity:.07;transform:translateY(-50%);">🌊</div>
+            <div style="position:absolute;top:50%;right:10px;font-size:40px;opacity:.07;transform:translateY(-50%);">🏜️</div>
+            <div style="display:flex;justify-content:center;align-items:center;gap:12px;font-size:34px;flex-wrap:wrap;">
+              🗼 🏛️ 🗽 🌏 🏯 🕌 🗿
+            </div>
+            <div>
+              <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:30px;color:#fff;letter-spacing:2px;line-height:1;">CONQUISTAS</div>
+              <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:30px;color:#f97316;letter-spacing:2px;line-height:1;">PELO MUNDO</div>
+            </div>
+            <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">
+              <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:10px 16px;font-size:24px;">✈️</div>
+              <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:10px 16px;font-size:24px;">🚢</div>
+              <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:10px 16px;font-size:24px;">🚗</div>
+              <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:10px 16px;font-size:24px;">🚂</div>
+              <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:10px 16px;font-size:24px;">🏍️</div>
+            </div>
+            <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">🗼</span><span style="font-size:10px;color:rgba(255,255,255,.7);font-weight:600;">Torre Eiffel</span></div>
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">🏛️</span><span style="font-size:10px;color:rgba(255,255,255,.7);font-weight:600;">Coliseu</span></div>
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">🗽</span><span style="font-size:10px;color:rgba(255,255,255,.7);font-weight:600;">Est. Liberdade</span></div>
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">🕌</span><span style="font-size:10px;color:rgba(255,255,255,.7);font-weight:600;">Taj Mahal</span></div>
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">🏯</span><span style="font-size:10px;color:rgba(255,255,255,.7);font-weight:600;">Grande Muralha</span></div>
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">🗿</span><span style="font-size:10px;color:rgba(255,255,255,.7);font-weight:600;">Moai</span></div>
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">🌊</span><span style="font-size:10px;color:rgba(255,255,255,.7);font-weight:600;">Cristo Redentor</span></div>
+            </div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);letter-spacing:3px;text-transform:uppercase;">Em breve</div>
+          </div>
+          <div style="background:var(--surface);padding:16px 24px;text-align:center;">
+            <div style="font-size:13px;color:var(--muted);line-height:1.7;">
+              Visite pontos turísticos, complete desafios geográficos e desbloqueie conquistas únicas pelo mundo inteiro.<br>Do seu bairro às 7 maravilhas do mundo.
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel Minhas Conquistas (oculto) -->
+        <div id="ach-earned-panel" class="hidden" style="grid-column:span 2;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button onclick="showAchSection('main',null)" class="btn btn-ghost btn-sm">‹ Voltar</button>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">✅ Minhas Conquistas</div>
+          </div>
           <div id="ach-earned-grid" style="display:flex;flex-direction:column;gap:8px;">
             <div class="page-loader"><div class="loader"></div></div>
           </div>
         </div>
 
-        <!-- ── COL 3: Todas as conquistas por categoria ── -->
-        <div id="ach-col-right" style="display:flex;flex-direction:column;gap:10px;">
-          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--text1);">🔓 Disponíveis</div>
-          <!-- Pills de categoria -->
+        <!-- Painel Conquistas Disponíveis (oculto) -->
+        <div id="ach-all-panel" class="hidden" style="grid-column:span 2;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button onclick="showAchSection('main',null)" class="btn btn-ghost btn-sm">‹ Voltar</button>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;">🔓 Conquistas Disponíveis</div>
+          </div>
           <div id="ach-cat-pills" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-          <!-- Lista filtrada por categoria -->
           <div id="ach-all-grid" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
 
       </div>
-
-      <!-- ── CONQUISTAS PELO MUNDO (placeholder) ── -->
-      <div style="margin-top:28px;border-radius:20px;overflow:hidden;border:1.5px solid var(--border);box-shadow:var(--shadow-md);">
-        <!-- Banner visual -->
-        <div style="background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);padding:32px 20px;text-align:center;position:relative;overflow:hidden;">
-          <!-- Elementos decorativos -->
-          <div style="position:absolute;top:-10px;left:-10px;font-size:60px;opacity:.12;transform:rotate(-15deg);">✈️</div>
-          <div style="position:absolute;bottom:-10px;right:-10px;font-size:70px;opacity:.12;transform:rotate(10deg);">🚢</div>
-          <div style="position:absolute;top:10px;right:20px;font-size:40px;opacity:.1;">🏔️</div>
-          <div style="position:absolute;bottom:10px;left:20px;font-size:40px;opacity:.1;">🚗</div>
-
-          <!-- Logo e ícones centrais -->
-          <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:10px;font-size:28px;">
-            🗼 🏛️ 🗽 ✈️ 🌏 🏜️ 🗿
-          </div>
-          <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:22px;color:#fff;letter-spacing:1px;margin-bottom:4px;">
-            CONQUISTAS <span style="color:#f97316;">PELO MUNDO</span>
-          </div>
-          <div style="font-size:12px;color:rgba(255,255,255,.6);letter-spacing:2px;text-transform:uppercase;">Em breve</div>
-
-          <!-- Sub-icons das 7 maravilhas estilizadas -->
-          <div style="display:flex;justify-content:center;gap:14px;margin-top:16px;flex-wrap:wrap;">
-            ${['🏯','🗿','🏛️','🕌','🗼','🏔️','🌊'].map(e =>
-              `<div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:8px 12px;font-size:20px;">${e}</div>`
-            ).join('')}
-          </div>
-        </div>
-
-        <div style="background:var(--surface);padding:16px 20px;text-align:center;">
-          <div style="font-size:13px;color:var(--muted);line-height:1.6;">
-            Visite lugares, complete desafios geográficos e desbloqueie conquistas únicas pelo mundo inteiro. Em breve disponível no DAILY.
-          </div>
-        </div>
-      </div>
-
-    </div>
 
 
     <!-- ─── EVENTOS ─── -->
@@ -3692,14 +3699,32 @@ async function loadRanking(){
 }
 
 function showAchSection(sec,btn){
-  const main     = document.getElementById('ach-layout');
-  const ranking  = document.getElementById('as-ranking');
-  const gerenciar= document.getElementById('as-gerenciar');
-  if(main)      main.style.display      = sec==='main'      ? 'grid' : 'none';
-  if(ranking)   ranking.classList.toggle('hidden', sec!=='ranking');
-  if(gerenciar) gerenciar.classList.toggle('hidden', sec!=='gerenciar');
-  if(sec==='ranking')   loadRanking();
-  if(sec==='gerenciar') loadAdminAchievements();
+  const ranking   = document.getElementById('as-ranking');
+  const gerenciar = document.getElementById('as-gerenciar');
+  const banner    = document.getElementById('ach-mundo-banner');
+  const earned    = document.getElementById('ach-earned-panel');
+  const all       = document.getElementById('ach-all-panel');
+
+  // Tudo oculto por padrão
+  if(ranking)   ranking.classList.add('hidden');
+  if(gerenciar) gerenciar.classList.add('hidden');
+  if(banner)    banner.style.display = 'none';
+  if(earned)    earned.classList.add('hidden');
+  if(all)       all.classList.add('hidden');
+
+  if(sec==='main') {
+    if(banner) banner.style.display = '';
+  } else if(sec==='ranking') {
+    if(ranking) ranking.classList.remove('hidden');
+    loadRanking();
+  } else if(sec==='gerenciar') {
+    if(gerenciar) gerenciar.classList.remove('hidden');
+    loadAdminAchievements();
+  } else if(sec==='earned') {
+    if(earned) earned.classList.remove('hidden');
+  } else if(sec==='all') {
+    if(all) all.classList.remove('hidden');
+  }
 }
 
 // ═══════════════════════════════════
