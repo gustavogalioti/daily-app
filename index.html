@@ -1135,21 +1135,21 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <button class="btn btn-ghost" id="btn-more-friends-pokes" style="width:100%;font-size:12px;display:none;" onclick="openFriendsPokesPopup()">Ver todos →</button>
     </div>
 
-    <!-- COL 3: Recebidos + Enviados -->
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:14px;">
+    <!-- COL 3: Recebidos + Enviados lado a lado -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:12px;">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;margin-bottom:8px;">📥 Recebidos</div>
         <div id="pokes-received-v2" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
           <div class="page-loader"><div class="loader"></div></div>
         </div>
-        <button class="btn btn-ghost" id="btn-more-received" style="width:100%;font-size:12px;display:none;" onclick="openPokesPopup('received')">Ver mais →</button>
+        <button class="btn btn-ghost" id="btn-more-received" style="width:100%;font-size:11px;display:none;" onclick="openPokesPopup('received')">Ver mais →</button>
       </div>
-      <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:14px;">
+      <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:12px;">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;margin-bottom:8px;">📤 Enviados</div>
         <div id="pokes-sent-v2" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
           <div class="page-loader"><div class="loader"></div></div>
         </div>
-        <button class="btn btn-ghost" id="btn-more-sent" style="width:100%;font-size:12px;display:none;" onclick="openPokesPopup('sent')">Ver mais →</button>
+        <button class="btn btn-ghost" id="btn-more-sent" style="width:100%;font-size:11px;display:none;" onclick="openPokesPopup('sent')">Ver mais →</button>
       </div>
     </div>
 
