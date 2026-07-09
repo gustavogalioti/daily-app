@@ -81,6 +81,7 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
     ['/api/turnos', './turnos'],
     ['/api/mural', './mural'],
     ['/api/birthdays', './birthdays'],
+    ['/api/timeline', './timeline'],
     ['/api/trunfo', './trunfo'],
   ];
   for (const [path, file] of routeFiles) {
