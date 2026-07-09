@@ -562,6 +562,9 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   window.addEventListener('error', function(e){
     alert('ERRO JS:\n' + e.message + '\nArquivo: ' + (e.filename||'').split('/').pop() + '\nLinha: ' + e.lineno);
   });
+  window.addEventListener('unhandledrejection', function(e){
+    alert('PROMISE REJEITADA:\n' + (e.reason && e.reason.stack ? e.reason.stack : e.reason));
+  });
 </script>
 
 <!-- ═══ LANDING ═══ -->
@@ -1174,6 +1177,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 </div>
 
 <div id="tab-jogos" class="tab-content">
+      <div style="background:red;color:#fff;padding:16px;font-size:18px;font-weight:800;text-align:center;">🔴 TESTE: SE VOCÊ VÊ ISSO, A ABA ESTÁ RENDERIZANDO</div>
       <!-- Sub-nav Jogos -->
       <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">
 
