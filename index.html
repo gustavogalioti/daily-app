@@ -9858,8 +9858,6 @@ function showJogoSection(sec, btn) {
   const target = document.getElementById('jogo-' + sec);
   if (target) {
     target.style.display = 'block'; target.style.visibility = 'visible';
-    // Rolar até o topo da seção do jogo (evita ficar preso lá embaixo)
-    setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   }
 
   // Atualizar botões nav
