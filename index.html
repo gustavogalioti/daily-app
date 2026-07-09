@@ -557,6 +557,12 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 <script src="/dt_enemies_data.js"></script>
 </head>
 <body>
+<script>
+  // DIAGNÓSTICO TEMPORÁRIO — remover depois de achar o bug da aba Jogos
+  window.addEventListener('error', function(e){
+    alert('ERRO JS:\n' + e.message + '\nArquivo: ' + (e.filename||'').split('/').pop() + '\nLinha: ' + e.lineno);
+  });
+</script>
 
 <!-- ═══ LANDING ═══ -->
 <div id="screen-landing" class="screen active">
