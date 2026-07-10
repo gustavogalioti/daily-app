@@ -10,6 +10,8 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@daily-debate/content": "file:./daily-debate-lib/content",
+    "@daily-debate/game-engine": "file:./daily-debate-lib/game-engine",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
