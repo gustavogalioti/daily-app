@@ -5321,6 +5321,7 @@ async function loadAdmin(){
       <td style="display:flex;gap:4px;flex-wrap:wrap;">
         <button class="btn btn-xs btn-ghost" onclick="toggleAdmin('${u.id}','${u.name}',${u.is_admin})">${u.is_admin?'- ADM':'+ ADM'}</button>
         ${u.is_admin?'':('<button class="btn btn-xs btn-ghost" onclick="toggleMod(\''+u.id+'\',\''+u.name+'\','+u.is_moderator+')">'+(u.is_moderator?'- MOD':'+ MOD')+'</button>')}
+        <button class="btn btn-xs btn-ghost" onclick="resetUserPassword('${u.id}','${u.name.replace(/'/g,"\\'")}')">🔑 Redefinir senha</button>
       </td>
     </tr>`).join('');
   }catch(e){}
@@ -5359,6 +5360,17 @@ async function clearAllPosts(){
   try{
     await api('/api/admin/posts/all',{method:'DELETE'});
     toast('Posts apagados!','success');loadGlobal();loadDailyMandou();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function resetUserPassword(id,name){
+  const senha=prompt(`Nova senha para ${name} (mínimo 6 caracteres):`);
+  if(senha===null) return;
+  if(senha.trim().length<6){toast('Senha deve ter ao menos 6 caracteres','error');return;}
+  if(!confirm(`Confirma redefinir a senha de ${name}? A senha antiga deixará de funcionar.`)) return;
+  try{
+    await api(`/api/admin/users/${id}/reset-password`,{method:'PUT',body:JSON.stringify({password:senha.trim()})});
+    toast('Senha redefinida! Agora é só enviar a nova senha para o usuário.','success');
   }catch(e){toast(e.message,'error');}
 }
 
