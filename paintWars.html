@@ -1396,7 +1396,7 @@ function drawSampleWallArt() {
   ctx.fillStyle = '#e53e3e';
   ctx.fillText('SEMPRE', 1050, 400);
 
-  // ── BRASIL HEXA 2026 ── (destaque verde amarelo, centro)
+  // ── BRASIL HEXA 2030 ── (atualizado — era 2026, agora 2030)
   const bx = 1600, by = 140;
   // Bandeira verde de fundo
   ctx.fillStyle = '#009c3b';
@@ -1417,29 +1417,105 @@ function drawSampleWallArt() {
   ctx.fillText('BRASIL', bx + 330, by - 10);
   ctx.fillStyle = '#002776';
   ctx.font = 'bold 44px monospace';
-  ctx.fillText('HEXA 2026 ⭐', bx + 330, by + 60);
+  ctx.fillText('HEXA 2030 ⭐', bx + 330, by + 60);
   ctx.textAlign = 'left';
+
+  // ── NEYMAR pixel art ── (lado direito do Brasil)
+  drawNeymar(ctx, 2380, 60);
+
+  // ── PALMEIRAS NÃO TEM MUNDIAL ── (grafite clássico)
+  ctx.save();
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(2380, 320, 860, 130);
+  ctx.fillStyle = '#33ff33';
+  ctx.font = 'bold 48px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('PALMEIRAS', 2810, 375);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 38px monospace';
+  ctx.fillText('NÃO TEM MUNDIAL', 2810, 425);
+  ctx.restore();
 
   // Random colored blocks - spread across full width
   const colors = ['#e53e3e','#3182ce','#38a169','#805ad5','#d69e2e','#ed64a6'];
   for (let i = 0; i < 200; i++) {
     ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-    const x = 2400 + Math.floor(Math.random() * 1500);
+    const x = 3280 + Math.floor(Math.random() * 620);
     const y = Math.floor(Math.random() * 480);
     const s = (Math.floor(Math.random() * 3) + 1) * 8;
     ctx.fillRect(x, y, s, s);
   }
 
-  // Right side — more pixel art spread out
-  drawHeart(ctx, 2600, 80);
+  // Right side
+  drawHeart(ctx, 3350, 80);
   ctx.fillStyle = '#ff6b35';
   ctx.font = 'bold 70px monospace';
-  ctx.fillText('DAILY', 2800, 200);
+  ctx.fillText('DAILY', 3500, 200);
   ctx.fillStyle = '#ffd700';
-  ctx.fillText('2026', 2850, 290);
-  drawSmiley(ctx, 3200, 100);
-  drawHeart(ctx, 3450, 200);
-  drawPixelChar(ctx, 3700, 80, 'pikachu');
+  ctx.fillText('2030', 3550, 290);
+  drawSmiley(ctx, 3750, 100);
+  drawHeart(ctx, 3900, 200);
+  drawPixelChar(ctx, 3950, 300, 'pikachu');
+}
+
+// ── Pixel art do Neymar Jr ────────────────────────────────────────────────────
+function drawNeymar(ctx, ox, oy) {
+  const S = 14;
+  // Mapa de cores por índice
+  const C = {
+    0: null,         // transparente
+    1: '#f5c5a3',    // pele
+    2: '#d4a574',    // pele sombra
+    3: '#1a1a1a',    // cabelo preto (moicano)
+    4: '#f5e642',    // cabelo loiro/dourado
+    5: '#009c3b',    // camisa verde (Brasil)
+    6: '#ffdf00',    // detalhes amarelos
+    7: '#002776',    // calção azul
+    8: '#ffffff',    // branco
+    9: '#e8a87c',    // pele clara
+    A: '#c8956c',    // pele escura
+    B: '#333333',    // contorno escuro
+    D: '#ffcc00',    // dourado
+    E: '#006400',    // verde escuro
+  };
+  // Grid do Neymar (16×20) — cabeça, tronco, pernas
+  const grid = [
+    [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0,0],  // cabelo topo
+    [0,0,0,3,3,4,4,4,4,3,3,3,0,0,0,0],  // cabelo
+    [0,0,3,4,4,4,4,4,4,4,4,3,3,0,0,0],  // cabelo lateral
+    [0,0,3,1,1,1,1,1,1,1,1,3,0,0,0,0],  // rosto
+    [0,0,1,1,9,1,1,1,9,1,1,1,0,0,0,0],  // olhos
+    [0,0,1,1,B,1,1,1,B,1,1,1,0,0,0,0],  // pupilas
+    [0,0,1,1,1,1,8,1,1,1,1,1,0,0,0,0],  // nariz
+    [0,0,1,1,A,1,8,8,1,A,1,1,0,0,0,0],  // boca sorrindo
+    [0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0],  // queixo
+    [0,0,5,5,5,5,5,5,5,5,5,5,0,0,0,0],  // camisa
+    [0,6,5,5,6,5,5,5,5,6,5,5,6,0,0,0],  // camisa + numero
+    [0,6,5,5,6,5,5,5,5,6,5,5,6,0,0,0],  // camisa
+    [0,0,5,5,5,5,5,5,5,5,5,5,0,0,0,0],  // camisa
+    [0,0,1,5,5,1,5,5,1,5,5,1,0,0,0,0],  // braços
+    [0,0,0,7,7,7,7,7,7,7,7,0,0,0,0,0],  // calção
+    [0,0,0,7,7,7,7,7,7,7,7,0,0,0,0,0],  // calção
+    [0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0],  // pernas
+    [0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0],  // pernas
+    [0,0,0,8,8,0,0,0,0,8,8,0,0,0,0,0],  // meias
+    [0,0,0,D,D,0,0,0,0,D,D,0,0,0,0,0],  // chuteira dourada (o Ney)
+  ];
+  grid.forEach((row, ry) => {
+    row.forEach((v, rx) => {
+      const color = C[v];
+      if (color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(ox + rx * S, oy + ry * S, S - 1, S - 1);
+      }
+    });
+  });
+  // Número 10 na camisa
+  ctx.fillStyle = '#ffdf00';
+  ctx.font = 'bold 16px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('10', ox + 7 * S + S/2, oy + 10 * S + S);
+  ctx.textAlign = 'left';
 }
 
 function drawPixelChar(ctx, ox, oy, type) {
