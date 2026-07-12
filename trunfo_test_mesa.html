@@ -83,6 +83,13 @@
 
   .overlay{ position:fixed; inset:0; background:rgba(10,7,5,.94); display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:20; padding:20px; text-align:center; }
   .overlay.show{ display:flex; }
+
+  /* Modo solo vs Pedro */
+  .solo-wrap{ display:none; width:100%; max-width:480px; flex-direction:column; align-items:center; gap:14px; }
+  .solo-cards-row{ display:flex; gap:16px; align-items:flex-start; justify-content:center; }
+  .solo-side{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .solo-vs{ font-family:'Press Start 2P'; font-size:11px; color:#8d7c62; align-self:center; margin-top:60px; }
+  .pedro-emoji{ font-size:30px; }
 </style>
 </head>
 <body>
@@ -116,6 +123,7 @@
         <input type="text" id="codeInput" placeholder="CÓDIGO DA SALA" maxlength="5" style="text-transform:uppercase">
         <button class="btn ghost" id="joinBtn">ENTRAR</button>
       </div>
+      <button class="btn ghost" id="soloBtn" style="width:100%; margin-top:14px; border-color:#ff9d4d; color:#ff9d4d;">🐱 JOGAR CONTRA O PEDRO (SOZINHO)</button>
     </div>
   </div>
 
@@ -137,6 +145,24 @@
     <div class="timer-bar"><span id="timerFill" style="width:100%"></span></div>
     <div class="result" id="result">Aguardando...</div>
     <div class="reveal-row" id="revealRow"></div>
+  </div>
+
+  <div class="solo-wrap" id="soloWrap">
+    <div class="h1 pf" id="soloCenterHint">SUA VEZ</div>
+    <div class="solo-cards-row">
+      <div class="solo-side">
+        <div class="your-label pf">VOCÊ</div>
+        <div class="tr-card" id="soloYourCard"></div>
+      </div>
+      <div class="solo-vs">VS</div>
+      <div class="solo-side">
+        <div class="your-label pf">🐱 PEDRO</div>
+        <div class="tr-card" id="soloPedroCard"></div>
+      </div>
+    </div>
+    <div class="timer-bar"><span id="soloTimerFill" style="width:100%"></span></div>
+    <div class="result" id="soloResult">Escolha um atributo da sua carta.</div>
+    <div class="hint" id="soloCounts"></div>
   </div>
 
   <div class="overlay" id="gameoverOverlay">
@@ -331,6 +357,173 @@ function showGameover(msg){
     <div style="font-size:17px; margin:4px 0;">${r.position}º — ${r.id===me.id ? 'VOCÊ' : r.name}</div>
   `).join('');
   document.getElementById('gameoverOverlay').classList.add('show');
+}
+
+// ═══════════════════════════════════════
+// MODO SOLO — contra o Pedro
+// ═══════════════════════════════════════
+let solo = null; // { yourHand, pedroHand, pot, leader, timerId }
+
+async function apiGet(path){
+  const res = await fetch(path, { headers: { 'Authorization': 'Bearer ' + token } });
+  if (!res.ok) throw new Error('Erro ' + res.status);
+  return res.json();
+}
+async function apiPost(path, body){
+  const res = await fetch(path, { method:'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) throw new Error(data.error || ('Erro ' + res.status));
+  return data;
+}
+function shuffleArr(arr){
+  const a = [...arr];
+  for (let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+document.getElementById('soloBtn').onclick = async () => {
+  const collection = document.getElementById('collSelect').value;
+  try {
+    const deckData = await apiGet('/api/trunfo/me/deck/cards?collection=' + collection);
+    if (!deckData.cards.length) {
+      alert('Você ainda não tem um deck montado nessa coleção. Monta em "Minha Coleção / Montar Deck" primeiro.');
+      return;
+    }
+    const poolData = await apiGet('/api/trunfo/cards?collection=' + collection);
+    const pedroHand = shuffleArr(poolData.cards).slice(0, Math.max(deckData.cards.length, 3));
+
+    solo = {
+      yourHand: shuffleArr(deckData.cards),
+      pedroHand,
+      pot: [],
+      leader: 'you',
+      timerId: null,
+    };
+
+    document.getElementById('setupCard').style.display = 'none';
+    document.getElementById('lobbyCard').style.display = 'none';
+    document.getElementById('soloWrap').style.display = 'flex';
+    soloStartRound();
+  } catch(e) {
+    alert('Erro: ' + e.message);
+  }
+};
+
+function soloCardHTML(card, clickable){
+  const attrsHTML = Object.entries(card.stats).map(([key,val]) => {
+    const inner = `<span>▪</span><span class="tr-attr-bar"><span style="--val:${val}%"></span></span><span>${val}</span>`;
+    return clickable
+      ? `<div class="tr-attr"><button class="attr-btn" data-attr="${key}">${inner}</button></div>`
+      : `<div class="tr-attr">${inner}</div>`;
+  }).join('');
+  return `
+    <div class="tr-card-inner r-${card.rarity}">
+      <div class="tr-frame"></div>
+      <div class="tr-face">
+        <div class="tr-art">${card.image_url ? `<img src="${card.image_url}">` : ''}</div>
+        <div class="tr-nameplate"><div class="tr-name">${card.name}</div></div>
+        <div class="tr-attrs">${attrsHTML}</div>
+      </div>
+    </div>
+  `;
+}
+function soloBackHTML(){
+  return `<div class="tr-card-inner"><div class="tr-frame"></div><div class="tr-face" style="align-items:center;justify-content:center;"><span class="pf" style="font-size:20px;color:#ff9d4d;">D</span></div></div>`;
+}
+function soloBestAttr(card){
+  const keys = Object.keys(card.stats);
+  let best = keys[0];
+  keys.forEach(k => { if (card.stats[k] > card.stats[best]) best = k; });
+  return best;
+}
+
+function soloStartRound(){
+  document.getElementById('soloCounts').textContent = `Você: ${solo.yourHand.length} cartas   ·   Pedro: ${solo.pedroHand.length} cartas`;
+  const yourCard = solo.yourHand[0], pedroCard = solo.pedroHand[0];
+  clearInterval(solo.timerId);
+
+  if (solo.leader === 'you') {
+    document.getElementById('soloCenterHint').textContent = 'SUA VEZ — ESCOLHA UM ATRIBUTO';
+    document.getElementById('soloResult').textContent = 'O relógio está correndo...';
+    document.getElementById('soloYourCard').innerHTML = soloCardHTML(yourCard, true);
+    document.getElementById('soloPedroCard').innerHTML = soloBackHTML();
+    document.querySelectorAll('#soloYourCard .attr-btn').forEach(btn => {
+      btn.onclick = () => soloResolve(btn.dataset.attr, false);
+    });
+    let t = 5;
+    const fill = document.getElementById('soloTimerFill');
+    fill.style.width = '100%';
+    document.getElementById('soloTimerFill').style.background = '';
+    solo.timerId = setInterval(() => {
+      t -= 1;
+      fill.style.width = Math.max(t,0)/5*100 + '%';
+      if (t <= 0) {
+        clearInterval(solo.timerId);
+        soloResolve(soloBestAttr(yourCard), true);
+      }
+    }, 1000);
+  } else {
+    document.getElementById('soloCenterHint').textContent = 'PEDRO ESTÁ ESCOLHENDO...';
+    document.getElementById('soloResult').textContent = '';
+    document.getElementById('soloYourCard').innerHTML = soloCardHTML(yourCard, false);
+    document.getElementById('soloPedroCard').innerHTML = soloBackHTML();
+    setTimeout(() => soloResolve(soloBestAttr(pedroCard), false), 900);
+  }
+}
+
+function soloResolve(attr, wasAuto){
+  clearInterval(solo.timerId);
+  document.querySelectorAll('#soloYourCard .attr-btn').forEach(b => b.onclick = null);
+
+  const yourCard = solo.yourHand[0], pedroCard = solo.pedroHand[0];
+  const yourVal = yourCard.stats[attr], pedroVal = pedroCard.stats[attr];
+  const tie = yourVal === pedroVal;
+  const youWon = !tie && yourVal > pedroVal;
+
+  document.getElementById('soloYourCard').innerHTML = soloCardHTML(yourCard, false);
+  document.getElementById('soloPedroCard').innerHTML = soloCardHTML(pedroCard, false);
+  document.getElementById('soloCenterHint').textContent = 'ATRIBUTO: ' + attr.toUpperCase();
+
+  if (tie) {
+    document.getElementById('soloResult').innerHTML = `EMPATE! As cartas ficam na mesa.`;
+  } else {
+    document.getElementById('soloResult').innerHTML = `<b>${youWon ? 'VOCÊ' : 'PEDRO'}</b> venceu com ${yourVal} x ${pedroVal}`;
+  }
+
+  setTimeout(() => soloAdvance(tie, youWon), 2200);
+}
+
+async function soloAdvance(tie, youWon){
+  const yourCard = solo.yourHand.shift();
+  const pedroCard = solo.pedroHand.shift();
+  const roundCards = [yourCard, pedroCard];
+
+  if (tie) {
+    solo.pot.push(...roundCards);
+  } else if (youWon) {
+    solo.yourHand.push(...solo.pot, ...roundCards);
+    solo.pot = [];
+    solo.leader = 'you';
+  } else {
+    solo.pedroHand.push(...solo.pot, ...roundCards);
+    solo.pot = [];
+    solo.leader = 'pedro';
+  }
+
+  if (solo.yourHand.length === 0 || solo.pedroHand.length === 0) {
+    const youFinalWon = solo.pedroHand.length === 0;
+    let reward = { coins: null };
+    try { reward = await apiPost('/api/trunfo/practice/finish', { won: youFinalWon }); } catch(e) {}
+    document.getElementById('gameoverTitle').textContent = youFinalWon ? 'VOCÊ VENCEU O PEDRO!' : 'O PEDRO VENCEU DESSA VEZ';
+    document.getElementById('rankingList').innerHTML = `
+      <div style="font-size:17px; margin:4px 0;">${youFinalWon ? '🏆 Você' : '🐱 Pedro'} ficou com todas as cartas</div>
+      ${reward.coins !== null ? `<div style="font-size:15px; color:#ffd35c; margin-top:8px;">+${reward.reward} 🪙 (saldo: ${reward.coins})</div>` : ''}
+    `;
+    document.getElementById('gameoverOverlay').classList.add('show');
+    return;
+  }
+
+  soloStartRound();
 }
 
 init();

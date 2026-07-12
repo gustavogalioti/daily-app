@@ -530,4 +530,29 @@ router.put('/me/deck', authMiddleware, async (req, res) => {
   res.json({ collection, name: name || 'Meu Deck', cardIds: uniqueIds });
 });
 
+// GET /api/trunfo/me/deck/cards?collection=animais — cartas completas do deck salvo (pra jogar sozinho contra o Pedro)
+router.get('/me/deck/cards', authMiddleware, async (req, res) => {
+  const { collection } = req.query;
+  if (!COLLECTIONS_META[collection]) return res.status(400).json({ error: 'Coleção inválida' });
+  await ensurePlayer(req.user.id);
+
+  const db = getDB();
+  const deck = await db.prepare('SELECT card_ids FROM trunfo_decks WHERE user_id=$1 AND collection=$2').get(req.user.id, collection);
+  const cardIds = deck?.card_ids || [];
+  if (!cardIds.length) return res.json({ collection, attrs: COLLECTIONS_META[collection].attrs, cards: [] });
+
+  const cards = await db.prepare(`SELECT id, slug, name, rarity, stats, image_url FROM trunfo_cards WHERE id = ANY($1::text[])`).all(cardIds);
+  res.json({ collection, attrs: COLLECTIONS_META[collection].attrs, cards });
+});
+
+// POST /api/trunfo/practice/finish  { won: true|false } — recompensa modesta do modo solo (vs Pedro)
+router.post('/practice/finish', authMiddleware, async (req, res) => {
+  const db = getDB();
+  await ensurePlayer(req.user.id);
+  const reward = req.body.won ? 40 : 15;
+  await db.prepare('UPDATE trunfo_players SET coins=coins+$1, updated_at=NOW() WHERE user_id=$2').run(reward, req.user.id);
+  const updated = await db.prepare('SELECT coins, fragments FROM trunfo_players WHERE user_id=$1').get(req.user.id);
+  res.json({ reward, coins: updated.coins, fragments: updated.fragments });
+});
+
 module.exports = { router, initTrunfoDB, ensurePlayer };
