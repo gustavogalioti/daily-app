@@ -81,6 +81,7 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
     ['/api/turnos', './turnos'],
     ['/api/mural', './mural'],
     ['/api/birthdays', './birthdays'],
+    ['/api/timeline', './timeline'],
     ['/api/trunfo', './trunfo'],
   ];
   for (const [path, file] of routeFiles) {
@@ -296,6 +297,7 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
       const wssTruco = new WebSocketServer({ noServer: true });
       const wssCoop  = new WebSocketServer({ noServer: true });
       const wssTrunfo = new WebSocketServer({ noServer: true });
+      const wssDailyDebate = new WebSocketServer({ noServer: true });
 
       try {
         const { setupTrucoWS } = require('./truco');
@@ -315,6 +317,12 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
         console.log('  ✓ Trunfo WS pronto');
       } catch(e) { console.warn('Trunfo WS erro:', e.message); }
 
+      try {
+        const { setupDailyDebateWS } = require('./dailydebate_ws');
+        setupDailyDebateWS(wssDailyDebate);
+        console.log('  ✓ Daily Debate WS pronto');
+      } catch(e) { console.warn('Daily Debate WS erro:', e.message); }
+
       httpServer.on('upgrade', (req, socket, head) => {
         const path = req.url.split('?')[0];
         if (path === '/ws/truco') {
@@ -323,12 +331,14 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
           wssCoop.handleUpgrade(req, socket, head, ws => wssCoop.emit('connection', ws, req));
         } else if (path === '/ws/trunfo') {
           wssTrunfo.handleUpgrade(req, socket, head, ws => wssTrunfo.emit('connection', ws, req));
+        } else if (path === '/ws/daily-debate') {
+          wssDailyDebate.handleUpgrade(req, socket, head, ws => wssDailyDebate.emit('connection', ws, req));
         } else {
           socket.destroy();
         }
       });
 
-      console.log('  ✓ WebSocket ativo: /ws/truco + /ws/coop + /ws/trunfo');
+      console.log('  ✓ WebSocket ativo: /ws/truco + /ws/coop + /ws/trunfo + /ws/daily-debate');
     }
   } catch(e) { console.warn('WS erro:', e.message); }
   httpServer.listen(PORT, '0.0.0.0', () => console.log(`\n🗓️  DAILY v3 rodando em http://localhost:${PORT}\n`));

@@ -1,0 +1,7 @@
+{
+  "name": "@daily-debate/game-engine",
+  "version": "1.0.0",
+  "description": "Máquina de estados pura da rodada do Daily Debate (vendorizado, JS compilado)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts"
+}

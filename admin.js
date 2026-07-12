@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
 const { authMiddleware } = require('./authmiddleware');
@@ -74,6 +75,26 @@ router.get('/notification/active', async (req, res) => {
   if (!notif) return res.json({ active: false });
   const ms_remaining = Math.max(0, new Date(notif.expires_at).getTime() - Date.now());
   res.json({ active: true, notification_id: notif.id, expires_at: notif.expires_at, ms_remaining });
+});
+
+// PUT /api/admin/users/:id/reset-password — admin define uma nova senha manualmente
+router.put('/users/:id/reset-password', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const db = getDB();
+    const { password } = req.body;
+    if (!password || password.length < 6)
+      return res.status(400).json({ error: 'Senha deve ter ao menos 6 caracteres' });
+    const user = await db.prepare('SELECT id FROM users WHERE id=$1').get(req.params.id);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const hashed = await bcrypt.hash(password, 12);
+    await db.prepare('UPDATE users SET password=$1 WHERE id=$2').run(hashed, req.params.id);
+    // Invalida qualquer link de "esqueci minha senha" pendente para esse usuário
+    await db.prepare('UPDATE password_resets SET used=TRUE WHERE user_id=$1').run(req.params.id).catch(() => {});
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[Admin] reset-password:', e.message);
+    res.status(500).json({ error: 'Erro ao redefinir senha' });
+  }
 });
 
 // PUT /api/admin/users/:id/toggle-admin

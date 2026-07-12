@@ -1,0 +1,10 @@
+{
+  "name": "@daily-debate/content",
+  "version": "0.1.0",
+  "description": "Pool de categorias, temas e modos do Daily Debate (vendorizado, JS compilado)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@daily-debate/game-engine": "file:../game-engine"
+  }
+}

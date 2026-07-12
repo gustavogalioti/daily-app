@@ -278,6 +278,8 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px;}
 .modal-close:hover{background:var(--surface2);}
 .modal-body{padding:20px;display:flex;flex-direction:column;gap:12px;}
+.modal-box{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;width:100%;box-shadow:var(--shadow-md);}
+.modal-header{padding:16px 16px 0 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;}
 .post-type-sw{display:flex;gap:6px;}
 .pt-btn{flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:13px;font-weight:600;transition:all .18s;}
 .pt-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
@@ -927,6 +929,13 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           #ach-globe-canvas-wrap { height: auto !important; flex: 1; }
           #ach-country-panel { width: 220px !important; flex-shrink: 0 !important; border-top: none !important; border-left: 1px solid rgba(255,255,255,.08) !important; overflow-y: auto; max-height: 480px; }
         }
+        /* Linha do tempo: mobile = coluna, desktop = linha */
+        @media (max-width: 600px) {
+          #screen-timeline > div:last-child { flex-direction: column !important; overflow: visible !important; }
+          #tl-calendar-col { width: 100% !important; border-right: none !important; border-bottom: 1px solid var(--border); overflow-y: visible !important; }
+          #tl-day-col { overflow-y: visible !important; }
+          #screen-timeline { overflow-y: auto !important; }
+        }
         .ach-mini-card {
           display: flex; align-items: center; gap: 10px;
           background: var(--surface2); border-radius: 10px; padding: 9px 12px;
@@ -1135,21 +1144,21 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <button class="btn btn-ghost" id="btn-more-friends-pokes" style="width:100%;font-size:12px;display:none;" onclick="openFriendsPokesPopup()">Ver todos →</button>
     </div>
 
-    <!-- COL 3: Recebidos + Enviados -->
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:14px;">
+    <!-- COL 3: Recebidos + Enviados lado a lado -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:12px;">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;margin-bottom:8px;">📥 Recebidos</div>
         <div id="pokes-received-v2" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
           <div class="page-loader"><div class="loader"></div></div>
         </div>
-        <button class="btn btn-ghost" id="btn-more-received" style="width:100%;font-size:12px;display:none;" onclick="openPokesPopup('received')">Ver mais →</button>
+        <button class="btn btn-ghost" id="btn-more-received" style="width:100%;font-size:11px;display:none;" onclick="openPokesPopup('received')">Ver mais →</button>
       </div>
-      <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:14px;">
+      <div style="background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:12px;">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;margin-bottom:8px;">📤 Enviados</div>
         <div id="pokes-sent-v2" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
           <div class="page-loader"><div class="loader"></div></div>
         </div>
-        <button class="btn btn-ghost" id="btn-more-sent" style="width:100%;font-size:12px;display:none;" onclick="openPokesPopup('sent')">Ver mais →</button>
+        <button class="btn btn-ghost" id="btn-more-sent" style="width:100%;font-size:11px;display:none;" onclick="openPokesPopup('sent')">Ver mais →</button>
       </div>
     </div>
 
@@ -1161,7 +1170,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;">🌍 DailyPokeVERSE</div>
       <div id="verse-online-count-v2" style="font-size:11px;color:var(--muted);">carregando...</div>
     </div>
-    <div id="dailyverse-canvas-v2" style="position:relative;width:100%;aspect-ratio:16/9;background:#fff url('/dailyverse_bg.png') center center / contain no-repeat;overflow:hidden;cursor:default;">
+    <div id="dailyverse-canvas-v2" style="position:relative;width:100%;height:clamp(280px, 56.25vw, 520px);background:#fff url('/dailyverse_bg.png') center center / contain no-repeat;overflow:hidden;cursor:default;">
       <div style="position:absolute;bottom:0;left:0;right:0;height:18px;background:rgba(0,0,0,.04);"></div>
     </div>
   </div>
@@ -1174,6 +1183,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('catrunner',this)">🐱 Cat Runner</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('truco',this)" id="btn-jogo-truco">🃏 Truco</button>
+        <button class="btn btn-ghost btn-sm" onclick="showJogoSection('dailydebate',this)" id="btn-jogo-dailydebate">🎤 Daily Debate</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('paintwars',this)" id="btn-jogo-pw">🎨 Paint Wars</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('quiz',this)" id="btn-jogo-quiz">🧠 Quiz Arena</button>
         <button class="btn btn-ghost btn-sm" onclick="showJogoSection('tower',this)" id="btn-jogo-tower">🏙️ Daily Tower</button>
@@ -1866,6 +1876,19 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
 
 
+      <!-- ─── DAILY DEBATE (inline na aba Jogos) ─── -->
+      <div id="jogo-dailydebate" style="display:none;">
+        <div style="background:#170f22;border-radius:16px;overflow:hidden;border:2px solid #f4b93f;position:relative;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(135deg,#2a1b3d,#1c1129);">
+            <div>
+              <div style="font-size:20px;font-weight:900;letter-spacing:1px;">DAILY <span style="color:#f4b93f;">DEBATE</span></div>
+              <div style="font-size:11px;opacity:.6;margin-top:2px;">Improviso, argumentação e humor — um apresenta, todo mundo vota</div>
+            </div>
+          </div>
+          <iframe id="dailydebate-iframe" style="width:100%;height:640px;border:none;display:block;" title="Daily Debate"></iframe>
+        </div>
+      </div>
+
       <!-- ─── TRUCO (inline na aba Jogos) ─── -->
       <div id="jogo-truco" style="display:none;">
         <div id="truco-inline-wrap" style="background:#1a6b2e;border-radius:16px;overflow:hidden;border:2px solid #0e4a1e;min-height:420px;display:flex;flex-direction:column;position:relative;">
@@ -2382,15 +2405,91 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   </div>
 </div>
 
-<!-- Modal Linha do Tempo -->
-<div class="modal-overlay" id="modal-timeline">
-  <div class="modal" style="max-width:700px;width:97%;max-height:90vh;overflow-y:auto;">
-    <div class="modal-header">
-      <span class="modal-title">📅 Linha do Tempo</span>
-      <button class="modal-close" onclick="closeModal('modal-timeline')">✕</button>
+<!-- ═══ SCREEN LINHA DO TEMPO ═══ -->
+<div id="screen-timeline" style="display:none;position:fixed;inset:0;z-index:660;flex-direction:column;background:var(--surface2);overflow:hidden;">
+
+  <!-- Header -->
+  <div style="background:var(--surface);padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);flex-shrink:0;position:sticky;top:0;z-index:10;">
+    <button onclick="closeTimelineScreen()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--text);line-height:1;padding:0 8px 0 0;">‹</button>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;flex:1;">📅 Linha do Tempo</div>
+    <button onclick="openTimelineAddPhoto()" class="btn btn-primary btn-sm">+ Adicionar</button>
+  </div>
+
+  <!-- Layout: calendário + posts -->
+  <div style="display:flex;flex:1;overflow:hidden;">
+
+    <!-- Calendário (coluna esquerda / topo mobile) -->
+    <div id="tl-calendar-col" style="width:280px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:16px;box-sizing:border-box;">
+
+      <!-- Navegação mês -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <button onclick="tlPrevMonth()" style="background:none;border:1px solid var(--border);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text2);">‹</button>
+        <div id="tl-month-label" style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--text1);text-align:center;"></div>
+        <button onclick="tlNextMonth()" style="background:none;border:1px solid var(--border);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text2);">›</button>
+      </div>
+
+      <!-- Dias da semana -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;">
+        <div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;">D</div>
+        <div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;">S</div>
+        <div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;">T</div>
+        <div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;">Q</div>
+        <div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;">Q</div>
+        <div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;">S</div>
+        <div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;">S</div>
+      </div>
+
+      <!-- Grid de dias -->
+      <div id="tl-calendar-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
+
+      <!-- Legenda -->
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div> Postou neste dia
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);">
+          <div style="width:10px;height:10px;border-radius:50%;background:#8b5cf6;"></div> Memória adicionada
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);">
+          <div style="width:10px;height:10px;border-radius:3px;border:2px solid var(--accent);"></div> Hoje
+        </div>
+      </div>
     </div>
-    <div class="modal-body" id="modal-timeline-body">
-      <div class="page-loader"><div class="loader"></div></div>
+
+    <!-- Posts do dia selecionado -->
+    <div id="tl-day-col" style="flex:1;overflow-y:auto;padding:16px;box-sizing:border-box;">
+      <div style="text-align:center;padding:60px 20px;color:var(--muted);">
+        <div style="font-size:40px;margin-bottom:12px;">📅</div>
+        <div style="font-size:14px;">Selecione um dia no calendário para ver o que foi postado</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal adicionar memória na linha do tempo -->
+<div id="modal-tl-add" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-tl-add')">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">📸 Adicionar à Linha do Tempo</div>
+      <button class="modal-close" onclick="closeModal('modal-tl-add')">×</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Data</label>
+        <input id="tl-add-date" type="date" style="margin-top:6px;width:100%;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Foto</label>
+        <img id="tl-add-prev" style="width:100%;border-radius:10px;max-height:200px;object-fit:cover;display:none;margin-top:6px;">
+        <label class="drop-zone" for="tl-add-file" style="padding:16px;margin-top:6px;display:block;text-align:center;cursor:pointer;">📸 Escolher foto</label>
+        <input type="file" id="tl-add-file" accept="image/*" style="display:none;" onchange="onTlPhotoSel(event)">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Legenda</label>
+        <textarea id="tl-add-caption" placeholder="O que aconteceu neste dia? (opcional)" style="margin-top:6px;min-height:60px;resize:none;width:100%;box-sizing:border-box;"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" id="tl-add-btn" onclick="submitTlMemory()">💾 Salvar na linha do tempo</button>
     </div>
   </div>
 </div>
@@ -4826,42 +4925,243 @@ async function toggleNotifPref(key, value) {
   } catch(e) { toast('Erro ao salvar preferência', 'error'); }
 }
 
-async function openTimelinePage() {
-  openModal('modal-timeline');
-  const body = document.getElementById('modal-timeline-body');
-  body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+// ═══ LINHA DO TEMPO COM CALENDÁRIO ═══
+let tlPostsByDate   = {};   // 'YYYY-MM-DD' → [posts]
+let tlMemoriesByDate = {};  // 'YYYY-MM-DD' → [memories]
+let tlCurrentMonth  = new Date();
+let tlSelectedDate  = null;
+let tlAddFile       = null;
+
+function openTimelinePage() {
+  const sc = document.getElementById('screen-timeline');
+  sc.style.display = 'flex';
+  sc.style.flexDirection = 'column';
+  // Data padrão: hoje
+  const today = new Date();
+  tlCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  tlSelectedDate = today.toISOString().slice(0, 10);
+  // Pré-preencher data no modal
+  document.getElementById('tl-add-date').value = tlSelectedDate;
+  loadTimelineData();
+}
+
+function closeTimelineScreen() {
+  document.getElementById('screen-timeline').style.display = 'none';
+}
+
+async function loadTimelineData() {
+  tlPostsByDate = {};
+  tlMemoriesByDate = {};
   try {
+    // Posts normais
     const { posts } = await api(`/api/users/${currentUser.username}/posts?limit=500`);
-    const photos = posts.filter(p => p.type === 'photo' && p.image_url);
-    if (!photos.length) {
-      body.innerHTML = '<div class="card" style="padding:24px;text-align:center;"><p class="text-muted">Nenhuma foto postada ainda. Poste sua primeira foto! 📸</p></div>';
-      return;
-    }
-    const byDay = {};
-    photos.forEach(p => {
-      const d = new Date(p.created_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
-      if (!byDay[d]) byDay[d] = [];
-      byDay[d].push(p);
+    posts.forEach(p => {
+      const d = new Date(p.created_at).toISOString().slice(0, 10);
+      if (!tlPostsByDate[d]) tlPostsByDate[d] = [];
+      tlPostsByDate[d].push(p);
     });
-    body.innerHTML = Object.entries(byDay).reverse().map(([day, ps]) => `
-      <div style="margin-bottom:20px;">
-        <div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--border);">
-          📅 ${day} &nbsp;·&nbsp; ${ps.length} foto${ps.length !== 1 ? 's' : ''}
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          ${ps.map(p => {
-            const t = new Date(p.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-            return `<div style="position:relative;cursor:pointer;" onclick="openPostDetail('${p.id}')">
-              <img src="${p.image_url}" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:2px solid var(--border);transition:all .15s;"
-                onmouseover="this.style.borderColor='var(--accent)';this.style.transform='scale(1.05)'"
-                onmouseout="this.style.borderColor='var(--border)';this.style.transform='scale(1)'">
-              <div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:9px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);">${t}</div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`).join('');
+    // Memórias adicionadas manualmente
+    try {
+      const { memories } = await api('/api/timeline/memories');
+      memories.forEach(m => {
+        const d = m.memory_date.slice(0, 10);
+        if (!tlMemoriesByDate[d]) tlMemoriesByDate[d] = [];
+        tlMemoriesByDate[d].push(m);
+      });
+    } catch(e) {}
+  } catch(e) {}
+  renderCalendar();
+  if (tlSelectedDate) loadDayPosts(tlSelectedDate);
+}
+
+function renderCalendar() {
+  const label = document.getElementById('tl-month-label');
+  const grid  = document.getElementById('tl-calendar-grid');
+  if (!label || !grid) return;
+
+  const y = tlCurrentMonth.getFullYear();
+  const m = tlCurrentMonth.getMonth();
+  label.textContent = new Date(y, m, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  const firstDay  = new Date(y, m, 1).getDay();  // 0=dom
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+
+  let html = '';
+  // Espaços em branco antes do dia 1
+  for (let i = 0; i < firstDay; i++) html += '<div></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hasPosts    = !!tlPostsByDate[dateStr];
+    const hasMemories = !!tlMemoriesByDate[dateStr];
+    const isToday     = dateStr === today;
+    const isSelected  = dateStr === tlSelectedDate;
+    const isFuture    = dateStr > today;
+
+    let bg = 'transparent', border = 'none', color = isFuture ? 'var(--muted)' : 'var(--text1)';
+    if (isSelected) { bg = 'var(--accent)'; color = '#fff'; }
+    else if (isToday) { border = '2px solid var(--accent)'; }
+
+    let dot = '';
+    if (hasPosts && !isSelected)    dot += `<div style="width:5px;height:5px;border-radius:50%;background:var(--accent);margin:0 1px;"></div>`;
+    if (hasMemories && !isSelected) dot += `<div style="width:5px;height:5px;border-radius:50%;background:#8b5cf6;margin:0 1px;"></div>`;
+
+    html += `<div onclick="${isFuture ? '' : `tlSelectDay('${dateStr}')`}"
+      style="border-radius:8px;padding:5px 2px;text-align:center;cursor:${isFuture?'default':'pointer'};
+        background:${bg};border:${border};transition:all .12s;
+        ${isFuture?'opacity:.35':''}">
+      <div style="font-size:12px;font-weight:${isToday||isSelected?800:400};color:${color};line-height:1.2;">${d}</div>
+      <div style="display:flex;justify-content:center;gap:1px;min-height:6px;">${dot}</div>
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function tlSelectDay(dateStr) {
+  tlSelectedDate = dateStr;
+  // Atualizar data no modal de adicionar
+  const dateInput = document.getElementById('tl-add-date');
+  if (dateInput) dateInput.value = dateStr;
+  renderCalendar();
+  loadDayPosts(dateStr);
+}
+
+function tlPrevMonth() {
+  tlCurrentMonth = new Date(tlCurrentMonth.getFullYear(), tlCurrentMonth.getMonth() - 1, 1);
+  renderCalendar();
+}
+
+function tlNextMonth() {
+  const now = new Date();
+  const next = new Date(tlCurrentMonth.getFullYear(), tlCurrentMonth.getMonth() + 1, 1);
+  if (next > new Date(now.getFullYear(), now.getMonth(), 1)) return; // Não avançar além do mês atual
+  tlCurrentMonth = next;
+  renderCalendar();
+}
+
+function loadDayPosts(dateStr) {
+  const col = document.getElementById('tl-day-col');
+  if (!col) return;
+
+  const posts    = tlPostsByDate[dateStr]    || [];
+  const memories = tlMemoriesByDate[dateStr] || [];
+  const all      = [
+    ...posts.map(p => ({ ...p, _type: 'post' })),
+    ...memories.map(m => ({ ...m, created_at: m.memory_date + 'T' + (m.time_of_day || '12:00:00'), _type: 'memory' }))
+  ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  const d = new Date(dateStr + 'T12:00:00');
+  const dateLabel = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+  const today     = new Date().toISOString().slice(0, 10);
+
+  if (!all.length) {
+    col.innerHTML = `
+      <div style="border-bottom:1.5px solid var(--border);padding-bottom:12px;margin-bottom:16px;">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--text1);">📅 ${dateLabel}</div>
+        ${dateStr <= today ? `<button onclick="openTimelineAddPhoto('${dateStr}')" class="btn btn-ghost btn-sm" style="margin-top:8px;">+ Adicionar memória neste dia</button>` : ''}
+      </div>
+      <div style="text-align:center;padding:40px 20px;color:var(--muted);">
+        <div style="font-size:36px;margin-bottom:10px;">📭</div>
+        <div style="font-size:13px;">Nenhum post ou memória neste dia.</div>
+        ${dateStr <= today ? `<button onclick="openTimelineAddPhoto('${dateStr}')" class="btn btn-primary btn-sm" style="margin-top:14px;">Adicionar uma lembrança 📸</button>` : ''}
+      </div>`;
+    return;
+  }
+
+  col.innerHTML = `
+    <div style="border-bottom:1.5px solid var(--border);padding-bottom:12px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--text1);">📅 ${dateLabel}</div>
+      ${dateStr <= today ? `<button onclick="openTimelineAddPhoto('${dateStr}')" class="btn btn-ghost btn-sm">+ Adicionar memória</button>` : ''}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      ${all.map(item => {
+        const t = new Date(item.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+        const isMemory = item._type === 'memory';
+        if (isMemory) {
+          return `<div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:4px;">
+              <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;">${t}</div>
+              <div style="width:2px;background:#8b5cf6;flex:1;margin-top:4px;min-height:20px;"></div>
+            </div>
+            <div style="flex:1;background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(139,92,246,.03));border:1.5px solid rgba(139,92,246,.2);border-radius:12px;overflow:hidden;">
+              ${item.image_url ? `<img src="${item.image_url}" style="width:100%;max-height:240px;object-fit:cover;display:block;">` : ''}
+              ${item.caption ? `<div style="padding:10px 12px;font-size:13px;color:var(--text1);line-height:1.5;">${item.caption}</div>` : ''}
+              <div style="padding:6px 12px 8px;display:flex;align-items:center;gap:6px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;flex-shrink:0;"></div>
+                <span style="font-size:11px;color:#8b5cf6;font-weight:700;">Memória adicionada</span>
+              </div>
+            </div>
+          </div>`;
+        }
+        // Post normal
+        const isPhoto = item.type === 'photo' && item.image_url;
+        return `<div style="display:flex;gap:12px;align-items:flex-start;cursor:pointer;" onclick="openPostDetail('${item.id}')">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:4px;">
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;">${t}</div>
+            <div style="width:2px;background:var(--accent);flex:1;margin-top:4px;min-height:20px;"></div>
+          </div>
+          <div style="flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;transition:all .15s;"
+            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            ${isPhoto ? `<img src="${item.image_url}" style="width:100%;max-height:240px;object-fit:cover;display:block;">` : ''}
+            ${item.caption||item.content ? `<div style="padding:10px 12px;font-size:13px;color:var(--text1);line-height:1.5;">${item.caption||item.content}</div>` : ''}
+            <div style="padding:6px 12px 8px;display:flex;align-items:center;gap:6px;">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div>
+              <span style="font-size:11px;color:var(--muted);">${isPhoto ? '📸 Foto' : '📝 Texto'}</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function openTimelineAddPhoto(dateStr) {
+  tlAddFile = null;
+  const dateInput = document.getElementById('tl-add-date');
+  if (dateInput) dateInput.value = dateStr || tlSelectedDate || new Date().toISOString().slice(0,10);
+  const prev = document.getElementById('tl-add-prev');
+  if (prev) prev.style.display = 'none';
+  document.getElementById('tl-add-caption').value = '';
+  document.getElementById('tl-add-btn').disabled = false;
+  document.getElementById('tl-add-btn').textContent = '💾 Salvar na linha do tempo';
+  openModal('modal-tl-add');
+}
+
+function onTlPhotoSel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  tlAddFile = file;
+  const prev = document.getElementById('tl-add-prev');
+  prev.src = URL.createObjectURL(file);
+  prev.style.display = 'block';
+}
+
+async function submitTlMemory() {
+  const dateStr = document.getElementById('tl-add-date').value;
+  const caption = document.getElementById('tl-add-caption').value.trim();
+  if (!dateStr)    { toast('Selecione uma data', 'error'); return; }
+  if (!tlAddFile && !caption) { toast('Adicione uma foto ou escreva algo', 'error'); return; }
+
+  const btn = document.getElementById('tl-add-btn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  try {
+    let imageUrl = null;
+    if (tlAddFile) imageUrl = await uploadBase64Image(tlAddFile);
+    await api('/api/timeline/memories', {
+      method: 'POST',
+      body: JSON.stringify({ memory_date: dateStr, image_url: imageUrl, caption })
+    });
+    closeModal('modal-tl-add');
+    toast('Memória salva! 📅', 'success');
+    tlAddFile = null;
+    // Recarregar dados
+    await loadTimelineData();
+    tlSelectDay(dateStr);
   } catch(e) {
-    body.innerHTML = '<p class="text-muted">Erro ao carregar linha do tempo.</p>';
+    toast(e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar na linha do tempo';
   }
 }
 
@@ -5023,6 +5323,7 @@ async function loadAdmin(){
       <td style="display:flex;gap:4px;flex-wrap:wrap;">
         <button class="btn btn-xs btn-ghost" onclick="toggleAdmin('${u.id}','${u.name}',${u.is_admin})">${u.is_admin?'- ADM':'+ ADM'}</button>
         ${u.is_admin?'':('<button class="btn btn-xs btn-ghost" onclick="toggleMod(\''+u.id+'\',\''+u.name+'\','+u.is_moderator+')">'+(u.is_moderator?'- MOD':'+ MOD')+'</button>')}
+        <button class="btn btn-xs btn-ghost" onclick="resetUserPassword('${u.id}','${u.name.replace(/'/g,"\\'")}')">🔑 Redefinir senha</button>
       </td>
     </tr>`).join('');
   }catch(e){}
@@ -5061,6 +5362,17 @@ async function clearAllPosts(){
   try{
     await api('/api/admin/posts/all',{method:'DELETE'});
     toast('Posts apagados!','success');loadGlobal();loadDailyMandou();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function resetUserPassword(id,name){
+  const senha=prompt(`Nova senha para ${name} (mínimo 6 caracteres):`);
+  if(senha===null) return;
+  if(senha.trim().length<6){toast('Senha deve ter ao menos 6 caracteres','error');return;}
+  if(!confirm(`Confirma redefinir a senha de ${name}? A senha antiga deixará de funcionar.`)) return;
+  try{
+    await api(`/api/admin/users/${id}/reset-password`,{method:'PUT',body:JSON.stringify({password:senha.trim()})});
+    toast('Senha redefinida! Agora é só enviar a nova senha para o usuário.','success');
   }catch(e){toast(e.message,'error');}
 }
 
@@ -7906,11 +8218,19 @@ async function loadAgenda() {
   try {
     const { mine, invited } = await api('/api/agenda');
 
-    // Combina todos os eventos com flag de owner, ordena por data mais próxima primeiro
     const all = [
       ...mine.map(a => ({ ...a, _owner: true })),
       ...invited.map(a => ({ ...a, _owner: false }))
-    ].sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+    ];
+
+    const now = new Date();
+    const upcoming = all.filter(a => new Date(a.event_date) >= now)
+      .sort((a, b) => new Date(a.event_date) - new Date(b.event_date)); // mais próximo primeiro
+    const past = all.filter(a => new Date(a.event_date) < now)
+      .sort((a, b) => new Date(b.event_date) - new Date(a.event_date)); // passado mais recente primeiro
+
+    window._agendaAll = { upcoming, past };
+    if (!window._agendaFilter) window._agendaFilter = 'upcoming';
 
     const renderCountdown = (eventDate) => {
       const now = new Date();
@@ -7957,19 +8277,18 @@ async function loadAgenda() {
         </div>
       </div>`;
     };
+    window._renderAgendaCard = renderCard;
 
-    let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+    let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;">
+        <button id="agenda-tab-upcoming" class="btn btn-sm ${window._agendaFilter==='upcoming'?'btn-primary':'btn-ghost'}" onclick="switchAgendaFilter('upcoming')">📅 Próximos (${upcoming.length})</button>
+        <button id="agenda-tab-past" class="btn btn-sm ${window._agendaFilter==='past'?'btn-primary':'btn-ghost'}" onclick="switchAgendaFilter('past')">🕓 Passados (${past.length})</button>
+      </div>
       <button class="btn btn-primary btn-sm" onclick="openCreateAgenda()">+ Criar Evento</button>
-    </div>`;
-
-    if (!all.length) {
-      html += '<div style="text-align:center;padding:40px;color:var(--muted);">Nenhum evento ainda.<br>Crie o primeiro! 📆</div>';
-    } else {
-      html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">`;
-      html += all.map(renderCard).join('');
-      html += '</div>';
-    }
+    </div>
+    <div id="agenda-list-container"></div>`;
     el.innerHTML = html;
+    renderAgendaList();
 
     // Atualiza os countdowns a cada minuto sem re-renderizar tudo
     clearInterval(window._agendaCountdownInterval);
@@ -7978,6 +8297,28 @@ async function loadAgenda() {
       else clearInterval(window._agendaCountdownInterval);
     }, 60000);
   } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
+}
+
+function switchAgendaFilter(filter) {
+  window._agendaFilter = filter;
+  const upBtn = document.getElementById('agenda-tab-upcoming');
+  const pastBtn = document.getElementById('agenda-tab-past');
+  if (upBtn) upBtn.className = `btn btn-sm ${filter==='upcoming'?'btn-primary':'btn-ghost'}`;
+  if (pastBtn) pastBtn.className = `btn btn-sm ${filter==='past'?'btn-primary':'btn-ghost'}`;
+  renderAgendaList();
+}
+
+function renderAgendaList() {
+  const container = document.getElementById('agenda-list-container');
+  if (!container || !window._agendaAll) return;
+  const list = window._agendaFilter === 'past' ? window._agendaAll.past : window._agendaAll.upcoming;
+  if (!list.length) {
+    container.innerHTML = window._agendaFilter === 'past'
+      ? '<div style="text-align:center;padding:40px;color:var(--muted);">Nenhum evento passado ainda.</div>'
+      : '<div style="text-align:center;padding:40px;color:var(--muted);">Nenhum evento por vir.<br>Crie o primeiro! 📆</div>';
+    return;
+  }
+  container.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">${list.map(window._renderAgendaCard).join('')}</div>`;
 }
 
 function openAgendaScreen() {
@@ -9849,7 +10190,7 @@ function showJogoSection(sec, btn) {
   }
 
   // Esconder TODAS as seções
-  ['dailypoke','catrunner','outros','quiz','tower','corptower','paintwars','truco'].forEach(s => {
+  ['dailypoke','catrunner','outros','quiz','tower','corptower','paintwars','truco','dailydebate'].forEach(s => {
     const el = document.getElementById('jogo-' + s);
     if (el) { el.style.display = 'none'; el.style.visibility = 'hidden'; }
   });
@@ -9872,6 +10213,21 @@ function showJogoSection(sec, btn) {
   if (sec === 'tower') initDailyTowerHome();
   if (sec === 'corptower') initCorpTowerHome();
   if (sec === 'truco') openTruco();
+  if (sec === 'dailydebate') initDailyDebate();
+}
+
+// Carrega o iframe do Daily Debate só na primeira vez que a aba é aberta,
+// já passando a identidade real do usuário logado (userId + name) —
+// mesmo padrão de identidade usado pelo Trunfo (ws puro, sem tela de login
+// duplicada dentro do jogo).
+function initDailyDebate() {
+  try {
+    const iframe = document.getElementById('dailydebate-iframe');
+    if (!iframe || iframe.src) return; // já carregado, não recarrega (não derruba partida em andamento)
+    if (!currentUser || !currentUser.id) return;
+    const params = new URLSearchParams({ userId: currentUser.id, name: currentUser.name || 'Jogador' });
+    iframe.src = '/daily-debate/?' + params.toString();
+  } catch(e) { console.error('initDailyDebate erro:', e.message); }
 }
 
 async function loadDailyPoke() {
