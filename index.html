@@ -8218,11 +8218,19 @@ async function loadAgenda() {
   try {
     const { mine, invited } = await api('/api/agenda');
 
-    // Combina todos os eventos com flag de owner, ordena por data mais próxima primeiro
     const all = [
       ...mine.map(a => ({ ...a, _owner: true })),
       ...invited.map(a => ({ ...a, _owner: false }))
-    ].sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+    ];
+
+    const now = new Date();
+    const upcoming = all.filter(a => new Date(a.event_date) >= now)
+      .sort((a, b) => new Date(a.event_date) - new Date(b.event_date)); // mais próximo primeiro
+    const past = all.filter(a => new Date(a.event_date) < now)
+      .sort((a, b) => new Date(b.event_date) - new Date(a.event_date)); // passado mais recente primeiro
+
+    window._agendaAll = { upcoming, past };
+    if (!window._agendaFilter) window._agendaFilter = 'upcoming';
 
     const renderCountdown = (eventDate) => {
       const now = new Date();
@@ -8269,19 +8277,18 @@ async function loadAgenda() {
         </div>
       </div>`;
     };
+    window._renderAgendaCard = renderCard;
 
-    let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+    let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;">
+        <button id="agenda-tab-upcoming" class="btn btn-sm ${window._agendaFilter==='upcoming'?'btn-primary':'btn-ghost'}" onclick="switchAgendaFilter('upcoming')">📅 Próximos (${upcoming.length})</button>
+        <button id="agenda-tab-past" class="btn btn-sm ${window._agendaFilter==='past'?'btn-primary':'btn-ghost'}" onclick="switchAgendaFilter('past')">🕓 Passados (${past.length})</button>
+      </div>
       <button class="btn btn-primary btn-sm" onclick="openCreateAgenda()">+ Criar Evento</button>
-    </div>`;
-
-    if (!all.length) {
-      html += '<div style="text-align:center;padding:40px;color:var(--muted);">Nenhum evento ainda.<br>Crie o primeiro! 📆</div>';
-    } else {
-      html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">`;
-      html += all.map(renderCard).join('');
-      html += '</div>';
-    }
+    </div>
+    <div id="agenda-list-container"></div>`;
     el.innerHTML = html;
+    renderAgendaList();
 
     // Atualiza os countdowns a cada minuto sem re-renderizar tudo
     clearInterval(window._agendaCountdownInterval);
@@ -8290,6 +8297,28 @@ async function loadAgenda() {
       else clearInterval(window._agendaCountdownInterval);
     }, 60000);
   } catch(e) { el.innerHTML = `<p class="text-muted">${e.message}</p>`; }
+}
+
+function switchAgendaFilter(filter) {
+  window._agendaFilter = filter;
+  const upBtn = document.getElementById('agenda-tab-upcoming');
+  const pastBtn = document.getElementById('agenda-tab-past');
+  if (upBtn) upBtn.className = `btn btn-sm ${filter==='upcoming'?'btn-primary':'btn-ghost'}`;
+  if (pastBtn) pastBtn.className = `btn btn-sm ${filter==='past'?'btn-primary':'btn-ghost'}`;
+  renderAgendaList();
+}
+
+function renderAgendaList() {
+  const container = document.getElementById('agenda-list-container');
+  if (!container || !window._agendaAll) return;
+  const list = window._agendaFilter === 'past' ? window._agendaAll.past : window._agendaAll.upcoming;
+  if (!list.length) {
+    container.innerHTML = window._agendaFilter === 'past'
+      ? '<div style="text-align:center;padding:40px;color:var(--muted);">Nenhum evento passado ainda.</div>'
+      : '<div style="text-align:center;padding:40px;color:var(--muted);">Nenhum evento por vir.<br>Crie o primeiro! 📆</div>';
+    return;
+  }
+  container.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">${list.map(window._renderAgendaCard).join('')}</div>`;
 }
 
 function openAgendaScreen() {
