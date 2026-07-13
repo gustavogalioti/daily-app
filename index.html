@@ -2342,13 +2342,26 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     <div class="modal-hdr"><span class="modal-title">Editar perfil</span><button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button></div>
     <div class="modal-body">
       <div><label>Nome</label><input type="text" id="ep-name"></div>
+
+      <!-- Campo username com verificação -->
+      <div>
+        <label>Nome de usuário</label>
+        <div style="position:relative;margin-top:4px;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;font-size:14px;pointer-events:none;">@</span>
+          <input type="text" id="ep-username" style="padding-left:28px;"
+            oninput="checkUsernameAvailability(this.value)"
+            placeholder="seu_usuario" autocomplete="off" spellcheck="false">
+        </div>
+        <div id="ep-username-status" style="font-size:11px;margin-top:4px;min-height:16px;"></div>
+      </div>
+
       <div><label>Bio</label><textarea id="ep-bio" style="min-height:70px;"></textarea></div>
       <div><label>O que você faz</label><input type="text" id="ep-occ"></div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:4px 0;">Profissional</div>
       <div><label>Título profissional</label><input type="text" id="ep-ptitle" placeholder="Ex: Designer UX Sênior"></div>
       <div><label>Link (portfólio, site)</label><input type="url" id="ep-purl" placeholder="https://"></div>
       <div><label>Sobre o trabalho</label><textarea id="ep-pdesc" style="min-height:70px;" placeholder="O que você faz, vende, oferece..."></textarea></div>
-      <button class="btn btn-primary" style="width:100%;" onclick="saveProfile()">Salvar ✅</button>
+      <button class="btn btn-primary" style="width:100%;" id="ep-save-btn" onclick="saveProfile()">Salvar ✅</button>
     </div>
   </div>
 </div>
@@ -5208,32 +5221,90 @@ async function loadProfessional(){
   }catch(e){}
 }
 
+let epUsernameTimer = null;
+let epUsernameValid = true; // começa válido (não mudou)
+
 function openEditProfile(){
   api(`/api/users/${currentUser.username}`).then(({user})=>{
-    document.getElementById('ep-name').value=user.name;
-    document.getElementById('ep-bio').value=user.bio||'';
-    document.getElementById('ep-occ').value=user.occupation||'';
-    document.getElementById('ep-ptitle').value=user.professional_title||'';
-    document.getElementById('ep-purl').value=user.professional_url||'';
-    document.getElementById('ep-pdesc').value=user.professional_desc||'';
+    document.getElementById('ep-name').value = user.name;
+    document.getElementById('ep-username').value = user.username;
+    document.getElementById('ep-bio').value = user.bio||'';
+    document.getElementById('ep-occ').value = user.occupation||'';
+    document.getElementById('ep-ptitle').value = user.professional_title||'';
+    document.getElementById('ep-purl').value = user.professional_url||'';
+    document.getElementById('ep-pdesc').value = user.professional_desc||'';
+    // Reset status username
+    document.getElementById('ep-username-status').innerHTML = '';
+    epUsernameValid = true;
     openModal('modal-edit-profile');
   });
 }
 
+function checkUsernameAvailability(val) {
+  clearTimeout(epUsernameTimer);
+  const status = document.getElementById('ep-username-status');
+  const clean = val.toLowerCase().replace(/[^a-z0-9_\.]/g, '');
+  document.getElementById('ep-username').value = clean;
+
+  // Mesmo username atual = sem verificação
+  if (clean === currentUser.username) {
+    status.innerHTML = '';
+    epUsernameValid = true;
+    return;
+  }
+  if (clean.length < 3) {
+    status.innerHTML = '<span style="color:var(--muted);">Mínimo 3 caracteres</span>';
+    epUsernameValid = false;
+    return;
+  }
+  status.innerHTML = '<span style="color:var(--muted);">Verificando...</span>';
+  epUsernameValid = false;
+
+  epUsernameTimer = setTimeout(async () => {
+    try {
+      const { available } = await api(`/api/users/check-username/${clean}`);
+      if (available) {
+        status.innerHTML = '<span style="color:#22c55e;font-weight:700;">✅ @' + clean + ' está disponível!</span>';
+        epUsernameValid = true;
+      } else {
+        status.innerHTML = '<span style="color:#ef4444;font-weight:700;">❌ @' + clean + ' já está em uso. Tente outro.</span>';
+        epUsernameValid = false;
+      }
+    } catch(e) {
+      status.innerHTML = '<span style="color:var(--muted);">Erro ao verificar</span>';
+      epUsernameValid = false;
+    }
+  }, 600);
+}
+
 async function saveProfile(){
+  if (!epUsernameValid) {
+    toast('Escolha um @usuário disponível antes de salvar', 'error');
+    return;
+  }
+  const btn = document.getElementById('ep-save-btn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
   try{
-    const{user}=await api('/api/users/me',{method:'PUT',body:JSON.stringify({
-      name:document.getElementById('ep-name').value,
-      bio:document.getElementById('ep-bio').value,
-      occupation:document.getElementById('ep-occ').value,
-      professional_title:document.getElementById('ep-ptitle').value,
-      professional_url:document.getElementById('ep-purl').value,
-      professional_desc:document.getElementById('ep-pdesc').value,
+    const newUsername = document.getElementById('ep-username').value.trim();
+    const {user} = await api('/api/users/me', {method:'PUT', body: JSON.stringify({
+      name: document.getElementById('ep-name').value,
+      username: newUsername !== currentUser.username ? newUsername : undefined,
+      bio: document.getElementById('ep-bio').value,
+      occupation: document.getElementById('ep-occ').value,
+      professional_title: document.getElementById('ep-ptitle').value,
+      professional_url: document.getElementById('ep-purl').value,
+      professional_desc: document.getElementById('ep-pdesc').value,
     })});
-    currentUser={...currentUser,...user};
-    document.getElementById('topbar-name').textContent=user.name.split(' ')[0];
-    toast('Perfil salvo! ✅','success');closeModal('modal-edit-profile');loadProfile();
-  }catch(e){toast(e.message,'error');}
+    currentUser = {...currentUser, ...user};
+    document.getElementById('topbar-name').textContent = user.name.split(' ')[0];
+    toast('Perfil salvo! ✅','success');
+    closeModal('modal-edit-profile');
+    loadProfile();
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar ✅';
+  }
 }
 
 async function uploadAvatar(e){
