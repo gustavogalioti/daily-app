@@ -10526,7 +10526,9 @@ function verseLoop(canvas, W, H) {
     if (bbl) {
       const cur = bbl.style.transform || '';
       bbl.style.transform = cur.replace(/scaleX\([^)]*\)/, '') + (agent.dir < 0 ? ' scaleX(-1)' : ' scaleX(1)');
-    }  requestAnimationFrame(() => verseLoop(canvas, W, H));
+    }
+  });
+  requestAnimationFrame(() => verseLoop(canvas, W, H));
 }
 
 // ═══ DAILYPOKE V2 — ABA PRÓPRIA ═══
