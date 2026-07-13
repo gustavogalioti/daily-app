@@ -10451,7 +10451,9 @@ function showVerseBubble(agent, text) {
   if (old) old.remove();
   const bubble = document.createElement('div');
   bubble.className = 'verse-bubble';
-  bubble.style.cssText = 'position:absolute;bottom:108px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #ddd;border-radius:10px;padding:3px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:10;pointer-events:none;';
+  // scaleX(-1) no balão compensa o scaleX(-1) do personagem quando ele está virado
+  const flip = agent.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+  bubble.style.cssText = `position:absolute;bottom:108px;left:50%;transform:translateX(-50%) ${flip};background:#fff;border:1.5px solid #ddd;border-radius:10px;padding:3px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:10;pointer-events:none;`;
   bubble.textContent = text;
   agent.el.appendChild(bubble);
   setTimeout(() => bubble.remove(), 2500);
@@ -10519,9 +10521,12 @@ function verseLoop(canvas, W, H) {
     agent.el.style.transform = agent.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
     agent.el.style.left = agent.x + 'px';
     agent.el.style.top = agent.y + 'px';
-  });
-
-  requestAnimationFrame(() => verseLoop(canvas, W, H));
+    // Manter balão legível independente da direção
+    const bbl = agent.el.querySelector('.verse-bubble,.verse-bubble-v2');
+    if (bbl) {
+      const cur = bbl.style.transform || '';
+      bbl.style.transform = cur.replace(/scaleX\([^)]*\)/, '') + (agent.dir < 0 ? ' scaleX(-1)' : ' scaleX(1)');
+    }  requestAnimationFrame(() => verseLoop(canvas, W, H));
 }
 
 // ═══ DAILYPOKE V2 — ABA PRÓPRIA ═══
@@ -11090,6 +11095,12 @@ function verseLoopV2(canvas, W, H) {
     agent.el.style.transform = agent.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
     agent.el.style.left = agent.x + 'px';
     agent.el.style.top = agent.y + 'px';
+    // Manter balão legível independente da direção
+    const bbl2 = agent.el.querySelector('.verse-bubble,.verse-bubble-v2');
+    if (bbl2) {
+      const cur2 = bbl2.style.transform || '';
+      bbl2.style.transform = cur2.replace(/scaleX\([^)]*\)/, '') + (agent.dir < 0 ? ' scaleX(-1)' : ' scaleX(1)');
+    }
   });
   requestAnimationFrame(() => verseLoopV2(canvas, W, H));
 }
@@ -11110,7 +11121,8 @@ function showVerseBubbleV2(agent, text) {
   if (old) old.remove();
   const bubble = document.createElement('div');
   bubble.className = 'verse-bubble-v2';
-  bubble.style.cssText = 'position:absolute;bottom:82px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #ddd;border-radius:10px;padding:3px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:10;pointer-events:none;';
+  const flip = agent.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+  bubble.style.cssText = `position:absolute;bottom:82px;left:50%;transform:translateX(-50%) ${flip};background:#fff;border:1.5px solid #ddd;border-radius:10px;padding:3px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:10;pointer-events:none;`;
   bubble.textContent = text;
   agent.el.appendChild(bubble);
   setTimeout(() => bubble.remove(), 2500);
