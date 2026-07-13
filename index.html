@@ -7647,11 +7647,23 @@ function renderNotifItem(n) {
 
   let actions = '';
   if (n.type === 'friend_request' && !n.read) {
-    const fid = n.data?.friendship_id || (typeof n.data === 'string' ? JSON.parse(n.data)?.friendship_id : '');
-    actions = `<div class="notif-actions">
-      <button class="btn btn-primary btn-xs" onclick="acceptFriendFromNotif('${fid}','${n.id}')">Aceitar</button>
-      <button class="btn btn-ghost btn-xs" onclick="rejectFriendFromNotif('${fid}','${n.id}')">Recusar</button>
-    </div>`;
+    let fid = '';
+    try {
+      const d = typeof n.data === 'string' ? JSON.parse(n.data) : (n.data || {});
+      fid = d.friendship_id || d.friendshipId || '';
+    } catch(e) {}
+    if (fid) {
+      actions = `<div class="notif-actions">
+        <button class="btn btn-primary btn-xs" onclick="acceptFriendFromNotif('${fid}','${n.id}')">Aceitar</button>
+        <button class="btn btn-ghost btn-xs" onclick="rejectFriendFromNotif('${fid}','${n.id}')">Recusar</button>
+      </div>`;
+    } else {
+      // friendship_id não encontrado — buscar pelo from_user_id
+      actions = `<div class="notif-actions">
+        <button class="btn btn-primary btn-xs" onclick="acceptFriendByUser('${n.from_user_id}','${n.id}')">Aceitar</button>
+        <button class="btn btn-ghost btn-xs" onclick="rejectFriendByUser('${n.from_user_id}','${n.id}')">Recusar</button>
+      </div>`;
+    }
   }
   if (n.type === 'community_invite' && !n.read) {
     const d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
@@ -7740,9 +7752,33 @@ async function markAllNotifsRead() {
 async function acceptFriendFromNotif(friendshipId, notifId) {
   try {
     await api(`/api/friends/request/${friendshipId}/accept`, { method: 'PUT' });
-    await api(`/api/user-notifications/${notifId}/read`, { method: 'PUT' });
+    if (notifId) await api(`/api/user-notifications/${notifId}/read`, { method: 'PUT' }).catch(()=>{});
     toast('Amizade aceita! 🎉', 'success');
     await loadNotifications();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function acceptFriendByUser(fromUserId, notifId) {
+  try {
+    const { requests } = await api('/api/friends/requests');
+    const req = requests.find(r => r.user_id === fromUserId);
+    if (req) {
+      await acceptFriendFromNotif(req.id, notifId);
+    } else {
+      toast('Solicitação não encontrada. Pode já ter sido processada.', 'error');
+    }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function rejectFriendByUser(fromUserId, notifId) {
+  try {
+    const { requests } = await api('/api/friends/requests');
+    const req = requests.find(r => r.user_id === fromUserId);
+    if (req) {
+      await rejectFriendFromNotif(req.id, notifId);
+    } else {
+      toast('Solicitação não encontrada.', 'error');
+    }
   } catch(e) { toast(e.message, 'error'); }
 }
 
