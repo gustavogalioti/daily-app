@@ -2342,13 +2342,26 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     <div class="modal-hdr"><span class="modal-title">Editar perfil</span><button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button></div>
     <div class="modal-body">
       <div><label>Nome</label><input type="text" id="ep-name"></div>
+
+      <!-- Campo username com verificação -->
+      <div>
+        <label>Nome de usuário</label>
+        <div style="position:relative;margin-top:4px;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;font-size:14px;pointer-events:none;">@</span>
+          <input type="text" id="ep-username" style="padding-left:28px;"
+            oninput="checkUsernameAvailability(this.value)"
+            placeholder="seu_usuario" autocomplete="off" spellcheck="false">
+        </div>
+        <div id="ep-username-status" style="font-size:11px;margin-top:4px;min-height:16px;"></div>
+      </div>
+
       <div><label>Bio</label><textarea id="ep-bio" style="min-height:70px;"></textarea></div>
       <div><label>O que você faz</label><input type="text" id="ep-occ"></div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:4px 0;">Profissional</div>
       <div><label>Título profissional</label><input type="text" id="ep-ptitle" placeholder="Ex: Designer UX Sênior"></div>
       <div><label>Link (portfólio, site)</label><input type="url" id="ep-purl" placeholder="https://"></div>
       <div><label>Sobre o trabalho</label><textarea id="ep-pdesc" style="min-height:70px;" placeholder="O que você faz, vende, oferece..."></textarea></div>
-      <button class="btn btn-primary" style="width:100%;" onclick="saveProfile()">Salvar ✅</button>
+      <button class="btn btn-primary" style="width:100%;" id="ep-save-btn" onclick="saveProfile()">Salvar ✅</button>
     </div>
   </div>
 </div>
@@ -4258,12 +4271,6 @@ async function loadProfile(){
 
           <!-- Botão Profissional sempre visível abaixo dos badges -->
           <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;text-align:left;" onclick="showProfileSec('profissional',null)">💼 Profissional</button>
-
-          <!-- DailyPoke mini -->
-          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:10px;text-align:center;cursor:pointer;" onclick="switchTab('jogos',document.querySelector('[data-tab=jogos]'))">
-            <div id="profile-poke-mini" style="font-size:28px;">🎭</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:3px;">DailyPoke</div>
-          </div>
         </div>
 
         <!-- ── COLUNA CENTRAL: conteúdo / timeline ── -->
@@ -5208,32 +5215,90 @@ async function loadProfessional(){
   }catch(e){}
 }
 
+let epUsernameTimer = null;
+let epUsernameValid = true; // começa válido (não mudou)
+
 function openEditProfile(){
   api(`/api/users/${currentUser.username}`).then(({user})=>{
-    document.getElementById('ep-name').value=user.name;
-    document.getElementById('ep-bio').value=user.bio||'';
-    document.getElementById('ep-occ').value=user.occupation||'';
-    document.getElementById('ep-ptitle').value=user.professional_title||'';
-    document.getElementById('ep-purl').value=user.professional_url||'';
-    document.getElementById('ep-pdesc').value=user.professional_desc||'';
+    document.getElementById('ep-name').value = user.name;
+    document.getElementById('ep-username').value = user.username;
+    document.getElementById('ep-bio').value = user.bio||'';
+    document.getElementById('ep-occ').value = user.occupation||'';
+    document.getElementById('ep-ptitle').value = user.professional_title||'';
+    document.getElementById('ep-purl').value = user.professional_url||'';
+    document.getElementById('ep-pdesc').value = user.professional_desc||'';
+    // Reset status username
+    document.getElementById('ep-username-status').innerHTML = '';
+    epUsernameValid = true;
     openModal('modal-edit-profile');
   });
 }
 
+function checkUsernameAvailability(val) {
+  clearTimeout(epUsernameTimer);
+  const status = document.getElementById('ep-username-status');
+  const clean = val.toLowerCase().replace(/[^a-z0-9_\.]/g, '');
+  document.getElementById('ep-username').value = clean;
+
+  // Mesmo username atual = sem verificação
+  if (clean === currentUser.username) {
+    status.innerHTML = '';
+    epUsernameValid = true;
+    return;
+  }
+  if (clean.length < 3) {
+    status.innerHTML = '<span style="color:var(--muted);">Mínimo 3 caracteres</span>';
+    epUsernameValid = false;
+    return;
+  }
+  status.innerHTML = '<span style="color:var(--muted);">Verificando...</span>';
+  epUsernameValid = false;
+
+  epUsernameTimer = setTimeout(async () => {
+    try {
+      const { available } = await api(`/api/users/check-username/${clean}`);
+      if (available) {
+        status.innerHTML = '<span style="color:#22c55e;font-weight:700;">✅ @' + clean + ' está disponível!</span>';
+        epUsernameValid = true;
+      } else {
+        status.innerHTML = '<span style="color:#ef4444;font-weight:700;">❌ @' + clean + ' já está em uso. Tente outro.</span>';
+        epUsernameValid = false;
+      }
+    } catch(e) {
+      status.innerHTML = '<span style="color:var(--muted);">Erro ao verificar</span>';
+      epUsernameValid = false;
+    }
+  }, 600);
+}
+
 async function saveProfile(){
+  if (!epUsernameValid) {
+    toast('Escolha um @usuário disponível antes de salvar', 'error');
+    return;
+  }
+  const btn = document.getElementById('ep-save-btn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
   try{
-    const{user}=await api('/api/users/me',{method:'PUT',body:JSON.stringify({
-      name:document.getElementById('ep-name').value,
-      bio:document.getElementById('ep-bio').value,
-      occupation:document.getElementById('ep-occ').value,
-      professional_title:document.getElementById('ep-ptitle').value,
-      professional_url:document.getElementById('ep-purl').value,
-      professional_desc:document.getElementById('ep-pdesc').value,
+    const newUsername = document.getElementById('ep-username').value.trim();
+    const {user} = await api('/api/users/me', {method:'PUT', body: JSON.stringify({
+      name: document.getElementById('ep-name').value,
+      username: newUsername !== currentUser.username ? newUsername : undefined,
+      bio: document.getElementById('ep-bio').value,
+      occupation: document.getElementById('ep-occ').value,
+      professional_title: document.getElementById('ep-ptitle').value,
+      professional_url: document.getElementById('ep-purl').value,
+      professional_desc: document.getElementById('ep-pdesc').value,
     })});
-    currentUser={...currentUser,...user};
-    document.getElementById('topbar-name').textContent=user.name.split(' ')[0];
-    toast('Perfil salvo! ✅','success');closeModal('modal-edit-profile');loadProfile();
-  }catch(e){toast(e.message,'error');}
+    currentUser = {...currentUser, ...user};
+    document.getElementById('topbar-name').textContent = user.name.split(' ')[0];
+    toast('Perfil salvo! ✅','success');
+    closeModal('modal-edit-profile');
+    loadProfile();
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar ✅';
+  }
 }
 
 async function uploadAvatar(e){
@@ -6865,12 +6930,6 @@ async function showVisitorProfile(username) {
               </div>
             </div>
           </div>
-
-          <!-- DailyPoke do usuário -->
-          <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:10px;text-align:center;">
-            <div>${pokeSVG}</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:3px;">DailyPoke</div>
-          </div>
         </div>
 
         <!-- COLUNA CENTRAL: tabs + conteúdo -->
@@ -7576,11 +7635,23 @@ function renderNotifItem(n) {
 
   let actions = '';
   if (n.type === 'friend_request' && !n.read) {
-    const fid = n.data?.friendship_id || (typeof n.data === 'string' ? JSON.parse(n.data)?.friendship_id : '');
-    actions = `<div class="notif-actions">
-      <button class="btn btn-primary btn-xs" onclick="acceptFriendFromNotif('${fid}','${n.id}')">Aceitar</button>
-      <button class="btn btn-ghost btn-xs" onclick="rejectFriendFromNotif('${fid}','${n.id}')">Recusar</button>
-    </div>`;
+    let fid = '';
+    try {
+      const d = typeof n.data === 'string' ? JSON.parse(n.data) : (n.data || {});
+      fid = d.friendship_id || d.friendshipId || '';
+    } catch(e) {}
+    if (fid) {
+      actions = `<div class="notif-actions">
+        <button class="btn btn-primary btn-xs" onclick="acceptFriendFromNotif('${fid}','${n.id}')">Aceitar</button>
+        <button class="btn btn-ghost btn-xs" onclick="rejectFriendFromNotif('${fid}','${n.id}')">Recusar</button>
+      </div>`;
+    } else {
+      // friendship_id não encontrado — buscar pelo from_user_id
+      actions = `<div class="notif-actions">
+        <button class="btn btn-primary btn-xs" onclick="acceptFriendByUser('${n.from_user_id}','${n.id}')">Aceitar</button>
+        <button class="btn btn-ghost btn-xs" onclick="rejectFriendByUser('${n.from_user_id}','${n.id}')">Recusar</button>
+      </div>`;
+    }
   }
   if (n.type === 'community_invite' && !n.read) {
     const d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
@@ -7669,9 +7740,33 @@ async function markAllNotifsRead() {
 async function acceptFriendFromNotif(friendshipId, notifId) {
   try {
     await api(`/api/friends/request/${friendshipId}/accept`, { method: 'PUT' });
-    await api(`/api/user-notifications/${notifId}/read`, { method: 'PUT' });
+    if (notifId) await api(`/api/user-notifications/${notifId}/read`, { method: 'PUT' }).catch(()=>{});
     toast('Amizade aceita! 🎉', 'success');
     await loadNotifications();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function acceptFriendByUser(fromUserId, notifId) {
+  try {
+    const { requests } = await api('/api/friends/requests');
+    const req = requests.find(r => r.user_id === fromUserId);
+    if (req) {
+      await acceptFriendFromNotif(req.id, notifId);
+    } else {
+      toast('Solicitação não encontrada. Pode já ter sido processada.', 'error');
+    }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function rejectFriendByUser(fromUserId, notifId) {
+  try {
+    const { requests } = await api('/api/friends/requests');
+    const req = requests.find(r => r.user_id === fromUserId);
+    if (req) {
+      await rejectFriendFromNotif(req.id, notifId);
+    } else {
+      toast('Solicitação não encontrada.', 'error');
+    }
   } catch(e) { toast(e.message, 'error'); }
 }
 
@@ -10380,7 +10475,9 @@ function showVerseBubble(agent, text) {
   if (old) old.remove();
   const bubble = document.createElement('div');
   bubble.className = 'verse-bubble';
-  bubble.style.cssText = 'position:absolute;bottom:108px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #ddd;border-radius:10px;padding:3px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:10;pointer-events:none;';
+  // scaleX(-1) no balão compensa o scaleX(-1) do personagem quando ele está virado
+  const flip = agent.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+  bubble.style.cssText = `position:absolute;bottom:108px;left:50%;transform:translateX(-50%) ${flip};background:#fff;border:1.5px solid #ddd;border-radius:10px;padding:3px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:10;pointer-events:none;`;
   bubble.textContent = text;
   agent.el.appendChild(bubble);
   setTimeout(() => bubble.remove(), 2500);
@@ -10448,8 +10545,13 @@ function verseLoop(canvas, W, H) {
     agent.el.style.transform = agent.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
     agent.el.style.left = agent.x + 'px';
     agent.el.style.top = agent.y + 'px';
+    // Manter balão legível independente da direção
+    const bbl = agent.el.querySelector('.verse-bubble,.verse-bubble-v2');
+    if (bbl) {
+      const cur = bbl.style.transform || '';
+      bbl.style.transform = cur.replace(/scaleX\([^)]*\)/, '') + (agent.dir < 0 ? ' scaleX(-1)' : ' scaleX(1)');
+    }
   });
-
   requestAnimationFrame(() => verseLoop(canvas, W, H));
 }
 
@@ -11019,6 +11121,12 @@ function verseLoopV2(canvas, W, H) {
     agent.el.style.transform = agent.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
     agent.el.style.left = agent.x + 'px';
     agent.el.style.top = agent.y + 'px';
+    // Manter balão legível independente da direção
+    const bbl2 = agent.el.querySelector('.verse-bubble,.verse-bubble-v2');
+    if (bbl2) {
+      const cur2 = bbl2.style.transform || '';
+      bbl2.style.transform = cur2.replace(/scaleX\([^)]*\)/, '') + (agent.dir < 0 ? ' scaleX(-1)' : ' scaleX(1)');
+    }
   });
   requestAnimationFrame(() => verseLoopV2(canvas, W, H));
 }
@@ -11039,7 +11147,8 @@ function showVerseBubbleV2(agent, text) {
   if (old) old.remove();
   const bubble = document.createElement('div');
   bubble.className = 'verse-bubble-v2';
-  bubble.style.cssText = 'position:absolute;bottom:82px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #ddd;border-radius:10px;padding:3px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:10;pointer-events:none;';
+  const flip = agent.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+  bubble.style.cssText = `position:absolute;bottom:82px;left:50%;transform:translateX(-50%) ${flip};background:#fff;border:1.5px solid #ddd;border-radius:10px;padding:3px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:10;pointer-events:none;`;
   bubble.textContent = text;
   agent.el.appendChild(bubble);
   setTimeout(() => bubble.remove(), 2500);

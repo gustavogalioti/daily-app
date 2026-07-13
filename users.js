@@ -23,11 +23,34 @@ router.get('/search', optionalAuth, async (req, res) => {
 });
 
 // PUT /api/users/me
+// GET /api/users/check-username/:username — verificar disponibilidade
+router.get('/check-username/:username', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const desired = req.params.username.toLowerCase().replace(/[^a-z0-9_.]/g, '');
+    if (desired.length < 3) return res.status(400).json({ error: 'Mínimo 3 caracteres' });
+    // Se é o próprio username atual, está disponível
+    if (desired === req.user.username) return res.json({ available: true });
+    const existing = await db.prepare('SELECT id FROM users WHERE username=$1').get(desired);
+    res.json({ available: !existing });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 router.put('/me', authMiddleware, async (req, res) => {
   try {
     const db = getDB();
     const { name, bio, occupation, country, state, city, neighborhood,
-            professional_title, professional_url, professional_desc } = req.body;
+            professional_title, professional_url, professional_desc, username } = req.body;
+
+    // Atualizar username se foi solicitado
+    if (username && username !== req.user.username) {
+      const clean = username.toLowerCase().replace(/[^a-z0-9_.]/g, '');
+      if (clean.length < 3) return res.status(400).json({ error: 'Username deve ter ao menos 3 caracteres' });
+      const existing = await db.prepare('SELECT id FROM users WHERE username=$1').get(clean);
+      if (existing) return res.status(409).json({ error: `@${clean} já está em uso. Tente outro nome.` });
+      await db.prepare('UPDATE users SET username=$1, updated_at=NOW() WHERE id=$2').run(clean, req.user.id);
+    }
+
     await db.prepare(`UPDATE users SET
       name=COALESCE($1,name), bio=COALESCE($2,bio), occupation=COALESCE($3,occupation),
       country=COALESCE($4,country), state=COALESCE($5,state), city=COALESCE($6,city),
@@ -43,7 +66,10 @@ router.put('/me', authMiddleware, async (req, res) => {
     await checkAndGrant(db, req.user.id, 'profile_complete');
     const user = await db.prepare('SELECT id,name,username,email,bio,avatar_url,occupation,country,state,city,neighborhood,professional_title,professional_url,professional_desc,points,created_at FROM users WHERE id=$1').get(req.user.id);
     res.json({ user });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    if (e.message?.includes('já está em uso')) return res.status(409).json({ error: e.message });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // POST /api/users/me/avatar

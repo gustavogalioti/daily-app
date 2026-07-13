@@ -7348,13 +7348,26 @@ function autoSave() {
   }
 }
 
-function loadSave() {
-  // Try server first, fall back to localStorage
+async function loadSave() {
+  // Server is the source of truth so progress syncs across devices (phone/tablet/PC).
+  // localStorage is only an offline fallback for when there's no token or the request fails.
+  if(TOKEN) {
+    try {
+      var resp = await fetch(API+'/api/dailyworld/me', {headers:{'Authorization':'Bearer '+TOKEN}});
+      if(resp.ok) {
+        var data = await resp.json();
+        if(data && data.save && data.save.roomId) {
+          localStorage.setItem('dw_save', JSON.stringify(data.save)); // cache for offline use
+          return data.save;
+        }
+      }
+    } catch(e) { /* network hiccup — fall back to whatever's cached locally below */ }
+  }
   var local = localStorage.getItem('dw_save');
   if(local) {
     try {
-      var data = JSON.parse(local);
-      return data;
+      var localData = JSON.parse(local);
+      return localData;
     } catch(e) {}
   }
   return null;

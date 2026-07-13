@@ -108,6 +108,12 @@ const NotificationService = {
 
   // 1. Solicitação de amizade
   async sendFriendRequest(db, { toUserId, fromUser, friendshipId }) {
+    // Não enviar se já existe notificação não lida deste mesmo remetente
+    const existing = await db.prepare(`
+      SELECT id FROM user_notifications
+      WHERE user_id=$1 AND from_user_id=$2 AND type='friend_request' AND read=0
+    `).get(toUserId, fromUser.id).catch(()=>null);
+    if (existing) return;
     await notify(db, {
       userId: toUserId, fromUserId: fromUser.id,
       type: 'friend_request',

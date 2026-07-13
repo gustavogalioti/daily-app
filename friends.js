@@ -131,13 +131,23 @@ router.put('/request/:id/accept', authMiddleware, async (req, res) => {
     if (!f) return res.status(404).json({ error: 'Solicitação não encontrada' });
     if (f.addressee_id !== req.user.id) return res.status(403).json({ error: 'Sem permissão' });
     await db.prepare("UPDATE friendships SET status='accepted', updated_at=NOW() WHERE id=$1").run(req.params.id);
-    // Marcar a notificação original como lida (evita botões de ação obsoletos no painel)
-    await db.prepare("UPDATE user_notifications SET read=1 WHERE type='friend_request' AND data->>'friendship_id'=$1").run(req.params.id).catch(()=>{});
-    // Notificar quem fez o pedido
-    const accepter = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
-    await NotificationService.sendFriendAccepted(db, {
-      toUserId: f.requester_id, fromUser: { id: req.user.id, name: accepter.name }
-    });
+    // Marcar como lidas TODAS as notificações de friend_request deste remetente para este usuário
+    await db.prepare(`
+      UPDATE user_notifications SET read=1
+      WHERE user_id=$1 AND from_user_id=$2 AND type='friend_request'
+    `).run(req.user.id, f.requester_id).catch(()=>{});
+    // Notificar quem fez o pedido — mas só se ainda não existe notificação friend_accepted recente
+    const alreadyNotified = await db.prepare(`
+      SELECT id FROM user_notifications
+      WHERE user_id=$1 AND from_user_id=$2 AND type='friend_accepted'
+      AND created_at > NOW() - INTERVAL '1 minute'
+    `).get(f.requester_id, req.user.id).catch(()=>null);
+    if (!alreadyNotified) {
+      const accepter = await db.prepare('SELECT name FROM users WHERE id=$1').get(req.user.id);
+      await NotificationService.sendFriendAccepted(db, {
+        toUserId: f.requester_id, fromUser: { id: req.user.id, name: accepter.name }
+      });
+    }
     // Verifica conquistas de amizade para os dois
     await checkAndGrant(db, req.user.id, 'friends');
     await checkAndGrant(db, f.requester_id, 'friends');
