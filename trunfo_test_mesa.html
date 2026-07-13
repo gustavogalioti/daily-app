@@ -60,12 +60,24 @@
   .tr-art img{ width:100%; height:100%; object-fit:cover; }
   .tr-nameplate{ margin:5px 6px 0; text-align:center; padding:3px; background:linear-gradient(180deg,#2a231c,#171310); border:2px solid rgba(0,0,0,.5); }
   .tr-name{ font-family:'Press Start 2P'; font-size:8px; color:var(--accent); }
-  .tr-attrs{ padding:4px 6px 6px; display:flex; flex-direction:column; gap:3px; }
+  .tr-attrs{ padding:4px 6px 6px; display:flex; flex-direction:column; gap:4px; }
   .tr-attr{ display:grid; grid-template-columns:14px 1fr 22px; align-items:center; gap:4px; font-size:11px; }
+  .tr-attr-row{ all:unset; display:flex; flex-direction:column; gap:2px; color:#f4ead9; padding:3px 4px; border-radius:2px; cursor:default; }
+  button.tr-attr-row{ cursor:pointer; }
+  button.tr-attr-row:hover{ background:rgba(255,157,77,.25); }
+  .tr-attr-row.highlight{ background:rgba(255,157,77,.15); }
+  .tr-attr-row.winner{ background:rgba(120,255,150,.18); }
+  .tr-attr-row.loser{ background:rgba(255,100,100,.14); opacity:.6; }
   .tr-attr button.attr-btn{ all:unset; display:grid; grid-template-columns:14px 1fr 22px; align-items:center; gap:4px; width:100%; cursor:pointer; padding:2px 3px; }
   .tr-attr button.attr-btn:hover{ background:rgba(255,157,77,.25); }
   .tr-attr-bar{ height:6px; background:#0d0b0a; border:1px solid rgba(0,0,0,.6); position:relative; overflow:hidden; }
   .tr-attr-bar>span{ position:absolute; inset:0; width:var(--val,50%); background:linear-gradient(90deg,var(--frame),var(--accent)); }
+  .tr-attr.highlight .tr-attr-bar>span{ box-shadow:0 0 8px 2px #ffe28a; }
+  .tr-attr.winner{ background:rgba(120,255,150,.15); }
+  .tr-attr.loser{ background:rgba(255,100,100,.12); opacity:.6; }
+  .tr-card-inner.flipping{ animation:cardFlip .6s ease; }
+  @keyframes cardFlip{ 0%{transform:rotateY(0);} 50%{transform:rotateY(90deg);} 100%{transform:rotateY(0);} }
+  .tr-card{ perspective:700px; }
 
   .r-incomum{ --frame:#9aa3ad; --glow:#c7ced4; } .r-raro{ --frame:#2fae66; } .r-epico{ --frame:#2f7bce; }
   .r-lendario{ --frame:#8b4fd1; } .r-mitico{ --frame:#d1a12f; } .r-cosmico{ --frame:#d1352f; } .r-noturno{ --frame:#151515; }
@@ -398,6 +410,7 @@ document.getElementById('soloBtn').onclick = async () => {
       pot: [],
       leader: 'you',
       timerId: null,
+      attrs: deckData.attrs,
     };
 
     document.getElementById('setupCard').style.display = 'none';
@@ -409,12 +422,19 @@ document.getElementById('soloBtn').onclick = async () => {
   }
 };
 
-function soloCardHTML(card, clickable){
-  const attrsHTML = Object.entries(card.stats).map(([key,val]) => {
-    const inner = `<span>▪</span><span class="tr-attr-bar"><span style="--val:${val}%"></span></span><span>${val}</span>`;
-    return clickable
-      ? `<div class="tr-attr"><button class="attr-btn" data-attr="${key}">${inner}</button></div>`
-      : `<div class="tr-attr">${inner}</div>`;
+function soloCardHTML(card, opts={}){
+  const { clickable, highlightAttr, showResult, won } = opts;
+  const attrsHTML = solo.attrs.map(a => {
+    const val = card.stats[a.key];
+    let cls = 'tr-attr-row';
+    if (highlightAttr === a.key) cls += ' highlight';
+    if (showResult && highlightAttr === a.key) cls += won ? ' winner' : ' loser';
+    const topRow = `<span>${a.icon} ${a.label}</span><span>${val}</span>`;
+    const bar = `<span class="tr-attr-bar"><span style="--val:${val}%"></span></span>`;
+    if (clickable) {
+      return `<button class="attr-btn ${cls}" data-attr="${a.key}"><div style="display:flex;justify-content:space-between;font-size:9px;">${topRow}</div>${bar}</button>`;
+    }
+    return `<div class="${cls}"><div style="display:flex;justify-content:space-between;font-size:9px;">${topRow}</div>${bar}</div>`;
   }).join('');
   return `
     <div class="tr-card-inner r-${card.rarity}">
@@ -445,7 +465,7 @@ function soloStartRound(){
   if (solo.leader === 'you') {
     document.getElementById('soloCenterHint').textContent = 'SUA VEZ — ESCOLHA UM ATRIBUTO';
     document.getElementById('soloResult').textContent = 'O relógio está correndo...';
-    document.getElementById('soloYourCard').innerHTML = soloCardHTML(yourCard, true);
+    document.getElementById('soloYourCard').innerHTML = soloCardHTML(yourCard, { clickable:true });
     document.getElementById('soloPedroCard').innerHTML = soloBackHTML();
     document.querySelectorAll('#soloYourCard .attr-btn').forEach(btn => {
       btn.onclick = () => soloResolve(btn.dataset.attr, false);
@@ -453,7 +473,6 @@ function soloStartRound(){
     let t = 5;
     const fill = document.getElementById('soloTimerFill');
     fill.style.width = '100%';
-    document.getElementById('soloTimerFill').style.background = '';
     solo.timerId = setInterval(() => {
       t -= 1;
       fill.style.width = Math.max(t,0)/5*100 + '%';
@@ -463,35 +482,55 @@ function soloStartRound(){
       }
     }, 1000);
   } else {
-    document.getElementById('soloCenterHint').textContent = 'PEDRO ESTÁ ESCOLHENDO...';
-    document.getElementById('soloResult').textContent = '';
-    document.getElementById('soloYourCard').innerHTML = soloCardHTML(yourCard, false);
+    document.getElementById('soloCenterHint').textContent = 'VEZ DO PEDRO';
+    document.getElementById('soloResult').textContent = 'Pedro está pensando...';
+    document.getElementById('soloYourCard').innerHTML = soloCardHTML(yourCard, { clickable:false });
     document.getElementById('soloPedroCard').innerHTML = soloBackHTML();
-    setTimeout(() => soloResolve(soloBestAttr(pedroCard), false), 900);
+    setTimeout(() => soloResolve(soloBestAttr(pedroCard), false, true), 900);
   }
 }
 
-function soloResolve(attr, wasAuto){
+async function soloResolve(attr, wasAuto, isPedroChoice){
   clearInterval(solo.timerId);
   document.querySelectorAll('#soloYourCard .attr-btn').forEach(b => b.onclick = null);
 
   const yourCard = solo.yourHand[0], pedroCard = solo.pedroHand[0];
+  const attrMeta = solo.attrs.find(a => a.key === attr);
+  const label = attrMeta ? attrMeta.label : attr;
+  const chooserName = (solo.leader === 'you') ? 'VOCÊ' : 'PEDRO';
+
+  // 1) Anuncia a escolha e cria suspense
+  document.getElementById('soloCenterHint').textContent = `${chooserName} ESCOLHEU ${label.toUpperCase()}!`;
+  document.getElementById('soloResult').textContent = wasAuto ? 'Tempo esgotado — escolha automática!' : `Vamos revelar as cartas...`;
+  await sleep(2600);
+
+  // 2) Anima a virada das duas cartas
+  const yourInner = document.querySelector('#soloYourCard .tr-card-inner');
+  const pedroInner = document.querySelector('#soloPedroCard .tr-card-inner');
+  if (yourInner) yourInner.classList.add('flipping');
+  if (pedroInner) pedroInner.classList.add('flipping');
+  await sleep(300);
+
+  // 3) Revela os valores
   const yourVal = yourCard.stats[attr], pedroVal = pedroCard.stats[attr];
   const tie = yourVal === pedroVal;
   const youWon = !tie && yourVal > pedroVal;
+  document.getElementById('soloYourCard').innerHTML = soloCardHTML(yourCard, { highlightAttr:attr, showResult:true, won: youWon });
+  document.getElementById('soloPedroCard').innerHTML = soloCardHTML(pedroCard, { highlightAttr:attr, showResult:true, won: !youWon && !tie });
+  await sleep(400);
 
-  document.getElementById('soloYourCard').innerHTML = soloCardHTML(yourCard, false);
-  document.getElementById('soloPedroCard').innerHTML = soloCardHTML(pedroCard, false);
-  document.getElementById('soloCenterHint').textContent = 'ATRIBUTO: ' + attr.toUpperCase();
-
+  // 4) Anuncia o vencedor da rodada
+  document.getElementById('soloCenterHint').textContent = 'ATRIBUTO: ' + label.toUpperCase();
   if (tie) {
-    document.getElementById('soloResult').innerHTML = `EMPATE! As cartas ficam na mesa.`;
+    document.getElementById('soloResult').innerHTML = `🤝 EMPATE! (${yourVal} x ${pedroVal}) — as cartas ficam na mesa.`;
   } else {
-    document.getElementById('soloResult').innerHTML = `<b>${youWon ? 'VOCÊ' : 'PEDRO'}</b> venceu com ${yourVal} x ${pedroVal}`;
+    document.getElementById('soloResult').innerHTML = `🎉 <b>${youWon ? 'VOCÊ' : 'PEDRO'} VENCEU!</b> (${yourVal} x ${pedroVal})`;
   }
 
-  setTimeout(() => soloAdvance(tie, youWon), 2200);
+  await sleep(2200);
+  soloAdvance(tie, youWon);
 }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 async function soloAdvance(tie, youWon){
   const yourCard = solo.yourHand.shift();
