@@ -281,7 +281,7 @@ const NotificationService = {
     };
     const msg = messages[period] || messages.morning;
     const subs = await db.prepare('SELECT id, user_id, subscription FROM push_subscriptions').all();
-    const payload = JSON.stringify({ ...msg, url: SITE_URL, icon: '/icon-192.png', tag: 'daily-question' });
+    const payload = JSON.stringify({ ...msg, url: SITE_URL + '/?tab=daily-question', icon: '/icon-192.png', tag: 'daily-question' });
     let sent = 0;
     for (const sub of subs) {
       try {

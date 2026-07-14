@@ -185,7 +185,7 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
       await sendPushToAll(db, notifId, {
         title,
         body: q.question,
-        url: SITE_URL + '/?tab=daily-pergunta',
+        url: SITE_URL + '/?tab=daily-question',
         tag: 'daily-question',
       });
       console.log(`📬 Daily Pergunta enviada: ${period} — ${q.question}`);
