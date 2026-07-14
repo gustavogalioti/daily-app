@@ -3168,7 +3168,21 @@ function bootApp(){
   }
   loadDailyMandou();
   attachAllMentions();
-  switchTab('profile', document.querySelector('.nav-btn[onclick*="profile"]'));
+  // Verificar se veio de uma notificação com ?tab= na URL
+  const _urlParams = new URLSearchParams(window.location.search);
+  const _tabParam  = _urlParams.get('tab');
+  const _postParam = _urlParams.get('post');
+  if (_postParam) {
+    switchTab('mundo', document.querySelector('[data-tab="mundo"]'));
+    setTimeout(() => openPostDetail(_postParam), 800);
+    window.history.replaceState({}, '', window.location.pathname);
+  } else if (_tabParam) {
+    const _tabBtn = document.querySelector(`[data-tab="${_tabParam}"]`);
+    switchTab(_tabParam, _tabBtn);
+    window.history.replaceState({}, '', window.location.pathname);
+  } else {
+    switchTab('profile', document.querySelector('.nav-btn[onclick*="profile"]'));
+  }
   checkNotif();
   setInterval(checkNotif,10000);
   loadFriendRequests();
