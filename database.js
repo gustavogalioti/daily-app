@@ -196,6 +196,18 @@ async function initPG() {
     await pool.query(`DELETE FROM push_subscriptions WHERE subscription::text LIKE '%railway.app%' OR subscription::text LIKE '%web-production%'`);
     console.log('[DB] Subscrições push de domínios antigos removidas');
   } catch(e) { console.log('[DB] Cleanup push_subscriptions:', e.message); }
+  // Remover linhas duplicadas: manter só a mais recente por usuário
+  try {
+    await pool.query(`
+      DELETE FROM push_subscriptions
+      WHERE id NOT IN (
+        SELECT DISTINCT ON (user_id) id
+        FROM push_subscriptions
+        ORDER BY user_id, created_at DESC
+      )
+    `);
+    console.log('[DB] Subscrições push duplicadas removidas');
+  } catch(e) { console.log('[DB] Cleanup duplicatas push:', e.message); }
   try { await pool.query(`CREATE TABLE IF NOT EXISTS friendships (
       id TEXT PRIMARY KEY, requester_id TEXT NOT NULL, addressee_id TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending', message TEXT,

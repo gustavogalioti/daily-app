@@ -113,21 +113,29 @@ router.post('/push-subscribe', authMiddleware, async (req, res) => {
   const { subscription } = req.body;
   if (!subscription) return res.status(400).json({ error: 'Subscription obrigatória' });
   const subStr = JSON.stringify(subscription);
-  const deviceKey = subscription.endpoint ? subscription.endpoint.slice(-40) : uuidv4();
+  const endpoint = subscription.endpoint || '';
 
-  // Remover subscrições antigas de domínios não-oficiais (railway, etc)
+  // 1. Deletar todas as subscrições antigas desse mesmo endpoint (evita duplicata)
   try {
-    const all = await db.prepare('SELECT id, subscription FROM push_subscriptions WHERE user_id=$1').all(req.user.id);
-    for (const row of all) {
-      try {
-        const s = JSON.parse(row.subscription);
-        if (s.endpoint && !s.endpoint.includes('yourdaily.com.br')) {
-          await db.prepare('DELETE FROM push_subscriptions WHERE id=$1').run(row.id);
-        }
-      } catch(e) {}
+    await db.prepare(`DELETE FROM push_subscriptions WHERE user_id=$1 AND subscription::text LIKE $2`)
+      .run(req.user.id, `%${endpoint.slice(-60)}%`);
+  } catch(e) {}
+
+  // 2. Limitar a 5 subscrições por usuário (celular, tablet, desktop etc.)
+  //    Remove as mais antigas se ultrapassar o limite
+  try {
+    const rows = await db.prepare(
+      'SELECT id FROM push_subscriptions WHERE user_id=$1 ORDER BY created_at ASC'
+    ).all(req.user.id);
+    if (rows.length >= 5) {
+      for (const row of rows.slice(0, rows.length - 4)) {
+        await db.prepare('DELETE FROM push_subscriptions WHERE id=$1').run(row.id);
+      }
     }
   } catch(e) {}
 
+  // 3. Inserir nova subscrição
+  const deviceKey = endpoint ? endpoint.slice(-40) : uuidv4();
   try {
     await db.prepare(
       'INSERT INTO push_subscriptions (id,user_id,subscription,device_key) VALUES ($1,$2,$3,$4) ON CONFLICT (user_id,device_key) DO UPDATE SET subscription=$3'

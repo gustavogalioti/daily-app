@@ -42,10 +42,18 @@ async function sendPushToUser(db, userId, { title, body, url, icon, tag }) {
 // `override` permite customizar título/corpo — sem ele, mantém o texto
 // padrão do Daily Mandou (compatibilidade com chamadas antigas).
 async function sendPushToAll(db, notificationId, override) {
-  const subs     = await db.prepare('SELECT ps.subscription, ps.user_id, u.email, u.name FROM push_subscriptions ps JOIN users u ON u.id=ps.user_id').all();
+  // Deduplica por user_id: pega só a subscrição mais recente de cada usuário.
+  // Mesmo que haja linhas duplicadas no banco (bug histórico), o usuário
+  // recebe no máximo 1 push por dispositivo cadastrado.
+  const allSubs = await db.prepare(
+    `SELECT DISTINCT ON (ps.user_id) ps.subscription, ps.user_id, u.email, u.name
+     FROM push_subscriptions ps
+     JOIN users u ON u.id = ps.user_id
+     ORDER BY ps.user_id, ps.created_at DESC`
+  ).all();
   const allUsers = await db.prepare('SELECT email, name FROM users').all();
 
-  console.log(`   📣 Push para ${subs.length} | Email para ${allUsers.length} usuários`);
+  console.log(`   📣 Push para ${allSubs.length} usuários únicos | Email para ${allUsers.length} usuários`);
 
   const payload = JSON.stringify({
     title: (override && override.title) || '⚡ Hora do DAILY!',
@@ -57,7 +65,7 @@ async function sendPushToAll(db, notificationId, override) {
 
   const results = { push: 0, email: 0, errors: 0 };
 
-  for (const sub of subs) {
+  for (const sub of allSubs) {
     try {
       const subscription = typeof sub.subscription === 'string'
         ? JSON.parse(sub.subscription) : sub.subscription;
