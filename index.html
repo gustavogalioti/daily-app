@@ -2267,6 +2267,38 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         </div>
       </div>
 
+      <!-- CÉREBRO DO PEDRO IA -->
+      <div style="margin-bottom:24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;">🐱 Cérebro do Pedro IA</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="openPedroChat()">💬 Testar chat</button>
+            <button class="btn btn-primary btn-sm" onclick="openPedroIntentForm()">+ Nova categoria</button>
+          </div>
+        </div>
+
+        <div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;">
+          <div style="display:flex;overflow-x:auto;gap:6px;margin-bottom:12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+            <button class="pill active" id="pedro-subtab-intents" onclick="showPedroSubtab('intents')">Categorias</button>
+            <button class="pill" id="pedro-subtab-unmatched" onclick="showPedroSubtab('unmatched')">🕵️ Não entendi (<span id="pedro-unmatched-count">0</span>)</button>
+          </div>
+
+          <div id="pedro-panel-intents">
+            <div style="overflow-x:auto;">
+              <table class="users-table" id="pedro-intents-table">
+                <thead><tr><th>Categoria</th><th>Tipo</th><th>Palavras</th><th>Respostas</th><th>Ativo</th><th>Ações</th></tr></thead>
+                <tbody id="pedro-intents-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="pedro-panel-unmatched" style="display:none;">
+            <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Perguntas que o Pedro ainda não soube responder — use isso pra saber o que cadastrar.</p>
+            <div id="pedro-unmatched-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+        </div>
+      </div>
+
       <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:12px;">Usuários cadastrados</div>
       <div style="overflow-x:auto;">
         <table class="users-table" id="users-table">
@@ -2278,6 +2310,11 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
   </div>
 </div>
+
+<button id="pedro-fab" onclick="openPedroChat()" title="Falar com o Pedro"
+  style="position:fixed;bottom:22px;right:18px;width:56px;height:56px;border-radius:50%;border:none;background:var(--accent);box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;z-index:500;display:flex;align-items:center;justify-content:center;padding:0;">
+  <img src="pedro.jpg" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #fff;">
+</button>
 
 <!-- ═══ MODALS ═══ -->
 <!-- Post -->
@@ -2754,6 +2791,89 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     </div>
   </div>
 </div>
+
+<!-- CHAT COM O PEDRO -->
+<div class="modal-overlay" id="modal-pedro-chat" onclick="if(event.target===this)closeModal('modal-pedro-chat')">
+  <div class="modal" style="max-width:420px;display:flex;flex-direction:column;height:min(600px,85vh);">
+    <div class="modal-hdr" style="background:var(--accent);color:#fff;border-radius:16px 16px 0 0;">
+      <span class="modal-title" style="color:#fff;display:flex;align-items:center;gap:8px;">
+        <img src="pedro.jpg" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid #fff;">
+        Pedro Daily 🐱
+      </span>
+      <button class="modal-close" style="color:#fff;" onclick="closeModal('modal-pedro-chat')">✕</button>
+    </div>
+    <div id="pedro-chat-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--surface2);"></div>
+    <div style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);flex-shrink:0;">
+      <input type="text" id="pedro-chat-input" placeholder="Escreva pro Pedro..." style="flex:1;font-size:14px;" onkeydown="if(event.key==='Enter')sendPedroChat()">
+      <button class="btn btn-primary btn-sm" onclick="sendPedroChat()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- CRIAR/EDITAR CATEGORIA DO PEDRO -->
+<div class="modal-overlay" id="modal-pedro-intent" onclick="if(event.target===this)closeModal('modal-pedro-intent')">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-hdr">
+      <span class="modal-title" id="pedro-intent-form-title">Nova categoria</span>
+      <button class="modal-close" onclick="closeModal('modal-pedro-intent')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pedro-intent-id">
+      <label style="font-size:12px;color:var(--muted);font-weight:700;">Nome interno (sem espaços)</label>
+      <input type="text" id="pedro-intent-name" placeholder="ex: elogio_pedro" style="margin-bottom:10px;">
+      <label style="font-size:12px;color:var(--muted);font-weight:700;">Categoria (nome de exibição)</label>
+      <input type="text" id="pedro-intent-category" placeholder="ex: Elogio ao Pedro" style="margin-bottom:10px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;">
+        <input type="checkbox" id="pedro-intent-external" onchange="document.getElementById('pedro-intent-ext-type-wrap').style.display=this.checked?'block':'none'">
+        Usa fonte externa (clima/notícia/wikipedia) em vez de respostas fixas
+      </label>
+      <div id="pedro-intent-ext-type-wrap" style="display:none;margin-bottom:10px;">
+        <label style="font-size:12px;color:var(--muted);font-weight:700;">Tipo de fonte externa</label>
+        <select id="pedro-intent-ext-type">
+          <option value="weather">Clima</option>
+          <option value="news">Notícias</option>
+          <option value="wikipedia">Wikipédia</option>
+          <option value="user_stats">Pontos/ranking do usuário</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="savePedroIntent()">Salvar categoria</button>
+    </div>
+  </div>
+</div>
+
+<!-- GERENCIAR PALAVRAS-CHAVE E RESPOSTAS DE UMA CATEGORIA -->
+<div class="modal-overlay" id="modal-pedro-manage" onclick="if(event.target===this)closeModal('modal-pedro-manage')">
+  <div class="modal" style="max-width:520px;max-height:85vh;display:flex;flex-direction:column;">
+    <div class="modal-hdr">
+      <span class="modal-title" id="pedro-manage-title">Categoria</span>
+      <button class="modal-close" onclick="closeModal('modal-pedro-manage')">✕</button>
+    </div>
+    <div class="modal-body" style="overflow-y:auto;">
+      <input type="hidden" id="pedro-manage-intent-id">
+      <input type="hidden" id="pedro-manage-is-external">
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">🔑 Palavras-chave</div>
+      <div id="pedro-manage-keywords" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:8px;margin-bottom:20px;">
+        <input type="text" id="pedro-manage-new-keyword" placeholder="nova palavra-chave..." style="flex:1;font-size:13px;" onkeydown="if(event.key==='Enter')addPedroKeyword()">
+        <button class="btn btn-ghost btn-sm" onclick="addPedroKeyword()">+ Add</button>
+      </div>
+
+      <div id="pedro-manage-responses-section">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;">💬 Respostas (sorteadas aleatoriamente)</div>
+        <div id="pedro-manage-responses" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+        <div style="display:flex;gap:8px;">
+          <textarea id="pedro-manage-new-response" rows="2" placeholder="nova resposta do Pedro..." style="flex:1;font-size:13px;resize:none;"></textarea>
+          <button class="btn btn-ghost btn-sm" onclick="addPedroResponse()">+ Add</button>
+        </div>
+      </div>
+      <div id="pedro-manage-external-note" style="display:none;font-size:12px;color:var(--muted);background:var(--surface2);padding:10px;border-radius:8px;">
+        Essa categoria usa fonte externa — a resposta é gerada ao vivo, sem lista de respostas fixas.
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -2766,6 +2886,7 @@ let postType = 'photo';
 let postTargetTab = 'global';
 let pendingFriendId = null;
 let pendingFriendName = '';
+
 let globalFilter = 'todos';
 let notifIntervalId = null;
 
@@ -5430,6 +5551,208 @@ async function loadAdmin(){
       <button class="btn btn-xs btn-primary" onclick="saveQuestion('${q.id}')">Salvar</button>
     </div>`).join('');
   }catch(e){}
+  loadPedroAdmin();
+}
+
+async function loadPedroAdmin(){
+  try{
+    const{intents}=await api('/api/pedro/admin/intents');
+    window._pedroIntents = intents;
+    document.getElementById('pedro-intents-tbody').innerHTML = intents.map(i=>`<tr>
+      <td>${i.category}</td>
+      <td style="font-size:12px;color:var(--muted);">${i.is_external?'🌐 Externa':'📝 Fixa'}</td>
+      <td>${i.keyword_count}</td>
+      <td>${i.response_count}</td>
+      <td><span style="color:${i.active?'var(--green)':'var(--muted)'};cursor:pointer;" onclick="togglePedroIntentActive('${i.id}',${i.active})">${i.active?'✅':'—'}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button class="btn btn-xs btn-ghost" onclick="openPedroManage('${i.id}')">🔧 Gerenciar</button>
+        <button class="btn btn-xs btn-ghost" onclick="deletePedroIntent('${i.id}','${i.category.replace(/'/g,"\\'")}')" style="color:var(--accent2);">🗑️</button>
+      </td>
+    </tr>`).join('');
+  }catch(e){}
+  loadPedroUnmatchedCount();
+}
+
+function showPedroSubtab(name){
+  document.getElementById('pedro-panel-intents').style.display = name==='intents'?'block':'none';
+  document.getElementById('pedro-panel-unmatched').style.display = name==='unmatched'?'block':'none';
+  document.getElementById('pedro-subtab-intents').classList.toggle('active', name==='intents');
+  document.getElementById('pedro-subtab-unmatched').classList.toggle('active', name==='unmatched');
+  if(name==='unmatched') loadPedroUnmatched();
+}
+
+async function loadPedroUnmatchedCount(){
+  try{
+    const{logs}=await api('/api/pedro/admin/unmatched');
+    document.getElementById('pedro-unmatched-count').textContent = logs.length;
+  }catch(e){}
+}
+
+async function loadPedroUnmatched(){
+  try{
+    const{logs}=await api('/api/pedro/admin/unmatched');
+    document.getElementById('pedro-unmatched-count').textContent = logs.length;
+    document.getElementById('pedro-unmatched-list').innerHTML = logs.length ? logs.map(l=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
+        <div style="font-size:13px;">${l.message}</div>
+        <button class="btn btn-xs btn-ghost" onclick="deletePedroUnmatched('${l.id}')">✕</button>
+      </div>`).join('') : '<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px;">Nada por aqui — o Pedro está entendendo tudo! 🐱</div>';
+  }catch(e){}
+}
+
+async function deletePedroUnmatched(id){
+  try{ await api(`/api/pedro/admin/unmatched/${id}`,{method:'DELETE'}); loadPedroUnmatched(); }catch(e){toast(e.message,'error');}
+}
+
+async function togglePedroIntentActive(id, current){
+  try{ await api(`/api/pedro/admin/intents/${id}`,{method:'PUT',body:JSON.stringify({active:current?0:1})}); loadPedroAdmin(); }catch(e){toast(e.message,'error');}
+}
+
+async function deletePedroIntent(id, name){
+  if(!confirm(`Apagar a categoria "${name}"? Isso remove todas as palavras-chave e respostas dela.`)) return;
+  try{ await api(`/api/pedro/admin/intents/${id}`,{method:'DELETE'}); toast('Categoria apagada','success'); loadPedroAdmin(); }catch(e){toast(e.message,'error');}
+}
+
+function openPedroIntentForm(){
+  document.getElementById('pedro-intent-form-title').textContent = 'Nova categoria';
+  document.getElementById('pedro-intent-id').value = '';
+  document.getElementById('pedro-intent-name').value = '';
+  document.getElementById('pedro-intent-category').value = '';
+  document.getElementById('pedro-intent-external').checked = false;
+  document.getElementById('pedro-intent-ext-type-wrap').style.display = 'none';
+  openModal('modal-pedro-intent');
+}
+
+async function savePedroIntent(){
+  const name = document.getElementById('pedro-intent-name').value.trim();
+  const category = document.getElementById('pedro-intent-category').value.trim();
+  const isExternal = document.getElementById('pedro-intent-external').checked;
+  const extType = document.getElementById('pedro-intent-ext-type').value;
+  if(!name || !category){ toast('Preencha nome e categoria','error'); return; }
+  try{
+    await api('/api/pedro/admin/intents',{method:'POST',body:JSON.stringify({name,category,is_external:isExternal?1:0,external_type:isExternal?extType:null})});
+    toast('Categoria criada!','success');
+    closeModal('modal-pedro-intent');
+    loadPedroAdmin();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function openPedroManage(intentId){
+  const intent = (window._pedroIntents||[]).find(i=>i.id===intentId);
+  if(!intent) return;
+  document.getElementById('pedro-manage-intent-id').value = intentId;
+  document.getElementById('pedro-manage-is-external').value = intent.is_external ? '1' : '0';
+  document.getElementById('pedro-manage-title').textContent = intent.category;
+  document.getElementById('pedro-manage-responses-section').style.display = intent.is_external ? 'none' : 'block';
+  document.getElementById('pedro-manage-external-note').style.display = intent.is_external ? 'block' : 'none';
+  openModal('modal-pedro-manage');
+  await refreshPedroKeywords(intentId);
+  if(!intent.is_external) await refreshPedroResponses(intentId);
+}
+
+async function refreshPedroKeywords(intentId){
+  try{
+    const{keywords}=await api(`/api/pedro/admin/intents/${intentId}/keywords`);
+    document.getElementById('pedro-manage-keywords').innerHTML = keywords.map(k=>`
+      <span class="tag" style="background:var(--surface2);border:1px solid var(--border);">
+        ${k.keyword}
+        <span style="cursor:pointer;color:var(--accent2);margin-left:4px;" onclick="deletePedroKeyword('${k.id}','${intentId}')">✕</span>
+      </span>`).join('') || '<span style="font-size:12px;color:var(--muted);">Nenhuma palavra-chave ainda</span>';
+  }catch(e){}
+}
+
+async function addPedroKeyword(){
+  const intentId = document.getElementById('pedro-manage-intent-id').value;
+  const input = document.getElementById('pedro-manage-new-keyword');
+  const keyword = input.value.trim();
+  if(!keyword) return;
+  try{
+    await api(`/api/pedro/admin/intents/${intentId}/keywords`,{method:'POST',body:JSON.stringify({keyword})});
+    input.value = '';
+    refreshPedroKeywords(intentId);
+    loadPedroAdmin();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function deletePedroKeyword(id, intentId){
+  try{ await api(`/api/pedro/admin/keywords/${id}`,{method:'DELETE'}); refreshPedroKeywords(intentId); loadPedroAdmin(); }catch(e){toast(e.message,'error');}
+}
+
+async function refreshPedroResponses(intentId){
+  try{
+    const{responses}=await api(`/api/pedro/admin/intents/${intentId}/responses`);
+    document.getElementById('pedro-manage-responses').innerHTML = responses.map(r=>`
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+        <div style="flex:1;font-size:13px;${r.active?'':'opacity:.4;text-decoration:line-through;'}">${r.content}</div>
+        <button class="btn btn-xs btn-ghost" onclick="togglePedroResponseActive('${r.id}','${intentId}',${r.active})">${r.active?'👁️':'🚫'}</button>
+        <button class="btn btn-xs btn-ghost" onclick="deletePedroResponse('${r.id}','${intentId}')" style="color:var(--accent2);">🗑️</button>
+      </div>`).join('') || '<span style="font-size:12px;color:var(--muted);">Nenhuma resposta ainda</span>';
+  }catch(e){}
+}
+
+async function addPedroResponse(){
+  const intentId = document.getElementById('pedro-manage-intent-id').value;
+  const input = document.getElementById('pedro-manage-new-response');
+  const content = input.value.trim();
+  if(!content) return;
+  try{
+    await api(`/api/pedro/admin/intents/${intentId}/responses`,{method:'POST',body:JSON.stringify({content})});
+    input.value = '';
+    refreshPedroResponses(intentId);
+    loadPedroAdmin();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function togglePedroResponseActive(id, intentId, current){
+  try{ await api(`/api/pedro/admin/responses/${id}`,{method:'PUT',body:JSON.stringify({active:current?0:1})}); refreshPedroResponses(intentId); }catch(e){toast(e.message,'error');}
+}
+
+async function deletePedroResponse(id, intentId){
+  try{ await api(`/api/pedro/admin/responses/${id}`,{method:'DELETE'}); refreshPedroResponses(intentId); loadPedroAdmin(); }catch(e){toast(e.message,'error');}
+}
+
+// ── CHAT DE TESTE COM O PEDRO ──
+function openPedroChat(){
+  openModal('modal-pedro-chat');
+  const box = document.getElementById('pedro-chat-messages');
+  if(!box.dataset.greeted){
+    box.dataset.greeted = '1';
+    renderPedroChatBubble('Oi! Sou o Pedro 🐱 Pode escrever qualquer coisa pra eu tentar responder!', 'bot');
+  }
+}
+
+function renderPedroChatBubble(text, from){
+  const box = document.getElementById('pedro-chat-messages');
+  const bubble = document.createElement('div');
+  bubble.style.cssText = from==='user'
+    ? 'align-self:flex-end;background:var(--accent);color:#fff;padding:10px 14px;border-radius:14px 14px 2px 14px;max-width:80%;font-size:14px;white-space:pre-wrap;'
+    : 'align-self:flex-start;background:#fff;border:1px solid var(--border);padding:10px 14px;border-radius:14px 14px 14px 2px;max-width:80%;font-size:14px;white-space:pre-wrap;';
+  bubble.textContent = text;
+  box.appendChild(bubble);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendPedroChat(){
+  const input = document.getElementById('pedro-chat-input');
+  const message = input.value.trim();
+  if(!message) return;
+  renderPedroChatBubble(message, 'user');
+  input.value = '';
+  const box = document.getElementById('pedro-chat-messages');
+  const loadingBubble = document.createElement('div');
+  loadingBubble.id = 'pedro-chat-loading';
+  loadingBubble.style.cssText = 'align-self:flex-start;background:#fff;border:1px solid var(--border);padding:10px 14px;border-radius:14px 14px 14px 2px;font-size:14px;color:var(--muted);';
+  loadingBubble.textContent = 'digitando...';
+  box.appendChild(loadingBubble);
+  box.scrollTop = box.scrollHeight;
+  try{
+    const{reply}=await api('/api/pedro/chat',{method:'POST',body:JSON.stringify({message})});
+    document.getElementById('pedro-chat-loading')?.remove();
+    renderPedroChatBubble(reply, 'bot');
+  }catch(e){
+    document.getElementById('pedro-chat-loading')?.remove();
+    renderPedroChatBubble('Ops, escorreguei em algo aqui 😹 tenta de novo?', 'bot');
+  }
 }
 
 async function saveQuestion(id){

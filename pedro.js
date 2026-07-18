@@ -1,8 +1,17 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('./database');
+const { authMiddleware, optionalAuth } = require('./authmiddleware');
+const brain = require('./pedro_brain');
 
 const router = express.Router();
+
+async function adminOnly(req, res, next) {
+  const db = getDB();
+  const user = await db.prepare('SELECT is_admin FROM users WHERE id=$1').get(req.user.id);
+  if (!user?.is_admin) return res.status(403).json({ error: 'Acesso restrito a administradores' });
+  next();
+}
 
 const PEDRO = {
   photo: [
@@ -167,6 +176,177 @@ router.get('/comment/:postId', async (req, res) => {
 router.get('/message', async (req, res) => {
   const { context = 'photo' } = req.query;
   res.json({ message: getPedroComment(context) });
+});
+
+// ============ CHAT DIRETO COM O PEDRO ============
+
+async function loadActiveIntents(db) {
+  const intents = await db.prepare('SELECT * FROM pedro_intents WHERE active=1').all();
+  const keywords = await db.prepare('SELECT * FROM pedro_keywords').all();
+  return intents.map(intent => ({
+    ...intent,
+    keywords: keywords.filter(k => k.intent_id === intent.id).map(k => k.keyword)
+  }));
+}
+
+// POST /api/pedro/chat  { message }
+router.post('/chat', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB();
+    const { message } = req.body;
+    if (!message || !message.trim()) return res.status(400).json({ error: 'Mensagem vazia' });
+
+    const intents = await loadActiveIntents(db);
+    const matched = brain.matchIntent(message, intents);
+
+    if (!matched) {
+      await db.prepare('INSERT INTO pedro_unmatched_log (id,user_id,message) VALUES ($1,$2,$3)')
+        .run(uuidv4(), req.user.id, message.trim());
+      const fallback = intents.find(i => i.name === 'fallback');
+      const responses = fallback ? await db.prepare('SELECT content FROM pedro_responses WHERE intent_id=$1 AND active=1').all(fallback.id) : [];
+      const reply = brain.pickRandom(responses.map(r => r.content)) || 'Hmm, ainda não sei sobre isso! 🐱';
+      return res.json({ reply, intent: 'fallback' });
+    }
+
+    if (matched.is_external) {
+      let reply;
+      if (matched.external_type === 'weather') reply = await brain.getWeatherReply(message);
+      else if (matched.external_type === 'wikipedia') reply = await brain.getWikipediaReply(message);
+      else if (matched.external_type === 'news') reply = await brain.getNewsReply(message);
+      else if (matched.external_type === 'user_stats') {
+        const u = await db.prepare('SELECT points FROM users WHERE id=$1').get(req.user.id);
+        reply = `Você tem ${u?.points || 0} pontos até agora! Bora subir mais no ranking? 🐾🏆`;
+      } else {
+        reply = 'Essa informação ainda não tá pronta aqui, mas em breve! 🐱';
+      }
+      return res.json({ reply, intent: matched.name });
+    }
+
+    const responses = await db.prepare('SELECT content FROM pedro_responses WHERE intent_id=$1 AND active=1').all(matched.id);
+    const reply = brain.pickRandom(responses.map(r => r.content)) || 'Miau! 🐱';
+    res.json({ reply, intent: matched.name });
+  } catch (e) {
+    console.error('pedro chat:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============ PAINEL ADM — GERENCIAR O CÉREBRO DO PEDRO ============
+
+// GET /api/pedro/admin/intents — lista com contagem de keywords/respostas
+router.get('/admin/intents', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const intents = await db.prepare('SELECT * FROM pedro_intents ORDER BY category').all();
+  const kwCounts = await db.prepare('SELECT intent_id, COUNT(*) as c FROM pedro_keywords GROUP BY intent_id').all();
+  const rspCounts = await db.prepare('SELECT intent_id, COUNT(*) as c FROM pedro_responses GROUP BY intent_id').all();
+  const result = intents.map(i => ({
+    ...i,
+    keyword_count: parseInt(kwCounts.find(k => k.intent_id === i.id)?.c || 0),
+    response_count: parseInt(rspCounts.find(r => r.intent_id === i.id)?.c || 0),
+  }));
+  res.json({ intents: result });
+});
+
+// POST /api/pedro/admin/intents — criar novo intent
+router.post('/admin/intents', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const { name, category, is_external, external_type } = req.body;
+  if (!name || !category) return res.status(400).json({ error: 'name e category são obrigatórios' });
+  const id = uuidv4();
+  await db.prepare('INSERT INTO pedro_intents (id,name,category,is_external,external_type,active) VALUES ($1,$2,$3,$4,$5,1)')
+    .run(id, name.trim().toLowerCase().replace(/\s+/g, '_'), category, is_external ? 1 : 0, external_type || null);
+  res.json({ ok: true, id });
+});
+
+// PUT /api/pedro/admin/intents/:id
+router.put('/admin/intents/:id', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const { category, active, is_external, external_type } = req.body;
+  await db.prepare('UPDATE pedro_intents SET category=COALESCE($1,category), active=COALESCE($2,active), is_external=COALESCE($3,is_external), external_type=COALESCE($4,external_type) WHERE id=$5')
+    .run(category || null, active != null ? parseInt(active) : null, is_external != null ? parseInt(is_external) : null, external_type || null, req.params.id);
+  res.json({ ok: true });
+});
+
+// DELETE /api/pedro/admin/intents/:id — apaga intent + keywords + respostas
+router.delete('/admin/intents/:id', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  await db.prepare('DELETE FROM pedro_keywords WHERE intent_id=$1').run(req.params.id);
+  await db.prepare('DELETE FROM pedro_responses WHERE intent_id=$1').run(req.params.id);
+  await db.prepare('DELETE FROM pedro_intents WHERE id=$1').run(req.params.id);
+  res.json({ ok: true });
+});
+
+// POST /api/pedro/admin/intents/:id/keywords — adiciona palavra-chave
+router.post('/admin/intents/:id/keywords', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const { keyword } = req.body;
+  if (!keyword || !keyword.trim()) return res.status(400).json({ error: 'keyword obrigatória' });
+  const id = uuidv4();
+  await db.prepare('INSERT INTO pedro_keywords (id,intent_id,keyword) VALUES ($1,$2,$3)')
+    .run(id, req.params.id, brain.normalize(keyword));
+  res.json({ ok: true, id });
+});
+
+// GET /api/pedro/admin/intents/:id/keywords
+router.get('/admin/intents/:id/keywords', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const keywords = await db.prepare('SELECT * FROM pedro_keywords WHERE intent_id=$1 ORDER BY keyword').all(req.params.id);
+  res.json({ keywords });
+});
+
+// DELETE /api/pedro/admin/keywords/:id
+router.delete('/admin/keywords/:id', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  await db.prepare('DELETE FROM pedro_keywords WHERE id=$1').run(req.params.id);
+  res.json({ ok: true });
+});
+
+// GET /api/pedro/admin/intents/:id/responses
+router.get('/admin/intents/:id/responses', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const responses = await db.prepare('SELECT * FROM pedro_responses WHERE intent_id=$1 ORDER BY created_at').all(req.params.id);
+  res.json({ responses });
+});
+
+// POST /api/pedro/admin/intents/:id/responses — adiciona resposta
+router.post('/admin/intents/:id/responses', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const { content } = req.body;
+  if (!content || !content.trim()) return res.status(400).json({ error: 'content obrigatório' });
+  const id = uuidv4();
+  await db.prepare('INSERT INTO pedro_responses (id,intent_id,content,active) VALUES ($1,$2,$3,1)')
+    .run(id, req.params.id, content.trim());
+  res.json({ ok: true, id });
+});
+
+// PUT /api/pedro/admin/responses/:id
+router.put('/admin/responses/:id', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const { content, active } = req.body;
+  await db.prepare('UPDATE pedro_responses SET content=COALESCE($1,content), active=COALESCE($2,active) WHERE id=$3')
+    .run(content || null, active != null ? parseInt(active) : null, req.params.id);
+  res.json({ ok: true });
+});
+
+// DELETE /api/pedro/admin/responses/:id
+router.delete('/admin/responses/:id', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  await db.prepare('DELETE FROM pedro_responses WHERE id=$1').run(req.params.id);
+  res.json({ ok: true });
+});
+
+// GET /api/pedro/admin/unmatched — perguntas que caíram no fallback (o que falta cadastrar)
+router.get('/admin/unmatched', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  const logs = await db.prepare('SELECT * FROM pedro_unmatched_log ORDER BY created_at DESC LIMIT 100').all();
+  res.json({ logs });
+});
+
+// DELETE /api/pedro/admin/unmatched/:id — remove um item já tratado
+router.delete('/admin/unmatched/:id', authMiddleware, adminOnly, async (req, res) => {
+  const db = getDB();
+  await db.prepare('DELETE FROM pedro_unmatched_log WHERE id=$1').run(req.params.id);
+  res.json({ ok: true });
 });
 
 module.exports = router;

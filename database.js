@@ -418,6 +418,27 @@ async function initPG() {
     content TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
   )`); } catch(_) {}
 
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS pedro_intents (
+      id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, category TEXT NOT NULL,
+      is_external INTEGER DEFAULT 0, external_type TEXT,
+      active INTEGER DEFAULT 1, created_at TIMESTAMPTZ DEFAULT NOW()
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS pedro_keywords (
+      id TEXT PRIMARY KEY, intent_id TEXT NOT NULL, keyword TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS pedro_responses (
+      id TEXT PRIMARY KEY, intent_id TEXT NOT NULL, content TEXT NOT NULL,
+      active INTEGER DEFAULT 1, created_at TIMESTAMPTZ DEFAULT NOW()
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query(`CREATE TABLE IF NOT EXISTS pedro_unmatched_log (
+      id TEXT PRIMARY KEY, user_id TEXT, message TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );`); } catch(e) { /* já existe */ }
+  try { await pool.query('CREATE INDEX IF NOT EXISTS idx_pedro_keywords_intent ON pedro_keywords(intent_id)'); } catch(_) {}
+  try { await pool.query('CREATE INDEX IF NOT EXISTS idx_pedro_responses_intent ON pedro_responses(intent_id)'); } catch(_) {}
+  try { await pool.query('CREATE INDEX IF NOT EXISTS idx_pedro_unmatched_created ON pedro_unmatched_log(created_at DESC)'); } catch(_) {}
+
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_user_notif_user ON user_notifications(user_id, read, created_at DESC)'); } catch(_) {}
   try { await pool.query('CREATE INDEX IF NOT EXISTS idx_comm_invites ON community_invites(invitee_id, status)'); } catch(_) {}
 
@@ -426,6 +447,7 @@ async function initPG() {
   try { await seedRegionalCommunities(pool); } catch(e) { console.error('seedRegionalCommunities:', e.message); }
   try { await seedPedro(pool); } catch(e) { console.error('seedPedro:', e.message); }
   try { await seedPedroCommunity(pool); } catch(e) { console.error('seedPedroCommunity:', e.message); }
+  try { await seedPedroBrain(pool); } catch(e) { console.error('seedPedroBrain:', e.message); }
   try { await initNewsDB(pool); console.log('   ✓ news tables'); } catch(e) { console.error('initNewsDB:', e.message); }
 
   wrapper = {
@@ -587,6 +609,127 @@ async function seedDailyQuestions(pool) {
     );
   }
   console.log('   ❓ Perguntas do dia criadas');
+}
+
+async function seedPedroBrain(pool) {
+  const { rows } = await pool.query('SELECT id FROM pedro_intents LIMIT 1');
+  if (rows.length) return; // já semeado — edições feitas pelo painel ADM não são sobrescritas
+  const { v4: uuidv4 } = require('uuid');
+
+  // category: nome, keywords: [palavra certa + variações já normalizadas], responses: [textos] (vazio se externo)
+  const intents = [
+    { name: 'saudacao', category: 'Saudação', keywords: [
+        'bom dia','bomdia','bdia','boom dia','boa tarde','boatarde','btarde','boa noite','boanoite','bnoite',
+        'oi','oii','oiii','oie','ola','olaa','oola','eai','e ai','eaew','salve'
+      ], responses: [
+        'Oi! Que bom te ver por aqui! 🐱🧡',
+        'Opa! Cheguei correndo pra te dar um oi! 🐾',
+        'Salve! Já deixei minha patinha pronta pra um high five 🐾✋',
+        'Oi oi! Dia bom pra ronronar de alegria 😸'
+      ]},
+    { name: 'despedida', category: 'Despedida', keywords: [
+        'tchau','xau','txau','flw','falou','falo','ate mais','ate logo','ate loguinho','ate amanha','atéh amanha'
+      ], responses: [
+        'Até mais! Vou tirar uma soneca esperando você voltar 😴🧡',
+        'Tchau tchau! Se cuida por aí 🐾',
+        'Falou! Volta logo que sinto sua falta 🐱'
+      ]},
+    { name: 'agradecimento', category: 'Agradecimento', keywords: [
+        'obrigado','obrigada','obg','obgd','valeu','vlw','vlww','gratidao','gratidão','grato'
+      ], responses: [
+        'Imagina! Fico feliz demais em ajudar 🐾🧡',
+        'De nada! Ronronando de satisfação aqui 😸',
+        'Sempre às ordens! Bora pro próximo 🐱'
+      ]},
+    { name: 'elogio_pedro', category: 'Elogio ao Pedro', keywords: [
+        'legal','lega','leal','dahora','da hora','gostei de vc','gostei de voce','te amo pedro',
+        'vc e fofo','voce e fofo','fofo','gato lindo','inteligente','iteligente','esperto'
+      ], responses: [
+        'Aaah, parei tudo pra ronronar de vergonha agora 😻🧡',
+        'Ronronando tanto que quase derrubei a tigela! Valeu! 😸',
+        'Você também é incrível! Certifico com a patinha ✅🐾'
+      ]},
+    { name: 'reclamacao', category: 'Reclamação/crítica', keywords: [
+        'chato','xato','chatinho','nao gostei','num gostei','n gostei','ruim','ruinzinho','horrivel'
+      ], responses: [
+        'Poxa, vou lamber a patinha e refletir sobre isso 😿',
+        'Anotado! Prometo melhorar (ou pelo menos tentar) 🐱',
+        'Fiquei triste, mas continuo aqui na torcida por você 🧡'
+      ]},
+    { name: 'sentimento_feliz', category: 'Sentimento — feliz', keywords: [
+        'feliz','felis','felizao','alegre','contente','animado','otimo dia','dia otimo','dia incrivel'
+      ], responses: [
+        'Que alegria! Fiz uma cambalhota de felicidade por você 🎉🐱',
+        'Adorei saber disso! Bora comemorar juntos 🧡',
+        'Isso sim que é notícia boa! Ronronando de orelha a orelha 😸'
+      ]},
+    { name: 'sentimento_triste', category: 'Sentimento — triste', keywords: [
+        'triste','tristi','tristeza','chateado','chateada','chatiado','dia ruim','dia pessimo','dia horrivel'
+      ], responses: [
+        'Sinto muito que o dia tá difícil. Tô aqui do seu lado 🧡🐾',
+        'Vem, deixa eu fazer companhia. Dias assim passam 🐱',
+        'Um ronronar de conforto pra você agora 😿🧡'
+      ]},
+    { name: 'sentimento_cansado', category: 'Sentimento — cansado', keywords: [
+        'cansado','cansada','cansadao','exausto','sem energia','sem pique','morto de cansaço','sono','com sono'
+      ], responses: [
+        'Descansa um pouco! Eu mesmo durmo umas 16h por dia, recomendo 😴🐱',
+        'Vai com calma hoje, tá? Tira uma soneca por mim também 🧡',
+        'Cansaço pede descanso! Autorizado pela autoridade máxima em sonecas 😸'
+      ]},
+    { name: 'pergunta_daily', category: 'Pergunta sobre o Daily', keywords: [
+        'como funciona','como que funciona','pra que serve','comunidade','comunidades','grupo','grupos'
+      ], responses: [
+        'O Daily é feito pra você registrar sua vida de verdade — perfil, amigos, comunidades e muito mais! 🧡',
+        'Comunidades são grupos por assunto ou região — procura na aba Comunidades e entra na conversa! 🐾',
+        'Qualquer dúvida específica, procura a aba de Ajuda que eu ou o time te explicamos certinho 🐱'
+      ]},
+    { name: 'pergunta_pontos', category: 'Pergunta sobre pontos/ranking', is_external: 1, external_type: 'user_stats', keywords: [
+        'conquista','conquistas','badge','medalha','pontos','ponto','score','pontuacao','ranking','rank','colocacao','posicao'
+      ], responses: []},
+    { name: 'aniversario', category: 'Aniversário', keywords: [
+        'aniversario','aniverssario','niver','niverzinho','parabens'
+      ], responses: [
+        'Parabéns!! Já queria estar aí pra comer um pedaço de bolo 🎂🐱',
+        'Uhuul! Dia de festejar! Ronronando o parabéns pra você 🎉🧡',
+        'Mais um ano incrível! Certifico com a patinha 🐾🎂'
+      ]},
+    { name: 'clima', category: 'Clima', is_external: 1, external_type: 'weather', keywords: [
+        'tempo','tepo','tempoo','clima','climaa','chover','vai chover','choveu','calor','calo','frio','frioo'
+      ], responses: []},
+    { name: 'noticias', category: 'Notícias', is_external: 1, external_type: 'news', keywords: [
+        'noticia','noticias','noticiaa','aconteceu','oq aconteceu','o q rolou','ultimas','ultimas noticias'
+      ], responses: []},
+    { name: 'curiosidade', category: 'Curiosidade/enciclopédia', is_external: 1, external_type: 'wikipedia', keywords: [
+        'quem foi','quem era','quem e','oq e','o q e','oque e','significa','quer dizer','quer dize'
+      ], responses: []},
+    { name: 'ajuda', category: 'Ajuda/suporte', keywords: [
+        'ajuda','ajudaa','socorro','help','nao sei usar','num sei usar','como uso','como faco','como eu faco'
+      ], responses: [
+        'Tô aqui pra ajudar! Me conta com calma o que tá travando 🐾🧡',
+        'Vamos resolver juntos! Explica de novo com outras palavras que eu tento entender 🐱'
+      ]},
+    { name: 'fallback', category: 'Fallback', keywords: [], responses: [
+        'Hmm, ainda não sei bem sobre isso, mas anotei aqui pra aprender! 🐾📝',
+        'Essa me pegou! Vou perguntar pro Gustavo e a gente evolui isso 🐱',
+        'Ainda tô aprendendo esse assunto — volta depois que talvez eu já saiba! 🧡'
+      ]},
+  ];
+
+  for (const it of intents) {
+    const intentId = uuidv4();
+    await pool.query(
+      'INSERT INTO pedro_intents (id,name,category,is_external,external_type,active) VALUES ($1,$2,$3,$4,$5,1) ON CONFLICT(name) DO NOTHING',
+      [intentId, it.name, it.category, it.is_external || 0, it.external_type || null]
+    );
+    for (const kw of it.keywords) {
+      await pool.query('INSERT INTO pedro_keywords (id,intent_id,keyword) VALUES ($1,$2,$3)', [uuidv4(), intentId, kw]);
+    }
+    for (const r of it.responses) {
+      await pool.query('INSERT INTO pedro_responses (id,intent_id,content) VALUES ($1,$2,$3)', [uuidv4(), intentId, r]);
+    }
+  }
+  console.log('   🧠 Banco de intenções do Pedro criado (' + intents.length + ' categorias)');
 }
 
 function toPg(sql) {
