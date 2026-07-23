@@ -1298,8 +1298,14 @@ function initThree() {
   camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 500);
   camera.position.set(0, 1.7, 30);
 
-  renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
-  renderer.setSize(innerWidth, innerHeight);
+  const _canvas = document.getElementById('canvas');
+  renderer = new THREE.WebGLRenderer({ canvas: _canvas, antialias: true });
+  // Usa offsetWidth/offsetHeight para funcionar dentro de iframe no mobile
+  const _w = _canvas.offsetWidth || window.innerWidth;
+  const _h = _canvas.offsetHeight || window.innerHeight;
+  renderer.setSize(_w, _h);
+  camera.aspect = _w / _h;
+  camera.updateProjectionMatrix();
   renderer.shadowMap.enabled = true;
 
   // Ground — textura procedural de paralelepípedo/pedra estilo cartoon
@@ -2446,6 +2452,9 @@ function startGame(wsMode, roomCode) {
     registerCurrentPlayer();
     loop();
     window._threeReady = true;
+    // Garante tamanho correto após layout do iframe estabilizar
+    setTimeout(resizeRenderer, 100);
+    setTimeout(resizeRenderer, 500);
   } else {
     resetMap();
   }
@@ -2454,7 +2463,9 @@ function startGame(wsMode, roomCode) {
   if (wsMode === 'private' && roomCode) {
     // Reutiliza wsConnect mas sobrescreve o join message
     gameWsMode = 'free';
-    const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/coop';
+    // Usa sempre o host da página atual do jogo (funciona dentro de iframe)
+  const _wsHost = window.location.host;
+  const wsUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + _wsHost + '/ws/coop';
     gameWs = new WebSocket(wsUrl);
     gameWs.onopen = () => {
       const username = state.playerName || 'Jogador';
@@ -4021,6 +4032,7 @@ function wsConnect(mode) {
   gameWs = new WebSocket(wsUrl);
 
   gameWs.onopen = () => {
+    _wsRetries = 0;
     const username = state.playerName || 'Jogador';
     gameWs.send(JSON.stringify({ type: 'join', mode, username }));
     gameWs._ping = setInterval(() => {
@@ -4063,19 +4075,26 @@ function wsConnect(mode) {
     }
   };
 
+  let _wsRetries = 0;
   gameWs.onclose = () => {
     clearInterval(gameWs?._ping);
-    if (!gameWsConnected) {
-      updateRoomBadge(null, null); // silencioso na primeira tentativa
-    } else {
+    _wsRetries++;
+    if (_wsRetries > 4) {
+      // Após 4 tentativas, mostra modo offline sem spam
+      const freeBadge = document.getElementById('free-room-badge');
+      if (freeBadge) freeBadge.textContent = '🌍 Modo offline';
+      return;
+    }
+    if (gameWsConnected) {
       toast('⚠️ Conexão perdida. Reconectando...');
     }
+    const delay = Math.min(3000 * _wsRetries, 10000);
     setTimeout(() => {
       const stillActive = gameWsMode === 'free'
         ? window._threeReady && !coopState.active
         : coopState.active;
       if (stillActive) wsConnect(gameWsMode);
-    }, 3000);
+    }, delay);
   };
 
   gameWs.onerror = () => clearInterval(gameWs?._ping);
@@ -4292,13 +4311,19 @@ goToMenu = function() {
 };
 
 // Resize
-window.addEventListener('resize', () => {
+function resizeRenderer() {
   if (!renderer) return;
-  camera.aspect = innerWidth / innerHeight;
+  const c = document.getElementById('canvas');
+  const w = c.offsetWidth || window.innerWidth;
+  const h = c.offsetHeight || window.innerHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  if (gunCamera) { gunCamera.aspect = innerWidth / innerHeight; gunCamera.updateProjectionMatrix(); }
-  renderer.setSize(innerWidth, innerHeight);
-});
+  if (gunCamera) { gunCamera.aspect = w / h; gunCamera.updateProjectionMatrix(); }
+}
+window.addEventListener('resize', resizeRenderer);
+// Also fire after fonts/layout settle on mobile
+document.addEventListener('DOMContentLoaded', () => setTimeout(resizeRenderer, 200));
 
 // ════════════════════════════════════════════════════════════════════════════
 // TEAM DEATHMATCH — LOBBY (Fase 1)
