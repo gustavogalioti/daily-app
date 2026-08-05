@@ -633,7 +633,8 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/><circle cx="12" cy="8" r="1.5" fill="currentColor"/></svg>
         <span>Poke</span>
       </button>
-      <button class="nav-btn" data-tab="achievements" onclick="switchTab('achievements',this)">
+      <!-- Conquistas oculto — ativar via ADM -->
+      <button class="nav-btn" data-tab="achievements" onclick="switchTab('achievements',this)" id="nav-btn-achievements" style="display:none;">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
         <span>Conquistas</span>
       </button>
@@ -692,11 +693,12 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
       <!-- Alternância Global / Ágora / Daily! / Daily? -->
       <div style="display:flex;background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:14px;gap:3px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
-        <button id="btn-mundo-global" style="flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:var(--accent);color:#fff;transition:all .18s;white-space:nowrap;" onclick="setMundoMode('global')">🌍 Global</button>
-        <button id="btn-mundo-agora" style="flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;white-space:nowrap;" onclick="setMundoMode('agora')">💬 Ágora</button>
-        <button id="btn-mundo-regional" style="flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;white-space:nowrap;" onclick="setMundoMode('regional')">📍 Regional</button>
-        <button id="btn-mundo-mandou" style="flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;white-space:nowrap;" onclick="setMundoMode('mandou')">⚡ Daily!</button>
+        <button id="btn-mundo-mandou" style="flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:var(--accent);color:#fff;transition:all .18s;white-space:nowrap;" onclick="setMundoMode('mandou')">⚡ Daily!</button>
         <button id="btn-mundo-pergunta" style="flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;white-space:nowrap;" onclick="setMundoMode('pergunta')">❓ Daily?</button>
+        <button id="btn-mundo-regional" style="flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;white-space:nowrap;" onclick="setMundoMode('regional')">📍 Regional</button>
+        <!-- Ocultos — ativar via ADM -->
+        <button id="btn-mundo-global" style="display:none;" onclick="setMundoMode('global')">🌍 Global</button>
+        <button id="btn-mundo-agora" style="display:none;" onclick="setMundoMode('agora')">💬 Ágora</button>
       </div>
 
       <!-- Filtros Global -->
@@ -817,6 +819,35 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
       <!-- ── DAILY MANDOU inline ── -->
       <div id="mundo-mandou-panel" style="display:none;">
+        <!-- Banner explicativo -->
+        <div style="background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);border-radius:16px;padding:20px;margin-bottom:14px;color:#fff;position:relative;overflow:hidden;">
+          <div style="position:absolute;right:-10px;top:-10px;font-size:80px;opacity:.08;">⚡</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="font-size:28px;">⚡</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:18px;">Daily Mandou!</div>
+          </div>
+          <p style="font-size:13px;color:rgba(255,255,255,.8);line-height:1.6;margin:0 0 12px;">
+            Quando o <strong style="color:#f97316;">Pedro Daily</strong> mandar a notificação, é hora de agir! 📱<br>
+            Você tem <strong style="color:#fbbf24;">1 minuto</strong> para postar uma foto do que está fazendo naquele exato momento.<br>
+            Cada foto postada vale <strong style="color:#34d399;">1 ponto</strong> no ranking do Daily Mandou. 🏆
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div style="background:rgba(249,115,22,.2);border:1px solid rgba(249,115,22,.4);border-radius:20px;padding:4px 12px;font-size:11px;color:#fb923c;">⏱️ 1 minuto para postar</div>
+            <div style="background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:20px;padding:4px 12px;font-size:11px;color:#34d399;">🏅 +1 ponto por foto</div>
+            <div style="background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:20px;padding:4px 12px;font-size:11px;color:#fbbf24;">🔔 Ative as notificações</div>
+          </div>
+        </div>
+        <!-- Ranking rápido -->
+        <div style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;">🏆 Ranking Daily Mandou</div>
+            <button onclick="openMandouRanking()" class="btn btn-ghost btn-sm" style="font-size:11px;">Ver completo →</button>
+          </div>
+          <div id="mandou-ranking-preview" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="page-loader"><div class="loader"></div></div>
+          </div>
+        </div>
+        <!-- Fotos -->
         <div id="mundo-mandou-content"><div class="page-loader"><div class="loader"></div></div></div>
       </div>
 
@@ -2222,6 +2253,27 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
     <div id="tab-admin" class="tab-content">
       <div class="page-header"><div class="page-header-left"><span class="page-icon">🛡️</span><div class="section-title">Painel ADM</div></div></div>
       <div class="admin-stats" id="admin-stats"><div class="page-loader"><div class="loader"></div></div></div>
+
+      <!-- Controles de visibilidade -->
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;margin-bottom:12px;">👁️ Visibilidade de Abas</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:10px;">
+            <span style="font-size:13px;">🌍 Global + 💬 Ágora</span>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="adm-toggle-global" onchange="admToggleGlobal(this.checked)" style="width:18px;height:18px;accent-color:var(--accent);">
+              <span style="font-size:12px;color:var(--muted);" id="adm-global-status">Oculto</span>
+            </label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:10px;">
+            <span style="font-size:13px;">🏆 Conquistas</span>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="adm-toggle-achievements" onchange="admToggleAchievements(this.checked)" style="width:18px;height:18px;accent-color:var(--accent);">
+              <span style="font-size:12px;color:var(--muted);" id="adm-ach-status">Oculto</span>
+            </label>
+          </div>
+        </div>
+      </div>
 
       <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="sendNotification()" id="btn-notify">📷 Disparar Daily Mandou</button>
@@ -4407,10 +4459,12 @@ async function loadProfile(){
                 <span style="font-size:11px;color:var(--muted);">⚡ Daily</span>
                 <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.daily_mandou||0}</span>
               </div>
+              <!-- Pontos ocultos — ativar via ADM
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:11px;color:var(--gold);">Pontos</span>
                 <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--gold);">${user.points||0}</span>
               </div>
+              -->
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:11px;color:var(--muted);">Dias</span>
                 <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.active_days||0}</span>
@@ -7658,7 +7712,7 @@ async function sendTestimonialToUser(targetUserId) {
 // ═══════════════════════════════════
 // MUNDO (Global + Ágora)
 // ═══════════════════════════════════
-let mundoMode = 'global';
+let mundoMode = 'mandou';
 let mundoAgoraFilter = 'todos';
 
 function loadMundo() {
@@ -7720,7 +7774,7 @@ function setMundoMode(mode) {
   // Carregar conteúdo
   if      (mode==='global')   loadGlobal();
   else if (mode==='regional') loadRegionalFeed();
-  else if (mode==='mandou')   loadDailyMandouInline();
+  else if (mode==='mandou')   { loadDailyMandouInline(); loadMandouRankingPreview?.(); }
   else if (mode==='pergunta') loadDailyPerguntaInline();
   else                        loadAgoraFeed();
 }
@@ -14718,6 +14772,119 @@ document.addEventListener('keyup',e=>{
   };
 
 })();
+</script>
+<!-- ═══ MODAL RANKING DAILY MANDOU ═══ -->
+<div id="modal-mandou-ranking" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-mandou-ranking')">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">🏆 Ranking Daily Mandou</div>
+      <button class="modal-close" onclick="closeModal('modal-mandou-ranking')">×</button>
+    </div>
+    <div id="mandou-ranking-body" style="padding:16px;">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ ADM: toggles de visibilidade ═══
+function admToggleGlobal(on) {
+  const btnG = document.getElementById('btn-mundo-global');
+  const btnA = document.getElementById('btn-mundo-agora');
+  const style = 'flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;white-space:nowrap;';
+  if (btnG) btnG.style.cssText = on ? style : 'display:none;';
+  if (btnA) btnA.style.cssText = on ? style : 'display:none;';
+  document.getElementById('adm-global-status').textContent = on ? 'Visível' : 'Oculto';
+  localStorage.setItem('daily_show_global', on ? '1' : '0');
+}
+
+function admToggleAchievements(on) {
+  const btn = document.getElementById('nav-btn-achievements');
+  if (btn) btn.style.display = on ? '' : 'none';
+  document.getElementById('adm-ach-status').textContent = on ? 'Visível' : 'Oculto';
+  localStorage.setItem('daily_show_achievements', on ? '1' : '0');
+}
+
+// Restaurar preferências salvas
+(function restoreAdmToggles() {
+  if (localStorage.getItem('daily_show_global') === '1') {
+    setTimeout(() => {
+      const el = document.getElementById('adm-toggle-global');
+      if (el) { el.checked = true; admToggleGlobal(true); }
+    }, 500);
+  }
+  if (localStorage.getItem('daily_show_achievements') === '1') {
+    setTimeout(() => {
+      const el = document.getElementById('adm-toggle-achievements');
+      if (el) { el.checked = true; admToggleAchievements(true); }
+    }, 500);
+  }
+})();
+
+// ═══ RANKING DAILY MANDOU ═══
+async function openMandouRanking() {
+  openModal('modal-mandou-ranking');
+  const body = document.getElementById('mandou-ranking-body');
+  body.innerHTML = '<div class="page-loader"><div class="loader"></div></div>';
+  try {
+    const { ranking } = await api('/api/mandou-ranking');
+    if (!ranking.length) {
+      body.innerHTML = '<p class="text-muted" style="text-align:center;padding:24px;">Nenhum post ainda. Aguarde o Pedro disparar! ⚡</p>';
+      return;
+    }
+    const medals = ['🥇','🥈','🥉'];
+    body.innerHTML = `
+      <!-- Pódio top 3 -->
+      <div style="display:flex;justify-content:center;align-items:flex-end;gap:12px;margin-bottom:20px;padding:16px 0;">
+        ${ranking.slice(0,3).map((u,i) => {
+          const order = i===0?1:(i===1?0:2); // centro=1º, esquerda=2º, direita=3º
+          const heights = ['100px','80px','65px'];
+          const actualI = order;
+          const u2 = ranking[order] || u;
+          return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;order:${order};">
+            <div style="font-size:20px;">${medals[order]||''}</div>
+            <img src="${u2.avatar_url||avatarUrl(u2.name)}" style="width:${order===0?56:44}px;height:${order===0?56:44}px;border-radius:50%;object-fit:cover;border:3px solid ${order===0?'#ffd700':order===1?'#c0c0c0':'#cd7f32'};">
+            <div style="font-size:11px;font-weight:700;color:var(--text1);text-align:center;">${u2.name.split(' ')[0]}</div>
+            <div style="background:${order===0?'#ffd700':order===1?'#c0c0c0':'#cd7f32'};color:#fff;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:800;">${u2.mandou_count} ⚡</div>
+            <div style="height:${heights[order]};width:60px;background:${order===0?'rgba(255,215,0,.15)':order===1?'rgba(192,192,192,.15)':'rgba(205,127,50,.15)'};border-radius:8px 8px 0 0;border-top:3px solid ${order===0?'#ffd700':order===1?'#c0c0c0':'#cd7f32'};"></div>
+          </div>`;
+        }).join('')}
+      </div>
+      <!-- Lista completa -->
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${ranking.map((u,i) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:${i===0?'rgba(255,215,0,.08)':i===1?'rgba(192,192,192,.08)':i===2?'rgba(205,127,50,.08)':'var(--surface2)'};border-radius:10px;border:1px solid ${u.id===currentUser?.id?'var(--accent)':'transparent'};">
+            <div style="font-size:16px;min-width:24px;text-align:center;">${medals[i]||`<span style="font-size:12px;color:var(--muted);font-weight:700;">${i+1}</span>`}</div>
+            <img src="${u.avatar_url||avatarUrl(u.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="openUserProfile('${u.username}')">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:700;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.name}</div>
+              <div style="font-size:11px;color:var(--muted);">@${u.username}</div>
+            </div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--accent);">${u.mandou_count} <span style="font-size:11px;">⚡</span></div>
+          </div>`).join('')}
+      </div>`;
+  } catch(e) { body.innerHTML = `<p class="text-muted" style="text-align:center;">${e.message}</p>`; }
+}
+
+async function loadMandouRankingPreview() {
+  const el = document.getElementById('mandou-ranking-preview');
+  if (!el) return;
+  try {
+    const { ranking } = await api('/api/mandou-ranking?limit=5');
+    if (!ranking.length) {
+      el.innerHTML = '<p class="text-muted" style="text-align:center;font-size:12px;padding:10px;">Seja o primeiro! ⚡</p>';
+      return;
+    }
+    const medals = ['🥇','🥈','🥉'];
+    el.innerHTML = ranking.slice(0,5).map((u,i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;${i<ranking.slice(0,5).length-1?'border-bottom:1px solid var(--border)':''}">
+        <div style="font-size:14px;min-width:20px;text-align:center;">${medals[i]||`<span style="font-size:11px;color:var(--muted);font-weight:700;">${i+1}</span>`}</div>
+        <img src="${u.avatar_url||avatarUrl(u.name)}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+        <div style="flex:1;font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.name}</div>
+        <div style="font-weight:800;font-size:13px;color:var(--accent);">${u.mandou_count}⚡</div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = '<p class="text-muted" style="font-size:12px;text-align:center;">Erro ao carregar</p>'; }
+}
 </script>
 </body>
 </html>
