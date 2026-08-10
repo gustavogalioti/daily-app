@@ -6019,6 +6019,32 @@ function isTileActive(col, row, z) {
   return lv.activeTiles[key] !== false;  // undefined = active, false = blocked
 }
 
+// True when a furniture item sits on the back-most walkable tile of the room
+// (i.e. flush against a wall — the tile "behind" it, toward the back corner,
+// is not walkable). The character can never physically stand behind
+// wall-flush furniture, so it should always draw in front of it.
+function isBackWallItem(it, z) {
+  if(!it) return false;
+  return !isTileActive(it.col-1, it.row, z) || !isTileActive(it.col, it.row-1, z);
+}
+
+// How many extra tiles of "reach" a furniture item's sprite has beyond its own
+// tile, based on its calibrated on-screen height vs. the tile height. A sprite
+// roughly the height of 1 tile doesn't need this (normal depth sort is enough);
+// a tall sprite (fridge, jukebox, wardrobe...) visually extends up over tiles
+// closer to the camera, so it should keep occluding the character for a tile
+// or two past its own anchor point.
+function tallExtraTiles(it, z) {
+  var img = furnitureImgs[it.id]; if(!img) return 0;
+  var cat = FURN_CATALOG.find(function(c){ return c.id===it.id; }); if(!cat) return 0;
+  var lv = getLevel(z); if(!lv) return 0;
+  var sc = (lv.tileW*(it.cols||1)/img.width)*1.8*cat.scale;
+  var dh = img.height*sc;
+  var ratio = dh/lv.tileH;
+  if(ratio < 2) return 0;
+  return Math.floor(ratio) - 1;
+}
+
 // Toggle a tile active/inactive
 function toggleTile(col, row, z) {
   var lv = getLevel(z);
@@ -6426,6 +6452,31 @@ function render() {
     var pokeOnThisLevel = !state.editMode && poke.level===z;
     if(pokeOnThisLevel) drawList.push({kind:'poke', it:{col:poke.col,row:poke.row,depthBias:0}});
     var sorted = drawList.sort(function(a,b){
+        // Character vs. furniture gets special treatment: a flat 2D grid comparison
+        // alone can't capture "flush against the wall" or "tall sprite reaching
+        // toward the camera", so those are resolved explicitly before falling back
+        // to normal depth math.
+        if((a.kind==='poke') !== (b.kind==='poke')) {
+          var pokeIsA = a.kind==='poke';
+          var pokeEntry = pokeIsA ? a : b;
+          var furnEntry = pokeIsA ? b : a;
+          var furnDepth = furnEntry.it.col+furnEntry.it.row;
+          var pokeDepth = pokeEntry.it.col+pokeEntry.it.row;
+
+          // Rule 1: furniture flush against the back wall always stays behind the character
+          if(isBackWallItem(furnEntry.it, z)) return pokeIsA ? 1 : -1;
+
+          // Rule 2: tall furniture keeps occluding the character for a tile or two
+          // in front of its own anchor tile, matching how far its sprite actually reaches
+          var extra = tallExtraTiles(furnEntry.it, z);
+          if(extra>0 && (furnDepth+extra)>=pokeDepth) return pokeIsA ? -1 : 1;
+
+          // Rule 3 (default/small objects): normal front/behind by grid depth.
+          // Using each entry's own col+row directly (rather than furnDepth/pokeDepth,
+          // which are only meaningful in furniture/poke terms, not in a/b terms)
+          // keeps the comparator's sign correct no matter which side is "a".
+          return (a.it.col+a.it.row) - (b.it.col+b.it.row);
+        }
         var da=(a.it.col+a.it.row), db=(b.it.col+b.it.row);
         if(da!==db) return da-db;
         // Manual override: per-instance depth nudge set via "trazer p/ frente / enviar p/ trás"
@@ -6436,10 +6487,6 @@ function render() {
         var aTable=!!TABLE_LIKE_CATS[a.it.category], bTable=!!TABLE_LIKE_CATS[b.it.category];
         if(aChair && bTable) return -1;
         if(bChair && aTable) return 1;
-        // The poke defaults to drawing after furniture it ties with (a person standing
-        // in front of/on the same tile-depth as an object reads as being in front of it).
-        if(a.kind==='poke' && b.kind==='furn') return 1;
-        if(b.kind==='poke' && a.kind==='furn') return -1;
         return 0;
       });
     sorted.forEach(function(e){
