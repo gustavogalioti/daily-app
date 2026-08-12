@@ -229,14 +229,13 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
       const turno = getTurnoAtivo();
       if (!turno) return;
       const lockKey = `turno:${getBrazilDateStr()}:${turno.id}`;
-      if (!(await claimSchedulerSlot(db, lockKey))) return; // já enviado neste turno hoje
+      if (!(await claimSchedulerSlot(db, lockKey))) return;
       const { v4: uuidv4 } = require('uuid');
       const notifId = uuidv4();
-      const msg = `${turno.emoji} ${turno.nome} começou! ${turno.descricao}. Pedro está te esperando no Global 🐱`;
       await sendPushToAll(db, notifId, {
         title: `${turno.emoji} ${turno.nome}`,
-        body: `${turno.descricao}. Poste uma foto e entre para a turma!`,
-        url: SITE_URL + '/?tab=global',
+        body: `${turno.descricao}. Poste uma foto no Daily Mandou! ⚡`,
+        url: SITE_URL + '/?tab=daily-mandou',
         tag: 'turno-pedro',
       });
       console.log(`📬 Turno do Pedro enviado: ${turno.nome}`);
