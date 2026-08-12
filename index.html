@@ -4754,49 +4754,13 @@ async function loadFeedTab(tab) {
       tab === 'amigos' ? loadTurnoAtivo() : Promise.resolve(null)
     ]);
 
-    // Card do Pedro no topo do feed de amigos quando há turno ativo
-    let pedroFeedCard = '';
-    if (tab === 'amigos' && turnoData?.turno) {
-      const t = turnoData.turno;
-      const HASHTAGS = {
-        madrugadores:'#trend5AM', manha:'#trendManha',
-        almoco:'#trendAlmoco', tarde:'#trendTarde', corujas:'#trendCorujas'
-      };
-      const ht = HASHTAGS[t.id] || '#trendDaily';
-      const msgHtml = turnoData.card.mensagem.replace(/\\n/g,'<br>').replace(/@([a-z0-9_]+)/gi,'<strong style="color:var(--accent);">@$1</strong>');
-      const jaParticipou = t.ja_participou;
-      pedroFeedCard = `<div style="background:linear-gradient(135deg,#fff7ed,#fff);border:2px solid var(--accent);border-radius:16px;padding:16px;margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px;">
-          <div style="position:relative;">
-            <img src="https://raw.githubusercontent.com/gustavogalioti/daily-app/main/pedro.jpg"
-                 style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2.5px solid var(--accent);">
-            <span style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;background:#22c55e;border-radius:50%;border:2px solid #fff;"></span>
-          </div>
-          <div>
-            <div style="font-weight:800;font-size:13px;color:var(--accent);">Pedro Daily 🐱</div>
-            <div style="font-size:11px;color:var(--muted);">agora · ${t.emoji} ${t.nome}</div>
-          </div>
-        </div>
-        <p style="font-size:13px;line-height:1.6;color:var(--text1);margin-bottom:10px;">${msgHtml}</p>
-        ${t.participantes_hoje > 0 ? `<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">🟢 <strong>${t.participantes_hoje}</strong> ${t.participantes_hoje===1?'pessoa participou':'pessoas participaram'} · tag: <strong style="color:var(--accent);">${ht}</strong></div>` : ''}
-        ${!jaParticipou ? `<p style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:6px;">
-          ⚡ Sua foto vai para o <strong>Daily Mandou</strong> — e vale pontos no ranking!
-        </p>` : ''}
-        <button onclick="onPedroTurnoClick(event,${jaParticipou},true)"
-          style="width:100%;padding:9px;border-radius:10px;border:none;font-weight:700;font-size:13px;cursor:pointer;
-          ${jaParticipou ? 'background:#f0fdf4;color:#16a34a;border:2px solid #86efac;' : 'background:var(--accent);color:#fff;'}">
-          ${jaParticipou ? '✅ Você já participou!' : '📸 Participar Agora — vale pontos! ⚡'}
-        </button>
-      </div>`;
-    }
-
     if (!posts || !posts.length) {
-      c.innerHTML = pedroFeedCard + `<div class="card" style="padding:24px;text-align:center;">
+      c.innerHTML = `<div class="card" style="padding:24px;text-align:center;">
         <p class="text-muted">${tab === 'meus' ? 'Você ainda não publicou nada no feed. Escreva algo para seus amigos! ✍️' : 'Nenhum post dos seus amigos ainda. Quando eles publicarem, aparecerá aqui! 👥'}</p>
       </div>`;
       return;
     }
-    c.innerHTML = pedroFeedCard + posts.map(p => renderFeedPost(p)).join('');
+    c.innerHTML = posts.map(p => renderFeedPost(p)).join('');
   } catch(e) {
     c.innerHTML = '<p class="text-muted">Erro ao carregar feed.</p>';
   }
