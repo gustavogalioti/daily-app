@@ -234,7 +234,7 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
       const notifId = uuidv4();
       await sendPushToAll(db, notifId, {
         title: `${turno.emoji} ${turno.nome}`,
-        body: `${turno.descricao}. Poste uma foto no Daily Mandou! ⚡`,
+        body: turno.descricao,
         url: SITE_URL + '/?tab=daily-mandou',
         tag: 'turno-pedro',
       });
