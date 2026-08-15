@@ -242,8 +242,9 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
     } catch(e) { console.error('turno push error:', e.message); }
   }
 
-  setInterval(checkTurnoPush, 5 * 60 * 1000);
-  checkTurnoPush();
+  // ── Scheduler: Turnos do Pedro — DESATIVADO por enquanto ─────────────────
+  // (sem aba de posts no Global para direcionar o usuário)
+  // checkTurnoPush();
 
   // ── Scheduler: NEWS automático ────────────────────────────────────────────
   let newsScheduler;
