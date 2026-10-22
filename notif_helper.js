@@ -28,6 +28,7 @@ async function createNotification(db, { userId, fromUserId, type, title, body, d
         post_comment: '💬',
         community_invite: '🏘️',
         event_invite: '📅',
+        daily_received: '📸',
       };
       const icon = iconMap[type] || '🔔';
       await push(db, userId, {

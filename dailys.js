@@ -226,7 +226,7 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
         for (const uid of recipients) {
           await createNotification(db, {
             userId: uid, fromUserId: req.user.id, type: 'daily_received',
-            title: `${sender?.name || 'Alguém'} mandou um Daily 📸`,
+            title: `${sender?.name || 'Alguém'} mandou um Daily`,
             body: `Toque para ver — você terá ${duration}s e ele some.`,
             data: { daily_id: id, push_url: (process.env.SITE_URL || '') + '/?tab=dailys' },
           }).catch(e => console.error('[dailys] notif:', e.message));
