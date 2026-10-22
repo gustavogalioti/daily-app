@@ -11,6 +11,7 @@ function getPush() {
 
 async function createNotification(db, { userId, fromUserId, type, title, body, data }) {
   if (!userId || userId === fromUserId) return;
+  if (!require('./pocket').allowsNotif(type)) return; // função oculta: notificação congelada
   const id = uuidv4();
   await db.prepare(
     'INSERT INTO user_notifications (id,user_id,from_user_id,type,title,body,data,read) VALUES ($1,$2,$3,$4,$5,$6,$7,0)'

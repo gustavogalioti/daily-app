@@ -83,6 +83,7 @@ async function userWants(db, userId, prefKey) {
 // ─── SALVAR NOTIFICAÇÃO NO SINO E ENVIAR PUSH ────────────────────────────────
 async function notify(db, { userId, fromUserId, type, title, body, url, tag, prefKey, spamWindowMs, data }) {
   if (!userId || userId === fromUserId) return;
+  if (!require('./pocket').allowsNotif(type)) return; // função oculta: notificação congelada
 
   // Verificar preferência
   if (prefKey && !(await userWants(db, userId, prefKey))) return;

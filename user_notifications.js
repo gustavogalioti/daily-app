@@ -4,6 +4,9 @@ const { getDB } = require('./database');
 const { authMiddleware } = require('./authmiddleware');
 
 const { createNotification } = require('./notif_helper');
+const { POCKET_MODE, POCKET_NOTIF_TYPES } = require('./pocket');
+// no modo pocket só listamos os tipos liberados (as demais ficam congeladas)
+const TYPE_FILTER = POCKET_MODE ? 'AND n.type = ANY($2::text[])' : '';
 
 const router = express.Router();
 
@@ -15,9 +18,9 @@ router.get('/', authMiddleware, async (req, res) => {
       SELECT n.*, u.name as from_name, u.username as from_username, u.avatar_url as from_avatar
       FROM user_notifications n
       LEFT JOIN users u ON u.id = n.from_user_id
-      WHERE n.user_id = $1
+      WHERE n.user_id = $1 ${TYPE_FILTER}
       ORDER BY n.created_at DESC LIMIT 50
-    `).all(req.user.id);
+    `).all(...(POCKET_MODE ? [req.user.id, POCKET_NOTIF_TYPES] : [req.user.id]));
     const unread = notifs.filter(n => !n.read || n.read === 0 || n.read === '0').length;
     // Garantir que data é sempre objeto
     const safe = notifs.map(n => ({
@@ -48,7 +51,9 @@ router.put('/mark-seen', authMiddleware, async (req, res) => {
     await db.prepare(
       `UPDATE user_notifications SET read=1 WHERE user_id=$1 AND read=0 AND type NOT IN ('friend_request','community_invite','agenda_invite','event_invite')`
     ).run(req.user.id);
-    const remaining = await db.prepare('SELECT COUNT(*) as c FROM user_notifications WHERE user_id=$1 AND read=0').get(req.user.id);
+    const remaining = POCKET_MODE
+      ? await db.prepare('SELECT COUNT(*) as c FROM user_notifications n WHERE n.user_id=$1 AND n.read=0 AND n.type = ANY($2::text[])').get(req.user.id, POCKET_NOTIF_TYPES)
+      : await db.prepare('SELECT COUNT(*) as c FROM user_notifications WHERE user_id=$1 AND read=0').get(req.user.id);
     res.json({ ok: true, unread: parseInt(remaining?.c || 0) });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });

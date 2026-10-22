@@ -783,7 +783,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       <div class="dl-hero">
         <div>
           <div class="dl-hero-title">Mande um Daily</div>
-          <div class="dl-hero-sub">Uma foto, uma frase. Seus amigos têm 20 segundos para ver — depois ela some.</div>
+          <div class="dl-hero-sub">Uma foto, uma frase. Você escolhe de 1 a 20 segundos — depois ela some.</div>
         </div>
         <button class="dl-hero-btn" onclick="dlOpenComposer()">📸 Mandar um Daily</button>
       </div>
@@ -17066,6 +17066,10 @@ function openDailyTrunfo() {
   <div id="dl-step-edit" class="dl-step">
     <div class="dl-canvas-wrap"><canvas id="dl-canvas"></canvas></div>
     <div class="dl-tools">
+      <div class="dl-tools-row" style="gap:12px;">
+        <span style="font-weight:800;font-size:13px;white-space:nowrap;">⏱ Fica <span id="dl-dur-label">10s</span></span>
+        <input type="range" id="dl-dur" min="1" max="20" step="1" value="10" style="flex:1;accent-color:var(--accent);" oninput="dlSetDur(this.value)">
+      </div>
       <div class="dl-tools-row">
         <input type="text" id="dl-text-input" placeholder="Escreva na foto… (arraste o texto para mover)" maxlength="120" oninput="dlTextChanged()">
       </div>
@@ -17104,11 +17108,12 @@ function openDailyTrunfo() {
   <div class="dl-v-bar"><div id="dl-v-progress"></div></div>
   <div class="dl-v-top">
     <img id="dl-v-av" src="" alt="">
-    <div><div id="dl-v-name" style="font-weight:800;font-size:15px;"></div><div id="dl-v-sub" style="font-size:12px;color:#bbb;">Some quando o tempo acabar</div></div>
+    <div><div id="dl-v-name" style="font-weight:800;font-size:15px;"></div><div id="dl-v-sub" style="font-size:12px;color:#bbb;">Some quando o tempo acabar · não saia da tela</div></div>
     <div id="dl-v-count">20</div>
     <button class="dl-x" onclick="dlEndView()">✕</button>
   </div>
   <img id="dl-v-img" src="" alt="" draggable="false">
+  <div id="dl-wm" style="position:absolute;inset:0;pointer-events:none;z-index:5;"></div>
   <div class="dl-v-load" id="dl-v-load">Abrindo…</div>
 </div>
 
@@ -17200,7 +17205,7 @@ const DL = {
   panel:'inbox', inbox:[], friends:null, stats:null,
   stream:null, facing:'environment', img:null,
   text:'', tx:.5, ty:.78, color:'#ffffff', size:.065, bg:true, drag:false,
-  sel:new Set(), viewing:null, pollTimer:null, rankPeriod:'week', rankScope:'all',
+  dur:10, sel:new Set(), viewing:null, pollTimer:null, rankPeriod:'week', rankScope:'all',
 };
 const DL_GOALS_SENT = [[1,'🌱','Primeiro Daily'],[10,'📸','10 Dailys'],[50,'🔥','50 Dailys'],[100,'💯','100 Dailys'],[500,'👑','500 Dailys']];
 const DL_GOALS_SECS = [[30,'👀','30s vistos'],[300,'⏱️','5 min de fama'],[1000,'🌟','1.000 segundos'],[5000,'🚀','5.000 segundos'],[20000,'🏆','Lenda do Daily']];
@@ -17342,7 +17347,7 @@ function dlSetStep(s){
   dlEl('dl-step-title').textContent = DL_TITLES[s];
 }
 async function dlOpenComposer(){
-  DL.img = null; DL.text = ''; DL.tx = .5; DL.ty = .78; DL.sel = new Set(); DL.friends = null;
+  DL.img = null; dlEl('dl-dur').value = DL.dur; dlSetDur(DL.dur); DL.text = ''; DL.tx = .5; DL.ty = .78; DL.sel = new Set(); DL.friends = null;
   dlEl('dl-text-input').value = '';
   dlEl('dl-composer').classList.add('open');
   dlSetStep('cam');
@@ -17440,6 +17445,7 @@ function dlSetColor(el){
   document.querySelectorAll('.dl-chip').forEach(c => c.classList.toggle('on', c === el));
   DL.color = el.dataset.c; dlRender();
 }
+function dlSetDur(v){ DL.dur = Math.min(20, Math.max(1, parseInt(v, 10) || 10)); dlEl('dl-dur-label').textContent = DL.dur + 's'; }
 function dlSize(d){ DL.size = Math.min(.12, Math.max(.035, DL.size + d * .01)); dlRender(); }
 function dlToggleBg(){ DL.bg = !DL.bg; dlEl('dl-bg-btn').classList.toggle('on', DL.bg); dlRender(); }
 (function(){
@@ -17509,8 +17515,9 @@ async function dlSend(){
     const fd = new FormData();
     fd.append('photo', blob, 'daily.jpg');
     fd.append('recipients', JSON.stringify([...DL.sel]));
+    fd.append('duration', DL.dur);
     await apiForm('/api/dailys', fd);
-    toast(`Daily enviado para ${n} ${n === 1 ? 'amigo' : 'amigos'}! 🚀`, 'success');
+    toast(`Daily enviado para ${n} ${n === 1 ? 'amigo' : 'amigos'} (${DL.dur}s)! 🚀`, 'success');
     dlCloseComposer();
     dlLoadStats();
     dlShowPanel('sent');
@@ -17533,6 +17540,7 @@ async function dlView(id){
   const v = DL.viewing = { id, dur: info.duration_sec || 20, start: 0, timer: null, ended: false };
   dlEl('dl-v-av').src = dlAv(info.sender || {}); dlEl('dl-v-name').textContent = (info.sender && info.sender.name) || '';
   dlEl('dl-v-count').textContent = v.dur;
+  dlWatermark();
   img.onload = () => {
     if (DL.viewing !== v) return;
     load.style.display = 'none';
@@ -17566,6 +17574,20 @@ function dlEndView(zero){
   if (secs) toast('Visto por ' + secs + 's — o Daily sumiu 👋');
   setTimeout(dlLoadInbox, 700);
 }
+// ── dissuasão de print (a web não consegue BLOQUEAR print; isto dificulta e identifica) ──
+function dlWatermark(){
+  const t = '@' + ((currentUser && currentUser.username) || 'daily');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="150"><text x="20" y="90" transform="rotate(-28 110 75)" fill="white" fill-opacity="0.22" font-family="Arial" font-weight="700" font-size="20">${t}</text></svg>`;
+  dlEl('dl-wm').style.backgroundImage = 'url("data:image/svg+xml;utf8,' + encodeURIComponent(svg) + '")';
+}
+function dlShieldEnd(){ if (DL.viewing) { try { navigator.clipboard && navigator.clipboard.writeText(' '); } catch(_) {} dlEndView(); } }
+window.addEventListener('blur', () => { if (DL.viewing) dlEndView(); });
+document.addEventListener('keydown', e => {
+  if (!DL.viewing) return;
+  const k = (e.key || '').toLowerCase();
+  if (k === 'printscreen' || ((e.metaKey || e.ctrlKey) && e.shiftKey && ['3','4','5','s'].includes(k)) || (e.metaKey && k === 'p')) { e.preventDefault(); dlShieldEnd(); }
+});
+document.addEventListener('keyup', e => { if (DL.viewing && (e.key || '').toLowerCase() === 'printscreen') dlShieldEnd(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && DL.viewing) dlEndView(); });
 window.addEventListener('pagehide', () => { if (DL.viewing) dlEndView(); });
 dlEl('dl-viewer').addEventListener('contextmenu', e => e.preventDefault());

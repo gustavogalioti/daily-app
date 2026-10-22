@@ -19,7 +19,8 @@ const { USE_CLOUDINARY } = require('./cloudinary');
 const cloudinary = USE_CLOUDINARY ? require('cloudinary').v2 : null;
 const router = express.Router();
 
-const DAILY_DURATION_SEC = 20;       // tempo que o amigo tem para ver
+const DAILY_DURATION_SEC = 20;       // padrão e máximo (quem envia escolhe de 1 a 20)
+const MIN_DURATION_SEC   = 1;
 const PENDING_TTL_HOURS  = 24;       // Daily não aberto expira depois disso
 const MAX_RECIPIENTS     = 100;
 const MAX_PER_HOUR       = 40;       // anti-spam por remetente
@@ -200,10 +201,14 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
     ).get(req.user.id);
     if (parseInt(recent?.c || 0) >= MAX_PER_HOUR) return res.status(429).json({ error: 'Muitos Dailys em pouco tempo. Respire e tente daqui a pouco.' });
 
+    let duration = parseInt(req.body.duration, 10);
+    if (!Number.isFinite(duration)) duration = DAILY_DURATION_SEC;
+    duration = Math.min(DAILY_DURATION_SEC, Math.max(MIN_DURATION_SEC, duration));
+
     const img = await storeImage(req.file.buffer);
     const id = uuidv4();
     await db.prepare('INSERT INTO dailys (id, sender_id, image_url, image_ref, duration_sec) VALUES ($1,$2,$3,$4,$5)')
-      .run(id, req.user.id, img.url, img.ref, DAILY_DURATION_SEC);
+      .run(id, req.user.id, img.url, img.ref, duration);
     for (const uid of recipients) {
       await db.prepare('INSERT INTO daily_recipients (daily_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING').run(id, uid);
     }
@@ -212,7 +217,7 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
       ON CONFLICT (user_id) DO UPDATE SET dailys_sent = daily_stats.dailys_sent + 1, updated_at = NOW()
     `).run(req.user.id);
 
-    res.json({ ok: true, id, recipients: recipients.length });
+    res.json({ ok: true, id, recipients: recipients.length, duration });
 
     // Notificações (não bloqueiam a resposta)
     (async () => {
@@ -222,7 +227,7 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
           await createNotification(db, {
             userId: uid, fromUserId: req.user.id, type: 'daily_received',
             title: `${sender?.name || 'Alguém'} mandou um Daily 📸`,
-            body: `Toque para ver — você terá ${DAILY_DURATION_SEC}s e ele some.`,
+            body: `Toque para ver — você terá ${duration}s e ele some.`,
             data: { daily_id: id, push_url: (process.env.SITE_URL || '') + '/?tab=dailys' },
           }).catch(e => console.error('[dailys] notif:', e.message));
         }
