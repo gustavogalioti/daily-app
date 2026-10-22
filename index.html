@@ -2248,7 +2248,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
           <button id="feed-tab-amigos" class="btn btn-primary btn-sm" onclick="switchFeedTab('amigos')" style="flex:1;font-size:12px;">👥 Feed</button>
           <button id="feed-tab-meus" class="btn btn-ghost btn-sm" onclick="switchFeedTab('meus')" style="flex:1;font-size:12px;">📝 Meus Posts</button>
         </div>
-        <!-- Box de publicação (só aparece em Meus Posts) -->
+        <!-- Box de publicação (aparece em Feed e em Meus Posts) -->
         <div id="feed-compose" style="background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:14px;margin-bottom:14px;">
           <textarea id="feed-text-input" placeholder="Publique apenas para seus amigos..." style="width:100%;border:none;outline:none;resize:none;font-size:13px;color:var(--text);background:transparent;min-height:70px;font-family:inherit;"></textarea>
           <div style="display:flex;justify-content:flex-end;margin-top:8px;">
@@ -4878,7 +4878,7 @@ function switchFeedTab(tab) {
   } else {
     btnMeus.className = 'btn btn-ghost btn-sm';
     btnAmigos.className = 'btn btn-primary btn-sm';
-    if (compose) compose.style.display = 'none';
+    if (compose) compose.style.display = 'block';
   }
   loadFeedTab(tab);
 }
@@ -4946,7 +4946,7 @@ async function publishFeedPost() {
     await api('/api/feed/post', { method:'POST', body: JSON.stringify({ content: txt.value.trim() }) });
     txt.value = '';
     toast('Post publicado para seus amigos! 📢', 'success');
-    loadFeedTab('meus');
+    loadFeedTab(currentFeedTab || 'amigos');
   } catch(e) { toast('Erro ao publicar', 'error'); }
 }
 
