@@ -557,6 +557,106 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 .dp-particle {position:absolute;pointer-events:none;font-size:18px;animation:dp-particle 1.2s ease-out forwards;opacity:0}
 </style>
 <script src="/dt_enemies_data.js"></script>
+<style>
+/* ═══════════ DAILYS (fotos efêmeras) ═══════════ */
+.dl-hero{background:linear-gradient(135deg,var(--accent),#ff9a6c);border-radius:20px;padding:22px 20px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px;box-shadow:0 8px 24px rgba(255,107,53,.25);}
+.dl-hero-title{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;line-height:1.1;}
+.dl-hero-sub{font-size:13px;opacity:.92;margin-top:6px;max-width:340px;line-height:1.45;}
+.dl-hero-btn{background:#fff;color:var(--accent);font-weight:800;font-size:15px;padding:13px 20px;border-radius:14px;border:none;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.15);white-space:nowrap;}
+.dl-hero-btn:active{transform:scale(.97);}
+.dl-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.dl-stat{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px 8px;text-align:center;}
+.dl-stat b{display:block;font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--accent);}
+.dl-stat span{font-size:11px;color:var(--muted);}
+.dl-pills{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;}
+.dl-pills .pill{white-space:nowrap;position:relative;}
+.dl-count{display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:99px;font-size:10px;font-weight:800;min-width:17px;height:17px;padding:0 5px;margin-left:5px;}
+.pill.active .dl-count{background:#fff;color:var(--accent);}
+.dl-empty{text-align:center;color:var(--muted);padding:34px 16px;font-size:14px;line-height:1.6;background:var(--surface);border:1.5px dashed var(--border);border-radius:16px;}
+.dl-empty .big{font-size:38px;margin-bottom:6px;}
+.dl-tile{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:transform .12s,box-shadow .12s;}
+.dl-tile:active{transform:scale(.985);}
+.dl-tile:hover{box-shadow:var(--shadow);}
+.dl-ring{width:52px;height:52px;border-radius:50%;padding:3px;background:conic-gradient(var(--accent),#ffb399,var(--accent));flex-shrink:0;}
+.dl-ring img{width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid var(--surface);display:block;}
+.dl-tile-name{font-weight:800;font-size:14px;}
+.dl-tile-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.dl-tile-go{margin-left:auto;background:var(--accent);color:#fff;border-radius:99px;padding:7px 14px;font-size:12px;font-weight:800;white-space:nowrap;}
+.dl-sent{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:12px 14px;margin-bottom:10px;}
+.dl-sent-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:8px;}
+.dl-sent-head b{color:var(--text);font-size:13px;}
+.dl-rcp{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;}
+.dl-rcp img{width:26px;height:26px;border-radius:50%;object-fit:cover;}
+.dl-rcp .st{margin-left:auto;font-size:12px;font-weight:700;}
+.dl-rcp .st.seen{color:var(--green);} .dl-rcp .st.wait{color:var(--muted);} .dl-rcp .st.exp{color:#b45309;}
+.dl-seg{display:flex;background:var(--surface2);border-radius:12px;padding:3px;gap:3px;margin-bottom:10px;}
+.dl-seg button{flex:1;padding:8px;border:none;border-radius:9px;font-weight:700;font-size:12px;cursor:pointer;background:transparent;color:var(--muted);}
+.dl-seg button.on{background:var(--accent);color:#fff;}
+.dl-rank{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:10px 14px;margin-bottom:8px;}
+.dl-rank.me{border-color:var(--accent);background:var(--accent-light);}
+.dl-rank .pos{width:28px;text-align:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;}
+.dl-rank img{width:38px;height:38px;border-radius:50%;object-fit:cover;}
+.dl-rank .nm{font-weight:700;font-size:14px;} .dl-rank .un{font-size:11px;color:var(--muted);}
+.dl-rank .pts{margin-left:auto;text-align:right;font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);font-size:18px;line-height:1;}
+.dl-rank .pts small{display:block;font-family:inherit;font-weight:600;font-size:10px;color:var(--muted);margin-top:3px;}
+.dl-goal-sec{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin:6px 0 10px;}
+.dl-goals{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:16px;}
+.dl-goal{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center;}
+.dl-goal.done{border-color:var(--accent);background:var(--accent-light);}
+.dl-goal .ic{font-size:28px;filter:grayscale(1);opacity:.4;} .dl-goal.done .ic{filter:none;opacity:1;}
+.dl-goal .tt{font-weight:800;font-size:13px;margin-top:4px;} .dl-goal .ds{font-size:11px;color:var(--muted);margin-top:2px;}
+.dl-goal .bar{height:5px;background:var(--surface2);border-radius:9px;margin-top:8px;overflow:hidden;}
+.dl-goal .bar i{display:block;height:100%;background:var(--accent);border-radius:9px;}
+.nav-btn .dl-nav-badge{position:absolute;top:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;border-radius:99px;min-width:16px;height:16px;display:none;align-items:center;justify-content:center;padding:0 4px;}
+
+/* overlays tela cheia (câmera / visualizador) */
+.dl-ov{position:fixed;inset:0;z-index:2000;background:#0b0b0f;color:#fff;display:none;flex-direction:column;}
+.dl-ov.open{display:flex;}
+.dl-ov-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));font-weight:800;font-size:15px;}
+.dl-x{background:rgba(255,255,255,.14);color:#fff;border:none;width:38px;height:38px;border-radius:50%;font-size:17px;cursor:pointer;}
+.dl-step{flex:1;display:none;flex-direction:column;min-height:0;}
+.dl-step.on{display:flex;}
+#dl-video{flex:1;min-height:0;width:100%;object-fit:cover;background:#000;}
+#dl-video.mirror{transform:scaleX(-1);}
+.dl-cam-msg{position:absolute;left:0;right:0;top:35%;text-align:center;padding:0 30px;font-size:14px;line-height:1.6;color:#ddd;display:none;}
+.dl-cam-actions{display:flex;align-items:center;justify-content:space-around;padding:18px 24px;padding-bottom:max(22px,env(safe-area-inset-bottom));background:#0b0b0f;}
+.dl-shutter{width:76px;height:76px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.25);cursor:pointer;}
+.dl-shutter:active{background:#fff;}
+.dl-circle-btn{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.14);border:none;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.dl-canvas-wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 10px;}
+#dl-canvas{max-width:100%;max-height:100%;border-radius:14px;touch-action:none;background:#000;}
+.dl-tools{padding:10px 14px;display:flex;flex-direction:column;gap:10px;background:#0b0b0f;}
+.dl-tools-row{display:flex;gap:8px;align-items:center;}
+.dl-tools input[type=text]{flex:1;background:rgba(255,255,255,.12);border:none;border-radius:12px;color:#fff;padding:12px 14px;font-size:15px;outline:none;}
+.dl-tools input::placeholder{color:#aaa;}
+.dl-chip{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;}
+.dl-chip.on{border-color:var(--accent);}
+.dl-tbtn{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:10px;padding:9px 12px;font-weight:800;font-size:13px;cursor:pointer;}
+.dl-tbtn.on{background:var(--accent);}
+.dl-cta{display:flex;gap:10px;padding:10px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom));background:#0b0b0f;}
+.dl-cta button{flex:1;padding:14px;border-radius:14px;border:none;font-weight:800;font-size:15px;cursor:pointer;background:rgba(255,255,255,.14);color:#fff;}
+.dl-cta button.go{background:var(--accent);flex:2;}
+.dl-cta button:disabled{opacity:.45;}
+.dl-pick{flex:1;min-height:0;overflow-y:auto;padding:0 14px;}
+.dl-pick input[type=text]{width:100%;background:rgba(255,255,255,.12);border:none;border-radius:12px;color:#fff;padding:12px 14px;font-size:15px;outline:none;margin-bottom:8px;box-sizing:border-box;}
+.dl-pick-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;}
+.dl-pick-row img{width:42px;height:42px;border-radius:50%;object-fit:cover;}
+.dl-pick-row .nm{font-weight:700;font-size:15px;} .dl-pick-row .un{font-size:12px;color:#999;}
+.dl-pick-row .ck{margin-left:auto;width:26px;height:26px;border-radius:50%;border:2px solid #666;display:flex;align-items:center;justify-content:center;font-size:14px;color:transparent;}
+.dl-pick-row.sel .ck{background:var(--accent);border-color:var(--accent);color:#fff;}
+.dl-pick-empty{text-align:center;color:#aaa;padding:50px 20px;line-height:1.7;font-size:14px;}
+.dl-viewer{background:#000;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
+.dl-v-bar{height:4px;background:rgba(255,255,255,.2);margin:max(8px,env(safe-area-inset-top)) 10px 0;border-radius:9px;overflow:hidden;}
+#dl-v-progress{height:100%;width:100%;background:#fff;border-radius:9px;}
+.dl-v-top{display:flex;align-items:center;gap:10px;padding:10px 14px;}
+.dl-v-top img{width:36px;height:36px;border-radius:50%;object-fit:cover;}
+#dl-v-count{margin-left:auto;font-family:'Syne',sans-serif;font-weight:800;font-size:22px;min-width:34px;text-align:right;}
+#dl-v-img{flex:1;min-height:0;width:100%;object-fit:contain;-webkit-user-drag:none;pointer-events:none;}
+.dl-v-load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;color:#bbb;pointer-events:none;}
+
+/* aviso de nome por rota secreta */
+.pocket-hidden{display:none!important;}
+</style>
 </head>
 <body>
 
@@ -625,7 +725,12 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
   <nav class="topbar">
     <div class="topbar-logo">D<span>.</span>AILY</div>
     <div class="topbar-nav" id="topbar-nav">
-      <button class="nav-btn active" data-tab="mundo" onclick="switchTab('mundo',this)">
+      <button class="nav-btn active" data-tab="dailys" onclick="switchTab('dailys',this)" style="position:relative;">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>Dailys</span>
+        <span class="dl-nav-badge" id="dl-nav-badge"></span>
+      </button>
+      <button class="nav-btn" data-tab="mundo" onclick="switchTab('mundo',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         <span>Mundo</span>
       </button>
@@ -673,8 +778,34 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
 
   <div class="app-content">
 
+    <!-- ─── DAILYS (fotos efêmeras entre amigos) ─── -->
+    <div id="tab-dailys" class="tab-content">
+      <div class="dl-hero">
+        <div>
+          <div class="dl-hero-title">Mande um Daily</div>
+          <div class="dl-hero-sub">Uma foto, uma frase. Seus amigos têm 20 segundos para ver — depois ela some.</div>
+        </div>
+        <button class="dl-hero-btn" onclick="dlOpenComposer()">📸 Mandar um Daily</button>
+      </div>
+      <div class="dl-stats">
+        <div class="dl-stat"><b id="dl-st-sent">0</b><span>Dailys enviados</span></div>
+        <div class="dl-stat"><b id="dl-st-secs">0</b><span>Segundos vistos</span></div>
+        <div class="dl-stat"><b id="dl-st-rank">—</b><span>Posição</span></div>
+      </div>
+      <div class="dl-pills filter-pills">
+        <span class="pill active" id="dl-pill-inbox" onclick="dlShowPanel('inbox')">📥 Recebidos<span class="dl-count" id="dl-inbox-count" style="display:none">0</span></span>
+        <span class="pill" id="dl-pill-sent" onclick="dlShowPanel('sent')">📤 Enviados</span>
+        <span class="pill" id="dl-pill-rank" onclick="dlShowPanel('rank')">🏆 Ranking</span>
+        <span class="pill" id="dl-pill-goals" onclick="dlShowPanel('goals')">⭐ Marcos</span>
+      </div>
+      <div id="dl-panel-inbox"></div>
+      <div id="dl-panel-sent" style="display:none"></div>
+      <div id="dl-panel-rank" style="display:none"></div>
+      <div id="dl-panel-goals" style="display:none"></div>
+    </div>
+
     <!-- ─── GLOBAL ─── -->
-    <div id="tab-mundo" class="tab-content active">
+    <div id="tab-mundo" class="tab-content">
       <div id="notif-banner" class="notif-banner hidden">
         <div style="flex:1;">
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📷 Daily Mandou!</div>
@@ -692,7 +823,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
       </div>
 
       <!-- Alternância Global / Ágora / Daily! / Daily? -->
-      <div style="display:flex;background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:14px;gap:3px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+      <div id="mundo-mode-bar" style="display:flex;background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:14px;gap:3px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
         <button id="btn-mundo-mandou" style="flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:var(--accent);color:#fff;transition:all .18s;white-space:nowrap;" onclick="setMundoMode('mandou')">⚡ Daily!</button>
         <button id="btn-mundo-pergunta" style="flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;white-space:nowrap;" onclick="setMundoMode('pergunta')">❓ Daily?</button>
         <button id="btn-mundo-regional" style="flex:1;min-width:70px;padding:9px 6px;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;white-space:nowrap;" onclick="setMundoMode('regional')">📍 Regional</button>
@@ -842,7 +973,7 @@ label{font-size:13px;color:var(--muted);margin-bottom:5px;display:block;}
         <div style="display:flex;background:var(--surface2);border-radius:12px;padding:3px;gap:3px;margin-bottom:14px;">
           <button id="mandou-sub-fotos" onclick="setMandouSubTab('fotos')"
             style="flex:1;padding:9px;border:none;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s;">
-            📸 Fotos
+            📸 Participaram
           </button>
           <button id="mandou-sub-ranking" onclick="setMandouSubTab('ranking')"
             style="flex:1;padding:9px;border:none;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;">
@@ -3357,6 +3488,7 @@ function bootApp(){
   setTimeout(checkNotifPermission, 4000);
   try{
   showScreen('app');
+  try{ pocketBoot(); }catch(e){ console.error('pocketBoot',e); }
   const av=document.getElementById('topbar-avatar');
   if(av) av.src=currentUser.avatar_url||avatarUrl(currentUser.name);
   const tn=document.getElementById('topbar-name');
@@ -3380,7 +3512,7 @@ function bootApp(){
     switchTab(_tabParam, _tabBtn);
     window.history.replaceState({}, '', window.location.pathname);
   } else {
-    switchTab('profile', document.querySelector('.nav-btn[onclick*="profile"]'));
+    pocketGoHome();
   }
   checkNotif();
   setInterval(checkNotif,10000);
@@ -4468,8 +4600,16 @@ async function loadProfile(){
                 <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.posts||0}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:11px;color:var(--muted);">⚡ Daily</span>
+                <span style="font-size:11px;color:var(--muted);">⚡ Mandou</span>
                 <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.daily_mandou||0}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:11px;color:var(--muted);">📸 Dailys</span>
+                <span id="pf-dl-sent" style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:11px;color:var(--muted);">👀 Seg. vistos</span>
+                <span id="pf-dl-secs" style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">0</span>
               </div>
               <!-- Pontos ocultos — ativar via ADM
               <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -4525,6 +4665,7 @@ async function loadProfile(){
           </div>` : ''}
         </div>
       </div>`;
+    try{ pocketFillProfileStats(user); }catch(e){}
     // Mover tabs e seções para o container central
     const tabsRow = document.getElementById('profile-tabs-row');
     const wrap = document.getElementById('profile-tabs-row-wrap');
@@ -7306,6 +7447,14 @@ async function showVisitorProfile(username) {
                 <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--gold);">${user.points||0}</span>
               </div>
               <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:11px;color:var(--muted);">📸 Dailys</span>
+                <span id="vp-dl-sent" style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:11px;color:var(--muted);">👀 Seg. vistos</span>
+                <span id="vp-dl-secs" style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">0</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
                 <span style="font-size:11px;color:var(--muted);">Dias</span>
                 <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--accent);">${user.stats?.active_days||0}</span>
               </div>
@@ -7348,6 +7497,7 @@ async function showVisitorProfile(username) {
     loadVisitorSection('posts', username, document.querySelector('#visitor-tabs-v2 .vtab2'));
     loadVisitorFriendsMini(user.id, username);
     loadVisitorAchMini(username);
+    try{ pocketFillVisitorStats(user); }catch(e){}
   } catch(e) {
     if(body) body.innerHTML = '<p class="text-muted" style="padding:30px;text-align:center;">'+e.message+'</p>';
   }
@@ -8072,7 +8222,7 @@ function renderNotifItem(n) {
     community_invite: '🏘️', community_invite_accepted: '✅',
     agenda_invite: '📆', event_invite: '📅', testimonial: '💬', game_challenge: '🎮',
     quiz_challenge: '🧠', quiz_result: '🏆', quiz_bet: '💰', game_rank_lost: '😿',
-    poke: '🎭', mention: '💬',
+    poke: '🎭', mention: '💬', daily_received: '📸',
   };
   const icon = icons[n.type] || '🔔';
   const avatar = n.from_avatar
@@ -8144,6 +8294,11 @@ function renderNotifItem(n) {
     const fromName = (d.from_name || n.from_name || n.from_username || 'Alguém').replace(/'/g, "\'");
     actions = `<div class="notif-actions">
       <button class="btn btn-primary btn-xs" onclick="openReceivedPokeModal('${fromId}','${fromName}','${pokeAvatar}','${action}','${n.id}');closeNotifPanel();">🎭 Ver poke</button>
+    </div>`;
+  }
+  if (n.type === 'daily_received' && !n.read) {
+    actions = `<div class="notif-actions">
+      <button class="btn btn-primary btn-xs" onclick="closeNotifPanel();switchTab('dailys',document.querySelector('.nav-btn[data-tab=dailys]'));">📸 Ver Daily</button>
     </div>`;
   }
   if (n.type === 'testimonial' && !n.read) {
@@ -16885,3 +17040,557 @@ function openDailyTrunfo() {
   window.location.href = '/trunfo-mesa';
 }
 </script>
+
+<!-- ═══ DAILYS: câmera / edição / escolher amigos ═══ -->
+<div id="dl-composer" class="dl-ov">
+  <div class="dl-ov-top">
+    <button class="dl-x" onclick="dlCloseComposer()">✕</button>
+    <span id="dl-step-title">Tire uma foto</span>
+    <span style="width:38px"></span>
+  </div>
+
+  <!-- 1. câmera -->
+  <div id="dl-step-cam" class="dl-step on" style="position:relative;">
+    <video id="dl-video" autoplay playsinline muted></video>
+    <div class="dl-cam-msg" id="dl-cam-msg">Não consegui abrir a câmera ao vivo.<br>Toque no botão redondo para tirar a foto com a câmera do aparelho, ou em 🖼️ para escolher da galeria.</div>
+    <div class="dl-cam-actions">
+      <label class="dl-circle-btn" for="dl-file-gallery" title="Galeria">🖼️</label>
+      <button class="dl-shutter" onclick="dlShutter()" aria-label="Tirar foto"></button>
+      <button class="dl-circle-btn" onclick="dlFlip()" title="Virar câmera">🔄</button>
+    </div>
+    <input type="file" id="dl-file-gallery" accept="image/*" hidden onchange="dlFileChosen(event)">
+    <input type="file" id="dl-file-native" accept="image/*" capture="environment" hidden onchange="dlFileChosen(event)">
+  </div>
+
+  <!-- 2. escrever na foto -->
+  <div id="dl-step-edit" class="dl-step">
+    <div class="dl-canvas-wrap"><canvas id="dl-canvas"></canvas></div>
+    <div class="dl-tools">
+      <div class="dl-tools-row">
+        <input type="text" id="dl-text-input" placeholder="Escreva na foto… (arraste o texto para mover)" maxlength="120" oninput="dlTextChanged()">
+      </div>
+      <div class="dl-tools-row">
+        <span class="dl-chip on" data-c="#ffffff" style="background:#fff" onclick="dlSetColor(this)"></span>
+        <span class="dl-chip" data-c="#ffd400" style="background:#ffd400" onclick="dlSetColor(this)"></span>
+        <span class="dl-chip" data-c="#ff6b35" style="background:#ff6b35" onclick="dlSetColor(this)"></span>
+        <span class="dl-chip" data-c="#111111" style="background:#111;border-color:#555" onclick="dlSetColor(this)"></span>
+        <span style="flex:1"></span>
+        <button class="dl-tbtn" onclick="dlSize(-1)">A−</button>
+        <button class="dl-tbtn" onclick="dlSize(1)">A+</button>
+        <button class="dl-tbtn on" id="dl-bg-btn" onclick="dlToggleBg()">Faixa</button>
+      </div>
+    </div>
+    <div class="dl-cta">
+      <button onclick="dlRetake()">↺ Refazer</button>
+      <button class="go" onclick="dlGoPick()">Escolher amigos →</button>
+    </div>
+  </div>
+
+  <!-- 3. para quem -->
+  <div id="dl-step-pick" class="dl-step">
+    <div class="dl-pick">
+      <input type="text" id="dl-pick-search" placeholder="Buscar amigo…" oninput="dlRenderFriends()">
+      <div id="dl-pick-list"></div>
+    </div>
+    <div class="dl-cta">
+      <button onclick="dlBackToEdit()">← Voltar</button>
+      <button class="go" id="dl-send-btn" onclick="dlSend()" disabled>Mandar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DAILYS: visualizador (20s e some) ═══ -->
+<div id="dl-viewer" class="dl-ov dl-viewer">
+  <div class="dl-v-bar"><div id="dl-v-progress"></div></div>
+  <div class="dl-v-top">
+    <img id="dl-v-av" src="" alt="">
+    <div><div id="dl-v-name" style="font-weight:800;font-size:15px;"></div><div id="dl-v-sub" style="font-size:12px;color:#bbb;">Some quando o tempo acabar</div></div>
+    <div id="dl-v-count">20</div>
+    <button class="dl-x" onclick="dlEndView()">✕</button>
+  </div>
+  <img id="dl-v-img" src="" alt="" draggable="false">
+  <div class="dl-v-load" id="dl-v-load">Abrindo…</div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// MODO POCKET + DAILYS (fotos efêmeras entre amigos)
+// Nada foi apagado: as funções antigas continuam no código e no banco,
+// só ficam ocultas. Rotas secretas / modo completo: veja POCKET.ROUTES.
+// ═══════════════════════════════════════════════════════════════
+const POCKET = (function(){
+  // rota secreta → recurso liberado neste navegador
+  const ROUTES = { '/jogosdaily':'jogos', '/dailypoke':'dailypoke', '/modocompleto':'full' };
+  const KEY = 'daily_unlocked';
+  let unlocked = [];
+  try { unlocked = JSON.parse(localStorage.getItem(KEY) || '[]'); if (!Array.isArray(unlocked)) unlocked = []; } catch(e) { unlocked = []; }
+
+  const path = location.pathname.replace(/\/+$/, '').toLowerCase();
+  if (ROUTES[path]) {
+    const f = ROUTES[path];
+    if (!unlocked.includes(f)) unlocked.push(f);
+    try {
+      localStorage.setItem(KEY, JSON.stringify(unlocked));
+      if (f !== 'full') sessionStorage.setItem('pocket_goto', f);
+    } catch(e) {}
+    try { history.replaceState({}, '', '/'); } catch(e) {}
+  }
+
+  // quais abas exigem o quê para aparecer
+  const NEEDS = { jogos:'jogos', dailypoke:'dailypoke', mapa:'full', achievements:'full', news:'full', events:'full', communities:'full' };
+
+  function isFull(){
+    // modo completo só vale para administradores
+    return unlocked.includes('full') && typeof currentUser !== 'undefined' && !!(currentUser && (currentUser.is_admin || currentUser.is_moderator));
+  }
+  function isOpen(feature){ return isFull() || unlocked.includes(feature); }
+  function isLocked(tab){ const need = NEEDS[tab]; return !!need && !(need === 'full' ? isFull() : isOpen(need)); }
+
+  function apply(){
+    const r = [];
+    const hide = (open, sel) => { if (!open) r.push(sel + '{display:none!important}'); };
+    const full = isFull();
+    hide(isOpen('jogos'),     '.nav-btn[data-tab="jogos"]');
+    hide(isOpen('dailypoke'), '.nav-btn[data-tab="dailypoke"]');
+    hide(full, '.nav-btn[data-tab="mapa"],.nav-btn[data-tab="news"],.nav-btn[data-tab="achievements"],.topbar-nav .nav-btn[onclick="openAgoraChat()"]');
+    hide(full, '#mundo-mode-bar');
+    // perfil próprio
+    hide(full, '.profile-tab[onclick*="comunidades"],.profile-tab[onclick*="conquistas"],.profile-tab[onclick*="openAgendaScreen"],.mob-ptab[onclick*="conquistas"],.mob-ptab[onclick*="eventos"]');
+    hide(full, '#profile-col-left button[onclick*="openBadgeSelector"],#profile-col-left button[onclick*="openTimelinePage"],#profile-col-left button[onclick*="openPhotosPage"],#profile-col-left button[onclick*="\'profissional\'"]');
+    hide(full, '#profile-col-right > div:has(#profile-comm-mini),#profile-col-right > div:has(.profile-badge-chip)');
+    // perfil de visitante
+    hide(full, '#visitor-tabs-v2 button[onclick*="\'agenda\'"],#screen-visitor div:has(> #visitor-ach-mini)');
+    let st = document.getElementById('pocket-style');
+    if (!st) { st = document.createElement('style'); st.id = 'pocket-style'; document.head.appendChild(st); }
+    st.textContent = r.join('\n');
+  }
+  apply();
+  return { ROUTES, isFull, isOpen, isLocked, apply };
+})();
+
+// ── guardas: nada de ir parar numa aba oculta ──
+(function(){
+  const _st = window.switchTab;
+  window.switchTab = function(tab, btn){
+    if (POCKET.isLocked(tab)) { tab = 'dailys'; btn = document.querySelector('.nav-btn[data-tab="dailys"]'); }
+    const r = _st.call(this, tab, btn);
+    if (tab === 'dailys') dlLoadTab();
+    return r;
+  };
+  const _sm = window.setMundoMode;
+  window.setMundoMode = function(m){ if (!POCKET.isFull() && m !== 'mandou') m = 'mandou'; return _sm.call(this, m); };
+  ['checkDQPeriodChange','checkEventInvitesBoot'].forEach(n => {
+    const f = window[n]; if (typeof f !== 'function') return;
+    window[n] = function(){ if (POCKET.isFull()) return f.apply(this, arguments); };
+  });
+})();
+
+function pocketBoot(){ POCKET.apply(); dlStartPolling(); }
+function pocketGoHome(){
+  POCKET.apply();
+  let g = null;
+  try { g = sessionStorage.getItem('pocket_goto'); sessionStorage.removeItem('pocket_goto'); } catch(e) {}
+  const tab = g || 'dailys';
+  switchTab(tab, document.querySelector('.nav-btn[data-tab="' + tab + '"]'));
+}
+
+// ═══════════════════════════ DAILYS ═══════════════════════════
+const DL = {
+  panel:'inbox', inbox:[], friends:null, stats:null,
+  stream:null, facing:'environment', img:null,
+  text:'', tx:.5, ty:.78, color:'#ffffff', size:.065, bg:true, drag:false,
+  sel:new Set(), viewing:null, pollTimer:null, rankPeriod:'week', rankScope:'all',
+};
+const DL_GOALS_SENT = [[1,'🌱','Primeiro Daily'],[10,'📸','10 Dailys'],[50,'🔥','50 Dailys'],[100,'💯','100 Dailys'],[500,'👑','500 Dailys']];
+const DL_GOALS_SECS = [[30,'👀','30s vistos'],[300,'⏱️','5 min de fama'],[1000,'🌟','1.000 segundos'],[5000,'🚀','5.000 segundos'],[20000,'🏆','Lenda do Daily']];
+
+function dlEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function dlAv(u){ return u.avatar_url || avatarUrl(u.name || '?'); }
+function dlEl(id){ return document.getElementById(id); }
+const DL_LOADER = '<div class="page-loader"><div class="loader"></div></div>';
+
+// ── aba ──
+async function dlLoadTab(){
+  dlLoadStats();
+  await dlLoadInbox();
+  if (DL.panel === 'sent') dlLoadSent();
+  else if (DL.panel === 'rank') dlLoadRank();
+  else if (DL.panel === 'goals') dlRenderGoals();
+}
+async function dlLoadStats(){
+  try {
+    const s = await api('/api/dailys/stats/me');
+    DL.stats = s;
+    dlEl('dl-st-sent').textContent = s.dailys_sent;
+    dlEl('dl-st-secs').textContent = s.seconds_viewed;
+    dlEl('dl-st-rank').textContent = s.rank ? '#' + s.rank : '—';
+    if (DL.panel === 'goals') dlRenderGoals();
+  } catch(e) {}
+}
+function dlUpdateBadges(n){
+  const c = dlEl('dl-inbox-count'); if (c) { c.textContent = n; c.style.display = n ? 'inline-flex' : 'none'; }
+  const b = dlEl('dl-nav-badge'); if (b) { b.textContent = n > 9 ? '9+' : n; b.style.display = n ? 'flex' : 'none'; }
+}
+function dlShowPanel(p){
+  DL.panel = p;
+  ['inbox','sent','rank','goals'].forEach(x => {
+    const el = dlEl('dl-panel-' + x); if (el) el.style.display = x === p ? '' : 'none';
+    const pill = dlEl('dl-pill-' + x); if (pill) pill.classList.toggle('active', x === p);
+  });
+  if (p === 'inbox') dlLoadInbox();
+  else if (p === 'sent') dlLoadSent();
+  else if (p === 'rank') dlLoadRank();
+  else dlRenderGoals();
+}
+
+// ── recebidos ──
+async function dlLoadInbox(){
+  const el = dlEl('dl-panel-inbox');
+  try {
+    const { dailys } = await api('/api/dailys/inbox');
+    DL.inbox = dailys; dlUpdateBadges(dailys.length);
+    if (!el) return;
+    if (!dailys.length) {
+      el.innerHTML = '<div class="dl-empty"><div class="big">📭</div>Nenhum Daily esperando por você.<br>Quando um amigo mandar, ele aparece aqui.</div>';
+      return;
+    }
+    el.innerHTML = dailys.map(d => `
+      <div class="dl-tile" onclick="dlView('${d.id}')">
+        <div class="dl-ring"><img src="${dlEsc(dlAv(d))}" alt=""></div>
+        <div><div class="dl-tile-name">${dlEsc(d.name)}</div><div class="dl-tile-sub">${timeAgo(d.created_at)} · ${d.duration_sec}s para ver</div></div>
+        <div class="dl-tile-go">Abrir</div>
+      </div>`).join('');
+  } catch(e) {
+    if (el && !el.innerHTML.trim()) el.innerHTML = '<div class="dl-empty">Não consegui carregar agora. Tente de novo em instantes.</div>';
+  }
+}
+
+// ── enviados ──
+async function dlLoadSent(){
+  const el = dlEl('dl-panel-sent'); if (!el) return;
+  el.innerHTML = DL_LOADER;
+  try {
+    const { dailys } = await api('/api/dailys/sent');
+    if (!dailys.length) {
+      el.innerHTML = '<div class="dl-empty"><div class="big">📸</div>Você ainda não mandou nenhum Daily.<br>Toque em <b>Mandar um Daily</b> lá em cima.</div>';
+      return;
+    }
+    el.innerHTML = dailys.map(d => {
+      const seen = d.recipients.filter(r => r.status === 'opened').length;
+      const secs = d.recipients.reduce((a, r) => a + (r.seconds_viewed || 0), 0);
+      const rows = d.recipients.map(r => {
+        let st;
+        if (r.status === 'opened') st = r.closed ? `<span class="st seen">👀 viu ${r.seconds_viewed}s</span>` : '<span class="st seen">👀 vendo agora</span>';
+        else if (r.status === 'expired') st = '<span class="st exp">⌛ expirou</span>';
+        else st = '<span class="st wait">⏳ não abriu</span>';
+        return `<div class="dl-rcp"><img src="${dlEsc(dlAv(r))}" alt=""><span>${dlEsc(r.name)}</span>${st}</div>`;
+      }).join('');
+      return `<div class="dl-sent"><div class="dl-sent-head"><b>${timeAgo(d.created_at)}</b><span>${seen}/${d.recipients.length} viram · +${secs} pts</span></div>${rows}</div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div class="dl-empty">Não consegui carregar seus Dailys enviados.</div>'; }
+}
+
+// ── ranking ──
+function dlSetRank(k, v){ if (k === 'period') DL.rankPeriod = v; else DL.rankScope = v; dlLoadRank(); }
+async function dlLoadRank(){
+  const el = dlEl('dl-panel-rank'); if (!el) return;
+  const seg = `
+    <div class="dl-seg">
+      <button class="${DL.rankPeriod === 'week' ? 'on' : ''}" onclick="dlSetRank('period','week')">Esta semana</button>
+      <button class="${DL.rankPeriod === 'all' ? 'on' : ''}" onclick="dlSetRank('period','all')">Sempre</button>
+    </div>
+    <div class="dl-seg">
+      <button class="${DL.rankScope === 'all' ? 'on' : ''}" onclick="dlSetRank('scope','all')">🌍 Todos</button>
+      <button class="${DL.rankScope === 'friends' ? 'on' : ''}" onclick="dlSetRank('scope','friends')">👥 Amigos</button>
+    </div>`;
+  el.innerHTML = seg + DL_LOADER;
+  try {
+    const { ranking } = await api(`/api/dailys/ranking?period=${DL.rankPeriod}&scope=${DL.rankScope}`);
+    if (!ranking.length) { el.innerHTML = seg + '<div class="dl-empty"><div class="big">🏆</div>Ninguém pontuou ainda.<br>Cada segundo que um amigo passa vendo seu Daily vira 1 ponto.</div>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    el.innerHTML = seg + ranking.map((r, i) => `
+      <div class="dl-rank ${r.user_id === currentUser.id ? 'me' : ''}" onclick="openUserProfile('${dlEsc(r.username)}')">
+        <div class="pos">${medals[i] || (i + 1)}</div>
+        <img src="${dlEsc(dlAv(r))}" alt="">
+        <div><div class="nm">${dlEsc(r.name)}</div><div class="un">@${dlEsc(r.username)}</div></div>
+        <div class="pts">${r.seconds_viewed}<small>${r.dailys_sent} Dailys</small></div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = seg + '<div class="dl-empty">Não consegui carregar o ranking.</div>'; }
+}
+
+// ── marcos (gamificação) ──
+function dlGoalCards(list, val, unit){
+  return '<div class="dl-goals">' + list.map(([t, ic, name]) => {
+    const done = val >= t, pct = Math.min(100, Math.round(val / t * 100));
+    return `<div class="dl-goal ${done ? 'done' : ''}"><div class="ic">${ic}</div><div class="tt">${name}</div>
+      <div class="ds">${done ? 'Conquistado!' : Math.min(val, t) + ' / ' + t + ' ' + unit}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div></div>`;
+  }).join('') + '</div>';
+}
+function dlRenderGoals(){
+  const el = dlEl('dl-panel-goals'); if (!el) return;
+  const s = DL.stats || { dailys_sent: 0, seconds_viewed: 0 };
+  el.innerHTML = '<div class="dl-goal-sec">📸 Dailys enviados</div>' + dlGoalCards(DL_GOALS_SENT, s.dailys_sent, 'Dailys')
+    + '<div class="dl-goal-sec">👀 Segundos vistos pelos amigos</div>' + dlGoalCards(DL_GOALS_SECS, s.seconds_viewed, 's');
+}
+
+// ═══════════ COMPOSER ═══════════
+const DL_TITLES = { cam:'Tire uma foto', edit:'Escreva na foto', pick:'Mandar para…' };
+function dlSetStep(s){
+  ['cam','edit','pick'].forEach(x => dlEl('dl-step-' + x).classList.toggle('on', x === s));
+  dlEl('dl-step-title').textContent = DL_TITLES[s];
+}
+async function dlOpenComposer(){
+  DL.img = null; DL.text = ''; DL.tx = .5; DL.ty = .78; DL.sel = new Set(); DL.friends = null;
+  dlEl('dl-text-input').value = '';
+  dlEl('dl-composer').classList.add('open');
+  dlSetStep('cam');
+  await dlStartCamera();
+}
+function dlCloseComposer(){
+  dlStopCamera();
+  dlEl('dl-composer').classList.remove('open');
+  DL.img = null;
+}
+function dlStopCamera(){
+  if (DL.stream) { DL.stream.getTracks().forEach(t => t.stop()); DL.stream = null; }
+  const v = dlEl('dl-video'); if (v) v.srcObject = null;
+}
+async function dlStartCamera(){
+  dlStopCamera();
+  const msg = dlEl('dl-cam-msg'), v = dlEl('dl-video');
+  msg.style.display = 'none'; v.style.visibility = 'visible';
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { dlCamFallback(); return; }
+  try {
+    DL.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: DL.facing }, width: { ideal: 1280 }, height: { ideal: 1920 } }, audio: false });
+    v.srcObject = DL.stream;
+    v.classList.toggle('mirror', DL.facing === 'user');
+    await v.play().catch(() => {});
+  } catch(e) { dlCamFallback(); }
+}
+function dlCamFallback(){
+  dlEl('dl-cam-msg').style.display = 'block';
+  dlEl('dl-video').style.visibility = 'hidden';
+}
+function dlFlip(){
+  DL.facing = DL.facing === 'user' ? 'environment' : 'user';
+  if (DL.stream) dlStartCamera();
+}
+function dlShutter(){
+  if (!DL.stream) { dlEl('dl-file-native').click(); return; }
+  const v = dlEl('dl-video'), w = v.videoWidth, h = v.videoHeight;
+  if (!w || !h) return;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  if (DL.facing === 'user') { x.translate(w, 0); x.scale(-1, 1); }
+  x.drawImage(v, 0, 0, w, h);
+  DL.img = c; dlStopCamera(); dlEnterEdit();
+}
+function dlLoadImage(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { URL.revokeObjectURL(url); res(im); };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Imagem inválida')); };
+    im.src = url;
+  });
+}
+async function dlFileChosen(e){
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    try { DL.img = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+    catch(_) { DL.img = await dlLoadImage(file); }
+    dlStopCamera(); dlEnterEdit();
+  } catch(err) { toast('Não consegui abrir essa imagem', 'error'); }
+}
+function dlEnterEdit(){
+  const src = DL.img, sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+  const k = Math.min(1, 1280 / Math.max(sw, sh));
+  const c = dlEl('dl-canvas'); c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+  dlSetStep('edit'); dlRender();
+}
+function dlWrap(ctx, text, maxW){
+  const words = text.split(/\s+/), lines = []; let cur = '';
+  for (const w of words) {
+    const t = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function dlRender(){
+  const c = dlEl('dl-canvas'); if (!c || !DL.img) return;
+  const x = c.getContext('2d'), W = c.width, H = c.height;
+  x.clearRect(0, 0, W, H); x.drawImage(DL.img, 0, 0, W, H);
+  const t = DL.text.trim(); if (!t) return;
+  const fs = Math.round(W * DL.size);
+  x.font = `800 ${fs}px Syne, system-ui, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+  const lines = dlWrap(x, t, W * 0.9), lh = fs * 1.22, total = lines.length * lh;
+  const cy = DL.ty * H, top = cy - total / 2, cx = DL.bg ? W / 2 : DL.tx * W;
+  if (DL.bg) { x.fillStyle = DL.color === '#111111' ? 'rgba(255,255,255,.78)' : 'rgba(0,0,0,.58)'; x.fillRect(0, top - fs * .22, W, total + fs * .44); }
+  else { x.shadowColor = 'rgba(0,0,0,.75)'; x.shadowBlur = fs * .25; }
+  x.fillStyle = DL.color;
+  lines.forEach((ln, i) => x.fillText(ln, cx, top + lh * (i + .5)));
+  x.shadowBlur = 0;
+}
+function dlTextChanged(){ DL.text = dlEl('dl-text-input').value; dlRender(); }
+function dlSetColor(el){
+  document.querySelectorAll('.dl-chip').forEach(c => c.classList.toggle('on', c === el));
+  DL.color = el.dataset.c; dlRender();
+}
+function dlSize(d){ DL.size = Math.min(.12, Math.max(.035, DL.size + d * .01)); dlRender(); }
+function dlToggleBg(){ DL.bg = !DL.bg; dlEl('dl-bg-btn').classList.toggle('on', DL.bg); dlRender(); }
+(function(){
+  const c = dlEl('dl-canvas'); if (!c) return;
+  const move = e => {
+    if (!DL.drag || !DL.text.trim()) return;
+    const r = c.getBoundingClientRect();
+    DL.tx = Math.min(.95, Math.max(.05, (e.clientX - r.left) / r.width));
+    DL.ty = Math.min(.95, Math.max(.05, (e.clientY - r.top) / r.height));
+    dlRender();
+  };
+  c.addEventListener('pointerdown', e => { DL.drag = true; try { c.setPointerCapture(e.pointerId); } catch(_) {} move(e); });
+  c.addEventListener('pointermove', move);
+  ['pointerup','pointercancel'].forEach(ev => c.addEventListener(ev, () => { DL.drag = false; }));
+})();
+function dlRetake(){ DL.img = null; dlSetStep('cam'); dlStartCamera(); }
+function dlBackToEdit(){ dlSetStep('edit'); }
+
+// ── escolher amigos ──
+async function dlGoPick(){
+  if (!DL.img) return;
+  dlSetStep('pick');
+  dlEl('dl-pick-search').value = '';
+  if (!DL.friends) {
+    dlEl('dl-pick-list').innerHTML = '<div class="dl-pick-empty">Carregando amigos…</div>';
+    try { DL.friends = ((await api('/api/friends')).friends || []).filter(f => f.id !== 'pedro-official-daily'); }
+    catch(e) { DL.friends = []; toast('Não consegui carregar seus amigos', 'error'); }
+  }
+  dlRenderFriends();
+}
+function dlRenderFriends(){
+  const list = dlEl('dl-pick-list'), q = dlEl('dl-pick-search').value.trim().toLowerCase();
+  const all = DL.friends || [];
+  if (!all.length) {
+    list.innerHTML = '<div class="dl-pick-empty">Você ainda não tem amigos no DAILY.<br>Adicione alguém para poder mandar um Daily.<br><br><button class="dl-tbtn on" onclick="dlCloseComposer();openSearchModal()">🔍 Buscar amigos</button></div>';
+    dlUpdateSend(); return;
+  }
+  const shown = all.filter(f => !q || (f.name || '').toLowerCase().includes(q) || (f.username || '').toLowerCase().includes(q));
+  const allSel = all.every(f => DL.sel.has(f.id));
+  let html = '';
+  if (!q && all.length > 1) html += `<div class="dl-pick-row ${allSel ? 'sel' : ''}" onclick="dlToggleAll()"><div class="nm">Selecionar todos (${all.length})</div><div class="ck">✓</div></div>`;
+  html += shown.map(f => `
+    <div class="dl-pick-row ${DL.sel.has(f.id) ? 'sel' : ''}" onclick="dlToggleFriend('${dlEsc(f.id)}')">
+      <img src="${dlEsc(dlAv(f))}" alt=""><div><div class="nm">${dlEsc(f.name)}</div><div class="un">@${dlEsc(f.username)}</div></div>
+      <div class="ck">✓</div></div>`).join('');
+  if (!shown.length) html += '<div class="dl-pick-empty">Nenhum amigo com esse nome.</div>';
+  list.innerHTML = html;
+  dlUpdateSend();
+}
+function dlToggleFriend(id){ DL.sel.has(id) ? DL.sel.delete(id) : DL.sel.add(id); dlRenderFriends(); }
+function dlToggleAll(){
+  const all = DL.friends || [];
+  if (all.every(f => DL.sel.has(f.id))) DL.sel.clear(); else all.forEach(f => DL.sel.add(f.id));
+  dlRenderFriends();
+}
+function dlUpdateSend(){
+  const b = dlEl('dl-send-btn'), n = DL.sel.size;
+  b.disabled = n === 0; b.textContent = n ? `Mandar para ${n} ${n === 1 ? 'amigo' : 'amigos'} 🚀` : 'Escolha quem vai ver';
+}
+async function dlSend(){
+  const b = dlEl('dl-send-btn'), n = DL.sel.size;
+  if (!n || !DL.img) return;
+  b.disabled = true; b.textContent = 'Enviando…';
+  try {
+    const blob = await new Promise(r => dlEl('dl-canvas').toBlob(r, 'image/jpeg', 0.86));
+    if (!blob) throw new Error('Não consegui preparar a foto');
+    const fd = new FormData();
+    fd.append('photo', blob, 'daily.jpg');
+    fd.append('recipients', JSON.stringify([...DL.sel]));
+    await apiForm('/api/dailys', fd);
+    toast(`Daily enviado para ${n} ${n === 1 ? 'amigo' : 'amigos'}! 🚀`, 'success');
+    dlCloseComposer();
+    dlLoadStats();
+    dlShowPanel('sent');
+  } catch(e) {
+    toast(e.message || 'Erro ao enviar', 'error');
+    dlUpdateSend();
+  }
+}
+
+// ═══════════ VISUALIZADOR (20s e some) ═══════════
+async function dlView(id){
+  if (DL.viewing) return;
+  const ov = dlEl('dl-viewer'), img = dlEl('dl-v-img'), load = dlEl('dl-v-load');
+  img.removeAttribute('src'); load.style.display = 'flex'; load.textContent = 'Abrindo…';
+  dlEl('dl-v-progress').style.width = '100%'; dlEl('dl-v-count').textContent = '';
+  ov.classList.add('open');
+  let info;
+  try { info = await api('/api/dailys/' + id + '/open', { method: 'POST' }); }
+  catch(e) { ov.classList.remove('open'); toast(e.message, 'error'); dlLoadInbox(); return; }
+  const v = DL.viewing = { id, dur: info.duration_sec || 20, start: 0, timer: null, ended: false };
+  dlEl('dl-v-av').src = dlAv(info.sender || {}); dlEl('dl-v-name').textContent = (info.sender && info.sender.name) || '';
+  dlEl('dl-v-count').textContent = v.dur;
+  img.onload = () => {
+    if (DL.viewing !== v) return;
+    load.style.display = 'none';
+    v.start = performance.now();
+    v.timer = setInterval(dlTick, 100); dlTick();
+  };
+  img.onerror = () => { toast('Não consegui carregar essa imagem', 'error'); dlEndView(true); };
+  img.src = info.image_url;
+}
+function dlTick(){
+  const v = DL.viewing; if (!v || !v.start) return;
+  const left = Math.max(0, v.dur - (performance.now() - v.start) / 1000);
+  dlEl('dl-v-progress').style.width = (left / v.dur * 100) + '%';
+  dlEl('dl-v-count').textContent = Math.ceil(left);
+  if (left <= 0) dlEndView();
+}
+function dlEndView(zero){
+  const v = DL.viewing; if (!v || v.ended) return;
+  v.ended = true; clearInterval(v.timer);
+  const el = v.start ? (performance.now() - v.start) / 1000 : 0;
+  const secs = zero ? 0 : Math.min(v.dur, Math.round(el));
+  const img = dlEl('dl-v-img');
+  img.onload = img.onerror = null; img.removeAttribute('src');
+  dlEl('dl-viewer').classList.remove('open');
+  DL.viewing = null;
+  fetch('/api/dailys/' + v.id + '/close', {
+    method: 'POST', keepalive: true,
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok() },
+    body: JSON.stringify({ seconds: secs }),
+  }).catch(() => {});
+  if (secs) toast('Visto por ' + secs + 's — o Daily sumiu 👋');
+  setTimeout(dlLoadInbox, 700);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && DL.viewing) dlEndView(); });
+window.addEventListener('pagehide', () => { if (DL.viewing) dlEndView(); });
+dlEl('dl-viewer').addEventListener('contextmenu', e => e.preventDefault());
+
+// ── atualização automática da caixa de entrada ──
+function dlStartPolling(){
+  if (DL.pollTimer) return;
+  dlLoadInbox();
+  DL.pollTimer = setInterval(() => { if (!document.hidden && tok() && !DL.viewing) dlLoadInbox(); }, 25000);
+}
+
+// ── contadores nos perfis ──
+async function pocketFillProfileStats(user){
+  try {
+    const s = await api('/api/dailys/stats/' + user.id);
+    const a = dlEl('pf-dl-sent'), b = dlEl('pf-dl-secs');
+    if (a) a.textContent = s.dailys_sent; if (b) b.textContent = s.seconds_viewed;
+  } catch(e) {}
+}
+async function pocketFillVisitorStats(user){
+  try {
+    const s = await api('/api/dailys/stats/' + user.id);
+    const a = dlEl('vp-dl-sent'), b = dlEl('vp-dl-secs');
+    if (a) a.textContent = s.dailys_sent; if (b) b.textContent = s.seconds_viewed;
+  } catch(e) {}
+}
+</script>
+

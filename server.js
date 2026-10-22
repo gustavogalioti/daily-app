@@ -84,6 +84,7 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
     ['/api/timeline', './timeline'],
     ['/api/mandou-ranking', './mandou_ranking'],
     ['/api/trunfo', './trunfo'],
+    ['/api/dailys', './dailys'],
   ];
   for (const [path, file] of routeFiles) {
     try {
@@ -109,6 +110,12 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
     console.log('  ✓ trunfo DB inicializado');
   } catch(e) { console.error('trunfo DB erro:', e.message); }
 
+  // Dailys efêmeros (tabelas + limpeza periódica)
+  try {
+    const { initDailysDB } = require('./dailys');
+    await initDailysDB();
+  } catch(e) { console.error('dailys DB erro:', e.message); }
+
   app.get('/api/health', (req, res) => res.json({ status:'ok', app:'DAILY', version:'3.0.0' }));
   app.get('/test', (req, res) => {
     res.sendFile(path.join(__dirname, 'test.html'));
@@ -133,6 +140,14 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
     res.status(500).json({ error: err.message||'Erro interno' });
   });
 
+
+  // ── MODO POCKET ───────────────────────────────────────────────────────────
+  // Lançamento enxuto: só Dailys + Daily Mandou + Perfil. Os avisos automáticos
+  // das funções ocultas (Daily Pergunta, Quiz, NEWS, aniversários) ficam
+  // desligados para não notificar o usuário sobre algo que ele não vê.
+  // Para religar tudo: defina POCKET_MODE=0 nas variáveis do Railway.
+  const POCKET_MODE = process.env.POCKET_MODE !== '0';
+  console.log(POCKET_MODE ? '  ✓ MODO POCKET ativo (schedulers de funções ocultas desligados)' : '  ✓ Modo completo (POCKET_MODE=0)');
 
   // ── Scheduler: notificação do Daily Pergunta por período ──────────────────
   const { sendPushToAll } = require('./notifications');
@@ -194,8 +209,10 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
   }
 
   // Verificar a cada 5 minutos
-  setInterval(checkDailyQuestionPush, 5 * 60 * 1000);
-  checkDailyQuestionPush(); // verificar imediatamente
+  if (!POCKET_MODE) {
+    setInterval(checkDailyQuestionPush, 5 * 60 * 1000);
+    checkDailyQuestionPush(); // verificar imediatamente
+  }
 
   // ── Scheduler: notificação do Quiz Arena à meia-noite ────────────────────
   async function checkQuizArenaPush() {
@@ -218,8 +235,10 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
     } catch(e) { console.error('quiz arena push error:', e.message); }
   }
 
-  setInterval(checkQuizArenaPush, 5 * 60 * 1000);
-  checkQuizArenaPush();
+  if (!POCKET_MODE) {
+    setInterval(checkQuizArenaPush, 5 * 60 * 1000);
+    checkQuizArenaPush();
+  }
 
   // ── Scheduler: Turnos do Pedro — avisa quando um novo turno começa ───────
   async function checkTurnoPush() {
@@ -249,6 +268,7 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
   // ── Scheduler: NEWS automático ────────────────────────────────────────────
   let newsScheduler;
   try {
+    if (POCKET_MODE) throw new Error('desligado no modo pocket');
     newsScheduler = require('./news_scheduler');
     const { getDB } = require('./database');
     setInterval(() => newsScheduler.runNewsSchedulers(getDB()), 5 * 60 * 1000);
@@ -287,7 +307,7 @@ const towerRoutes = require('./tower'); app.use('/api/tower', towerRoutes);
       checkBirthdayScheduler();
       console.log('  ✓ Birthday scheduler ativo');
     } catch(e) { console.error('birthday_scheduler:', e.message); }
-  } catch(e) { console.error('news_scheduler:', e.message); }
+  } catch(e) { console.log('news/aniversários não iniciados:', e.message); }
 
     const PORT = process.env.PORT || 3000;
   const httpServer = http.createServer(app);
